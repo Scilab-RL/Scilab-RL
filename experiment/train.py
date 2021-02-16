@@ -13,6 +13,7 @@ import importlib
 from stable_baselines3.common import logger
 from util.custom_logger import MatplotlibOutputFormat
 from stable_baselines3.common.evaluation import evaluate_policy
+print(sys.path)
 
 ALL_PATH_CONFIG_PARAMS = ['info', 'algorithm']
 
