@@ -17,9 +17,8 @@ from stable_baselines3.common.env_checker import check_env
 from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make_robustGoalConditionedModel
 from stable_baselines3.common.bit_flipping_env import BitFlippingEnv
 from stable_baselines3 import HER, DDPG, DQN, SAC, TD3
-from util.custom_eval_callback import CustomEvalCallback
+from evalLogCallback import EvalLogCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
-from stable_baselines3.common.base_class import BaseAlgorithm
 
 ALL_PATH_CONFIG_PARAMS = ['info', 'algorithm']
 
@@ -36,21 +35,86 @@ def check_env_alg_compatibility(model, env):
     return is_compatible
 
 def train(model, train_env, eval_env, n_epochs, policy_save_interval, starting_epoch, **kwargs):
+    best_early_stop_val = -np.inf
+    n_epochs_avg_for_early_stop = 4
+    early_stop_vals = deque(maxlen=n_epochs_avg_for_early_stop)
+    total_action_steps = np.product([int(steps) for steps in kwargs['action_steps'].split(',')])
     actions_per_episode = np.product([int(steps) for steps in kwargs['action_steps'].split(',')])
     train_actions_per_epoch = actions_per_episode * kwargs['n_train_rollouts']
+    # test_actions_per_epoch = actions_per_episode * kwargs['n_test_rollouts']
     epochs_remaining = n_epochs - starting_epoch
     total_actions = train_actions_per_epoch * epochs_remaining
 
-    checkpoint_callback = CheckpointCallback(save_freq=train_actions_per_epoch, save_path=logger.get_dir())
-    eval_callback = CustomEvalCallback(eval_env, best_model_save_path=logger.get_dir(),
-                                 log_path=logger.get_dir(), eval_freq=train_actions_per_epoch,
-                                 n_eval_episodes=kwargs['n_test_rollouts'],
-                                 render=kwargs['render'])
 
+    checkpoint_callback = CheckpointCallback(save_freq=train_actions_per_epoch, save_path=logger.get_dir())
+    # Separate evaluation env
+
+    eval_callback = EvalCallback(eval_env, best_model_save_path=logger.get_dir()+"/policy_best",
+                                 log_path=logger.get_dir(), eval_freq=train_actions_per_epoch, n_eval_episodes=kwargs['n_test_rollouts'])
+    
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])
-    model.learn(total_timesteps=total_actions,callback=callback, log_interval=kwargs['n_train_rollouts'])
+    # callback = CallbackList([checkpoint_callback])
 
+    # train_steps_per_epoch = kwargs['n_train_rollouts'] * total_action_steps
+    # test_steps_per_epoch = kwargs['n_test_rollouts'] * total_action_steps
+    # done_training = False
+    # for epoch in range(starting_epoch, n_epochs):
+        # logger_dump_fkt = logger.dump
+        # logger.dump = lambda step: step
+    model.learn(total_timesteps=total_actions,callback=callback)
+        # logger.dump = logger_dump_fkt
+
+        # epoch_info = {'reward': [], 'std_reward' : []}
+        #
+        #
+        # mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=kwargs['n_test_rollouts'], deterministic=True)
+        # epoch_info['reward'].append(mean_reward)
+        # epoch_info['std_reward'].append(std_reward)
+        # epoch_avg = {"test/"+k:np.mean(epoch_info[k]) for k in epoch_info.keys()}
+        # epoch_avg['epoch'] = epoch
+        # epoch_avg['train/steps'] = (epoch + 1) * train_steps_per_epoch
+        # for k,v in epoch_avg.items():
+        #     logger.record_tabular(k, v)
+        # logger.info("Data_dir: {}".format(logger.get_dir()))
+        # if kwargs['early_stop_data_column'] in  logger.get_log_dict().keys():
+        #     early_stop_current_val = logger.get_log_dict()[kwargs['early_stop_data_column']]
+        #     early_stop_vals.append(early_stop_current_val)
+        # else:
+        #     logger.warn("Warning: Early stop data column \"{}\" not in logged values.".format(kwargs['early_stop_data_column']))
+        #     early_stop_current_val = 0
+        # logger.dump_tabular()
+        #
+        # latest_policy_path = os.path.join(logger.get_dir(), 'policy_latest')
+        # best_policy_path = os.path.join(logger.get_dir(), 'policy_best')
+        # periodic_policy_path = os.path.join(logger.get_dir(), 'policy_{}')
+        # model.save(latest_policy_path)
+        #
+        # if policy_save_interval > 0 and epoch % policy_save_interval == 0:
+        #     policy_path = periodic_policy_path.format(epoch)
+        #     model.save(policy_path)
+        #
+        # # save the policy if it's better than the previous ones
+        # if kwargs['early_stop_data_column'] in  logger.get_log_dict():
+        #     assert early_stop_current_val is not None, "Early stopping value should not be none."
+        #     if early_stop_current_val >= best_early_stop_val:
+        #         best_early_stop_val = early_stop_current_val
+        #         logger.info(
+        #             'New best value for {}: {}. Saving policy to {}.'.format(kwargs['early_stop_data_column'],
+        #                                                                         early_stop_current_val,
+        #                                                                         best_policy_path))
+        #         model.save(best_policy_path)
+        #
+        # if len(early_stop_vals) >= n_epochs_avg_for_early_stop:
+        #     avg = np.mean(early_stop_vals)
+        #     logger.info('Mean of {} of last {} epochs: {}'.format(kwargs['early_stop_data_column'],
+        #                                                           n_epochs_avg_for_early_stop, avg))
+        #
+        #     if avg >= kwargs['early_stop_threshold'] and avg >= kwargs['early_stop_threshold'] != 0:
+        #         logger.info('Policy is good enough now, early stopping')
+        #         done_training = True
+        # if done_training:
+        #     break
     train_env.close()
     eval_env.close()
 
@@ -58,10 +122,23 @@ def launch(starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_
     set_global_seeds(seed)
 
     model_class = DQN  # works also with SAC, DDPG and TD3
-    N_BITS = int(kwargs['action_steps'])
+    N_BITS = 15
     #
-    train_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=int(kwargs['action_steps']))
-    eval_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=int(kwargs['action_steps']))
+    train_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=N_BITS)
+    eval_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=N_BITS)
+    #
+    # # Available strategies (cf paper): future, final, episode
+    # goal_selection_strategy = 'future'  # equivalent to GoalSelectionStrategy.FUTURE
+    #
+    # # If True the HER transitions will get sampled online
+    # online_sampling = True
+    # # Time limit for the episodes
+    # max_episode_length = N_BITS
+    #
+    # # Initialize the model
+    # model = HER('MlpPolicy', env, model_class, n_sampled_goal=4, goal_selection_strategy=goal_selection_strategy,
+    #             online_sampling=online_sampling,
+    #             verbose=1, max_episode_length=max_episode_length)
 
     env_alg_compatible = True
 
@@ -150,7 +227,7 @@ def main(ctx, **kwargs):
 
     logger.configure(folder=kwargs['logdir'],
                      format_strings=['stdout', 'log', 'csv', 'tensorboard'])
-    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir']+'/plot.csv',cols_to_plot=['test/mean_reward', 'train/entropy_loss', 'train/loss']))
+    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir']+'/plot.csv',cols_to_plot=['test/reward', 'train/entropy_loss', 'train/loss']))
     logdir = logger.get_dir()
 
     logger.info("Data dir: {} ".format(logdir))

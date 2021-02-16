@@ -1,6 +1,6 @@
 import click
 options = [
-click.option('--verbose', type=bool, default=False),
+click.option('--verbose', type=bool, default=True),
 ]
 
 def click_main(func):

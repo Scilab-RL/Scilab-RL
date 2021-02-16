@@ -6,7 +6,7 @@ import importlib
 _global_options = [
 click.option('--env', type=str, default='AntFourRoomsEnv-v0', help='the name of the OpenAI Gym environment that you want to train on. E.g. TowerBuildMujocoEnv-sparse-gripper_random-o2-h1-2-v1, AntFourRoomsEnv-v0'),
 click.option('--algorithm', default='ppo', help='the name of the algorithm to be used',
-             type=click.Choice(['ppo', 'sac', 'dqn'])),
+             type=click.Choice(['ppo', 'sac', 'dqn', 'ddpg', 'her'])),
 click.option('--action_steps', type=str, default='50', help='The number of action steps (per layer if hierarchical per layer, separated by comma, e.g. 25,25)'),
 click.option('--base_logdir', type=str, default='data', help='the path to where logs and policy pickles should go. If not specified, creates a folder in /tmp/'),
 click.option('--n_epochs', type=int, default=300, help='the max. number of training epochs to run'),
@@ -17,7 +17,7 @@ click.option('--restore_policy', type=str, default=None, help='The pretrained po
 click.option('--rollout_batch_size', type=int, default=1, help='The number of simultaneous rollouts.'),
 click.option('--n_train_rollouts', type=int, default=100, help='The number of training episodes (parallel rollouts) per epoch.'),
 click.option('--n_test_rollouts', type=int, default=25, help='The number of testing rollouts.'),
-click.option('--render', type=int, default=1, help='Whether or not to render the rollout execution.'),
+click.option('--render', type=int, default=0, help='Whether or not to render the rollout execution.'),
 click.option('--max_try_idx', type=int, default=199, help='Max. number of tries for this training config.'),
 click.option('--try_start_idx', type=int, default=100, help='Index for first try.'),
 click.option('--early_stop_threshold', type=float, default=0.99, help='The early stopping threshold.'),
