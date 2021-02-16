@@ -13,7 +13,7 @@ import importlib
 from stable_baselines3.common import logger
 from util.custom_logger import MatplotlibOutputFormat
 from stable_baselines3.common.evaluation import evaluate_policy
-print(sys.path)
+from stable_baselines3.common.env_checker import check_env
 
 ALL_PATH_CONFIG_PARAMS = ['info', 'algorithm']
 
@@ -103,6 +103,9 @@ def launch(starting_epoch, env, algorithm,  n_epochs, seed, policy_save_interval
     ModelClass = getattr(importlib.import_module('stable_baselines3.' + algorithm), algorithm.upper())
 
     env = gym.make(env)
+
+    check_env(env)
+
     if restore_policy is not None:
         model = ModelClass.load(restore_policy, env=env)
     else:
