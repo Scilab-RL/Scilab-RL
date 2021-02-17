@@ -7,7 +7,7 @@ _global_options = [
 click.option('--env', type=str, default='AntFourRoomsEnv-v0', help='the name of the OpenAI Gym environment that you want to train on. E.g. TowerBuildMujocoEnv-sparse-gripper_random-o2-h1-2-v1, AntFourRoomsEnv-v0'),
 click.option('--algorithm', default='ppo', help='the name of the algorithm to be used',
              type=click.Choice(['ppo', 'sac', 'dqn', 'ddpg', 'her'])),
-click.option('--action_steps', type=str, default='50', help='The number of action steps (per layer if hierarchical per layer, separated by comma, e.g. 25,25)'),
+click.option('--action_steps', type=int, default=50, help='The total number of action steps. If the environment has a max_episode_steps property, action_steps will not be used.'),
 click.option('--base_logdir', type=str, default='data', help='the path to where logs and policy pickles should go. If not specified, creates a folder in /tmp/'),
 click.option('--n_epochs', type=int, default=300, help='the max. number of training epochs to run'),
 click.option('--num_cpu', type=int, default=1, help='the number of CPU cores to use (using MPI)'),
@@ -34,11 +34,10 @@ click.option('--reward_type', type=str, default='sparse', help='the reward type,
     allow_extra_args=True,
 ))
 @click.pass_context
-def get_policy_click(ctx, **kwargs):
+def get_algorithm_click(ctx, **kwargs):
     policy_linker = importlib.import_module('interface.' + kwargs['algorithm'] + ".click_options", package=__package__)
     policy_args = ctx.forward(policy_linker.get_click_option)
     return policy_args
-
 
 def import_creator(library_path):
     config = importlib.import_module('interface.' + library_path + ".config", package=__package__)

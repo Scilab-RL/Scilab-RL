@@ -36,9 +36,9 @@ def check_env_alg_compatibility(model, env):
         is_compatible = False
     return is_compatible
 
-def train(model, train_env, eval_env, n_epochs, policy_save_interval, starting_epoch, **kwargs):
-    actions_per_episode = np.product([int(steps) for steps in kwargs['action_steps'].split(',')])
-    train_actions_per_epoch = actions_per_episode * kwargs['n_train_rollouts']
+def train(model, train_env, eval_env, n_epochs, steps_per_epoch, starting_epoch, **kwargs):
+    # actions_per_episode = np.product([int(steps) for steps in kwargs['action_steps'].split(',')])
+    train_actions_per_epoch = steps_per_epoch * kwargs['n_train_rollouts']
     epochs_remaining = n_epochs - starting_epoch
     total_actions = train_actions_per_epoch * epochs_remaining
 
@@ -55,10 +55,10 @@ def train(model, train_env, eval_env, n_epochs, policy_save_interval, starting_e
     train_env.close()
     eval_env.close()
 
-def launch(starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_save_interval, restore_policy, logdir, **kwargs):
+def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_save_interval, restore_policy, logdir, **kwargs):
     set_global_seeds(seed)
 
-    # model_class = DQN  # works also with SAC, DDPG and TD3
+    # model_class = DDPG  # works also with SAC, DDPG and TD3
     # N_BITS = int(kwargs['action_steps'])
     # #
     # train_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=int(kwargs['action_steps']))
@@ -70,23 +70,18 @@ def launch(starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_
     train_env = gym.make(env)
     eval_env = gym.make(env)
 
+    if hasattr(train_env, '_max_episode_steps'):
+        policy_args['max_episode_length'] = train_env._max_episode_steps
+    else:
+        policy_args['max_episode_length'] = kwargs['action_steps']
     if restore_policy is not None:
         model = ModelClass.load(restore_policy, env=train_env)
     else:
         if algorithm == 'her':
             policy_args['model_class'] = getattr(importlib.import_module('stable_baselines3.' + policy_args['model_class']), policy_args['model_class'].upper())
-            policy_args['max_episode_length'] = int(np.product([int(num) for num in kwargs['action_steps'].split(",")]))
-            model_params_str_list = policy_args['model_params'].split(",")
-            model_params = {}
-            for mpstr in model_params_str_list:
-                k,v = mpstr.split("=")
-                # if k not in policy_args.keys():
-                model_params[k] = v
-            policy_args.update(model_params)
         model = ModelClass('MlpPolicy', train_env, **policy_args)
-
     logger.info("Launching training")
-    train(model, train_env, eval_env, n_epochs, policy_save_interval, starting_epoch, **kwargs)
+    train(model, train_env, eval_env, n_epochs, steps_per_epoch=policy_args['max_episode_length'], starting_epoch=starting_epoch, **kwargs)
 
 @click.command(context_settings=dict(
     ignore_unknown_options=True,
@@ -96,12 +91,25 @@ def launch(starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_
 @click.pass_context
 def main(ctx, **kwargs):
     config = main_linker.import_creator(kwargs['algorithm'])
-    policy_args = ctx.forward(main_linker.get_policy_click)
-    policy_args = {ctx.args[i][2:]: type(policy_args[ctx.args[i][2:]])(ctx.args[i + 1]) for i in
-                            range(0, len(ctx.args), 2)}
-    kwargs.update(policy_args)
+    all_cmd_kvs = {ctx.args[i][2:]: ctx.args[i+1] for i in range(0, len(ctx.args), 2)}
+    policy_args = ctx.forward(main_linker.get_algorithm_click).copy()
+    changed_policy_args = {k: type(policy_args[k])(v) for k,v in all_cmd_kvs.items() if k in policy_args.keys()}
+    policy_args.update(changed_policy_args)
 
-    kwargs.update(ctx.params)
+    # Get default options for model class
+    if 'model_class' in policy_args.keys():
+        model_click = importlib.import_module('interface.' + policy_args['model_class'] + '.click_options')
+        model_class_options = model_click.get_click_option.params
+        model_class_args = {o.name: o.default for o in model_class_options}
+        changed_mc_args = {k: type(model_class_args[k])(v) for k, v in all_cmd_kvs.items() if k in model_class_args.keys()}
+        model_class_args.update(changed_mc_args)
+        for k,v in model_class_args.items():
+            if k in policy_args.keys():
+                logger.warn("Warning, model class and algorithm have a common parameter {}. This will cause the model class to use the default parameter provided in its constructor.".format(k))
+            else:
+                policy_args[k] = v
+
+    kwargs.update(policy_args)
     kwargs['pid'] = os.getpid()
     logger.info("Starting process id: {}".format(kwargs['pid']))
     ctr = kwargs['try_start_idx']
@@ -156,7 +164,7 @@ def main(ctx, **kwargs):
     logger.info("Data dir: {} ".format(logdir))
     with open(os.path.join(logdir, 'params.json'), 'w') as f:
         json.dump(kwargs, f)
-    launch(starting_epoch, policy_args, **kwargs)
+    launch(ctx, starting_epoch, policy_args, **kwargs)
 
 if __name__ == '__main__':
     main()
