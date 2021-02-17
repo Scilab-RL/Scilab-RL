@@ -3,7 +3,7 @@ import gym
 
 class TestingAlgos:
     # algorithms = ['chac', 'mbchac', 'example_algorithm', 'her_pytorch', 'hiro', 'td3']
-    base_algo_names = ['ppo', 'sac', 'dqn', 'ddpg']
+    base_algo_names = ['ppo', 'sac', 'ddpg']
     algo_names = base_algo_names + ['her'] #'td3', 'ddpg', 'a2c',
 
     @staticmethod
@@ -110,12 +110,45 @@ class TestingAlgos:
     # # def get_td3_cmds(base_cmd):
     # #     cmd = base_cmd + " --algorithm baselines.hiro --td3 1"
     # #     return [cmd]
+
+    @staticmethod
+    def get_her_performance_params(env):
+        all_params = []
+        hyper_params = {}
+        if env in ['FetchReach-v1']:
+            performance_params = {'episodes': 300, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+        elif env in ['FetchPush-v1', 'FetchSlide-v1']:
+            performance_params = {'episodes': 500, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+        else:
+            print("Environment {} is not evaluated with HER algorithm.".format(env))
+            return []
+        for model in TestingAlgos.base_algo_names:
+            if model in ['ppo']:
+                continue
+            hyper_params = {'model_class': model}
+            all_params.append((performance_params, hyper_params))
+        return all_params
+
     @staticmethod
     def get_ppo_performance_params(env):
         hyper_params = {}
         if env in ['CartPole-v1']:
             performance_params = {'epochs': 5, 'n_runs': 4, 'min_success_runs': 2,
-                                  'min_performance_value': 400, 'performance_measure': 'test/reward'}
+                                  'min_performance_value': 400, 'performance_measure': 'test/mean_reward'}
+            hyper_params = {'n_train_rollouts': 10}
+        else:
+            print("Environment {} is not evaluated with PPO algorithm.".format(env))
+            return []
+        return [(performance_params, hyper_params)]
+
+    @staticmethod
+    def get_ddpg_performance_params(env):
+        hyper_params = {}
+        if env in ['CartPole-v1']:
+            performance_params = {'epochs': 5, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 400, 'performance_measure': 'test/mean_reward'}
             hyper_params = {'n_train_rollouts': 10}
         else:
             print("Environment {} is not evaluated with PPO algorithm.".format(env))
@@ -125,11 +158,12 @@ class TestingAlgos:
     @staticmethod
     def get_sac_performance_params(env):
         hyper_params = {}
-        if env in ['DUMMY']:
+        if env in ['CartPole-v1']:
             performance_params = {'epochs': 5, 'n_runs': 4, 'min_success_runs': 2,
-                                  'min_performance_value': 400, 'performance_measure': 'test/reward'}
+                                  'min_performance_value': 400, 'performance_measure': 'test/mean_reward'}
+            hyper_params = {'n_train_rollouts': 10}
         else:
-            print("Environment {} is not evaluated with SAC algorithm.".format(env))
+            print("Environment {} is not evaluated with PPO algorithm.".format(env))
             return []
         return [(performance_params, hyper_params)]
 

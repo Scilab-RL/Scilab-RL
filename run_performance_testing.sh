@@ -3,7 +3,8 @@ source ./set_paths.sh
 logs_dir="performance_test_logs"
 cmd_file="performance_test_cmds.txt"
 
-gpu_ids=(0 1)
+#gpu_ids=(0 1)
+gpu_ids=(0)
 min_mem_free=1500
 
 rm -rf ${logs_dir}

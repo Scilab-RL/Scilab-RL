@@ -43,10 +43,15 @@ def train(model, train_env, eval_env, n_epochs, steps_per_epoch, starting_epoch,
     total_actions = train_actions_per_epoch * epochs_remaining
 
     checkpoint_callback = CheckpointCallback(save_freq=train_actions_per_epoch, save_path=logger.get_dir())
-    eval_callback = CustomEvalCallback(eval_env, best_model_save_path=logger.get_dir(),
-                                 log_path=logger.get_dir(), eval_freq=train_actions_per_epoch,
-                                 n_eval_episodes=kwargs['n_test_rollouts'],
-                                 render=kwargs['render'])
+    eval_callback = CustomEvalCallback(eval_env,
+                                       log_path=logger.get_dir(),
+                                       eval_freq=train_actions_per_epoch,
+                                       n_eval_episodes=kwargs['n_test_rollouts'],
+                                       render=kwargs['render_test'],
+                                       early_stop_last_n=5,
+                                       early_stop_data_column=kwargs['early_stop_data_column'],
+                                       early_stop_threshold=kwargs['early_stop_threshold'],
+                                       )
 
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])

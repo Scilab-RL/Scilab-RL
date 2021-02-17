@@ -69,7 +69,7 @@ def main():
             hyper_params = param_config['hyper_params']
             performance_params = param_config['performance_params']
             performance_measure = performance_params['performance_measure']
-            epoch = performance_params['epochs']
+            min_episodes = performance_params['episodes']
             assigned_success_rate = performance_params['min_performance_value']
             min_success_runs = performance_params['min_success_runs']
             n_runs = performance_params['n_runs']
@@ -91,13 +91,10 @@ def main():
                             # print(float(row[performance_measure]) == float(assigned_success_rate))
                             # print("Defined Success: " + str(float(assigned_success_rate)))
                             # print("Actual Success: " + str(row[performance_measure]))
-                            if (int(row["epoch"]) + 1) == epoch and float(
+                            if (int(row["time/episodes"]) + 1) <= min_episodes and float(
                                     row[performance_measure]) >= float(assigned_success_rate):
                                 successful += 1
-                                real_success_rate = float(row[performance_measure])
-                            elif (int(row["epoch"]) + 1) == epoch:
-                                real_success_rate = float(row[performance_measure])
-                #print(successful)
+                                break
                 if successful >= min_success_runs:
                     print("Success for alg: " + str(alg_name) + " in env: " + str(env))
                 else:

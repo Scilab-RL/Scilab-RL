@@ -28,7 +28,7 @@ def write_performance_params_json():
             for params in params_list:
                 if params is not None:
                     performance_params, hyper_params = params
-                    hyper_params['n_epochs'] = performance_params['epochs']
+                    # hyper_params['n_epochs'] = performance_params['epochs']
                     env_alg_performance[env].append({'alg': alg, 'performance_params': performance_params.copy(),
                                                      'hyper_params': hyper_params.copy()})
     with open('./performance_test_logs/performance_params.json', 'w') as outfile:
@@ -37,28 +37,16 @@ def write_performance_params_json():
 
 def main(**kwargs):
     cmds = []
-
-    n_train_rollouts = 100
+    n_train_rollouts = 50
     n_test_rollouts = 20
-    n_epochs = 70
-    rollout_batch_size = 1
-    n_cpu = 1
-
     whoami = getpass.getuser()
-
     default_opts_values = {}
-    default_opts_values['num_cpu'] = n_cpu
-    default_opts_values['n_epochs'] = n_epochs
     default_opts_values['n_train_rollouts'] = n_train_rollouts
     default_opts_values['n_test_rollouts'] = n_test_rollouts
     default_opts_values['base_logdir'] = "/data/" + whoami + "/baselines"
-    default_opts_values['render'] = 0
     default_opts_values['try_start_idx'] = 100
-
     write_performance_params_json ()
-
     base_cmd = "python3 experiment/train.py"
-
     get_params_functions = {}
     for alg in TestingAlgos.algo_names:
         get_params_functions[alg] = eval("TestingAlgos.get_{}_performance_params".format(alg))
@@ -72,17 +60,16 @@ def main(**kwargs):
         for alg in TestingAlgos.algo_names:
             params_list = get_params_functions[alg](env)
             for performance_params, hyper_params in params_list:
-                # if hyper_params is None:
-                #     continue
-                hyper_params['n_epochs'] = performance_params['epochs']
                 cmd = env_base_cmd
-                for k, v in sorted(default_opts_values.items()):
-                    if k not in hyper_params.keys():
-                        cmd += " --{}".format(k) + " {}".format(str(v))
                 cmd += " --algorithm " + str(alg)
-                for param,val in hyper_params.items():
-                    cmd += ' --{} {}'.format(param, val)
                 cmd += ' --max_try_idx {}'.format(default_opts_values['try_start_idx'] + performance_params['n_runs'] - 1)
+                all_kvs = default_opts_values.copy()
+                all_kvs.update(hyper_params)
+                all_kvs['n_epochs'] = int(performance_params['episodes'] / all_kvs['n_train_rollouts'])
+                all_kvs['early_stop_data_column'] = performance_params['performance_measure']
+                all_kvs['early_stop_threshold'] = performance_params['min_performance_value']
+                for k, v in sorted(all_kvs.items()):
+                    cmd += " --{}".format(k) + " {}".format(str(v))
                 for _ in range(performance_params['n_runs']):
                     cmds.append(extra + cmd)
 

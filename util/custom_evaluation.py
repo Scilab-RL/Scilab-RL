@@ -6,6 +6,14 @@ import numpy as np
 from stable_baselines3.common import base_class
 from stable_baselines3.common.vec_env import VecEnv
 
+def get_success(info_list):
+    succ = np.nan
+    for entry in info_list:
+        try:
+            succ = entry['is_success']
+        except:
+            continue
+    return succ
 
 def evaluate_policy(
     model: "base_class.BaseAlgorithm",
@@ -39,7 +47,7 @@ def evaluate_policy(
     if isinstance(env, VecEnv):
         assert env.num_envs == 1, "You must pass only one environment when using this function"
 
-    episode_rewards, episode_lengths = [], []
+    episode_rewards, episode_lengths, episode_successes = [], [], []
     for i in range(n_eval_episodes):
         # Avoid double reset, as VecEnv are reset automatically
         if not isinstance(env, VecEnv) or i == 0:
@@ -47,21 +55,31 @@ def evaluate_policy(
         done, state = False, None
         episode_reward = 0.0
         episode_length = 0
+        episode_success = 0.0
         while not done:
             action, state = model.predict(obs, state=state, deterministic=deterministic)
             obs, reward, done, _info = env.step(action)
+            this_episode_success = get_success(_info)
+            if not episode_success or episode_success == np.nan:
+                episode_success = this_episode_success
             episode_reward += reward
             if callback is not None:
                 callback(locals(), globals())
             episode_length += 1
             if render:
                 env.render()
+            if episode_success: # Early abort on success.
+                done = True
+                if isinstance(env, VecEnv):
+                    env.reset()
+        episode_successes.append(episode_success)
         episode_rewards.append(episode_reward)
         episode_lengths.append(episode_length)
+    mean_success = np.mean(episode_successes)
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
     if reward_threshold is not None:
         assert mean_reward > reward_threshold, "Mean reward below threshold: " f"{mean_reward:.2f} < {reward_threshold:.2f}"
     if return_episode_rewards:
-        return episode_rewards, episode_lengths
-    return mean_reward, std_reward
+        return episode_rewards, episode_lengths, episode_successes
+    return mean_reward, std_reward, mean_success

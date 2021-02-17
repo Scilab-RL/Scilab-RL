@@ -8,6 +8,7 @@ import warnings
 from util.custom_evaluation import evaluate_policy
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common import logger
+from collections import deque
 
 class CustomEvalCallback(EvalCallback):
     """
@@ -20,8 +21,6 @@ class CustomEvalCallback(EvalCallback):
     :param eval_freq: Evaluate the agent every eval_freq call of the callback.
     :param log_path: Path to a folder where the evaluations (``evaluations.npz``)
         will be saved. It will be updated at each evaluation.
-    :param best_model_save_path: Path to a folder where the best model
-        according to performance on the eval env will be saved.
     :param deterministic: Whether the evaluation should
         use a stochastic or deterministic actions.
     :param deterministic: Whether to render or not the environment during evaluation
@@ -32,22 +31,30 @@ class CustomEvalCallback(EvalCallback):
     def __init__(
         self,
         eval_env: Union[gym.Env, VecEnv],
-        callback_on_new_best: Optional[BaseCallback] = None,
         n_eval_episodes: int = 5,
         eval_freq: int = 10000,
         log_path: str = None,
-        best_model_save_path: str = None,
         deterministic: bool = True,
         render: bool = False,
         verbose: int = 1,
+        early_stop_data_column: str = 'test/success_rate',
+        early_stop_threshold: float = 1.0,
+        early_stop_last_n: int = 5
     ):
-        super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
+        super(EvalCallback, self).__init__(verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.eval_freq = eval_freq
         self.best_mean_reward = -np.inf
-        self.last_mean_reward = -np.inf
+        self.best_mean_success = -np.inf
         self.deterministic = deterministic
         self.render = render
+        eval_history_column_names = ['test/mean_reward', 'test/success_rate']
+        self.eval_histories = {}
+        for name in eval_history_column_names:
+            self.eval_histories[name] = []
+        self.early_stop_data_column = early_stop_data_column
+        self.early_stop_threshold = early_stop_threshold
+        self.early_stop_last_n = early_stop_last_n
 
         eval_env = BaseAlgorithm._wrap_env(eval_env)
         # Convert to VecEnv for consistency
@@ -58,11 +65,8 @@ class CustomEvalCallback(EvalCallback):
             assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
 
         self.eval_env = eval_env
-        self.best_model_save_path = best_model_save_path
-        # Logs will be written in ``evaluations.npz``
-        # if log_path is not None:
-        #     log_path = os.path.join(log_path, "evaluations")
         self.log_path = log_path
+        self.best_model_save_path = None
         self.evaluations_results = []
         self.evaluations_timesteps = []
         self.evaluations_length = []
@@ -73,7 +77,7 @@ class CustomEvalCallback(EvalCallback):
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
 
-            episode_rewards, episode_lengths = evaluate_policy(
+            episode_rewards, episode_lengths, episode_successes = evaluate_policy(
                 self.model,
                 self.eval_env,
                 n_eval_episodes=self.n_eval_episodes,
@@ -84,7 +88,7 @@ class CustomEvalCallback(EvalCallback):
 
             mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
             mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
-            self.last_mean_reward = mean_reward
+            mean_success, std_success = np.mean(episode_successes), np.std(episode_successes)
 
             if self.verbose > 0:
                 print(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
@@ -92,16 +96,33 @@ class CustomEvalCallback(EvalCallback):
             logger.record("test/mean_reward", float(mean_reward))
             logger.record("test/std_reward", float(std_reward))
             logger.record("test/mean_ep_length", mean_ep_length)
+            logger.record("test/success_rate", mean_success)
 
-            if mean_reward > self.best_mean_reward:
+            self.eval_histories['test/success_rate'].append(mean_success)
+            self.eval_histories['test/mean_reward'].append(mean_reward)
+
+            # if mean_reward > self.best_mean_reward:
+            #     if self.verbose > 0:
+            #         print("New best mean reward!")
+            #     if self.best_model_save_path is not None:
+            #         self.model.save(os.path.join(self.best_model_save_path, "best_model"))
+            #     self.best_mean_reward = mean_reward
+            #     # Trigger callback if needed
+            #     if self.callback is not None:
+            #         return self._on_event()
+            if mean_success > self.best_mean_success:
                 if self.verbose > 0:
                     print("New best mean reward!")
-                if self.best_model_save_path is not None:
-                    self.model.save(os.path.join(self.best_model_save_path, "best_model"))
-                self.best_mean_reward = mean_reward
-                # Trigger callback if needed
-                if self.callback is not None:
-                    return self._on_event()
+                if self.log_path is not None:
+                    self.model.save(os.path.join(self.log_path, "best_model"))
+                self.best_mean_success = mean_success
 
+            if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
+                mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
+                if  mean_val >= self.early_stop_threshold:
+                    logger.info("Early stop threshold for {} met: Average over last {} evaluations is {} and threshold is {}. Stopping training.".format(self.early_stop_data_column, self.early_stop_last_n, mean_val, self.early_stop_threshold))
+                    if self.log_path is not None:
+                        self.model.save(os.path.join(self.log_path, "early_stop_model"))
+                    return False
         return True
 
