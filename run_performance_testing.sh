@@ -5,7 +5,7 @@ cmd_file="performance_test_cmds.txt"
 
 #gpu_ids=(0 1)
 gpu_ids=(0)
-min_mem_free=1500
+min_mem_free=2000
 
 rm -rf ${logs_dir}
 rm ${cmd_file}
@@ -13,7 +13,7 @@ mkdir ${logs_dir}
 python3 experiment/generate_performance_testing_commands.py ${epochs}
 sleep 2
 # Use first argument $1 to determine number of active processes, otherwise use 5
-max_active_procs="${1-5}"
+max_active_procs="${1-6}"
 cmd_ctr=0
 n_cmds=$(cat $cmd_file | wc -l)
 declare -a cmd_arr=()

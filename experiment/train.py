@@ -163,7 +163,7 @@ def main(ctx, **kwargs):
 
     logger.configure(folder=kwargs['logdir'],
                      format_strings=['stdout', 'log', 'csv', 'tensorboard'])
-    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir']+'/plot.csv',cols_to_plot=['test/mean_reward', 'train/entropy_loss', 'train/loss']))
+    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir']+'/plot.csv',cols_to_plot=['test/mean_reward', 'train/entropy_loss', 'train/loss', 'test/success_rate', 'test/mean_ep_length', 'train/actor_loss', 'train/critic_loss']))
     logdir = logger.get_dir()
 
     logger.info("Data dir: {} ".format(logdir))
