@@ -58,19 +58,17 @@ def train(model, train_env, eval_env, n_epochs, policy_save_interval, starting_e
 def launch(starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_save_interval, restore_policy, logdir, **kwargs):
     set_global_seeds(seed)
 
-    model_class = DQN  # works also with SAC, DDPG and TD3
-    N_BITS = int(kwargs['action_steps'])
+    # model_class = DQN  # works also with SAC, DDPG and TD3
+    # N_BITS = int(kwargs['action_steps'])
+    # #
+    # train_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=int(kwargs['action_steps']))
+    # eval_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=int(kwargs['action_steps']))
     #
-    train_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=int(kwargs['action_steps']))
-    eval_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=int(kwargs['action_steps']))
-
-    env_alg_compatible = True
+    # env_alg_compatible = True
 
     ModelClass = getattr(importlib.import_module('stable_baselines3.' + algorithm), algorithm.upper())
     train_env = gym.make(env)
     eval_env = gym.make(env)
-    ## env = make_robustGoalConditionedHierarchicalEnv(env)
-    ## check_env(env)
 
     if restore_policy is not None:
         model = ModelClass.load(restore_policy, env=train_env)
@@ -80,14 +78,8 @@ def launch(starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_
             policy_args['max_episode_length'] = int(np.product([int(num) for num in kwargs['action_steps'].split(",")]))
         model = ModelClass('MlpPolicy', train_env, **policy_args)
 
-    # model = make_robustGoalConditionedModel(model)
-    #
-    # env_alg_compatible = check_env_alg_compatibility(model, env)
-
-    if env_alg_compatible:
-        logger.info("Launching training")
-        # model.learn(10)
-        train(model, train_env, eval_env, n_epochs, policy_save_interval, starting_epoch, **kwargs)
+    logger.info("Launching training")
+    train(model, train_env, eval_env, n_epochs, policy_save_interval, starting_epoch, **kwargs)
 
 @click.command(context_settings=dict(
     ignore_unknown_options=True,
@@ -98,11 +90,10 @@ def launch(starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_
 def main(ctx, **kwargs):
     config = main_linker.import_creator(kwargs['algorithm'])
     policy_args = ctx.forward(main_linker.get_policy_click)
-    cmd_line_update_args = {ctx.args[i][2:]: type(policy_args[ctx.args[i][2:]])(ctx.args[i + 1]) for i in
+    policy_args = {ctx.args[i][2:]: type(policy_args[ctx.args[i][2:]])(ctx.args[i + 1]) for i in
                             range(0, len(ctx.args), 2)}
-    kwargs.update(cmd_line_update_args)
-    kwargs.update(ctx.params)
     kwargs.update(policy_args)
+    kwargs.update(ctx.params)
     kwargs['pid'] = os.getpid()
     logger.info("Starting process id: {}".format(kwargs['pid']))
     ctr = kwargs['try_start_idx']
@@ -149,7 +140,6 @@ def main(ctx, **kwargs):
         kwargs['seed'] = int(time.time())
     log_dict(kwargs, logger)
 
-
     logger.configure(folder=kwargs['logdir'],
                      format_strings=['stdout', 'log', 'csv', 'tensorboard'])
     logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir']+'/plot.csv',cols_to_plot=['test/mean_reward', 'train/entropy_loss', 'train/loss']))
@@ -159,7 +149,6 @@ def main(ctx, **kwargs):
     with open(os.path.join(logdir, 'params.json'), 'w') as f:
         json.dump(kwargs, f)
     launch(starting_epoch, policy_args, **kwargs)
-
 
 if __name__ == '__main__':
     main()
