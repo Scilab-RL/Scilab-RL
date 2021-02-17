@@ -76,6 +76,13 @@ def launch(starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_
         if algorithm == 'her':
             policy_args['model_class'] = getattr(importlib.import_module('stable_baselines3.' + policy_args['model_class']), policy_args['model_class'].upper())
             policy_args['max_episode_length'] = int(np.product([int(num) for num in kwargs['action_steps'].split(",")]))
+            model_params_str_list = policy_args['model_params'].split(",")
+            model_params = {}
+            for mpstr in model_params_str_list:
+                k,v = mpstr.split("=")
+                # if k not in policy_args.keys():
+                model_params[k] = v
+            policy_args.update(model_params)
         model = ModelClass('MlpPolicy', train_env, **policy_args)
 
     logger.info("Launching training")

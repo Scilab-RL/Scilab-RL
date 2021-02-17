@@ -28,6 +28,7 @@ click.option('--tensorboard', type=int, default=2, help='max. number of tensorbo
 click.option('--reward_type', type=str, default='sparse', help='the reward type, dense or sparse')
 ]
 
+
 @click.command(context_settings=dict(
     ignore_unknown_options=True,
     allow_extra_args=True,
