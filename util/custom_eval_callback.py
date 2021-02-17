@@ -5,7 +5,7 @@ import gym
 import numpy as np
 import os
 import warnings
-from stable_baselines3.common.evaluation import evaluate_policy
+from util.custom_evaluation import evaluate_policy
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common import logger
 

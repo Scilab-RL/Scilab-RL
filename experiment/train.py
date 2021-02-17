@@ -20,6 +20,7 @@ from stable_baselines3 import HER, DDPG, DQN, SAC, TD3
 from util.custom_eval_callback import CustomEvalCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
+from stable_baselines3.her import HER
 
 ALL_PATH_CONFIG_PARAMS = ['info', 'algorithm']
 
@@ -66,8 +67,8 @@ def launch(starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_
     env_alg_compatible = True
 
     ModelClass = getattr(importlib.import_module('stable_baselines3.' + algorithm), algorithm.upper())
-    # train_env = gym.make(env)
-    # eval_env = gym.make(env)
+    train_env = gym.make(env)
+    eval_env = gym.make(env)
     ## env = make_robustGoalConditionedHierarchicalEnv(env)
     ## check_env(env)
 
@@ -76,6 +77,7 @@ def launch(starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_
     else:
         if algorithm == 'her':
             policy_args['model_class'] = getattr(importlib.import_module('stable_baselines3.' + policy_args['model_class']), policy_args['model_class'].upper())
+            policy_args['max_episode_length'] = int(np.product([int(num) for num in kwargs['action_steps'].split(",")]))
         model = ModelClass('MlpPolicy', train_env, **policy_args)
 
     # model = make_robustGoalConditionedModel(model)
