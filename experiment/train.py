@@ -100,8 +100,6 @@ def main(ctx, **kwargs):
     policy_args = {ctx.args[i][2:]: type(policy_args[ctx.args[i][2:]])(ctx.args[i + 1]) for i in
                             range(0, len(ctx.args), 2)}
     kwargs.update(policy_args)
-    if 'model_class' in kwargs.keys():
-        policy_linker = importlib.import_module('interface.' + policy_args['model_class']+'.click_options')
 
     kwargs.update(ctx.params)
     kwargs['pid'] = os.getpid()

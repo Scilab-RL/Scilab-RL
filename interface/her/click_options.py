@@ -1,15 +1,14 @@
 import click
-import importlib
+
 options = [
 click.option('--model_class', type=str, default='sac'),
 click.option('--goal_selection_strategy', type=click.Choice(['future', 'final', 'episode']), default='future'),
 click.option('--n_sampled_goal', type=int, default=4),
+click.option('--dada', type=int, default=4),
 click.option('--online_sampling', type=bool, default=True),
 click.option('--verbose', type=bool, default=True),
-click.option('--model_params', type=str, default='verbose=true'),
+click.option('--model_params', type=str, default='verbose=true')
 ]
-
-
 
 def click_main(func):
     for option in reversed(options):
