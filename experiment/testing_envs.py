@@ -1,6 +1,6 @@
 # environments used for testing
 class TestingEnvs:
-    env_names = ['CartPole-v1', 'FetchReach-v1']
+    env_names = ['FetchReach-v1', 'FetchPush-v1']
 
     # def get_CartPole_v1_cmds(self):
     #     cmd = " --env CartPole-v1"

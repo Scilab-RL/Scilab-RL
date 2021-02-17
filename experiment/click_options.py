@@ -38,11 +38,10 @@ def get_policy_click(ctx, **kwargs):
     policy_args = ctx.forward(policy_linker.get_click_option)
     return policy_args
 
+
 def import_creator(library_path):
     config = importlib.import_module('interface.' + library_path + ".config", package=__package__)
     return config
-    # RolloutWorker = getattr(importlib.import_module(library_path + ".rollout", package=__package__), "RolloutWorker")
-    # return config, RolloutWorker
 
 
 def click_main(func):

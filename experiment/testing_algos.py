@@ -3,7 +3,8 @@ import gym
 
 class TestingAlgos:
     # algorithms = ['chac', 'mbchac', 'example_algorithm', 'her_pytorch', 'hiro', 'td3']
-    algo_names = ['ppo', 'sac', 'dqn'] #'td3', 'ddpg', 'a2c',
+    base_algo_names = ['ppo', 'sac', 'dqn', 'ddpg']
+    algo_names = base_algo_names + ['her'] #'td3', 'ddpg', 'a2c',
 
     @staticmethod
     def get_ppo_function_testing_cmds():
@@ -34,6 +35,14 @@ class TestingAlgos:
     def get_dqn_function_testing_cmds():
         cmd = " --algorithm dqn"
         return [cmd]
+
+    @staticmethod
+    def get_her_function_testing_cmds():
+        cmd = " --algorithm her"
+        cmds = []
+        for alg in TestingAlgos.base_algo_names:
+            cmds.append( cmd + '--model_class {}'.format(alg))
+        return cmds
 
 
     # def get_her_pytorch_cmds(base_cmd):
