@@ -80,25 +80,21 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
 
     train_env.close()
     eval_env.close()
+    logger.info("Training finished!")
 
-def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, policy_save_interval, restore_policy, logdir, **kwargs):
+def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, restore_policy, logdir, **kwargs):
     set_global_seeds(seed)
-
-    # model_class = DDPG  # works also with SAC, DDPG and TD3
-    # N_BITS = int(kwargs['action_steps'])
-    # #
-    # train_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=int(kwargs['action_steps']))
-    # eval_env = BitFlippingEnv(n_bits=N_BITS, continuous=model_class in [DDPG, SAC, TD3], max_steps=int(kwargs['action_steps']))
-    #
-    # env_alg_compatible = True
-
     ModelClass = getattr(importlib.import_module('stable_baselines3.' + algorithm), algorithm.upper())
     train_env = gym.make(env)
     eval_env = gym.make(env)
-    # if hasattr(train_env, '_max_episode_steps'):
-    #     policy_args['max_episode_length'] = train_env._max_episode_steps
-    # else:
-    #     policy_args['max_episode_length'] = kwargs['action_steps']
+    # action_steps = kwargs['action_steps']
+    # # Overwrite max_episode_steps
+    # if action_steps != 0:
+    #     if hasattr(train_env, '_max_episode_steps'):
+    #         train_env._max_episode_steps = action_steps
+    #         train_env.env.spec.max_episode_steps
+    #         eval_env._max_episode_steps = action_steps
+    #         eval_env.env.spec.max_episode_steps
     if restore_policy is not None:
         model = ModelClass.load(restore_policy, env=train_env)
     else:
@@ -203,14 +199,15 @@ def main(ctx, **kwargs):
 
     logger.configure(folder=kwargs['logdir'],
                      format_strings=['stdout', 'log', 'csv', 'tensorboard'])
-    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir']+'/plot.csv',cols_to_plot=['test/mean_reward', 'train/entropy_loss', 'train/loss', 'test/success_rate', 'test/mean_ep_length', 'train/actor_loss', 'train/critic_loss']))
-    # logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir']+'/plot.csv',cols_to_plot=['train/entropy_loss']))
+    plot_cols = kwargs['plot_eval_cols'].split(',')
+    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir'],cols_to_plot=plot_cols))
     logdir = logger.get_dir()
 
     logger.info("Data dir: {} ".format(logdir))
     with open(os.path.join(logdir, 'params.json'), 'w') as f:
         json.dump(kwargs, f)
     launch(ctx, starting_epoch, policy_args, **kwargs)
+
 
 if __name__ == '__main__':
     main()

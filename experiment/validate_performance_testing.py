@@ -49,9 +49,9 @@ def find_data_dirs_for_params(env_name, alg_name, hyper_params, data_dirs):
 
 
 def main():
-    with open('./performance_test_logs/performance_params.json', encoding='utf-8') as param_input:
+    with open('./test_logs/performance_params.json', encoding='utf-8') as param_input:
         performance_json = json.load(param_input, strict=False)
-    result_dir = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-1]) + "/performance_test_logs/"
+    result_dir = "/".join(os.path.dirname(os.path.abspath(__file__)).split("/")[:-1]) + "/test_logs/"
 
     number_files = int((len(os.listdir(result_dir)) - 1) / 2)
     data_dirs = locate_data_dirs(number_files, result_dir)
@@ -69,8 +69,8 @@ def main():
             hyper_params = param_config['hyper_params']
             performance_params = param_config['performance_params']
             performance_measure = performance_params['performance_measure']
-            min_episodes = performance_params['episodes']
-            assigned_success_rate = performance_params['min_performance_value']
+            min_epochs = performance_params['n_epochs']
+            assigned_performance_vale = performance_params['min_performance_value']
             min_success_runs = performance_params['min_success_runs']
             n_runs = performance_params['n_runs']
 
@@ -79,20 +79,19 @@ def main():
             if target_dirs is not None and len(target_dirs) > 0:
 
                 number_of_runs = len(target_dirs)
-
-
-                real_success_rate = 0
                 successful = 0
 
                 for data_dir in target_dirs:
                     with open(data_dir + "/progress.csv") as csvfile:
                         csv_content = csv.DictReader(csvfile, delimiter=',')
+                        this_epoch = 0
                         for row in csv_content:
+                            this_epoch += 1
                             # print(float(row[performance_measure]) == float(assigned_success_rate))
                             # print("Defined Success: " + str(float(assigned_success_rate)))
                             # print("Actual Success: " + str(row[performance_measure]))
-                            if (int(row["time/episodes"]) + 1) <= min_episodes and float(
-                                    row[performance_measure]) >= float(assigned_success_rate):
+                            if (this_epoch) <= min_epochs and float(
+                                    row[performance_measure]) >= float(assigned_performance_vale):
                                 successful += 1
                                 break
                 if successful >= min_success_runs:

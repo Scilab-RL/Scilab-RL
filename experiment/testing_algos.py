@@ -9,22 +9,20 @@ class TestingAlgos:
     @staticmethod
     def get_her_performance_params(env):
         all_params = []
-        hyper_params = {}
-        steps_per_epoch = 2500
         if env in ['FetchReach-v1']:
-            performance_params = {'time/total timesteps': steps_per_epoch * 6, 'n_runs': 4, 'min_success_runs': 2,
+            performance_params = {'n_epochs': 6, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
-            performance_params = {'time/total timesteps': steps_per_epoch * 10, 'n_runs': 4, 'min_success_runs': 2,
+            performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 0.05, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchSlide-v1']:
-            performance_params = {'time/total timesteps': steps_per_epoch * 50, 'n_runs': 4, 'min_success_runs': 2,
+            performance_params = {'n_epochs': 50, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPickAndPlace-v1']:
-            performance_params = {'time/total timesteps': steps_per_epoch * 25, 'n_runs': 4, 'min_success_runs': 2,
+            performance_params = {'n_epochs': 25, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
         elif env in ['HandReach-v0']:
-            performance_params = {'time/total timesteps': steps_per_epoch * 70, 'n_runs': 4, 'min_success_runs': 2,
+            performance_params = {'n_epochs': 70, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 0.1, 'performance_measure': 'test/success_rate'}
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
@@ -38,10 +36,8 @@ class TestingAlgos:
 
     @staticmethod
     def get_td3_performance_params(env):
-        hyper_params = {}
-        steps_per_epoch = 15
-        if env in ['CartPole-v1']:
-            performance_params = {'time/total timesteps': steps_per_epoch * 5, 'n_runs': 4, 'min_success_runs': 2,
+        if env in []:
+            performance_params = {'n_epochs': 5, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 400, 'performance_measure': 'test/mean_reward'}
             hyper_params = {'n_train_rollouts': 10}
         else:
@@ -51,36 +47,30 @@ class TestingAlgos:
 
     @staticmethod
     def get_ddpg_performance_params(env):
-        hyper_params = {}
-        steps_per_epoch = 15
         if env in []:
-            performance_params = {'time/total timesteps': steps_per_epoch * 5, 'n_runs': 4, 'min_success_runs': 2,
+            performance_params = {'n_epochs':  5, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 400, 'performance_measure': 'test/mean_reward'}
             hyper_params = {'n_train_rollouts': 10}
         else:
-            print("Environment {} is not evaluated with PPO algorithm.".format(env))
+            print("Environment {} is not evaluated with DDPG algorithm.".format(env))
             return []
         return [(performance_params, hyper_params)]
 
     @staticmethod
     def get_sac_performance_params(env):
-        hyper_params = {}
-        steps_per_epoch = 15
         if env in []:
-            performance_params = {'time/total timesteps': steps_per_epoch * 5, 'n_runs': 4, 'min_success_runs': 2,
+            performance_params = {'n_epochs':  5, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 400, 'performance_measure': 'test/mean_reward'}
             hyper_params = {'n_train_rollouts': 10}
         else:
-            print("Environment {} is not evaluated with PPO algorithm.".format(env))
+            print("Environment {} is not evaluated with SAC algorithm.".format(env))
             return []
         return [(performance_params, hyper_params)]
 
     @staticmethod
     def get_dqn_performance_params(env):
-        hyper_params = {}
-        steps_per_epoch = 500
         if env in ['CartPole-v1']:
-            performance_params = {'time/total timesteps': steps_per_epoch * 5, 'n_runs': 4, 'min_success_runs': 2,
+            performance_params = {'n_epochs':  5, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 10.0, 'performance_measure': 'test/mean_reward'}
             hyper_params = {'n_train_rollouts': 10}
         else:

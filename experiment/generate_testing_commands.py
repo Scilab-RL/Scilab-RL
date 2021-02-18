@@ -27,8 +27,7 @@ def write_params_json():
             params_list = eval("TestingAlgos.get_{}_performance_params".format(alg))(env)
             for params in params_list:
                 if params is not None:
-                    performance_params, hyper_params = params.copy()
-                    hyper_params['n_epochs'] = performance_params['epochs']
+                    performance_params, hyper_params = params
                     env_alg_performance[env].append({'alg': alg, 'performance_params': performance_params.copy(),
                                                      'hyper_params': hyper_params.copy()})
     with open('./test_logs/performance_params.json', 'w') as outfile:
@@ -42,14 +41,14 @@ def main(args):
     else:
         test_mode = 'function'
 
+    print("Test mode is {}".format(test_mode))
+
     cmds = []
-    n_train_rollouts = 50
     n_test_rollouts = 20
     whoami = getpass.getuser()
     default_opts_values = {}
-    default_opts_values['n_train_rollouts'] = n_train_rollouts
     default_opts_values['n_test_rollouts'] = n_test_rollouts
-    default_opts_values['base_logdir'] = "/data/" + whoami + "/baselines"
+    default_opts_values['base_logdir'] = "/data/" + whoami + "/baselines/" + test_mode
     default_opts_values['try_start_idx'] = 100
     write_params_json ()
     base_cmd = "python3 experiment/train.py"
@@ -73,8 +72,10 @@ def main(args):
                 all_kvs.update(hyper_params)
                 if test_mode == 'function':
                     all_kvs['n_epochs'] = 2
+                    # all_kvs['eval_after_n_actions'] = 200
+                    performance_params['n_runs'] = 1
                 else:
-                    all_kvs['n_epochs'] = performance_params['episodes'] / all_kvs['n_train_rollouts']
+                    all_kvs['n_epochs'] = performance_params['n_epochs']
                 all_kvs['early_stop_data_column'] = performance_params['performance_measure']
                 all_kvs['early_stop_threshold'] = performance_params['min_performance_value']
                 for k, v in sorted(all_kvs.items()):

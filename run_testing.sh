@@ -9,11 +9,15 @@ min_mem_free=1500
 
 rm -rf ${logs_dir}
 rm ${cmd_file}
+
 mkdir ${logs_dir}
-python3 experiment/generate_testing_commands.py ${test_mode}
+
+echo "Generating test commands for ${test_mode} mode"
+
+python3 experiment/generate_testing_commands.py $test_mode
 sleep 2
 # Use first argument $1 to determine number of active processes, otherwise use 5
-max_active_procs="${1-6}"
+max_active_procs=6
 cmd_ctr=0
 n_cmds=$(cat $cmd_file | wc -l)
 declare -a cmd_arr=()
@@ -31,9 +35,11 @@ do
     echo $cmd
 	#    cmd="sleep 12" # Uncomment for debugging this script with a simple sleep command
     n_active_procs=$(pgrep -c -P$$)
-    ps -ef | grep sleep
+#    ps -ef | grep sleep
     echo "Currently, there are ${n_active_procs} active processes."
-    while [ "$n_active_procs" -ge "$max_active_procs" ];do
+
+    while [ "$n_active_procs" -ge "$max_active_procs" ]; do
+
         echo "${n_active_procs} of ${max_active_procs} processes are running. Waiting..."
         sleep 15
         n_active_procs=$(pgrep -c -P$$)
@@ -44,11 +50,11 @@ do
     while [ "$free_mem" -le "$min_mem_free" ]; do
         for gpu_id in "${gpu_ids[@]}"; do
             free_mem=$(nvidia-smi --query-gpu=memory.free --format=csv -i $gpu_id | grep -Eo [0-9]+)
-            echo "${free_mem} MB is free on GPU ${gpu_id}, but ${min_mem_free} MB is required. Waiting..."
             if [ "$free_mem" -ge "$min_mem_free" ]; then
               this_gpu_id=${gpu_id}
               break
             fi
+            echo "${free_mem} MB is free on GPU ${gpu_id}, but ${min_mem_free} MB is required. Waiting..."
             sleep 15
         done
     done
@@ -69,8 +75,8 @@ done
 echo "All commands finished."
 
 #echo "Number of running procs: $(pgrep -c -P$$)"
-if [ $test_mode == "performance" ]; then
+if [ "$test_mode" = "performance" ]; then
   python3 experiment/validate_performance_testing.py
-
+fi
 python3 experiment/check_error_logs.py
 

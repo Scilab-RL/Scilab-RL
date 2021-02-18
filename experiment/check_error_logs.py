@@ -17,5 +17,5 @@ def test_error_logs_in_dir(logs_path):
 
 
 if __name__ == "__main__":
-    logs_path = "function_test_logs"
+    logs_path = "test_logs"
     test_error_logs_in_dir(logs_path)

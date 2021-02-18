@@ -8,12 +8,14 @@ import numpy as np
 from util.util import print_dict, check_all_dict_values_equal
 
 class MatplotlibOutputFormat(KVWriter):
-    def __init__(self, filename, cols_to_plot=['test/success_rate', 'test/reward', 'train/entropy_loss']):
-        self.file = open(filename, 'w+t')
-        self.filename = filename
+    def __init__(self, logpath, cols_to_plot=['test/success_rate', 'test/reward', 'train/entropy_loss']):
+        self.logpath = logpath
+        self.csv_filename = "plot.csv"
+        self.csv_filepath = logpath + "/plot.csv"
+        self.file = open(self.csv_filepath, 'w+t')
         self.keys = []
         self.sep = ','
-        self.data_read_dir = "/".join(filename.split("/")[:-2])
+        self.data_read_dir = "/".join(logpath.split("/")[:-1])
         self.step = 1
         self.cols_to_plot = cols_to_plot
         self.plot_colors = sorted(plt.rcParams['axes.prop_cycle'].by_key()['color'], reverse=True)
@@ -67,7 +69,7 @@ class MatplotlibOutputFormat(KVWriter):
             configs.add(config_str)
             if config_str not in config_data.keys():
                 config_data[config_str] = []
-            with open(self.filename) as csvfile:
+            with open(self.data_read_dir+"/"+configdir+"/"+self.csv_filename) as csvfile:
                 reader = csv.reader(csvfile, delimiter=',', quotechar='|')
                 for line, row in enumerate(reader):
                     if line == 0:
@@ -140,7 +142,7 @@ class MatplotlibOutputFormat(KVWriter):
                     xs = range(0, data_info['shortest_data_count'])
                     xs_label = 'epochs'
                 all_data_info[config_str] = data_info
-                plt.plot(xs_label, k, data={xs_label: xs, k: median[:min_data_len]}, color=self.plot_colors[color_idx], label=config_str + '-' + k)
+                plt.plot(xs, median[:min_data_len], color=self.plot_colors[color_idx], label=config_str + '-' + k)
                 plt.fill_between(xs, lower[:min_data_len],
                                  upper[:min_data_len],
                                  alpha=0.25, color=self.plot_colors[color_idx])
