@@ -5,7 +5,7 @@ cmd_file="performance_test_cmds.txt"
 
 #gpu_ids=(0 1)
 gpu_ids=(0)
-min_mem_free=2000
+min_mem_free=1500
 
 rm -rf ${logs_dir}
 rm ${cmd_file}
@@ -32,9 +32,9 @@ do
 	#    cmd="sleep 12" # Uncomment for debugging this script with a simple sleep command
     n_active_procs=$(pgrep -c -P$$)
     ps -ef | grep sleep
-    echo "Currently, there are ${n_active_procs} active processes"
+    echo "Currently, there are ${n_active_procs} active processes."
     while [ "$n_active_procs" -ge "$max_active_procs" ];do
-        echo "${n_active_procs} processes running; queue is full, waiting..."
+        echo "${n_active_procs} of ${max_active_procs} processes are running. Waiting..."
         sleep 15
         n_active_procs=$(pgrep -c -P$$)
     done
@@ -44,11 +44,12 @@ do
     while [ "$free_mem" -le "$min_mem_free" ]; do
         for gpu_id in "${gpu_ids[@]}"; do
             free_mem=$(nvidia-smi --query-gpu=memory.free --format=csv -i $gpu_id | grep -Eo [0-9]+)
-          # echo "There is ${free_mem} MB free on GPU ${gpu_id}"
-          if [ "$free_mem" -ge "$min_mem_free" ]; then
-            this_gpu_id=${gpu_id}
-            break
-          fi
+            echo "${free_mem} MB is free on GPU ${gpu_id}, but ${min_mem_free} MB is required. Waiting..."
+            if [ "$free_mem" -ge "$min_mem_free" ]; then
+              this_gpu_id=${gpu_id}
+              break
+            fi
+            sleep 15
         done
     done
     echo "Now executing cmd ${cmd_ctr} / $(( n_cmds )) on GPU ${this_gpu_id} with ${free_mem} MB free memory: "
