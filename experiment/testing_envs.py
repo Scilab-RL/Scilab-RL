@@ -1,6 +1,6 @@
 # environments used for testing
 class TestingEnvs:
-    env_names = ['CartPole_v1',
+    env_names = ['CartPole-v1',
 
                  'FetchReach-v1',
                  'FetchPush-v1',

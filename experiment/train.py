@@ -26,13 +26,15 @@ from stable_baselines3.her import HER
 ALL_PATH_CONFIG_PARAMS = ['info', 'algorithm']
 
 def check_env_alg_compatibility(model, env):
+    # is_compatible = isinstance(model.action_space, type(env.action_space))
+    # return is_compatible
     obs = env.reset()
+    action, _states = model.predict(obs, deterministic=True)
     try:
-        action, _states = model.predict(obs, deterministic=True)
         env.step(action)
         is_compatible = True
     except Exception as e:
-        logger.info("Environment and algorithm not compatible, probably because of different action spaces.")
+        logger.info("Environment and algorithm not compatible, probably because of different action spaces. Exception: {}".format(e))
         logger.info(e)
         is_compatible = False
     return is_compatible
@@ -93,7 +95,6 @@ def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, po
     ModelClass = getattr(importlib.import_module('stable_baselines3.' + algorithm), algorithm.upper())
     train_env = gym.make(env)
     eval_env = gym.make(env)
-
     # if hasattr(train_env, '_max_episode_steps'):
     #     policy_args['max_episode_length'] = train_env._max_episode_steps
     # else:
@@ -102,6 +103,9 @@ def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, po
         model = ModelClass.load(restore_policy, env=train_env)
     else:
         model = ModelClass('MlpPolicy', train_env, **policy_args)
+    env_alg_compatible = check_env_alg_compatibility(model, train_env)
+    if not env_alg_compatible:
+        sys.exit()
     logger.info("Launching training")
     train(model, train_env, eval_env, n_epochs, starting_epoch=starting_epoch, **kwargs)
 

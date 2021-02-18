@@ -2,7 +2,7 @@ import getpass
 import json
 from experiment.testing_envs import TestingEnvs
 from experiment.testing_algos import TestingAlgos
-
+import sys
 """
 This script is used for testing backwards compatibility after adding a new feature.
 If you want to merge your development branch with the overall devel branch, please proceed as described in README.md file
@@ -16,7 +16,7 @@ min_success_runs: The minimal number of runs to be successful.
 Note that you can have multiple performance and hyperparameterizations for each algorithm-environment combination.
 """
 
-def write_performance_params_json():
+def write_params_json():
     algorithms = TestingAlgos.algo_names
     env_names = TestingEnvs.env_names
 
@@ -27,15 +27,21 @@ def write_performance_params_json():
             params_list = eval("TestingAlgos.get_{}_performance_params".format(alg))(env)
             for params in params_list:
                 if params is not None:
-                    performance_params, hyper_params = params
+                    performance_params, hyper_params = params.copy()
                     hyper_params['n_epochs'] = performance_params['epochs']
                     env_alg_performance[env].append({'alg': alg, 'performance_params': performance_params.copy(),
                                                      'hyper_params': hyper_params.copy()})
-    with open('./performance_test_logs/performance_params.json', 'w') as outfile:
+    with open('./test_logs/performance_params.json', 'w') as outfile:
         json.dump(env_alg_performance, outfile, indent=4, sort_keys=True)
     outfile.close()
 
-def main(**kwargs):
+def main(args):
+    if len(args) == 2:
+        test_mode = args[1]
+        assert test_mode in ['function', 'performance'], "Error, test mode must be performance or function."
+    else:
+        test_mode = 'function'
+
     cmds = []
     n_train_rollouts = 50
     n_test_rollouts = 20
@@ -45,7 +51,7 @@ def main(**kwargs):
     default_opts_values['n_test_rollouts'] = n_test_rollouts
     default_opts_values['base_logdir'] = "/data/" + whoami + "/baselines"
     default_opts_values['try_start_idx'] = 100
-    write_performance_params_json ()
+    write_params_json ()
     base_cmd = "python3 experiment/train.py"
     get_params_functions = {}
     for alg in TestingAlgos.algo_names:
@@ -65,7 +71,10 @@ def main(**kwargs):
                 cmd += ' --max_try_idx {}'.format(default_opts_values['try_start_idx'] + performance_params['n_runs'] - 1)
                 all_kvs = default_opts_values.copy()
                 all_kvs.update(hyper_params)
-                all_kvs['n_epochs'] = performance_params['episodes'] / all_kvs['n_train_rollouts']
+                if test_mode == 'function':
+                    all_kvs['n_epochs'] = 2
+                else:
+                    all_kvs['n_epochs'] = performance_params['episodes'] / all_kvs['n_train_rollouts']
                 all_kvs['early_stop_data_column'] = performance_params['performance_measure']
                 all_kvs['early_stop_threshold'] = performance_params['min_performance_value']
                 for k, v in sorted(all_kvs.items()):
@@ -73,7 +82,7 @@ def main(**kwargs):
                 for _ in range(performance_params['n_runs']):
                     cmds.append(extra + cmd)
 
-    cmd_file_name = "performance_test_cmds.txt"
+    cmd_file_name = "test_cmds.txt"
     with open(cmd_file_name, "w") as cmd_file:
         for cmd in cmds:
             cmd_file.write(cmd + "\n")
@@ -81,4 +90,4 @@ def main(**kwargs):
     print("Done generating performance testing commands")
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv)

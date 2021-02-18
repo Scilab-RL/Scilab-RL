@@ -115,7 +115,7 @@ def main():
     if failed_ctr == 0 and err_ctr == 0:
         print("Performance tests for all environment-algorithm combinations were successful")
 
-    test_error_logs_in_dir('./performance_test_logs')
+    # test_error_logs_in_dir('./performance_test_logs')
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-source ./set_paths.sh
-logs_dir="performance_test_logs"
-cmd_file="performance_test_cmds.txt"
+test_mode=$1
+logs_dir="test_logs"
+cmd_file="test_cmds.txt"
 
 #gpu_ids=(0 1)
 gpu_ids=(0)
@@ -10,7 +10,7 @@ min_mem_free=1500
 rm -rf ${logs_dir}
 rm ${cmd_file}
 mkdir ${logs_dir}
-python3 experiment/generate_performance_testing_commands.py ${epochs}
+python3 experiment/generate_testing_commands.py ${test_mode}
 sleep 2
 # Use first argument $1 to determine number of active processes, otherwise use 5
 max_active_procs="${1-6}"
@@ -69,6 +69,8 @@ done
 echo "All commands finished."
 
 #echo "Number of running procs: $(pgrep -c -P$$)"
+if [ $test_mode == "performance" ]; then
+  python3 experiment/validate_performance_testing.py
 
-python3 experiment/validate_performance_testing.py
+python3 experiment/check_error_logs.py
 
