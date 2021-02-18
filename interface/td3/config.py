@@ -3,6 +3,7 @@
 #     'AntReacherEnv-v0': {},
 # }
 
+
 ## These parameters will be included in the logging path name
-PATH_CONFIG_PARAMS = ['model_class']
+PATH_CONFIG_PARAMS = ['action_steps']
 

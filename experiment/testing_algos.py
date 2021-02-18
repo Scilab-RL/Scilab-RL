@@ -3,7 +3,7 @@ import gym
 
 class TestingAlgos:
     # algorithms = ['chac', 'mbchac', 'example_algorithm', 'her_pytorch', 'hiro', 'td3']
-    base_algo_names = ['ppo', 'sac', 'ddpg']
+    base_algo_names = ['ppo', 'sac', 'ddpg', 'td3']
     algo_names = base_algo_names + ['her'] #'td3', 'ddpg', 'a2c',
 
     @staticmethod
@@ -118,8 +118,11 @@ class TestingAlgos:
         if env in ['FetchReach-v1']:
             performance_params = {'episodes': 300, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
-        elif env in ['FetchPush-v1', 'FetchSlide-v1']:
-            performance_params = {'episodes': 500, 'n_runs': 4, 'min_success_runs': 2,
+        elif env in ['FetchPush-v1', 'FetchSlide-v1', 'FetchPickAndPlace-v1']:
+            performance_params = {'episodes': 2500, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+        elif env in ['HandReach-v0']:
+            performance_params = {'episodes': 8500, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
@@ -140,6 +143,18 @@ class TestingAlgos:
             hyper_params = {'n_train_rollouts': 10}
         else:
             print("Environment {} is not evaluated with PPO algorithm.".format(env))
+            return []
+        return [(performance_params, hyper_params)]
+
+    @staticmethod
+    def get_td3_performance_params(env):
+        hyper_params = {}
+        if env in ['CartPole-v1']:
+            performance_params = {'epochs': 5, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 400, 'performance_measure': 'test/mean_reward'}
+            hyper_params = {'n_train_rollouts': 10}
+        else:
+            print("Environment {} is not evaluated with TD3 algorithm.".format(env))
             return []
         return [(performance_params, hyper_params)]
 
