@@ -18,6 +18,7 @@ from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make
 from stable_baselines3.common.bit_flipping_env import BitFlippingEnv
 from stable_baselines3 import HER, DDPG, DQN, SAC, TD3
 from util.custom_eval_callback import CustomEvalCallback
+# from util.custom_train_callback import CustomTrainCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.her import HER
@@ -36,26 +37,44 @@ def check_env_alg_compatibility(model, env):
         is_compatible = False
     return is_compatible
 
-def train(model, train_env, eval_env, n_epochs, steps_per_epoch, starting_epoch, **kwargs):
-    # actions_per_episode = np.product([int(steps) for steps in kwargs['action_steps'].split(',')])
-    train_actions_per_epoch = steps_per_epoch * kwargs['n_train_rollouts']
-    epochs_remaining = n_epochs - starting_epoch
-    total_actions = train_actions_per_epoch * epochs_remaining
+def get_model_class_args(model_class_str, all_cmd_kvs):
+    model_click = importlib.import_module('interface.' + model_class_str + '.click_options')
+    model_class_options = model_click.get_click_option.params
+    model_class_args = {o.name: o.default for o in model_class_options}
+    changed_mc_args = {k: type(model_class_args[k])(v) for k, v in all_cmd_kvs.items() if k in model_class_args.keys()}
+    model_class_args.update(changed_mc_args)
+    return model_class_args
 
-    checkpoint_callback = CheckpointCallback(save_freq=train_actions_per_epoch, save_path=logger.get_dir())
+def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
+    # actions_per_episode = np.product([int(steps) for steps in kwargs['action_steps'].split(',')])
+    # train_actions_per_epoch = steps_per_epoch * kwargs['n_train_rollouts']
+    epochs_remaining = n_epochs - starting_epoch
+    total_actions = kwargs['eval_after_n_actions'] * epochs_remaining
+
+    checkpoint_callback = CheckpointCallback(save_freq=kwargs['eval_after_n_actions'], save_path=logger.get_dir())
     eval_callback = CustomEvalCallback(eval_env,
                                        log_path=logger.get_dir(),
-                                       eval_freq=train_actions_per_epoch,
+                                       eval_freq=kwargs['eval_after_n_actions'],
                                        n_eval_episodes=kwargs['n_test_rollouts'],
                                        render=kwargs['render_test'],
                                        early_stop_last_n=5,
                                        early_stop_data_column=kwargs['early_stop_data_column'],
                                        early_stop_threshold=kwargs['early_stop_threshold'],
+                                       model=model
                                        )
+    # train_callback = CustomTrainCallback(train_env,
+    #                                    log_path=logger.get_dir(),
+    #                                    eval_freq=kwargs['eval_after_n_actions'],
+    #                                    n_eval_episodes=kwargs['n_test_rollouts'],
+    #                                    render=kwargs['render_test'],
+    #                                    early_stop_last_n=5,
+    #                                    early_stop_data_column=kwargs['early_stop_data_column'],
+    #                                    early_stop_threshold=kwargs['early_stop_threshold'],
+    #                                    )
 
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])
-    model.learn(total_timesteps=total_actions,callback=callback, log_interval=kwargs['n_train_rollouts'])
+    model.learn(total_timesteps=total_actions,callback=callback, log_interval=None)
 
     train_env.close()
     eval_env.close()
@@ -75,18 +94,16 @@ def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, po
     train_env = gym.make(env)
     eval_env = gym.make(env)
 
-    if hasattr(train_env, '_max_episode_steps'):
-        policy_args['max_episode_length'] = train_env._max_episode_steps
-    else:
-        policy_args['max_episode_length'] = kwargs['action_steps']
+    # if hasattr(train_env, '_max_episode_steps'):
+    #     policy_args['max_episode_length'] = train_env._max_episode_steps
+    # else:
+    #     policy_args['max_episode_length'] = kwargs['action_steps']
     if restore_policy is not None:
         model = ModelClass.load(restore_policy, env=train_env)
     else:
-        if algorithm == 'her':
-            policy_args['model_class'] = getattr(importlib.import_module('stable_baselines3.' + policy_args['model_class']), policy_args['model_class'].upper())
         model = ModelClass('MlpPolicy', train_env, **policy_args)
     logger.info("Launching training")
-    train(model, train_env, eval_env, n_epochs, steps_per_epoch=policy_args['max_episode_length'], starting_epoch=starting_epoch, **kwargs)
+    train(model, train_env, eval_env, n_epochs, starting_epoch=starting_epoch, **kwargs)
 
 @click.command(context_settings=dict(
     ignore_unknown_options=True,
@@ -101,20 +118,39 @@ def main(ctx, **kwargs):
     changed_policy_args = {k: type(policy_args[k])(v) for k,v in all_cmd_kvs.items() if k in policy_args.keys()}
     policy_args.update(changed_policy_args)
 
-    # Get default options for model class
+    # Get default options for model classes
     if 'model_class' in policy_args.keys():
-        model_click = importlib.import_module('interface.' + policy_args['model_class'] + '.click_options')
-        model_class_options = model_click.get_click_option.params
-        model_class_args = {o.name: o.default for o in model_class_options}
-        changed_mc_args = {k: type(model_class_args[k])(v) for k, v in all_cmd_kvs.items() if k in model_class_args.keys()}
-        model_class_args.update(changed_mc_args)
-        for k,v in model_class_args.items():
+        model_class_args = get_model_class_args(policy_args['model_class'], all_cmd_kvs)
+        for k, v in model_class_args.items():
             if k in policy_args.keys():
-                logger.warn("Warning, model class and algorithm have a common parameter {}. This will cause the model class to use the default parameter provided in its constructor.".format(k))
+                logger.warn(
+                    "Warning, model class and algorithm have a common parameter {}. This will cause the model class to use the default parameter provided in its constructor.".format(
+                        k))
             else:
                 policy_args[k] = v
+        kwargs.update(policy_args.copy())
+        # In policy args, exchange the string representing the model class with the actual class object.
+        policy_args['model_class'] = getattr(importlib.import_module('stable_baselines3.' + policy_args['model_class']),
+                                             policy_args['model_class'].upper())
 
-    kwargs.update(policy_args)
+    if 'model_classes' in policy_args.keys():
+        class_list = []
+        for class_name in policy_args['model_class'].split(','):
+            model_class_args = get_model_class_args(class_name, all_cmd_kvs)
+            for k, v in model_class_args.items():
+                if k in policy_args.keys():
+                    logger.warn(
+                        "Warning, model class and algorithm have a common parameter {}. This will cause the model class to use the default parameter provided in its constructor.".format(
+                            k))
+                else:
+                    policy_args[k] = v
+
+            class_list.append(getattr(importlib.import_module('stable_baselines3.' + class_name),
+                                      class_name.upper()))
+        kwargs.update(policy_args.copy())
+        # In policy args, exchange the string representing the model class with the actual class object.
+        policy_args['model_classes'] = class_list
+
     kwargs['pid'] = os.getpid()
     logger.info("Starting process id: {}".format(kwargs['pid']))
     ctr = kwargs['try_start_idx']
@@ -164,6 +200,7 @@ def main(ctx, **kwargs):
     logger.configure(folder=kwargs['logdir'],
                      format_strings=['stdout', 'log', 'csv', 'tensorboard'])
     logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir']+'/plot.csv',cols_to_plot=['test/mean_reward', 'train/entropy_loss', 'train/loss', 'test/success_rate', 'test/mean_ep_length', 'train/actor_loss', 'train/critic_loss']))
+    # logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir']+'/plot.csv',cols_to_plot=['train/entropy_loss']))
     logdir = logger.get_dir()
 
     logger.info("Data dir: {} ".format(logdir))

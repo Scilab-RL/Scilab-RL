@@ -68,7 +68,7 @@ def evaluate_policy(
             episode_length += 1
             if render:
                 env.render()
-            if episode_success: # Early abort on success.
+            if episode_success and episode_success is not np.nan: # Early abort on success.
                 done = True
                 if isinstance(env, VecEnv):
                     env.reset()

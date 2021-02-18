@@ -1,6 +1,7 @@
 import click
 options = [
 click.option('--verbose', type=bool, default=True),
+click.option('--learning_starts', type=int, default=50000),
 ]
 
 def click_main(func):

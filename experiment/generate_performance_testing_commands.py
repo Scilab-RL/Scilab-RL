@@ -28,7 +28,7 @@ def write_performance_params_json():
             for params in params_list:
                 if params is not None:
                     performance_params, hyper_params = params
-                    # hyper_params['n_epochs'] = performance_params['epochs']
+                    hyper_params['n_epochs'] = performance_params['epochs']
                     env_alg_performance[env].append({'alg': alg, 'performance_params': performance_params.copy(),
                                                      'hyper_params': hyper_params.copy()})
     with open('./performance_test_logs/performance_params.json', 'w') as outfile:
@@ -65,7 +65,7 @@ def main(**kwargs):
                 cmd += ' --max_try_idx {}'.format(default_opts_values['try_start_idx'] + performance_params['n_runs'] - 1)
                 all_kvs = default_opts_values.copy()
                 all_kvs.update(hyper_params)
-                all_kvs['n_epochs'] = int(performance_params['episodes'] / all_kvs['n_train_rollouts'])
+                all_kvs['n_epochs'] = performance_params['episodes'] / all_kvs['n_train_rollouts']
                 all_kvs['early_stop_data_column'] = performance_params['performance_measure']
                 all_kvs['early_stop_threshold'] = performance_params['min_performance_value']
                 for k, v in sorted(all_kvs.items()):

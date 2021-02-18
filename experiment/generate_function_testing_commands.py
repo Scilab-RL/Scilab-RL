@@ -10,7 +10,7 @@ If you want to merge your development branch with the overall devel branch, plea
 if __name__ == "__main__":
     cmds = []
 
-    n_train_rollouts = 2
+    eval_after_n_actions = 100
     n_test_rollouts = 2
     n_epochs = 2
     rollout_batch_size = 1
@@ -19,9 +19,8 @@ if __name__ == "__main__":
     whoami = getpass.getuser()
 
     opts_values = {"general": {}}
-    opts_values["general"]['num_cpu'] = n_cpu
     opts_values["general"]['n_epochs'] = n_epochs
-    opts_values["general"]['n_train_rollouts'] = n_train_rollouts
+    opts_values["general"]['eval_after_n_actions'] = eval_after_n_actions
     opts_values["general"]['n_test_rollouts'] = n_test_rollouts
     opts_values["general"]['base_logdir'] = "/data/" + whoami + "/baselines"
     opts_values["general"]['render'] = 0

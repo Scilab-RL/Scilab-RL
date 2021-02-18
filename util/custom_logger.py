@@ -5,11 +5,12 @@ import matplotlib.pyplot as plt
 from collections import OrderedDict
 import csv
 import numpy as np
-from util.util import print_dict
+from util.util import print_dict, check_all_dict_values_equal
 
 class MatplotlibOutputFormat(KVWriter):
     def __init__(self, filename, cols_to_plot=['test/success_rate', 'test/reward', 'train/entropy_loss']):
         self.file = open(filename, 'w+t')
+        self.filename = filename
         self.keys = []
         self.sep = ','
         self.data_read_dir = "/".join(filename.split("/")[:-2])
@@ -66,7 +67,7 @@ class MatplotlibOutputFormat(KVWriter):
             configs.add(config_str)
             if config_str not in config_data.keys():
                 config_data[config_str] = []
-            with open(folder+"/progress.csv") as csvfile:
+            with open(self.filename) as csvfile:
                 reader = csv.reader(csvfile, delimiter=',', quotechar='|')
                 for line, row in enumerate(reader):
                     if line == 0:
@@ -82,6 +83,7 @@ class MatplotlibOutputFormat(KVWriter):
                             try:
                                 data_dict[config_str][keys[idx]][config_ctr_str].append(float(item))
                             except:
+                                data_dict[config_str][keys[idx]][config_ctr_str].append(np.nan)
                                 pass
                                 # print("item is not a float")
         self.plot_dict(data_dict)
@@ -128,11 +130,22 @@ class MatplotlibOutputFormat(KVWriter):
                     continue
                 median, upper, lower, data_info = self.tolerant_median(data[k])
                 min_data_len = data_info['shortest_data_count']
+                if 'time/total timesteps' in data.keys():
+                    all_xs = data['time/total timesteps']
+                    all_dict_values_equal = check_all_dict_values_equal(all_xs, until_idx=min_data_len)
+                    assert all_dict_values_equal, "Error, time/total_timesteps is not equal for all elements in dictionary"
+                    xs = data['time/total timesteps'][data_info['shortest_key']]
+                    xs_label = 'action steps'
+                else:
+                    xs = range(0, data_info['shortest_data_count'])
+                    xs_label = 'epochs'
                 all_data_info[config_str] = data_info
-                plt.plot(median[:min_data_len], color=self.plot_colors[color_idx], label=config_str + '-' + k)
-                plt.fill_between(range(min_data_len), lower[:min_data_len],
+                plt.plot(xs_label, k, data={xs_label: xs, k: median[:min_data_len]}, color=self.plot_colors[color_idx], label=config_str + '-' + k)
+                plt.fill_between(xs, lower[:min_data_len],
                                  upper[:min_data_len],
                                  alpha=0.25, color=self.plot_colors[color_idx])
+                plt.xlabel(xs_label)
+                plt.ylabel(k)
                 color_idx += 1
                 if color_idx >= len(self.plot_colors):
                     color_idx = 0

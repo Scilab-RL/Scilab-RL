@@ -5,5 +5,5 @@
 
 
 ## These parameters will be included in the logging path name
-PATH_CONFIG_PARAMS = ['action_steps']
+PATH_CONFIG_PARAMS = []
 

@@ -4,6 +4,24 @@ import numpy as np
 import random
 import csv
 
+def check_all_dict_values_equal(this_dict, until_idx=None):
+    all_equal = True
+    last_vals = None
+    for k,v in this_dict.items():
+        if until_idx is None:
+            vals = v
+        else:
+            vals = v[:until_idx]
+        if last_vals is None:
+            last_vals = vals
+            continue
+        if vals != last_vals:
+            all_equal = False
+            break
+        last_vals = vals
+    return all_equal
+
+
 def get_subdir_by_params(path_params, ctr=0):
     param_strs = []
 

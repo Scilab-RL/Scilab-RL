@@ -7,8 +7,11 @@ import os
 import warnings
 from util.custom_evaluation import evaluate_policy
 from stable_baselines3.common.base_class import BaseAlgorithm
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common import logger
 from collections import deque
+import time
+from stable_baselines3.common.utils import safe_mean
 
 class CustomEvalCallback(EvalCallback):
     """
@@ -39,7 +42,8 @@ class CustomEvalCallback(EvalCallback):
         verbose: int = 1,
         early_stop_data_column: str = 'test/success_rate',
         early_stop_threshold: float = 1.0,
-        early_stop_last_n: int = 5
+        early_stop_last_n: int = 5,
+        model: OffPolicyAlgorithm = None
     ):
         super(EvalCallback, self).__init__(verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
@@ -55,6 +59,7 @@ class CustomEvalCallback(EvalCallback):
         self.early_stop_data_column = early_stop_data_column
         self.early_stop_threshold = early_stop_threshold
         self.early_stop_last_n = early_stop_last_n
+        self.model = model
 
         eval_env = BaseAlgorithm._wrap_env(eval_env)
         # Convert to VecEnv for consistency
@@ -72,7 +77,6 @@ class CustomEvalCallback(EvalCallback):
         self.evaluations_length = []
 
     def _on_step(self) -> bool:
-
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
@@ -112,11 +116,12 @@ class CustomEvalCallback(EvalCallback):
             #         return self._on_event()
             if mean_success > self.best_mean_success:
                 if self.verbose > 0:
-                    print("New best mean reward!")
+                    print("New best mean success rate!")
                 if self.log_path is not None:
                     self.model.save(os.path.join(self.log_path, "best_model"))
                 self.best_mean_success = mean_success
-
+            if self.model is not None:
+                self.dump_model_logs()
             if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                 mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
                 if  mean_val >= self.early_stop_threshold:
@@ -125,4 +130,24 @@ class CustomEvalCallback(EvalCallback):
                         self.model.save(os.path.join(self.log_path, "early_stop_model"))
                     return False
         return True
+
+    def dump_model_logs(self):
+        """
+        Write log.
+        """
+        fps = int(self.model.num_timesteps / (time.time() - self.model.start_time))
+        logger.record("time/episodes", self.model._episode_num, exclude="tensorboard")
+        if len(self.model.ep_info_buffer) > 0 and len(self.model.ep_info_buffer[0]) > 0:
+            logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.model.ep_info_buffer]))
+            logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.model.ep_info_buffer]))
+        logger.record("time/fps", fps)
+        logger.record("time/time_elapsed", int(time.time() - self.model.start_time), exclude="tensorboard")
+        logger.record("time/total timesteps", self.model.num_timesteps, exclude="tensorboard")
+        if self.model.use_sde:
+            logger.record("train/std", (self.model.actor.get_std()).mean().item())
+
+        if len(self.model.ep_success_buffer) > 0:
+            logger.record("rollout/success rate", safe_mean(self.model.ep_success_buffer))
+        # Pass the number of timesteps for tensorboard
+        logger.dump(step=self.model.num_timesteps)
 
