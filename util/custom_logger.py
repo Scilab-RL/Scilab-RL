@@ -1,3 +1,6 @@
+import matplotlib
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
 import os
 from stable_baselines3.common import logger
 from stable_baselines3.common.logger import KVWriter

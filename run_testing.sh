@@ -17,7 +17,7 @@ echo "Generating test commands for ${test_mode} mode"
 python3 experiment/generate_testing_commands.py $test_mode
 sleep 2
 # Use first argument $1 to determine number of active processes, otherwise use 5
-max_active_procs=6
+max_active_procs=8
 cmd_ctr=0
 n_cmds=$(cat $cmd_file | wc -l)
 declare -a cmd_arr=()
