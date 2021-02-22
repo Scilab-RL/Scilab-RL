@@ -72,7 +72,6 @@ def main(args):
                 all_kvs.update(hyper_params)
                 if test_mode == 'function':
                     all_kvs['n_epochs'] = 2
-                    # all_kvs['eval_after_n_actions'] = 200
                     performance_params['n_runs'] = 1
                 else:
                     all_kvs['n_epochs'] = performance_params['n_epochs']

@@ -11,7 +11,7 @@ import numpy as np
 from util.util import print_dict, check_all_dict_values_equal
 
 class MatplotlibOutputFormat(KVWriter):
-    def __init__(self, logpath, cols_to_plot=['test/success_rate', 'test/reward', 'train/entropy_loss']):
+    def __init__(self, logpath, cols_to_plot=['test/success_rate', 'test/mean_reward']):
         self.logpath = logpath
         self.csv_filename = "plot.csv"
         self.csv_filepath = logpath + "/plot.csv"

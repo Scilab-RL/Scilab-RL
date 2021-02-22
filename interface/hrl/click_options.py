@@ -6,6 +6,7 @@ click.option('--model_classes', type=str, default='sac,sac'),
 click.option('--her_goal_selection_strategy', type=click.Choice(['future', 'final', 'episode']), default='future'),
 click.option('--her_n_sampled_goal', type=int, default=4),
 click.option('--her_online_sampling', type=bool, default=True),
+click.option('--max_episode_length', type=int, default=0),
 click.option('--verbose', type=bool, default=True),
 ]
 

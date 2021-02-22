@@ -67,15 +67,6 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
                                        early_stop_threshold=kwargs['early_stop_threshold'],
                                        model=model
                                        )
-    # train_callback = CustomTrainCallback(train_env,
-    #                                    log_path=logger.get_dir(),
-    #                                    eval_freq=kwargs['eval_after_n_actions'],
-    #                                    n_eval_episodes=kwargs['n_test_rollouts'],
-    #                                    render=kwargs['render_test'],
-    #                                    early_stop_last_n=5,
-    #                                    early_stop_data_column=kwargs['early_stop_data_column'],
-    #                                    early_stop_threshold=kwargs['early_stop_threshold'],
-    #                                    )
 
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])
@@ -87,17 +78,12 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
 
 def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, restore_policy, logdir, **kwargs):
     set_global_seeds(seed)
-    ModelClass = getattr(importlib.import_module('stable_baselines3.' + algorithm), algorithm.upper())
+    try:
+        ModelClass = getattr(importlib.import_module('stable_baselines3.' + algorithm), algorithm.upper())
+    except:
+        ModelClass = getattr(importlib.import_module('ideas_baselines.' + algorithm), algorithm.upper())
     train_env = gym.make(env)
     eval_env = gym.make(env)
-    # action_steps = kwargs['action_steps']
-    # # Overwrite max_episode_steps
-    # if action_steps != 0:
-    #     if hasattr(train_env, '_max_episode_steps'):
-    #         train_env._max_episode_steps = action_steps
-    #         train_env.env.spec.max_episode_steps
-    #         eval_env._max_episode_steps = action_steps
-    #         eval_env.env.spec.max_episode_steps
     if restore_policy is not None:
         model = ModelClass.load(restore_policy, env=train_env)
     else:
@@ -138,7 +124,7 @@ def main(ctx, **kwargs):
 
     if 'model_classes' in policy_args.keys():
         class_list = []
-        for class_name in policy_args['model_class'].split(','):
+        for class_name in policy_args['model_classes'].split(','):
             model_class_args = get_model_class_args(class_name, all_cmd_kvs)
             for k, v in model_class_args.items():
                 if k in policy_args.keys():
@@ -152,7 +138,9 @@ def main(ctx, **kwargs):
                                       class_name.upper()))
         kwargs.update(policy_args.copy())
         # In policy args, exchange the string representing the model class with the actual class object.
-        policy_args['model_classes'] = class_list
+        policy_args['model_class'] = class_list[0]
+        if len(class_list) > 1:
+            policy_args['sub_model_classes'] = class_list[1:]
 
     kwargs['pid'] = os.getpid()
     logger.info("Starting process id: {}".format(kwargs['pid']))
