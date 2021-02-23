@@ -105,6 +105,7 @@ class MBCHAC(BaseAlgorithm):
         is_top_layer: bool = True,
         layer_envs: List[GymEnv] = [],
         continuous_subgoals = False,
+        n_episodes_rollout: int = -1,
         *args,
         **kwargs,
     ):
@@ -126,12 +127,14 @@ class MBCHAC(BaseAlgorithm):
             max_episode_length = self.level_steps
         bottom_env = layer_envs[-1]
 
-
+        this_env = layer_envs[0]
+        this_env.env.model = self
         # Build policy, convert env into <ObstDictWrapper> class.
-        super(MBCHAC, self).__init__(policy=BasePolicy, env=layer_envs[0], policy_base=BasePolicy, learning_rate=0.0)
+        super(MBCHAC, self).__init__(policy=BasePolicy, env=this_env, policy_base=BasePolicy, learning_rate=0.0)
+        # Set model of env to self, so that we can perform hierarchical actions.
+        self.total_num_timesteps = 0
         # we will use the policy and learning rate from the model.
         del self.policy, self.learning_rate
-        self.continuous_subgoals = True
         if self.get_vec_normalize_env() is not None:
             assert online_sampling, "You must pass `online_sampling=True` if you want to use `VecNormalize` with `HER`"
 
@@ -221,9 +224,10 @@ class MBCHAC(BaseAlgorithm):
         mask: Optional[np.ndarray] = None,
         deterministic: bool = False,
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
-        if self.continuous_subgoals and self.sub_model is not None:
+        # if self.continuous_subgoals and
+        if self.sub_model is not None:
             subgoal = self.model.predict(observation, state, mask, deterministic)
-            observation['desired_goal'] = subgoal
+            observation['desired_goal'] = subgoal[0]
         if self.sub_model is None:
             action = self.model.predict(observation, state, mask, deterministic)
         else:
@@ -238,7 +242,7 @@ class MBCHAC(BaseAlgorithm):
         eval_env: Optional[GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
-        tb_log_name: str = "HER",
+        tb_log_name: str = "MBCHAC",
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = True,
     ) -> BaseAlgorithm:
@@ -256,8 +260,9 @@ class MBCHAC(BaseAlgorithm):
 
         callback.on_training_start(locals(), globals())
 
-        while self.num_timesteps < total_timesteps:
+        while self.total_num_timesteps < total_timesteps:
 
+            # Equivalent to CHACpolicy.layer.train() - called on l. 120
             rollout = self.collect_rollouts(
                 self.env,
                 n_episodes=self.n_episodes_rollout,
@@ -271,7 +276,8 @@ class MBCHAC(BaseAlgorithm):
             if rollout.continue_training is False:
                 break
 
-            if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0:
+            # Equivalent to CHACpolicy.learn() - called on l. 126
+            if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0 and do_train is True:
                 # If no `gradient_steps` is specified,        policy: Union[str, Type[BasePolicy]],
                 # do as many gradients steps as steps performed during the rollout
                 gradient_steps = self.gradient_steps if self.gradient_steps > 0 else rollout.episode_timesteps
@@ -280,6 +286,11 @@ class MBCHAC(BaseAlgorithm):
         callback.on_training_end()
 
         return self
+
+    # def train(self, batch_size, gradient_steps):
+    #     super().train(batch_size=batch_size, gradient_steps=gradient_steps)
+    #     if self.sub_model is not None:
+    #         self.sub_model.train(batch_size, gradient_steps)
 
     def collect_rollouts(
         self,
@@ -339,10 +350,17 @@ class MBCHAC(BaseAlgorithm):
                 action, buffer_action = self._sample_action(learning_starts, action_noise)
 
                 # Perform action
-                new_obs, reward, done, infos = env.step(action)
+                if self.sub_model is None:
+                    new_obs, reward, done, infos = env.step(action)
+                else:
+                    new_obs, reward, done, infos = env.step(action)
 
                 self.num_timesteps += 1
                 self.model.num_timesteps = self.num_timesteps
+                if hasattr(self.sub_model, 'total_num_timesteps'):
+                    self.total_num_timesteps = self.sub_model.total_num_timesteps
+                else:
+                    self.total_num_timesteps = self.sub_model.num_timesteps
                 episode_timesteps += 1
                 total_steps += 1
 

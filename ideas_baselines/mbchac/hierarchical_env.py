@@ -49,6 +49,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
             observation=spaces.Box(-np.inf, np.inf, shape=obs_sample['observation'].shape, dtype='float32'),
         ))
         self._sub_env = None
+        self.model = None
 
 
     def set_sub_env(self, env):
@@ -68,7 +69,12 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
         self._sub_env.goal = subgoal
-        self._sub_env.collect_rollouts()
+        if self.model is not None:
+            self.model.sub_model.learn(total_timesteps=1, tb_log_name="MBCHAC_{}".format(self.model.layer-1),
+                                      reset_num_timesteps=False)
+        else:
+            print("Step not possible because no model defined yet.")
+
         self._step_callback()
         obs = self._get_obs()
 
@@ -86,7 +92,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
         # In this case, we just keep randomizing until we eventually achieve a valid initial
         # configuration.
         super(HierarchicalHLEnv, self).reset()
-        self.goal = self._sample_goal().copy()
+        self.goal = self._sample_goal()
         obs = self._sub_env.reset()
         return obs
 
@@ -112,12 +118,12 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def _is_success(self, achieved_goal, desired_goal):
         """Indicates whether or not the achieved goal successfully achieved the desired goal.
         """
-        self._sub_env._is_success(achieved_goal, desired_goal)
+        return self._sub_env._is_success(achieved_goal, desired_goal)
 
     def _sample_goal(self):
         """Samples a new goal and returns it.
         """
-        self._sub_env._sample_goal()
+        return self._sub_env.env._sample_goal()
 
     def _env_setup(self, initial_qpos):
         """Initial configuration of the environment. Can be used to configure initial state
