@@ -16,7 +16,8 @@ DEFAULT_SIZE = 500
 
 
 def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
-                        level_steps: List[int], env_list: List[gym.GoalEnv] = []) -> List[gym.wrappers.TimeLimit]:
+                        level_steps_str: str, env_list: List[gym.GoalEnv] = []) -> List[gym.wrappers.TimeLimit]:
+    level_steps = [int(s) for s in level_steps_str.split(",")]
     if len(level_steps) == 0:
         return env_list
     action_dim = len(bottom_env.env._sample_goal())
@@ -31,9 +32,8 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
     if len(env_list) >= 1:
         env_list[-1].set_sub_env(env)
     env_list.append(env)
-
-    env_list = get_h_envs_from_env(bottom_env, level_steps[1:], env_list)
-
+    next_level_steps_str = ",".join([str(s) for s in level_steps[1:]])
+    env_list = get_h_envs_from_env(bottom_env, next_level_steps_str, env_list)
 
     return env_list
 

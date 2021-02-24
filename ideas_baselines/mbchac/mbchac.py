@@ -104,35 +104,32 @@ class MBCHAC(BaseAlgorithm):
         max_episode_length: Optional[int] = None,
         is_top_layer: bool = True,
         layer_envs: List[GymEnv] = [],
-        continuous_subgoals = False,
-        n_episodes_rollout: int = -1,
         *args,
         **kwargs,
     ):
         # determine time_scales
         self.is_top_layer = is_top_layer
         self.time_scales = time_scales
-        self.is_bottom_env = len(self.time_scales.split(",")) == 1
+        self.is_bottom_layer = len(self.time_scales.split(",")) == 1
         assert len(time_scales.split(",")) == (
                     len(sub_model_classes) + 1), "Error, number of time scales is not equal to number of layers."
         assert time_scales.count(
             "_") <= 1, "Error, only one wildcard character \'_\' allowed in time_scales argument {}".format(time_scales)
         if self.is_top_layer == 1:  # Only do this once at top layer.
             self.time_scales = compute_time_scales(time_scales, env)
-            time_scales_int = [int(s) for s in self.time_scales.split(",")]
             # Build layer_env from env, depending on steps and action space.
-            layer_envs = get_h_envs_from_env(env, time_scales_int)
-        self.level_steps = int(self.time_scales.split(",")[0])
+            layer_envs = get_h_envs_from_env(env, self.time_scales)
+        time_scales_int = [int(s) for s in self.time_scales.split(",")]
+        self.level_steps_per_episode = int(self.time_scales.split(",")[0])
         if max_episode_length is None:
-            max_episode_length = self.level_steps
+            max_episode_length = self.level_steps_per_episode
+        self.max_steps_per_layer_action = np.product(time_scales_int[1:]) # the max. number of low-level steps per action on this layer.
         bottom_env = layer_envs[-1]
 
         this_env = layer_envs[0]
         this_env.env.model = self
         # Build policy, convert env into <ObstDictWrapper> class.
         super(MBCHAC, self).__init__(policy=BasePolicy, env=this_env, policy_base=BasePolicy, learning_rate=0.0)
-        # Set model of env to self, so that we can perform hierarchical actions.
-        self.total_num_timesteps = 0
         # we will use the policy and learning rate from the model.
         del self.policy, self.learning_rate
         if self.get_vec_normalize_env() is not None:
@@ -247,6 +244,10 @@ class MBCHAC(BaseAlgorithm):
         reset_num_timesteps: bool = True,
     ) -> BaseAlgorithm:
 
+        # In case this is the top layer, the passed number of steps provided refers to the low-level steps, so we need to translate this into high-level steps
+        if self.is_top_layer:
+            total_timesteps = total_timesteps / self.max_steps_per_layer_action
+
         total_timesteps, callback = self._setup_learn(
             total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps, tb_log_name
         )
@@ -260,15 +261,17 @@ class MBCHAC(BaseAlgorithm):
 
         callback.on_training_start(locals(), globals())
 
-        while self.total_num_timesteps < total_timesteps:
+        while self.num_timesteps < total_timesteps:
 
-            # Equivalent to CHACpolicy.layer.train() - called on l. 120
+            # Only use callback in low-level layer
+            this_layer_callback = callback if self.sub_model is None else None
+            # Equivalent to CHACpolicy.layer.train() - called on l. 120 in ideas_deep_rl
             rollout = self.collect_rollouts(
                 self.env,
                 n_episodes=self.n_episodes_rollout,
                 n_steps=self.train_freq,
                 action_noise=self.action_noise,
-                callback=callback,
+                callback=this_layer_callback,
                 learning_starts=self.learning_starts,
                 log_interval=log_interval,
             )
@@ -276,8 +279,8 @@ class MBCHAC(BaseAlgorithm):
             if rollout.continue_training is False:
                 break
 
-            # Equivalent to CHACpolicy.learn() - called on l. 126
-            if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0 and do_train is True:
+            # Equivalent to CHACpolicy.learn() - called on l. 126 in ideas_deep_rl
+            if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0:
                 # If no `gradient_steps` is specified,        policy: Union[str, Type[BasePolicy]],
                 # do as many gradients steps as steps performed during the rollout
                 gradient_steps = self.gradient_steps if self.gradient_steps > 0 else rollout.episode_timesteps
@@ -357,16 +360,14 @@ class MBCHAC(BaseAlgorithm):
 
                 self.num_timesteps += 1
                 self.model.num_timesteps = self.num_timesteps
-                if hasattr(self.sub_model, 'total_num_timesteps'):
-                    self.total_num_timesteps = self.sub_model.total_num_timesteps
-                else:
-                    self.total_num_timesteps = self.sub_model.num_timesteps
                 episode_timesteps += 1
                 total_steps += 1
 
-                # Only stop training if return value is False, not when it is None.
-                if callback.on_step() is False:
-                    return RolloutReturn(0.0, total_steps, total_episodes, continue_training=False)
+                # Only perform on_steps rollout in lowest layer
+                if self.is_bottom_layer:
+                    # Only stop training if return value is False, not when it is None.
+                    if callback.on_step() is False:
+                        return RolloutReturn(0.0, total_steps, total_episodes, continue_training=False)
 
                 episode_reward += reward
 

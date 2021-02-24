@@ -54,12 +54,12 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
     # actions_per_episode = np.product([int(steps) for steps in kwargs['action_steps'].split(',')])
     # train_actions_per_epoch = steps_per_epoch * kwargs['n_train_rollouts']
     epochs_remaining = n_epochs - starting_epoch
-    total_actions = kwargs['eval_after_n_actions'] * epochs_remaining
+    total_steps=kwargs['eval_after_n_steps'] * epochs_remaining
 
-    checkpoint_callback = CheckpointCallback(save_freq=kwargs['eval_after_n_actions'], save_path=logger.get_dir())
+    checkpoint_callback = CheckpointCallback(save_freq=kwargs['eval_after_n_steps'], save_path=logger.get_dir())
     eval_callback = CustomEvalCallback(eval_env,
                                        log_path=logger.get_dir(),
-                                       eval_freq=kwargs['eval_after_n_actions'],
+                                       eval_freq=kwargs['eval_after_n_steps'],
                                        n_eval_episodes=kwargs['n_test_rollouts'],
                                        render=kwargs['render_test'],
                                        early_stop_last_n=5,
@@ -70,7 +70,7 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
 
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])
-    model.learn(total_timesteps=total_actions,callback=callback, log_interval=None)
+    model.learn(total_timesteps=total_steps,callback=callback, log_interval=None)
 
     train_env.close()
     eval_env.close()
