@@ -22,7 +22,7 @@ click.option('--online_sampling', type=bool, default=True),
 # click.option('--q_hidden_size', type=int, default=64, help='Hidden size used for the critic network'),
 # click.option('--mu_lr', type=float, default=0.001, help='Actor learning rate'),
 # click.option('--mu_hidden_size', type=int, default=64, help='Hidden size used for the actor network'),
-click.option('--continuous_subgoals', type=bool, default=False, help='Whether to determine new subgoals with each step.'), # TODO: CURRENTLY NOT IMPLEMENTED!
+# click.option('--continuous_subgoals', type=bool, default=False, help='Whether to determine new subgoals with each step.'), # TODO: CURRENTLY NOT IMPLEMENTED!
 click.option('--time_scales', type=str, default='5,_', help='Steps per level from lowest to highest, separated by comma. There must be one \'_\' character in the list to indicates the layer where the time scale is determined from the environment\'s predefined steps.'),
 
 # click.option('--subgoal_test_perc', type=float, default=0.3, help='The percentage of subgoals to test.'),

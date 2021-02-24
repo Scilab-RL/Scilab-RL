@@ -17,9 +17,9 @@ DEFAULT_SIZE = 500
 
 def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
                         level_steps_str: str, env_list: List[gym.GoalEnv] = []) -> List[gym.wrappers.TimeLimit]:
-    level_steps = [int(s) for s in level_steps_str.split(",")]
-    if len(level_steps) == 0:
+    if level_steps_str == '':
         return env_list
+    level_steps = [int(s) for s in level_steps_str.split(",")]
     action_dim = len(bottom_env.env._sample_goal())
     obs_sample = bottom_env.env._get_obs()
     if len(level_steps) > 1:
@@ -51,7 +51,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self._sub_env = None
         self.model = None
 
-
     def set_sub_env(self, env):
         self._sub_env = env
 
@@ -69,12 +68,9 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
         self._sub_env.goal = subgoal
-        if self.model is not None:
-            self.model.sub_model.learn(total_timesteps=1, tb_log_name="MBCHAC_{}".format(self.model.layer-1),
+        assert self.model is not None, "Step not possible because no model defined yet."
+        self.model.sub_model.learn(total_timesteps=1, tb_log_name="MBCHAC_{}".format(self.model.layer-1),
                                       reset_num_timesteps=False)
-        else:
-            print("Step not possible because no model defined yet.")
-
         self._step_callback()
         obs = self._get_obs()
 
@@ -108,7 +104,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def _get_obs(self):
         """Returns the observation.
         """
-        self._sub_env.get_obs()
+        return self._sub_env.env._get_obs()
 
     # def _set_action(self, action):
     #     """Applies the given action to the simulation.
@@ -118,7 +114,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def _is_success(self, achieved_goal, desired_goal):
         """Indicates whether or not the achieved goal successfully achieved the desired goal.
         """
-        return self._sub_env._is_success(achieved_goal, desired_goal)
+        return self._sub_env.env._is_success(achieved_goal, desired_goal)
 
     def _sample_goal(self):
         """Samples a new goal and returns it.
@@ -150,3 +146,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
         """
         pass
         # self._sub_env._step_callback()
+
+    def compute_reward(self, achieved_goal, goal, info):
+        return self._sub_env.env.compute_reward(achieved_goal, goal, info)

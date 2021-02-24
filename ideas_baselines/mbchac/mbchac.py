@@ -116,6 +116,8 @@ class MBCHAC(BaseAlgorithm):
         assert time_scales.count(
             "_") <= 1, "Error, only one wildcard character \'_\' allowed in time_scales argument {}".format(time_scales)
         if self.is_top_layer == 1:  # Only do this once at top layer.
+            # set train frequency
+            self.train_freq = env.spec.max_episode_steps
             self.time_scales = compute_time_scales(time_scales, env)
             # Build layer_env from env, depending on steps and action space.
             layer_envs = get_h_envs_from_env(env, self.time_scales)
@@ -125,7 +127,6 @@ class MBCHAC(BaseAlgorithm):
             max_episode_length = self.level_steps_per_episode
         self.max_steps_per_layer_action = np.product(time_scales_int[1:]) # the max. number of low-level steps per action on this layer.
         bottom_env = layer_envs[-1]
-
         this_env = layer_envs[0]
         this_env.env.model = self
         # Build policy, convert env into <ObstDictWrapper> class.
@@ -152,7 +153,7 @@ class MBCHAC(BaseAlgorithm):
             self.sub_model = MBCHAC('MlpPolicy', bottom_env, sub_model_classes[0], sub_model_classes[1:],
                                     time_scales=sub_level_steps,
                                     n_sampled_goal=n_sampled_goal, goal_selection_strategy=goal_selection_strategy,
-                                    online_sampling=online_sampling, max_episode_length=int(sub_level_steps[0]),
+                                    online_sampling=online_sampling, train_freq=self.train_freq,
                                     is_top_layer=False, layer_envs=layer_envs[1:],
                                     **kwargs)
         else:
@@ -204,7 +205,7 @@ class MBCHAC(BaseAlgorithm):
 
         # counter for steps in episode
         self.episode_steps = 0
-
+        self.actions_since_last_train = 0
         if _init_setup_model:
             self._setup_model()
 
@@ -259,34 +260,34 @@ class MBCHAC(BaseAlgorithm):
         self.model._last_obs = self._last_obs
         self.model._total_timesteps = self._total_timesteps
 
-        callback.on_training_start(locals(), globals())
+        if self.is_top_layer:
+            callback.on_training_start(locals(), globals())
 
         while self.num_timesteps < total_timesteps:
 
-            # Only use callback in low-level layer
-            this_layer_callback = callback if self.sub_model is None else None
             # Equivalent to CHACpolicy.layer.train() - called on l. 120 in ideas_deep_rl
             rollout = self.collect_rollouts(
                 self.env,
-                n_episodes=self.n_episodes_rollout,
-                n_steps=self.train_freq,
+                n_episodes=1,
+                n_steps=-1,
                 action_noise=self.action_noise,
-                callback=this_layer_callback,
+                callback=callback,
                 learning_starts=self.learning_starts,
                 log_interval=log_interval,
             )
 
             if rollout.continue_training is False:
                 break
-
+            self.actions_since_last_train += self.num_timesteps
             # Equivalent to CHACpolicy.learn() - called on l. 126 in ideas_deep_rl
-            if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0:
+            if self.actions_since_last_train > 0 and self.actions_since_last_train > self.learning_starts and self.replay_buffer.size() > 0:
                 # If no `gradient_steps` is specified,        policy: Union[str, Type[BasePolicy]],
-                # do as many gradients steps as steps performed during the rollout
-                gradient_steps = self.gradient_steps if self.gradient_steps > 0 else rollout.episode_timesteps
+                # do as many gradients steps as steps performed since last training
+                gradient_steps = self.gradient_steps if self.gradient_steps > 0 else self.actions_since_last_train
                 self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
 
-        callback.on_training_end()
+        if self.is_top_layer:
+            callback.on_training_end()
 
         return self
 
