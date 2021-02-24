@@ -41,7 +41,7 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
 
 
 class HierarchicalHLEnv(gym.GoalEnv):
-    def __init__(self, action_dim, obs_sample, bottom_env):
+    def __init__(self, action_dim, obs_sample):
         self.action_space = spaces.Box(-1., 1., shape=(action_dim,), dtype='float32')
         self.observation_space = spaces.Dict(dict(
             desired_goal=spaces.Box(-np.inf, np.inf, shape=obs_sample['achieved_goal'].shape, dtype='float32'),
@@ -69,8 +69,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
         self._sub_env.goal = subgoal
         assert self.model is not None, "Step not possible because no model defined yet."
-        self.model.sub_model.learn(total_timesteps=1, tb_log_name="MBCHAC_{}".format(self.model.layer-1),
-                                      reset_num_timesteps=False)
+        self.model.sub_model.run_and_maybe_train(n_episodes=1)
         self._step_callback()
         obs = self._get_obs()
 
