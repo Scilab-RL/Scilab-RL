@@ -76,7 +76,10 @@ class CustomEvalCallback(EvalCallback):
         self.evaluations_timesteps = []
         self.evaluations_length = []
 
-    def _on_step(self) -> bool:
+    def _on_step(self, log_prefix='') -> bool:
+        test_pf = "test{}".format(log_prefix)
+        time_pf = "time{}".format(log_prefix)
+        train_pf = "train{}".format(log_prefix)
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
@@ -97,6 +100,7 @@ class CustomEvalCallback(EvalCallback):
             if self.verbose > 0:
                 print(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
                 print(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
+
             logger.record("test/mean_reward", float(mean_reward))
             logger.record("test/std_reward", float(std_reward))
             logger.record("test/mean_ep_length", mean_ep_length)
@@ -121,33 +125,32 @@ class CustomEvalCallback(EvalCallback):
                     self.model.save(os.path.join(self.log_path, "best_model"))
                 self.best_mean_success = mean_success
             if self.model is not None:
-                self.dump_model_logs()
+                self.model._dump_logs()
             if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                 mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
-                if  mean_val >= self.early_stop_threshold:
+                if mean_val >= self.early_stop_threshold:
                     logger.info("Early stop threshold for {} met: Average over last {} evaluations is {} and threshold is {}. Stopping training.".format(self.early_stop_data_column, self.early_stop_last_n, mean_val, self.early_stop_threshold))
                     if self.log_path is not None:
                         self.model.save(os.path.join(self.log_path, "early_stop_model"))
                     return False
         return True
 
-    def dump_model_logs(self):
-        """
-        Write log.
-        """
-        fps = int(self.model.num_timesteps / (time.time() - self.model.start_time))
-        logger.record("time/episodes", self.model._episode_num, exclude="tensorboard")
-        if len(self.model.ep_info_buffer) > 0 and len(self.model.ep_info_buffer[0]) > 0:
-            logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.model.ep_info_buffer]))
-            logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.model.ep_info_buffer]))
-        logger.record("time/fps", fps)
-        logger.record("time/time_elapsed", int(time.time() - self.model.start_time), exclude="tensorboard")
-        logger.record("time/total timesteps", self.model.num_timesteps, exclude="tensorboard")
-        if self.model.use_sde:
-            logger.record("train/std", (self.model.actor.get_std()).mean().item())
-
-        if len(self.model.ep_success_buffer) > 0:
-            logger.record("rollout/success rate", safe_mean(self.model.ep_success_buffer))
+    # def dump_model_logs(self):
+    #     """
+    #     Write log.
+    #     """
+    #     # logger.record("time/episodes", self.model._episode_num, exclude="tensorboard")
+    #     # if len(self.model.ep_info_buffer) > 0 and len(self.model.ep_info_buffer[0]) > 0:
+        #     logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.model.ep_info_buffer]))
+        #     logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.model.ep_info_buffer]))
+        # logger.record("time/fps", fps)
+        # logger.record("time/time_elapsed", int(time.time() - self.model.start_time), exclude="tensorboard")
+        # logger.record("time/total timesteps", self.model.num_timesteps, exclude="tensorboard")
+        # if self.model.use_sde:
+        #     logger.record("train/std", (self.model.actor.get_std()).mean().item())
+        #
+        # if len(self.model.ep_success_buffer) > 0:
+        #     logger.record("rollout/success rate", safe_mean(self.model.ep_success_buffer))
         # Pass the number of timesteps for tensorboard
-        logger.dump(step=self.model.num_timesteps)
+        # logger.dump(step=self.model.num_timesteps)
 

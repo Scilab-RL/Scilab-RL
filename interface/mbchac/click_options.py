@@ -6,6 +6,7 @@ click.option('--model_classes', type=str, default='sac,sac'),
 click.option('--goal_selection_strategy', type=click.Choice(['future', 'final', 'episode']), default='future'),
 click.option('--n_sampled_goal', type=int, default=4),
 click.option('--online_sampling', type=bool, default=True),
+click.option('--n_train_batches', type=int, default=0, help='The number of training batches per episode. 0 sets training batches to number of actions executed in each layer, which effectively means that n_train_batches=n_train_freq.'),
 
 # click.option('--batch_size', type=int, default=1024, help='The number of state transitions processed during network training.'),
 # click.option('--n_train_batches', type=int, default=40, help='The number of batches to train the actor-critic .'),

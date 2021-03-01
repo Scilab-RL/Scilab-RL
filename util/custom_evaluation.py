@@ -23,7 +23,7 @@ def evaluate_policy(
     render: bool = False,
     callback: Optional[Callable] = None,
     reward_threshold: Optional[float] = None,
-    return_episode_rewards: bool = False,
+    return_episode_rewards: bool = False
 ) -> Union[Tuple[float, float], Tuple[List[float], List[int]]]:
     """
     Runs policy for ``n_eval_episodes`` episodes and returns average reward.
@@ -47,6 +47,7 @@ def evaluate_policy(
     if isinstance(env, VecEnv):
         assert env.num_envs == 1, "You must pass only one environment when using this function"
 
+    info_list = []
     episode_rewards, episode_lengths, episode_successes = [], [], []
     for i in range(n_eval_episodes):
         # Avoid double reset, as VecEnv are reset automatically
@@ -78,8 +79,9 @@ def evaluate_policy(
     mean_success = np.mean(episode_successes)
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
+    mean_length = np.mean(episode_lengths)
     if reward_threshold is not None:
         assert mean_reward > reward_threshold, "Mean reward below threshold: " f"{mean_reward:.2f} < {reward_threshold:.2f}"
     if return_episode_rewards:
         return episode_rewards, episode_lengths, episode_successes
-    return mean_reward, std_reward, mean_success
+    return mean_reward, std_reward, mean_length, mean_success

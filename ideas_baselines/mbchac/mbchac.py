@@ -18,7 +18,10 @@ from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
 from stable_baselines3.her.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 from ideas_baselines.mbchac.hierarchical_env import get_h_envs_from_env
-
+from stable_baselines3.common import logger
+from stable_baselines3.common.utils import safe_mean
+from gym.wrappers import TimeLimit
+import time
 
 
 def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> int:
@@ -87,7 +90,8 @@ class MBCHAC(BaseAlgorithm):
     :param online_sampling: Sample HER transitions online.
     :param learning_rate: learning rate for the optimizer,
         it can be a function of the current progress remaining (from 1 to 0)
-    :param max_episode_length: The maximum length of an episode. If not specified,
+    :param max_episode_length: The m
+    aximum length of an episode. If not specified,
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
     """
 
@@ -104,9 +108,12 @@ class MBCHAC(BaseAlgorithm):
         max_episode_length: Optional[int] = None,
         is_top_layer: bool = True,
         layer_envs: List[GymEnv] = [],
+        n_train_batches: int = 0,
         *args,
         **kwargs,
     ):
+        self.gradient_steps = n_train_batches
+        self.learn_callback = None
         # determine time_scales
         self.is_top_layer = is_top_layer
         self.time_scales = time_scales
@@ -205,9 +212,11 @@ class MBCHAC(BaseAlgorithm):
 
         # counter for steps in episode
         self.episode_steps = 0
-        self.actions_since_last_train = 0
         if _init_setup_model:
             self._setup_model()
+
+        self.train_callback = None
+
 
     def _setup_model(self) -> None:
         self.model._setup_model()
@@ -232,28 +241,52 @@ class MBCHAC(BaseAlgorithm):
             action = self.sub_model.predict(observation, state, mask, deterministic)
         return action
 
+
+
     def run_and_maybe_train(self,
-        n_episodes: int,
-        callback: MaybeCallback = None):
+        n_episodes: int):
         rollout = self.collect_rollouts(
             self.env,
             n_episodes=n_episodes,
             n_steps=-1,
             action_noise=self.action_noise,
-            callback=callback,
             learning_starts=self.learning_starts,
             log_interval=None,
         )
-        assert rollout.episode_timesteps <= self.train_freq, "train_freq must be larger or equal than the steps collected in all episodes."
         self.actions_since_last_train += rollout.episode_timesteps
         # Equivalent to CHACpolicy.learn() - called on l. 126 in ideas_deep_rl
-        if self.actions_since_last_train > 0 and self.actions_since_last_train > self.learning_starts and self.replay_buffer.size() > 0 and self.actions_since_last_train > self.train_freq:
+        if self.actions_since_last_train > 0 and self.actions_since_last_train > self.learning_starts and self.replay_buffer.size() > 0 and self.actions_since_last_train >= self.train_freq:
             # If no `gradient_steps` is specified,        policy: Union[str, Type[BasePolicy]],
             # do as many gradients steps as steps performed since last training
             gradient_steps = self.gradient_steps if self.gradient_steps > 0 else self.actions_since_last_train
+            logger.info("Training layer {} for {} steps.".format(self.layer, gradient_steps))
             self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
-            # Remember how many actions more than train_freq have been executed and consider this for next training.
-            self.actions_since_last_train = self.actions_since_last_train - self.train_freq
+            self.actions_since_last_train = 0
+
+
+    def init_learn(self, total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps):
+        tb_log_name = "MBCHAC_{}".format(self.layer)
+        layer_total_timesteps = total_timesteps / self.max_steps_per_layer_action
+        layer_total_timesteps, callback = self._setup_learn(
+            layer_total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps, tb_log_name
+        )
+        self.model.start_time = self.start_time
+        self.model.ep_info_buffer = self.ep_info_buffer
+        self.model.ep_success_buffer = self.ep_success_buffer
+        self.model.num_timesteps = self.num_timesteps
+        self.model._episode_num = self._episode_num
+        self.model._last_obs = self._last_obs
+        self.model._total_timesteps = self._total_timesteps
+        if self.sub_model is not None:
+            self.sub_model.init_learn(total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
+        # Reset model of callback to self so that evaluation starts with the high-level model.
+        # callback.model = top_layer_model
+        # if hasattr(callback, 'callbacks'):
+        #     for cb in callback.callbacks:
+        #         cb.model = top_layer_model
+        self.train_callback = callback
+        self.actions_since_last_train = 0
+        return layer_total_timesteps, callback
 
     def learn(
         self,
@@ -268,51 +301,21 @@ class MBCHAC(BaseAlgorithm):
         reset_num_timesteps: bool = True,
     ) -> BaseAlgorithm:
 
-        tb_log_name = "MBCHAC_{}".format(self.layer)
-        total_timesteps, callback = self._setup_learn(
-            total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps, tb_log_name
-        )
-        self.model.start_time = self.start_time
-        self.model.ep_info_buffer = self.ep_info_buffer
-        self.model.ep_success_buffer = self.ep_success_buffer
-        self.model.num_timesteps = self.num_timesteps
-        self.model._episode_num = self._episode_num
-        self.model._last_obs = self._last_obs
-        self.model._total_timesteps = self._total_timesteps
-
+        total_timesteps, callback = self.init_learn(total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
         # call .learn() of submodel to initialize the above vars, but without training.
-        if self.sub_model is not None:
-            self.sub_model.learn(total_timesteps=0, callback=callback)
-
+        # if self.sub_model is not None:
+        #     self.sub_model.learn(total_timesteps=0, callback=callback)
+        # self.learn_callback = callback
         # In case this is the top layer, the passed number of steps provided refers to the low-level steps, so we need to translate this into high-level steps
-        total_timesteps = total_timesteps / self.max_steps_per_layer_action
+
         callback.on_training_start(locals(), globals())
+        self.actions_since_last_train = 0
         while self.num_timesteps < total_timesteps:
-            self.run_and_maybe_train(n_episodes=1, callback=callback)
-            # if rollout.continue_training is False:
-            #     break
-            # rollout = self.collect_rollouts(
-            #     self.env,
-            #     n_episodes=n_episodes,
-            #     n_steps=-1,
-            #     action_noise=self.action_noise,
-            #     callback=callback,
-            #     learning_starts=self.learning_starts,
-            #     log_interval=None,
-            # )
-            # if rollout.continue_training is False:
-            #     break
-            # self.actions_since_last_train += self.num_timesteps
-            # # Equivalent to CHACpolicy.learn() - called on l. 126 in ideas_deep_rl
-            # if self.actions_since_last_train > 0 and self.actions_since_last_train > self.learning_starts and self.replay_buffer.size() > 0 and self.actions_since_last_train > self.train_freq:
-            #     # If no `gradient_steps` is specified,        policy: Union[str, Type[BasePolicy]],
-            #     # do as many gradients steps as steps performed since last training
-            #     gradient_steps = self.gradient_steps if self.gradient_steps > 0 else self.actions_since_last_train
-            #     self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
-            #     self.actions_since_last_train = 0
+            self.run_and_maybe_train(n_episodes=1)
         callback.on_training_end()
 
-        return self
+        return self    # callback: Optional[Callable] = None,
+    # reward_threshold: Optional[float] = None,
 
     # def train(self, batch_size, gradient_steps):
     #     super().train(batch_size=batch_size, gradient_steps=gradient_steps)
@@ -322,7 +325,6 @@ class MBCHAC(BaseAlgorithm):
     def collect_rollouts(
         self,
         env: VecEnv,
-        callback: BaseCallback,
         n_episodes: int = 1,
         n_steps: int = -1,
         action_noise: Optional[ActionNoise] = None,
@@ -355,6 +357,8 @@ class MBCHAC(BaseAlgorithm):
 
         if self.model.use_sde:
             self.actor.reset_noise()
+
+        callback = self.train_callback
 
         callback.on_rollout_start()
         continue_training = True
@@ -437,7 +441,9 @@ class MBCHAC(BaseAlgorithm):
                     self._last_original_obs = new_obs_
                     self.model._last_original_obs = self._last_original_obs
 
-                self.model._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)
+                # Update progress only for top layer because _total_timesteps is not known for lower-level layers.
+                if self.is_top_layer:
+                    self.model._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)
 
                 # For DQN, check if the target network should be updated
                 # and update the exploration schedule
@@ -480,6 +486,41 @@ class MBCHAC(BaseAlgorithm):
         callback.on_rollout_end()
 
         return RolloutReturn(mean_reward, total_steps, total_episodes, continue_training)
+
+    def train_step(self):
+        self.sub_model.run_and_maybe_train(n_episodes=1)
+
+    def test_step(self, eval_env):
+        return self.sub_model.test_episode(eval_env._sub_env)
+
+    def reset_eval_info_list(self):
+        self.eval_info_list = {'rewards{}'.format(self.layer): []}
+        if self.sub_model is not None:
+            self.sub_model.reset_eval_info_list()
+
+    def test_episode(self, eval_env):
+        done = False
+        while not done:
+            if hasattr(eval_env, 'venv'):
+                obs = eval_env.venv.buf_obs
+                obs = ObsDictWrapper.convert_dict(obs)
+            elif hasattr(eval_env, 'env'):
+                obs = eval_env.env._get_obs()
+            elif hasattr(eval_env, '_get_obs'):
+                obs = eval_env._get_obs()
+            else:
+                assert False, "eval_env type not supported!"
+
+            action, state = self.model.predict(obs, state=None, mask=None, deterministic=True)
+            new_obs, reward, done, infos = eval_env.step(action)
+            self.eval_info_list['rewards{}'.format(self.layer)].append(reward)
+            for k, v in infos.items():
+                if k + str(self.layer) not in self.eval_info_list.keys():
+                    self.eval_info_list[k + str(self.layer)] = []
+                self.eval_info_list[k + str(self.layer)].append(v)
+        return self.eval_info_list
+
+
 
     def _sample_her_transitions(self) -> None:
         """
@@ -670,4 +711,33 @@ class MBCHAC(BaseAlgorithm):
                 # update "full" indicator
                 self.replay_buffer.full = self.replay_buffer.full or self.replay_buffer.pos == 0
 
-    # def make_h_env(self, env):
+    def get_env_steps(self) -> int:
+        if self.sub_model is None:
+            return self.num_timesteps
+        else:
+            return self.sub_model.get_env_steps()
+
+    def _dump_logs(self) -> None:
+        """
+        Write log.
+        """
+        time_pf = "time{}".format(self.layer)
+        rollout_pf = "rollout{}".format(self.layer)
+        train_pf = "train{}".format(self.layer)
+        fps = int(self.num_timesteps / (time.time() - self.start_time))
+        logger.record(time_pf + "/episodes", self._episode_num, exclude="tensorboard")
+        if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
+            logger.record(rollout_pf + "/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
+            logger.record(rollout_pf + "/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+        logger.record(time_pf + "/fps", fps)
+        logger.record(time_pf + "/time_elapsed", int(time.time() - self.start_time), exclude="tensorboard")
+        logger.record(time_pf + "/total layer steps", self.num_timesteps, exclude="tensorboard")
+        env_steps = self.get_env_steps()
+        logger.record(time_pf + "/total environment steps", env_steps, exclude="tensorboard")
+        if self.use_sde:
+            logger.record(train_pf + "/std", (self.actor.get_std()).mean().item())
+
+        if len(self.ep_success_buffer) > 0:
+            logger.record(rollout_pf + "/success rate", safe_mean(self.ep_success_buffer))
+        # Pass the number of timesteps for tensorboard
+        logger.dump(step=self.num_timesteps)

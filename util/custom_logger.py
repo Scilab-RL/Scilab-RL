@@ -72,25 +72,28 @@ class MatplotlibOutputFormat(KVWriter):
             configs.add(config_str)
             if config_str not in config_data.keys():
                 config_data[config_str] = []
-            with open(self.data_read_dir+"/"+configdir+"/"+self.csv_filename) as csvfile:
-                reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-                for line, row in enumerate(reader):
-                    if line == 0:
-                        keys = row.copy()
-                        for k in row:
-                            if k not in data_dict[config_str].keys():
-                                data_dict[config_str][k] = {}
-                            if config_ctr_str not in data_dict[config_str][k].keys():
-                                data_dict[config_str][k][config_ctr_str] = []
-                    else:
-                        for idx,item in enumerate(row):
-                            #     print('huh')
-                            try:
-                                data_dict[config_str][keys[idx]][config_ctr_str].append(float(item))
-                            except:
-                                data_dict[config_str][keys[idx]][config_ctr_str].append(np.nan)
-                                pass
-                                # print("item is not a float")
+            try:
+                with open(self.data_read_dir+"/"+configdir+"/"+self.csv_filename) as csvfile:
+                    reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+                    for line, row in enumerate(reader):
+                        if line == 0:
+                            keys = row.copy()
+                            for k in row:
+                                if k not in data_dict[config_str].keys():
+                                    data_dict[config_str][k] = {}
+                                if config_ctr_str not in data_dict[config_str][k].keys():
+                                    data_dict[config_str][k][config_ctr_str] = []
+                        else:
+                            for idx,item in enumerate(row):
+                                #     print('huh')
+                                try:
+                                    data_dict[config_str][keys[idx]][config_ctr_str].append(float(item))
+                                except:
+                                    data_dict[config_str][keys[idx]][config_ctr_str].append(np.nan)
+                                    pass
+                                    # print("item is not a float")
+            except Exception as e:
+                logger.warn("Warning, could not plot data from {} because the file was not found.".format(self.data_read_dir+"/"+configdir+"/"+self.csv_filename))
         self.plot_dict(data_dict)
 
     def tolerant_median(self, data_dict):

@@ -21,6 +21,7 @@ from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make
 from stable_baselines3.common.bit_flipping_env import BitFlippingEnv
 from stable_baselines3 import HER, DDPG, DQN, SAC, TD3
 from util.custom_eval_callback import CustomEvalCallback
+from ideas_baselines.mbchac.hierarchical_eval_callback import HierarchicalEvalCallback
 # from util.custom_train_callback import CustomTrainCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
@@ -54,23 +55,23 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
     # actions_per_episode = np.product([int(steps) for steps in kwargs['action_steps'].split(',')])
     # train_actions_per_epoch = steps_per_epoch * kwargs['n_train_rollouts']
     epochs_remaining = n_epochs - starting_epoch
-    total_steps=kwargs['eval_after_n_steps'] * epochs_remaining
+    total_steps = kwargs['eval_after_n_steps'] * epochs_remaining
 
     checkpoint_callback = CheckpointCallback(save_freq=kwargs['eval_after_n_steps'], save_path=logger.get_dir())
-    eval_callback = CustomEvalCallback(eval_env,
-                                       log_path=logger.get_dir(),
-                                       eval_freq=kwargs['eval_after_n_steps'],
-                                       n_eval_episodes=kwargs['n_test_rollouts'],
-                                       render=kwargs['render_test'],
-                                       early_stop_last_n=5,
-                                       early_stop_data_column=kwargs['early_stop_data_column'],
-                                       early_stop_threshold=kwargs['early_stop_threshold'],
-                                       model=model
-                                       )
+    eval_callback = HierarchicalEvalCallback(eval_env,
+                                            log_path=logger.get_dir(),
+                                            eval_freq=kwargs['eval_after_n_steps'],
+                                            n_eval_episodes=kwargs['n_test_rollouts'],
+                                            render=kwargs['render_test'],
+                                            early_stop_last_n=5,
+                                            early_stop_data_column=kwargs['early_stop_data_column'],
+                                            early_stop_threshold=kwargs['early_stop_threshold'],
+                                            top_level_model=model
+                                               )
 
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])
-    model.learn(total_timesteps=total_steps,callback=callback, log_interval=None)
+    model.learn(total_timesteps=total_steps, callback=callback, log_interval=None, )
 
     train_env.close()
     eval_env.close()
