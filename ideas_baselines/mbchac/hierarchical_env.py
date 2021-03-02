@@ -98,6 +98,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
 
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
+        self._sub_env._elapsed_steps = 0 # Set elapsed steps to 0 but don't reset the whole simulated environment
         self._sub_env.goal = subgoal
         assert self.model is not None, "Step not possible because no model defined yet."
         if self.is_testing_env:
@@ -110,14 +111,23 @@ class HierarchicalHLEnv(gym.GoalEnv):
         done = False  # Returning done = true after time steps are done is not necessary here because it is done in TimeLimit wrapper. #TODO: Check if done=True should be returned after goal is achieved.
         self._step_callback()
         succ = self._is_success(obs['achieved_goal'], self.goal)
-        if self.model.is_top_layer:
-            if 'is_success' not in info.keys():
-                info['is_success'] = []
-            info['is_success'].append(succ)
-        if 'is_success{}'.format(self.model.layer) not in info.keys():
-            info['is_success{}'.format(self.model.layer)] = []
-        info['is_success{}'.format(self.model.layer)].append(succ)
-
+        # if 'is_success' not in info.keys():
+        #     info['is_success'] = []
+        info['is_success'] = succ
+        # info['reward'] = reward
+        # if self.model.is_top_layer:
+        #     if 'is_success' not in info.keys():
+        #         info['is_success'] = []
+        #     info['is_success'].append(succ)
+        #     if 'reward' not in info.keys():
+        #         info['reward'] = []
+        #     info['reward'].append(reward)
+        # if 'is_success{}'.format(self.model.layer) not in info.keys():
+        #     info['is_success{}'.format(self.model.layer)] = []
+        # info['is_success{}'.format(self.model.layer)].append(succ)
+        # if 'reward{}'.format(self.model.layer) not in info.keys():
+        #     info['reward{}'.format(self.model.layer)] = []
+        # info['reward{}'.format(self.model.layer)].append(reward)
         return obs, reward, done, info
 
     def train_step(self):

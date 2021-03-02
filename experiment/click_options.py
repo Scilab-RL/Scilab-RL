@@ -18,7 +18,7 @@ click.option('--n_epochs', type=int, default=30, help='the max. number of traini
 click.option('--n_test_rollouts', type=int, default=25, help='The number of testing rollouts.'),
 # click.option('--render_train', type=int, default=0, help='Whether or not to render the rollout execution during training. Currently not implemented.'),
 click.option('--render_test', type=int, default=0, help='Whether or not to render the rollout execution during testing.'),
-click.option('--max_try_idx', type=int, default=199, help='Max. number of tries for this training config.'),
+click.option('--max_try_idx', type=int, default=399, help='Max. number of tries for this training config.'),
 click.option('--try_start_idx', type=int, default=100, help='Index for first try.'),
 click.option('--early_stop_threshold', type=float, default=0.99, help='The early stopping threshold.'),
 click.option('--early_stop_data_column', type=str, default='test/success_rate', help='The data column on which early stopping is based.'),

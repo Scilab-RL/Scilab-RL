@@ -14,7 +14,7 @@ from queue import deque
 import numpy as np
 import importlib
 from stable_baselines3.common import logger
-from util.custom_logger import MatplotlibOutputFormat
+from util.custom_logger import MatplotlibOutputFormat, FixedHumanOutputFormat
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
 from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make_robustGoalConditionedModel
@@ -190,9 +190,12 @@ def main(ctx, **kwargs):
     log_dict(kwargs, logger)
 
     logger.configure(folder=kwargs['logdir'],
-                     format_strings=['stdout', 'log', 'csv', 'tensorboard'])
+                     format_strings=['csv', 'tensorboard'])
     plot_cols = kwargs['plot_eval_cols'].split(',')
-    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir'],cols_to_plot=plot_cols))
+    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir'], cols_to_plot=plot_cols))
+    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
+    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(kwargs['logdir'], f"log.txt")))
+
     logdir = logger.get_dir()
 
     logger.info("Data dir: {} ".format(logdir))

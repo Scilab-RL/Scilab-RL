@@ -22,6 +22,10 @@ from stable_baselines3.common import logger
 from stable_baselines3.common.utils import safe_mean
 from gym.wrappers import TimeLimit
 import time
+from ideas_baselines.mbchac.util import get_concat_dict_from_dict_list, merge_list_dicts
+import numbers
+from stable_baselines3.common.logger import HumanOutputFormat
+import sys
 
 
 def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> int:
@@ -216,6 +220,7 @@ class MBCHAC(BaseAlgorithm):
             self._setup_model()
 
         self.train_callback = None
+        self.tmp_train_logger = logger.Logger(folder=None, output_formats=[]) # HumanOutputFormat(sys.stdout)
 
 
     def _setup_model(self) -> None:
@@ -260,7 +265,22 @@ class MBCHAC(BaseAlgorithm):
             # do as many gradients steps as steps performed since last training
             gradient_steps = self.gradient_steps if self.gradient_steps > 0 else self.actions_since_last_train
             logger.info("Training layer {} for {} steps.".format(self.layer, gradient_steps))
+            # assign temporary logger to avoid generating duplicate keys for the different layers.
+            real_logger = logger.Logger.CURRENT
+            logger.Logger.CURRENT = self.tmp_train_logger
             self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+            logger.Logger.CURRENT = real_logger
+            logged_kvs = self.tmp_train_logger.name_to_value
+            for k,v in logged_kvs.items():
+                try:
+                    postfix = k.split("/")[1]
+                    prefix = k.split("/")[0]
+                    new_k = prefix + "/l_{}_".format(self.layer) + postfix
+                except:
+                    new_k = k
+                logger.record(new_k,v)
+            self.tmp_train_logger.dump()
+
             self.actions_since_last_train = 0
 
 
@@ -494,12 +514,13 @@ class MBCHAC(BaseAlgorithm):
         return self.sub_model.test_episode(eval_env._sub_env)
 
     def reset_eval_info_list(self):
-        self.eval_info_list = {'rewards{}'.format(self.layer): []}
+        self.eval_info_list = {}
         if self.sub_model is not None:
             self.sub_model.reset_eval_info_list()
 
-    def test_episode(self, eval_env):
+    def test_episode(self, eval_env, return_ep_info=False):
         done = False
+        step_ctr = 0
         while not done:
             if hasattr(eval_env, 'venv'):
                 obs = eval_env.venv.buf_obs
@@ -512,13 +533,33 @@ class MBCHAC(BaseAlgorithm):
                 assert False, "eval_env type not supported!"
 
             action, state = self.model.predict(obs, state=None, mask=None, deterministic=True)
-            new_obs, reward, done, infos = eval_env.step(action)
-            self.eval_info_list['rewards{}'.format(self.layer)].append(reward)
-            for k, v in infos.items():
-                if k + str(self.layer) not in self.eval_info_list.keys():
-                    self.eval_info_list[k + str(self.layer)] = []
-                self.eval_info_list[k + str(self.layer)].append(v)
+            new_obs, reward, done, info = eval_env.step(action)
+            if self.sub_model is not None:
+                self.sub_model.reset_eval_info_list()
+            step_ctr += 1
+            if type(info) == list:
+                info = get_concat_dict_from_dict_list(info)
+            for k,v in info.items():
+                if k.find("l_") != 0:
+                    layered_info_key = "l_{}_{}".format(self.layer, k)
+                else:
+                    layered_info_key = k
+                if layered_info_key not in self.eval_info_list.keys():
+                    self.eval_info_list[layered_info_key] = []
+                if type(v) == list:
+                    if isinstance(v[0], numbers.Number):
+                        self.eval_info_list[layered_info_key] += v
+                else:
+                    if isinstance(v, numbers.Number):
+                        self.eval_info_list[layered_info_key].append(v)
+            # self.eval_info_list = merge_list_dicts(self.eval_info_list, info)
+            # for k, v in info.items():
+            #     if k + str(self.layer) not in self.eval_info_list.keys():
+            #         self.eval_info_list[k + str(self.layer)] = []
+            #     self.eval_info_list[k + str(self.layer)].append(v)
         return self.eval_info_list
+
+
 
 
 
@@ -721,9 +762,9 @@ class MBCHAC(BaseAlgorithm):
         """
         Write log.
         """
-        time_pf = "time{}".format(self.layer)
-        rollout_pf = "rollout{}".format(self.layer)
-        train_pf = "train{}".format(self.layer)
+        time_pf = "time_{}".format(self.layer)
+        rollout_pf = "rollout_{}".format(self.layer)
+        train_pf = "train_{}".format(self.layer)
         fps = int(self.num_timesteps / (time.time() - self.start_time))
         logger.record(time_pf + "/episodes", self._episode_num, exclude="tensorboard")
         if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
@@ -738,6 +779,6 @@ class MBCHAC(BaseAlgorithm):
             logger.record(train_pf + "/std", (self.actor.get_std()).mean().item())
 
         if len(self.ep_success_buffer) > 0:
-            logger.record(rollout_pf + "/success rate", safe_mean(self.ep_success_buffer))
+            logger.record(rollout_pf + "/success_rate", safe_mean(self.ep_success_buffer))
         # Pass the number of timesteps for tensorboard
         logger.dump(step=self.num_timesteps)

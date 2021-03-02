@@ -9,6 +9,9 @@ from collections import OrderedDict
 import csv
 import numpy as np
 from util.util import print_dict, check_all_dict_values_equal
+from typing import Any, Dict, List, Optional, Sequence, TextIO, Tuple, Union
+from stable_baselines3.common.logger import Video, FormatUnsupportedError
+import warnings
 
 class MatplotlibOutputFormat(KVWriter):
     def __init__(self, logpath, cols_to_plot=['test/success_rate', 'test/mean_reward']):
@@ -167,4 +170,132 @@ class MatplotlibOutputFormat(KVWriter):
                 logfile.write(print_dict(all_data_info))
 
 
+class SeqWriter(object):
+    """
+    sequence writer
+    """
 
+    def write_sequence(self, sequence: List) -> None:
+        """
+        write_sequence an array to file
+
+        :param sequence:
+        """
+        raise NotImplementedError
+
+
+class FixedHumanOutputFormat(KVWriter, SeqWriter):
+    def __init__(self, filename_or_file: Union[str, TextIO]):
+        """
+        log to a file, in a human readable format
+
+        :param filename_or_file: the file to write the log to
+        """
+        if isinstance(filename_or_file, str):
+            self.file = open(filename_or_file, "wt")
+            self.own_file = True
+        else:
+            assert hasattr(filename_or_file, "write"), f"Expected file or str, got {filename_or_file}"
+            self.file = filename_or_file
+            self.own_file = False
+
+    def write(self, key_values: Dict, key_excluded: Dict, step: int = 0) -> None:
+        # Create strings for printing
+        kv_list = {}
+        # key2str = {}
+        tag = None
+        for (key, value), (_, excluded) in zip(sorted(key_values.items()), sorted(key_excluded.items())):
+
+            if excluded is not None and ("stdout" in excluded or "log" in excluded):
+                continue
+
+            if isinstance(value, Video):
+                raise FormatUnsupportedError(["stdout", "log"], "video")
+
+            if isinstance(value, float):
+                # Align left
+                value_str = f"{value:<8.3g}"
+            else:
+                value_str = str(value)
+
+            if key.find("/") > 0:  # Find tag and add it to the dict
+                tag = key[: key.find("/") + 1]
+            else:
+                tag = ''
+            if tag not in kv_list.keys():
+                # key2str[self._truncate(tag)] = ""
+                kv_list[self._truncate(tag)] = {}
+
+            key = str("   " + key[len(tag):])
+            val = self._truncate(value_str)
+            kv_list[tag][key] = val
+
+            # # Remove tag from key
+            # if tag is not None and tag in key:
+            #     key = str("   " + key[len(tag) :])
+
+            # key2str[self._truncate(key)] = self._truncate(value_str)
+
+        # Find max widths
+        if len(kv_list.keys()) == 0:
+            warnings.warn("Tried to write empty key-value dict")
+            return
+        else:
+            key_width = 0
+            val_width = 0
+            for tag, vlist in kv_list.items():
+                for k,v in vlist.items():
+                    key_width = max(key_width, len(k))
+                    val_width = max(val_width, len(v))
+        # if len(key2str) == 0:
+        #     warnings.warn("Tried to write empty key-value dict")
+        #     return
+        # else:
+        #     key_width = max(map(len, key2str.keys()))
+        #     val_width = max(map(len, key2str.values()))
+
+        # Write out the data
+        dashes = "-" * (key_width + val_width + 7)
+        lines = [dashes]
+        for tag, vlist in kv_list.items():
+            key_space = " " * (key_width - len(tag))
+            val_space = " " * (val_width)
+            lines.append(f"| {tag}{key_space} | {val_space} |")
+            for k,v in vlist.items():
+                val_space = " " * (val_width - len(v))
+                key_space = " " * (key_width - len(k))
+                lines.append(f"| {k}{key_space} | {v}{val_space} |")
+        lines.append(dashes)
+        self.file.write("\n".join(lines) + "\n")
+
+        # dashes = "-" * (key_width + val_width + 7)
+        # lines = [dashes]
+        # for key, value in key2str.items():
+        #     key_space = " " * (key_width - len(key))
+        #     val_space = " " * (val_width - len(value))
+        #     lines.append(f"| {key}{key_space} | {value}{val_space} |")
+        # lines.append(dashes)
+        # self.file.write("\n".join(lines) + "\n")
+
+        # Flush the output to the file
+        self.file.flush()
+
+    @classmethod
+    def _truncate(cls, string: str, max_length: int = 33) -> str:
+        return string[: max_length - 3] + "..." if len(string) > max_length else string
+
+    def write_sequence(self, sequence: List) -> None:
+        sequence = list(sequence)
+        for i, elem in enumerate(sequence):
+            self.file.write(elem)
+            if i < len(sequence) - 1:  # add space unless this is the last one
+                self.file.write(" ")
+        self.file.write("\n")
+        self.file.flush()
+
+    def close(self) -> None:
+        """
+        closes the file
+        """
+        if self.own_file:
+            self.file.close()

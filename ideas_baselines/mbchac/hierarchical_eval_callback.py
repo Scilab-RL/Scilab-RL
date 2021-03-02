@@ -87,57 +87,28 @@ class HierarchicalEvalCallback(EvalCallback):
                 self.eval_env,
                 n_eval_episodes=self.n_eval_episodes,
                 render=self.render,
-                # deterministic=self.deterministic,
-                # return_episode_rewards=True,
             )
-            for k,v in info_list:
-                try:
-                    mean = np.mean(v)
-                    std = np.std(v)
-                    logger.record(k+'_mean', mean)
-                    logger.record(k + '_std', std)
-                    if k not in self.eval_histories.keys():
-                        self.eval_histories[k] = []
-                    self.eval_histories[k].append(mean)
-                except:
-                    pass
-            # for layer, ep_rew, ep_len, ep_succ in zip(range(len(episode_rewards)), episode_rewards, episode_lengths, episode_successes):
-            #     mean_reward, std_reward = np.mean(ep_rew), np.std(ep_rew)
-            #     mean_ep_length, std_ep_length = np.mean(ep_len), np.std(ep_len)
-            #     mean_success, std_success = np.mean(ep_succ), np.std(ep_succ)
-            #
-            #     if self.model.is_top_layer:
-            #         test_pf = "test"
-            #     else:
-            #         test_pf = "test{}".format(str(layer))
-            #     logger.record(test_pf + "/mean_reward", float(mean_reward))
-            #     logger.record(test_pf + "/std_reward", float(std_reward))
-            #     logger.record(test_pf + "/mean_ep_length", mean_ep_length)
-            #     logger.record(test_pf + "/success_rate", mean_success)
-            #
-            #     k = test_pf + "/success_rate"
-            #     if k not in self.eval_histories.keys():
-            #         self.eval_histories[k] = []
-            #     self.eval_histories[k].append(mean_success)
-            #
-            #     k = test_pf + "/mean_reward"
-            #     if k not in self.eval_histories.keys():
-            #         self.eval_histories[k] = []
-            #     self.eval_histories[k].append(mean_reward)
-            #
-            #     k = test_pf + "/std_reward"
-            #     if k not in self.eval_histories.keys():
-            #         self.eval_histories[k] = []
-            #     self.eval_histories[k].append(std_reward)
-            #
-            #     k = test_pf + "/mean_ep_length"
-            #     if k not in self.eval_histories.keys():
-            #         self.eval_histories[k] = []
-            #     self.eval_histories[k].append(mean_ep_length)
+            for k,v in info_list.items():
+                # try:
+                #     info_item_layer = int(k.split("_")[1])
+                #     new_k = "test_{}/".format(info_item_layer) + "_".join(k.split("_")[2:])
+                #     assert k[0] == 'l', 'info string is not a layer string'
+                # except:
+                new_k = "test/"+k
+                if len(v) == 0 or type(v[0]) == bool:
+                    continue
+                mean = np.mean(v)
+                std = np.std(v)
+                logger.record(new_k +'', mean)
+                logger.record(new_k + '_std', std)
+                if k not in self.eval_histories.keys():
+                    self.eval_histories[new_k] = []
+                self.eval_histories[new_k].append(mean)
+
             if self.top_level_model is not None:
                 self.top_level_model._dump_logs()
                 if self.early_stop_data_column in self.eval_histories.keys():
-                    if self.eval_histories[self.early_stop_data_column] >= self.best_early_stop_val:
+                    if self.eval_histories[self.early_stop_data_column][-1] >= self.best_early_stop_val:
                         if self.verbose > 0:
                             print("New best mean {}!".format(self.best_early_stop_val))
                         if self.log_path is not None:
