@@ -17,7 +17,7 @@ click.option('--eval_after_n_steps', type=int, default=5000, help='The number of
 click.option('--n_epochs', type=int, default=30, help='the max. number of training epochs to run. One epoch consists of \'eval_after_n_steps\' actions '),
 click.option('--n_test_rollouts', type=int, default=25, help='The number of testing rollouts.'),
 # click.option('--render_train', type=int, default=0, help='Whether or not to render the rollout execution during training. Currently not implemented.'),
-click.option('--render_test', type=int, default=0, help='Whether or not to render the rollout execution during testing.'),
+click.option('--render_test', type=str, default='record', help='Whether and how to render the rollout execution during testing. \'record\' is for video, \'display\' for direct visualization.'),
 click.option('--max_try_idx', type=int, default=399, help='Max. number of tries for this training config.'),
 click.option('--try_start_idx', type=int, default=100, help='Index for first try.'),
 click.option('--early_stop_threshold', type=float, default=0.99, help='The early stopping threshold.'),

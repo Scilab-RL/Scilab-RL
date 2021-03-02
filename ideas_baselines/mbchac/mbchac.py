@@ -222,6 +222,8 @@ class MBCHAC(BaseAlgorithm):
         self.train_callback = None
         self.tmp_train_logger = logger.Logger(folder=None, output_formats=[]) # HumanOutputFormat(sys.stdout)
 
+        test_render = False
+
 
     def _setup_model(self) -> None:
         self.model._setup_model()
@@ -275,7 +277,7 @@ class MBCHAC(BaseAlgorithm):
                 try:
                     postfix = k.split("/")[1]
                     prefix = k.split("/")[0]
-                    new_k = prefix + "/l_{}_".format(self.layer) + postfix
+                    new_k = prefix + "_{}".format(self.layer) + "/" + postfix
                 except:
                     new_k = k
                 logger.record(new_k,v)
@@ -408,12 +410,6 @@ class MBCHAC(BaseAlgorithm):
                 episode_timesteps += 1
                 total_steps += 1
 
-                # Only perform on_steps rollout in lowest layer
-                if self.is_bottom_layer:
-                    # Only stop training if return value is False, not when it is None.
-                    if callback.on_step() is False:
-                        return RolloutReturn(0.0, total_steps, total_episodes, continue_training=False)
-
                 episode_reward += reward
 
                 # Retrieve reward and episode length if using Monitor wrapper
@@ -473,6 +469,12 @@ class MBCHAC(BaseAlgorithm):
 
                 self.episode_steps += 1
 
+                # Only perform on_steps rollout in lowest layer
+                if self.is_bottom_layer:
+                    # Only stop training if return value is False, not when it is None.
+                    if callback.on_step() is False:
+                        return RolloutReturn(0.0, total_steps, total_episodes, continue_training=False)
+
                 if 0 < n_steps <= total_steps:
                     break
 
@@ -496,8 +498,8 @@ class MBCHAC(BaseAlgorithm):
                     action_noise.reset()
 
                 # Log training infos
-                if log_interval is not None and self._episode_num % log_interval == 0:
-                    self._dump_logs()
+                # if log_interval is not None and self._episode_num % log_interval == 0:
+                #     self._dump_logs()
 
                 self.episode_steps = 0
 
@@ -540,8 +542,8 @@ class MBCHAC(BaseAlgorithm):
             if type(info) == list:
                 info = get_concat_dict_from_dict_list(info)
             for k,v in info.items():
-                if k.find("l_") != 0:
-                    layered_info_key = "l_{}_{}".format(self.layer, k)
+                if k.find("test_") != 0:
+                    layered_info_key = "test_{}/{}".format(self.layer, k)
                 else:
                     layered_info_key = k
                 if layered_info_key not in self.eval_info_list.keys():
@@ -758,13 +760,16 @@ class MBCHAC(BaseAlgorithm):
         else:
             return self.sub_model.get_env_steps()
 
-    def _dump_logs(self) -> None:
+    def _record_logs(self) -> None:
         """
         Write log.
         """
         time_pf = "time_{}".format(self.layer)
         rollout_pf = "rollout_{}".format(self.layer)
         train_pf = "train_{}".format(self.layer)
+        # time_pf = "time"
+        # rollout_pf = 'rollout'
+        # train_pf = 'train'
         fps = int(self.num_timesteps / (time.time() - self.start_time))
         logger.record(time_pf + "/episodes", self._episode_num, exclude="tensorboard")
         if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
@@ -780,5 +785,12 @@ class MBCHAC(BaseAlgorithm):
 
         if len(self.ep_success_buffer) > 0:
             logger.record(rollout_pf + "/success_rate", safe_mean(self.ep_success_buffer))
+
+        if self.sub_model is not None:
+            self.sub_model._record_logs()
         # Pass the number of timesteps for tensorboard
+
+
+    def _dump_logs(self) -> None:
+        self._record_logs()
         logger.dump(step=self.num_timesteps)

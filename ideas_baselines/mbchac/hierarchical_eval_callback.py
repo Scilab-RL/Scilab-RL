@@ -14,6 +14,8 @@ from collections import deque
 import time
 from stable_baselines3.common.utils import safe_mean
 from ideas_baselines.mbchac.hierarchical_env import get_h_envs_from_env
+import matplotlib.pyplot as plt
+import cv2
 
 class HierarchicalEvalCallback(EvalCallback):
     """
@@ -75,9 +77,24 @@ class HierarchicalEvalCallback(EvalCallback):
         self.evaluations_results = []
         self.evaluations_timesteps = []
         self.evaluations_length = []
+        self.vid_size = 1024, 768
+        self.vid_fps = 25
+        self.eval_count = 0
+        self.video_writer = None
 
+    def reset_video(self):
+        if self.video_writer is not None:
+            self.video_writer.release()
+        self.video_writer = cv2.VideoWriter(self.log_path+'/eval_{}.avi'.format(self.eval_count), cv2.VideoWriter_fourcc('F','M','P','4'), self.vid_fps, self.vid_size)
 
     def _on_step(self, log_prefix='') -> bool:
+        if self.render == 'record':
+            frame = self.model.env.venv.envs[0].render(mode='rgb_array', width=self.vid_size[0], height=self.vid_size[1])
+            if self.video_writer is None:
+                self.reset_video()
+            self.video_writer.write(frame)
+        elif self.render == 'display':
+            self.model.env.venv.envs[0].render()
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
@@ -88,13 +105,15 @@ class HierarchicalEvalCallback(EvalCallback):
                 n_eval_episodes=self.n_eval_episodes,
                 render=self.render,
             )
+            self.reset_video()
             for k,v in info_list.items():
                 # try:
                 #     info_item_layer = int(k.split("_")[1])
                 #     new_k = "test_{}/".format(info_item_layer) + "_".join(k.split("_")[2:])
                 #     assert k[0] == 'l', 'info string is not a layer string'
                 # except:
-                new_k = "test/"+k
+                # new_k = "test_{}/".format(self.model.layer)+k
+                new_k = k
                 if len(v) == 0 or type(v[0]) == bool:
                     continue
                 mean = np.mean(v)
@@ -123,7 +142,7 @@ class HierarchicalEvalCallback(EvalCallback):
                             return False
                 else:
                     logger.warn("Warning, early stop data column {} not in eval history keys {}. This should only happen once during initialization.".format(self.early_stop_data_column, self.eval_histories.keys()))
-
+            self.eval_count += 1
         return True
 
 
