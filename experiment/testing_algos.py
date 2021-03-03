@@ -64,7 +64,8 @@ class TestingAlgos:
                 continue
             for steps in [500, 1000, 2000, 3000]:
                 early_stop_last_n = (10000 // steps) + 1
-                hyper_params = {'model_classes': model, 'eval_after_n_steps': steps, 'early_stop_last_n': early_stop_last_n, 'time_scales': '_'}
+                hyper_params = {'model_classes': model, 'eval_after_n_steps': steps, 'early_stop_last_n': early_stop_last_n, 'time_scales': '_',
+                                'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss'}
                 performance_params['n_epochs'] = (20000 // steps) + 1
                 all_params.append((performance_params.copy(), hyper_params.copy()))
         return all_params
