@@ -64,7 +64,7 @@ class TestingAlgos:
                 continue
             for steps in [500, 1000, 2000, 3000]:
                 early_stop_last_n = (10000 // steps) + 1
-                hyper_params = {'model_class': model, 'eval_after_n_steps': steps, 'early_stop_last_n': early_stop_last_n}
+                hyper_params = {'model_classes': model, 'eval_after_n_steps': steps, 'early_stop_last_n': early_stop_last_n, 'time_scales': '_'}
                 performance_params['n_epochs'] = (20000 // steps) + 1
                 all_params.append((performance_params.copy(), hyper_params.copy()))
         return all_params

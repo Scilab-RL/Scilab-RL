@@ -535,12 +535,6 @@ class MBCHAC(BaseAlgorithm):
                 info['step_success'] = info['is_success']
                 del info['is_success']
             ep_reward += np.sum(reward)
-            # if 'reward' not in info.keys():
-            #     info['reward'] = []
-            # if type(reward) == np.ndarray:
-            #     info['reward'] += list(reward)
-            # else:
-            #     info['reward'].append(reward)
             for k,v in info.items():
                 if k.find("test") != 0:
                     if self.is_top_layer:

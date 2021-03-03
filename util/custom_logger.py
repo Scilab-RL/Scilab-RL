@@ -104,6 +104,10 @@ class MatplotlibOutputFormat(KVWriter):
         arr_lens = []
         for k in keys:
             arr_lens.append(len(data_dict[k]))
+        if len(arr_lens) == 0:
+            print()
+            pass
+        assert len(arr_lens) > 0, "Error, no data for plotting."
         shortest_key_data_count = min(arr_lens)
         longest_key_data_count = max(arr_lens)
         shortest_key = ''
@@ -152,6 +156,8 @@ class MatplotlibOutputFormat(KVWriter):
             for config_str in data_dict.keys():
                 data = data_dict[config_str]
                 if k not in data.keys():
+                    continue
+                if len(data[k]) == 0:
                     continue
                 median, upper, lower, data_info = self.tolerant_median(data[k])
                 min_data_len = data_info['shortest_data_count']
