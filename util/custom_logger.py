@@ -136,6 +136,9 @@ class MatplotlibOutputFormat(KVWriter):
 
     def plot_dict(self, data_dict):
         # First interpolate all data
+        if 'time/total timesteps' not in data_dict.keys():
+            print("WARNING!!! No timesteps in data dict for plotting.")
+            return
         cols_to_del = []
         for config_str in data_dict.keys():
             data = data_dict[config_str]
