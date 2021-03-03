@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from collections import OrderedDict
 import csv
 import numpy as np
-from util.util import print_dict, check_all_dict_values_equal
+from util.util import print_dict, check_all_dict_values_equal, interpolate_data
 from typing import Any, Dict, List, Optional, Sequence, TextIO, Tuple, Union
 from stable_baselines3.common.logger import Video, FormatUnsupportedError
 import warnings
@@ -58,7 +58,7 @@ class MatplotlibOutputFormat(KVWriter):
 
     def plot_aggregate_kvs(self):
         def config_from_folder(folder_str):
-            return "|".join(folder_str.split("|")[:-1])
+            return "&".join(folder_str.split("&")[:-1])
 
         configs = set()
         config_data = {}
@@ -71,7 +71,7 @@ class MatplotlibOutputFormat(KVWriter):
             config_str = config_from_folder(configdir)
             if config_str not in data_dict.keys():
                 data_dict[config_str] = OrderedDict()
-            config_ctr_str = configdir.split("|")[-1]
+            config_ctr_str = configdir.split("&")[-1]
             configs.add(config_str)
             if config_str not in config_data.keys():
                 config_data[config_str] = []
@@ -131,8 +131,22 @@ class MatplotlibOutputFormat(KVWriter):
         return median, upper, lower, data_info
 
     def plot_dict(self, data_dict):
+        # First interpolate all data
+        cols_to_del = []
+        for config_str in data_dict.keys():
+            data = data_dict[config_str]
+            timesteps = data['time/total timesteps'].copy()
+            for k in data.keys():
+                if k in self.cols_to_plot + ['time/total timesteps']:
+                    data_dict[config_str][k] = interpolate_data(data[k], timesteps)
+                else:
+                    cols_to_del.append(k)
+            for k in cols_to_del:
+                if k in data.keys():
+                    del data_dict[config_str][k]
+
         for k in self.cols_to_plot:
-            fig = plt.figure(figsize=(20,10))
+            fig = plt.figure(figsize=(20, 10))
             color_idx = 0
             all_data_info = {}
             for config_str in data_dict.keys():
@@ -142,9 +156,6 @@ class MatplotlibOutputFormat(KVWriter):
                 median, upper, lower, data_info = self.tolerant_median(data[k])
                 min_data_len = data_info['shortest_data_count']
                 if 'time/total timesteps' in data.keys():
-                    all_xs = data['time/total timesteps']
-                    all_dict_values_equal = check_all_dict_values_equal(all_xs, until_idx=min_data_len)
-                    assert all_dict_values_equal, "Error, time/total_timesteps is not equal for all elements in dictionary"
                     xs = data['time/total timesteps'][data_info['shortest_key']]
                     xs_label = 'action steps'
                 else:
@@ -230,12 +241,6 @@ class FixedHumanOutputFormat(KVWriter, SeqWriter):
             val = self._truncate(value_str)
             kv_list[tag][key] = val
 
-            # # Remove tag from key
-            # if tag is not None and tag in key:
-            #     key = str("   " + key[len(tag) :])
-
-            # key2str[self._truncate(key)] = self._truncate(value_str)
-
         # Find max widths
         if len(kv_list.keys()) == 0:
             warnings.warn("Tried to write empty key-value dict")
@@ -247,12 +252,6 @@ class FixedHumanOutputFormat(KVWriter, SeqWriter):
                 for k,v in vlist.items():
                     key_width = max(key_width, len(k))
                     val_width = max(val_width, len(v))
-        # if len(key2str) == 0:
-        #     warnings.warn("Tried to write empty key-value dict")
-        #     return
-        # else:
-        #     key_width = max(map(len, key2str.keys()))
-        #     val_width = max(map(len, key2str.values()))
 
         # Write out the data
         dashes = "-" * (key_width + val_width + 7)
@@ -267,17 +266,6 @@ class FixedHumanOutputFormat(KVWriter, SeqWriter):
                 lines.append(f"| {k}{key_space} | {v}{val_space} |")
         lines.append(dashes)
         self.file.write("\n".join(lines) + "\n")
-
-        # dashes = "-" * (key_width + val_width + 7)
-        # lines = [dashes]
-        # for key, value in key2str.items():
-        #     key_space = " " * (key_width - len(key))
-        #     val_space = " " * (val_width - len(value))
-        #     lines.append(f"| {key}{key_space} | {value}{val_space} |")
-        # lines.append(dashes)
-        # self.file.write("\n".join(lines) + "\n")
-
-        # Flush the output to the file
         self.file.flush()
 
     @classmethod

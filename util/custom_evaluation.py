@@ -67,7 +67,7 @@ def evaluate_policy(
             if callback is not None:
                 callback(locals(), globals())
             episode_length += 1
-            if render:
+            if render != 'none':
                 env.render()
             if episode_success and episode_success is not np.nan: # Early abort on success.
                 done = True

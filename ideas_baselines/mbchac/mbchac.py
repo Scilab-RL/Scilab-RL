@@ -260,6 +260,8 @@ class MBCHAC(BaseAlgorithm):
             learning_starts=self.learning_starts,
             log_interval=None,
         )
+        if rollout.continue_training is False:
+            return False
         self.actions_since_last_train += rollout.episode_timesteps
         # Equivalent to CHACpolicy.learn() - called on l. 126 in ideas_deep_rl
         if self.actions_since_last_train > 0 and self.actions_since_last_train > self.learning_starts and self.replay_buffer.size() > 0 and self.actions_since_last_train >= self.train_freq:
@@ -277,13 +279,18 @@ class MBCHAC(BaseAlgorithm):
                 try:
                     postfix = k.split("/")[1]
                     prefix = k.split("/")[0]
-                    new_k = prefix + "_{}".format(self.layer) + "/" + postfix
+                    if self.is_top_layer:
+                        new_k = k
+                    else:
+                        new_k = prefix + "_{}".format(self.layer) + "/" + postfix
                 except:
                     new_k = k
                 logger.record(new_k,v)
             self.tmp_train_logger.dump()
 
             self.actions_since_last_train = 0
+
+        return True
 
 
     def init_learn(self, total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps):
@@ -301,11 +308,6 @@ class MBCHAC(BaseAlgorithm):
         self.model._total_timesteps = self._total_timesteps
         if self.sub_model is not None:
             self.sub_model.init_learn(total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
-        # Reset model of callback to self so that evaluation starts with the high-level model.
-        # callback.model = top_layer_model
-        # if hasattr(callback, 'callbacks'):
-        #     for cb in callback.callbacks:
-        #         cb.model = top_layer_model
         self.train_callback = callback
         self.actions_since_last_train = 0
         return layer_total_timesteps, callback
@@ -324,25 +326,14 @@ class MBCHAC(BaseAlgorithm):
     ) -> BaseAlgorithm:
 
         total_timesteps, callback = self.init_learn(total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
-        # call .learn() of submodel to initialize the above vars, but without training.
-        # if self.sub_model is not None:
-        #     self.sub_model.learn(total_timesteps=0, callback=callback)
-        # self.learn_callback = callback
-        # In case this is the top layer, the passed number of steps provided refers to the low-level steps, so we need to translate this into high-level steps
 
         callback.on_training_start(locals(), globals())
         self.actions_since_last_train = 0
-        while self.num_timesteps < total_timesteps:
-            self.run_and_maybe_train(n_episodes=1)
+        continue_training = True
+        while self.num_timesteps < total_timesteps and continue_training:
+            continue_training = self.run_and_maybe_train(n_episodes=1)
         callback.on_training_end()
-
         return self    # callback: Optional[Callable] = None,
-    # reward_threshold: Optional[float] = None,
-
-    # def train(self, batch_size, gradient_steps):
-    #     super().train(batch_size=batch_size, gradient_steps=gradient_steps)
-    #     if self.sub_model is not None:
-    #         self.sub_model.train(batch_size, gradient_steps)
 
     def collect_rollouts(
         self,
@@ -426,6 +417,7 @@ class MBCHAC(BaseAlgorithm):
                 else:
                     # Avoid changing the original ones
                     self._last_original_obs, new_obs_, reward_ = observation, new_obs, reward
+                    self._last_original_obs, new_obs_, reward_ = observation, new_obs, reward
                     self.model._last_original_obs = self._last_original_obs
 
                 # As the VecEnv resets automatically, new_obs is already the
@@ -497,10 +489,6 @@ class MBCHAC(BaseAlgorithm):
                 if action_noise is not None:
                     action_noise.reset()
 
-                # Log training infos
-                # if log_interval is not None and self._episode_num % log_interval == 0:
-                #     self._dump_logs()
-
                 self.episode_steps = 0
 
         mean_reward = np.mean(episode_rewards) if total_episodes > 0 else 0.0
@@ -523,6 +511,8 @@ class MBCHAC(BaseAlgorithm):
     def test_episode(self, eval_env, return_ep_info=False):
         done = False
         step_ctr = 0
+        info = {}
+        ep_reward = 0
         while not done:
             if hasattr(eval_env, 'venv'):
                 obs = eval_env.venv.buf_obs
@@ -541,9 +531,22 @@ class MBCHAC(BaseAlgorithm):
             step_ctr += 1
             if type(info) == list:
                 info = get_concat_dict_from_dict_list(info)
+            if 'is_success' in info.keys():
+                info['step_success'] = info['is_success']
+                del info['is_success']
+            ep_reward += np.sum(reward)
+            # if 'reward' not in info.keys():
+            #     info['reward'] = []
+            # if type(reward) == np.ndarray:
+            #     info['reward'] += list(reward)
+            # else:
+            #     info['reward'].append(reward)
             for k,v in info.items():
-                if k.find("test_") != 0:
-                    layered_info_key = "test_{}/{}".format(self.layer, k)
+                if k.find("test") != 0:
+                    if self.is_top_layer:
+                        layered_info_key = "test/{}".format(k)
+                    else:
+                        layered_info_key = "test_{}/{}".format(self.layer, k)
                 else:
                     layered_info_key = k
                 if layered_info_key not in self.eval_info_list.keys():
@@ -554,11 +557,22 @@ class MBCHAC(BaseAlgorithm):
                 else:
                     if isinstance(v, numbers.Number):
                         self.eval_info_list[layered_info_key].append(v)
-            # self.eval_info_list = merge_list_dicts(self.eval_info_list, info)
-            # for k, v in info.items():
-            #     if k + str(self.layer) not in self.eval_info_list.keys():
-            #         self.eval_info_list[k + str(self.layer)] = []
-            #     self.eval_info_list[k + str(self.layer)].append(v)
+
+        if self.is_top_layer:
+            eplen_key = 'test/ep_length'
+            success_key = 'test/ep_success'
+            reward_key = 'test/ep_reward'
+        else:
+            eplen_key = 'test_{}/ep_length'.format(self.layer)
+            success_key = 'test_{}/ep_success'.format(self.layer)
+            reward_key = 'test_{}/ep_reward'.format(self.layer)
+        if eplen_key not in self.eval_info_list.keys():
+            self.eval_info_list[eplen_key] = [step_ctr]
+        if success_key not in self.eval_info_list.keys():
+            if 'step_success' in info.keys():
+                self.eval_info_list[success_key] = [info['step_success'][-1]]
+        if reward_key not in self.eval_info_list.keys():
+            self.eval_info_list[reward_key] = [ep_reward]
         return self.eval_info_list
 
 
@@ -764,12 +778,15 @@ class MBCHAC(BaseAlgorithm):
         """
         Write log.
         """
-        time_pf = "time_{}".format(self.layer)
-        rollout_pf = "rollout_{}".format(self.layer)
-        train_pf = "train_{}".format(self.layer)
-        # time_pf = "time"
-        # rollout_pf = 'rollout'
-        # train_pf = 'train'
+        if self.is_top_layer:
+            time_pf = "time"
+            rollout_pf = 'rollout'
+            train_pf = 'train'
+        else:
+            time_pf = "time_{}".format(self.layer)
+            rollout_pf = "rollout_{}".format(self.layer)
+            train_pf = "train_{}".format(self.layer)
+
         fps = int(self.num_timesteps / (time.time() - self.start_time))
         logger.record(time_pf + "/episodes", self._episode_num, exclude="tensorboard")
         if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
@@ -779,7 +796,7 @@ class MBCHAC(BaseAlgorithm):
         logger.record(time_pf + "/time_elapsed", int(time.time() - self.start_time), exclude="tensorboard")
         logger.record(time_pf + "/total layer steps", self.num_timesteps, exclude="tensorboard")
         env_steps = self.get_env_steps()
-        logger.record(time_pf + "/total environment steps", env_steps, exclude="tensorboard")
+        logger.record(time_pf + "/total timesteps", env_steps, exclude="tensorboard")
         if self.use_sde:
             logger.record(train_pf + "/std", (self.actor.get_std()).mean().item())
 
@@ -793,4 +810,5 @@ class MBCHAC(BaseAlgorithm):
 
     def _dump_logs(self) -> None:
         self._record_logs()
+        logger.info("Writing log data to {}".format(logger.get_dir()))
         logger.dump(step=self.num_timesteps)

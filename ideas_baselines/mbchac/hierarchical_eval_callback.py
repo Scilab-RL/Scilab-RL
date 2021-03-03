@@ -62,6 +62,7 @@ class HierarchicalEvalCallback(EvalCallback):
         self.top_level_model = top_level_model
 
         layer_envs = get_h_envs_from_env(eval_env, top_level_model.time_scales, env_list=[], is_testing_env=True, model=top_level_model)
+
         eval_env = layer_envs[0]
         eval_env = BaseAlgorithm._wrap_env(eval_env)
         # Convert to VecEnv for consistency
@@ -102,23 +103,27 @@ class HierarchicalEvalCallback(EvalCallback):
             info_list = evaluate_hierarchical_policy(
                 self.top_level_model,
                 self.eval_env,
-                n_eval_episodes=self.n_eval_episodes,
-                render=self.render,
+                n_eval_episodes=self.n_eval_episodes
             )
+            # add a few extra kev-value pairs for compatibility with HER.
+            # For compatibility with HER, add a few redundant extra fields:
+            copy_fields = {'test/success_rate': 'test/ep_success',
+                           'test/mean_ep_length': 'test/ep_length',
+                           'test/mean_reward': 'test/ep_reward'
+                           }
+            for k,v in copy_fields.items():
+                try:
+                    info_list[k] = info_list[v]
+                except:
+                    logger.warn("Warning, field {} not found in info_list. Compatibility field could not be created.".format(k))
             self.reset_video()
             for k,v in info_list.items():
-                # try:
-                #     info_item_layer = int(k.split("_")[1])
-                #     new_k = "test_{}/".format(info_item_layer) + "_".join(k.split("_")[2:])
-                #     assert k[0] == 'l', 'info string is not a layer string'
-                # except:
-                # new_k = "test_{}/".format(self.model.layer)+k
                 new_k = k
                 if len(v) == 0 or type(v[0]) == bool:
                     continue
                 mean = np.mean(v)
                 std = np.std(v)
-                logger.record(new_k +'', mean)
+                logger.record(new_k + '', mean)
                 logger.record(new_k + '_std', std)
                 if k not in self.eval_histories.keys():
                     self.eval_histories[new_k] = []
@@ -126,17 +131,22 @@ class HierarchicalEvalCallback(EvalCallback):
 
             if self.top_level_model is not None:
                 self.top_level_model._dump_logs()
+                print("Log path: {}".format(self.log_path))
                 if self.early_stop_data_column in self.eval_histories.keys():
                     if self.eval_histories[self.early_stop_data_column][-1] >= self.best_early_stop_val:
+                        self.best_early_stop_val = self.eval_histories[self.early_stop_data_column][-1]
                         if self.verbose > 0:
-                            print("New best mean {}!".format(self.best_early_stop_val))
+                            print("New best mean {}: {}!".format(self.early_stop_data_column, self.best_early_stop_val))
                         if self.log_path is not None:
                             self.model.save(os.path.join(self.log_path, "best_model"))
-                        self.best_early_stop_val = self.eval_histories[self.early_stop_data_column]
+
                     if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                         mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
                         if mean_val >= self.early_stop_threshold:
-                            logger.info("Early stop threshold for {} met: Average over last {} evaluations is {} and threshold is {}. Stopping training.".format(self.early_stop_data_column, self.early_stop_last_n, mean_val, self.early_stop_threshold))
+                            print(
+                                "Early stop threshold for {} met: Average over last {} evaluations is {} and threshold is {}. Stopping training.".format(
+                                    self.early_stop_data_column, self.early_stop_last_n, mean_val,
+                                    self.early_stop_threshold))
                             if self.log_path is not None:
                                 self.model.save(os.path.join(self.log_path, "early_stop_model"))
                             return False

@@ -3,6 +3,8 @@ import subprocess
 import numpy as np
 import random
 import csv
+from scipy.interpolate import interp1d
+from stable_baselines3.common import logger
 
 def check_all_dict_values_equal(this_dict, until_idx=None):
     all_equal = True
@@ -21,6 +23,66 @@ def check_all_dict_values_equal(this_dict, until_idx=None):
         last_vals = vals
     return all_equal
 
+# def interpolate_data(data, key_to_align):
+#     align_val_lists = data[key_to_align].copy()
+#     all_vals = []
+#     avg_n_vals = 0
+#     for run_id, val_list in align_val_lists.items():
+#         all_vals += val_list
+#         avg_n_vals += len(val_list)
+#     avg_n_vals /= len(align_val_lists)
+#     all_vals = sorted(list(set(all_vals)))
+#     for col_key, col_data in data.items():
+#         runs_to_del = []
+#         for run_id, vals in col_data.items():
+#             this_align_vals = align_val_lists[run_id]
+#             # interpolate only if there are at least two values.
+#             do_interp = True
+#             if len(vals) < 2:
+#                 do_interp = False
+#             if do_interp:
+#                 interp = interp1d(this_align_vals, vals, assume_sorted=True, fill_value='extrapolate')
+#                 max_val_idx = all_vals.index(max(this_align_vals))
+#                 # interpolate, but only up to max value of original data.
+#                 vals_new = interp(all_vals[:max_val_idx+1])
+#                 col_data[run_id] = vals_new
+#             else:
+#                 logger.info("Not considering run {} for plotting because too little data is available".format(run_id))
+#                 runs_to_del.append(run_id)
+#         for rtd in runs_to_del:
+#             del col_data[rtd]
+#     return data
+
+def interpolate_data(col_data, align_val_lists):
+    all_vals = []
+
+    for run_id, val_list in align_val_lists.items():
+        all_vals += list(val_list)
+
+
+    all_vals = sorted(list(set(all_vals)))
+    runs_to_del = []
+    for run_id, vals in col_data.items():
+        this_align_vals = align_val_lists[run_id]
+        # interpolate only if there are at least two values.
+        do_interp = True
+        if len(vals) < 2:
+            do_interp = False
+        if do_interp:
+            try:
+                interp = interp1d(this_align_vals, vals, assume_sorted=True, fill_value='extrapolate')
+                max_val_idx = all_vals.index(max(this_align_vals))
+                # interpolate, but only up to max value of original data.
+                vals_new = interp(all_vals[:max_val_idx+1])
+                col_data[run_id] = vals_new
+            except:
+                pass
+        else:
+            logger.info("Not considering run {} for plotting because too little data is available".format(run_id))
+            runs_to_del.append(run_id)
+    for r in runs_to_del:
+        del col_data[r]
+    return col_data
 
 def get_subdir_by_params(path_params, ctr=0):
     param_strs = []
@@ -46,11 +108,11 @@ def get_subdir_by_params(path_params, ctr=0):
         this_key_str = "".join([s[:3] for s in p.split("_")])
         chars_to_split = [",", ":", "[", "]"]
         this_v_str = shorten_split_elem(str(v), chars_to_split)
-        this_param_str = '{}:{}'.format(this_key_str, this_v_str)
+        this_param_str = '{}={}'.format(this_key_str, this_v_str)
         param_strs.append(this_param_str)
 
-    subdir_str = "|".join(param_strs)
-    subdir_str += "|" + str(ctr)
+    subdir_str = "&".join(param_strs)
+    subdir_str += "&" + str(ctr)
 
     # param_subdir = "_".join(
     #     ['{}:{}'.format("".join([s[:2] for s in p.split("_")]), str(v).split(":")[-1]) for p, v in
