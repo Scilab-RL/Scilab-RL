@@ -134,30 +134,32 @@ class MatplotlibOutputFormat(KVWriter):
 
         return median, upper, lower, data_info
 
-    def plot_dict(self, data_dict):
+    def plot_dict(self, all_data_dict):
         # First interpolate all data
-        if 'time/total timesteps' not in data_dict.keys():
-            print("WARNING!!! No timesteps in data dict for plotting.")
-            return
         cols_to_del = []
-        for config_str in data_dict.keys():
-            data = data_dict[config_str]
+        reduced_data = {}
+        for config_str in all_data_dict.keys():
+            data = all_data_dict[config_str]
+            if 'time/total timesteps' not in data.keys():
+                print("WARNING!!! No timesteps in data for config {} for plotting.".format(config_str))
+                continue
+            reduced_data[config_str] = {}
             timesteps = data['time/total timesteps'].copy()
             for k in data.keys():
                 if k in self.cols_to_plot + ['time/total timesteps']:
-                    data_dict[config_str][k] = interpolate_data(data[k], timesteps)
-                else:
-                    cols_to_del.append(k)
-            for k in cols_to_del:
-                if k in data.keys():
-                    del data_dict[config_str][k]
+                    reduced_data[config_str][k] = interpolate_data(data[k], timesteps)
+            #     else:
+            #         cols_to_del.append(k)
+            # for k in cols_to_del:
+            #     if k in data.keys():
+            #         del data_dict[config_str][k]
 
         for k in self.cols_to_plot:
             fig = plt.figure(figsize=(20, 10))
             color_idx = 0
             all_data_info = {}
-            for config_str in data_dict.keys():
-                data = data_dict[config_str]
+            for config_str in reduced_data.keys():
+                data = reduced_data[config_str]
                 if k not in data.keys():
                     continue
                 if len(data[k]) == 0:
