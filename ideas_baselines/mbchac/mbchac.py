@@ -113,6 +113,7 @@ class MBCHAC(BaseAlgorithm):
         is_top_layer: bool = True,
         layer_envs: List[GymEnv] = [],
         n_train_batches: int = 0,
+        train_freq: int = 0,
         *args,
         **kwargs,
     ):
@@ -121,6 +122,7 @@ class MBCHAC(BaseAlgorithm):
         # determine time_scales
         self.is_top_layer = is_top_layer
         self.time_scales = time_scales
+        self.train_freq = train_freq
         self.is_bottom_layer = len(self.time_scales.split(",")) == 1
         assert len(time_scales.split(",")) == (
                     len(sub_model_classes) + 1), "Error, number of time scales is not equal to number of layers."
@@ -128,7 +130,7 @@ class MBCHAC(BaseAlgorithm):
             "_") <= 1, "Error, only one wildcard character \'_\' allowed in time_scales argument {}".format(time_scales)
         if self.is_top_layer == 1:  # Only do this once at top layer.
             # set train frequency
-            self.train_freq = env.spec.max_episode_steps
+            # self.train_freq = env.spec.max_episode_steps
             self.time_scales = compute_time_scales(time_scales, env)
             # Build layer_env from env, depending on steps and action space.
             layer_envs = get_h_envs_from_env(env, self.time_scales)
@@ -249,9 +251,33 @@ class MBCHAC(BaseAlgorithm):
         return action
 
 
+    def train_model(self, n_gradient_steps: int):
+        if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0:
+            logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
+            # assign temporary logger to avoid generating duplicate keys for the different layers.
+            real_logger = logger.Logger.CURRENT
+            logger.Logger.CURRENT = self.tmp_train_logger
+            self.train(batch_size=self.batch_size, gradient_steps=n_gradient_steps)
+            logger.Logger.CURRENT = real_logger
+            logged_kvs = self.tmp_train_logger.name_to_value
+            for k, v in logged_kvs.items():
+                try:
+                    postfix = k.split("/")[1]
+                    prefix = k.split("/")[0]
+                    if self.is_top_layer:
+                        new_k = k
+                    else:
+                        new_k = prefix + "_{}".format(self.layer) + "/" + postfix
+                except:
+                    new_k = k
+                logger.record_mean(new_k, v)
+            self.tmp_train_logger.dump()
+            self.actions_since_last_train = 0
+        else:
+            logger.info("Did not yet train layer {} because I have not yet enough experience collected.".format(self.layer))
 
-    def run_and_maybe_train(self,
-        n_episodes: int):
+    def run_and_maybe_train(self, n_episodes: int):
+
         rollout = self.collect_rollouts(
             self.env,
             n_episodes=n_episodes,
@@ -262,34 +288,8 @@ class MBCHAC(BaseAlgorithm):
         )
         if rollout.continue_training is False:
             return False
-        self.actions_since_last_train += rollout.episode_timesteps
-        # Equivalent to CHACpolicy.learn() - called on l. 126 in ideas_deep_rl
-        if self.actions_since_last_train > 0 and self.actions_since_last_train > self.learning_starts and self.replay_buffer.size() > 0 and self.actions_since_last_train >= self.train_freq:
-            # If no `gradient_steps` is specified,        policy: Union[str, Type[BasePolicy]],
-            # do as many gradients steps as steps performed since last training
-            gradient_steps = self.gradient_steps if self.gradient_steps > 0 else self.actions_since_last_train
-            logger.info("Training layer {} for {} steps.".format(self.layer, gradient_steps))
-            # assign temporary logger to avoid generating duplicate keys for the different layers.
-            real_logger = logger.Logger.CURRENT
-            logger.Logger.CURRENT = self.tmp_train_logger
-            self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
-            logger.Logger.CURRENT = real_logger
-            logged_kvs = self.tmp_train_logger.name_to_value
-            for k,v in logged_kvs.items():
-                try:
-                    postfix = k.split("/")[1]
-                    prefix = k.split("/")[0]
-                    if self.is_top_layer:
-                        new_k = k
-                    else:
-                        new_k = prefix + "_{}".format(self.layer) + "/" + postfix
-                except:
-                    new_k = k
-                logger.record(new_k,v)
-            self.tmp_train_logger.dump()
-
-            self.actions_since_last_train = 0
-
+        if self.train_freq == 0: # If training frequency is 0, train every episode for the number of gradient steps equal to the number of actions performed.
+            self.train_model(rollout.episode_timesteps)
         return True
 
 
@@ -466,6 +466,10 @@ class MBCHAC(BaseAlgorithm):
                     # Only stop training if return value is False, not when it is None.
                     if callback.on_step() is False:
                         return RolloutReturn(0.0, total_steps, total_episodes, continue_training=False)
+
+                self.actions_since_last_train += 1
+                if self.actions_since_last_train >= self.train_freq and self.train_freq != 0:
+                    self.train_model(self.actions_since_last_train)
 
                 if 0 < n_steps <= total_steps:
                     break
