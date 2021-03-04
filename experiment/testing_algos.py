@@ -34,7 +34,7 @@ class TestingAlgos:
         for model in TestingAlgos.base_algo_names:
             if model in ['ppo']:
                 continue
-            hyper_params = {'model_class': model}
+            hyper_params = {'model_class': model, 'eval_after_n_steps': 500}
             all_params.append((performance_params, hyper_params))
         return all_params
 

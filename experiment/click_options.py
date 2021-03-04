@@ -13,7 +13,7 @@ click.option('--base_logdir', type=str, default='data', help='the path to where 
 click.option('--seed', type=int, default=0, help='the random seed used to seed both the environment and the training code. 0 means random seed'),
 click.option('--restore_policy', type=str, default=None, help='The pretrained policy file to start with to avoid learning from scratch again. Useful for interrupting and restoring training sessions.'),
 click.option('--rollout_batch_size', type=int, default=1, help='The number of simultaneous rollouts.'),
-click.option('--eval_after_n_steps', type=int, default=5000, help='The number of training steps after which to evaluate the policy.'),
+click.option('--eval_after_n_steps', type=int, default=2000, help='The number of training steps after which to evaluate the policy.'),
 click.option('--n_epochs', type=int, default=30, help='the max. number of training epochs to run. One epoch consists of \'eval_after_n_steps\' actions '),
 click.option('--n_test_rollouts', type=int, default=25, help='The number of testing rollouts.'),
 # click.option('--render_train', type=int, default=0, help='Whether or not to render the rollout execution during training. Currently not implemented.'),
