@@ -1,4 +1,4 @@
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
 from ideas_baselines.her2.goal_selection_strategy import GoalSelectionStrategy
-from ideas_baselines.mbchac.mbchac import MBCHAC
+from ideas_baselines.her2.her2 import HER2
 from ideas_baselines.her2.her_replay_buffer import HerReplayBuffer

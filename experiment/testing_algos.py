@@ -6,7 +6,7 @@ class TestingAlgos:
     # base_algo_names = ['sac', 'ddpg', 'td3']
     # algo_names = base_algo_names + ['her', 'mbchac'] #'td3', 'ddpg', 'a2c',
     base_algo_names = ['sac']
-    algo_names = ['mbchac', 'her']
+    algo_names = ['mbchac', 'her2']
 
     @staticmethod
     def get_her_performance_params(env):
@@ -66,6 +66,41 @@ class TestingAlgos:
                 early_stop_last_n = (10000 // eval_after_n_steps) + 1
                 for train_freq in [1, 10, 50, eval_after_n_steps]:
                     hyper_params = {'model_classes': model, 'eval_after_n_steps': eval_after_n_steps,
+                                    'early_stop_last_n': early_stop_last_n, 'time_scales': '_',
+                                    'train_freq': train_freq,
+                                    'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss'}
+                    performance_params['n_epochs'] = (20000 // eval_after_n_steps) + 1
+                    all_params.append((performance_params.copy(), hyper_params.copy()))
+        return all_params
+
+    @staticmethod
+    def get_her2_performance_params(env):
+        all_params = []
+        if env in ['FetchReach-v1']:
+            performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
+                                  'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
+        elif env in ['FetchPush-v1']:
+            performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.05, 'performance_measure': 'test/success_rate'}
+        elif env in ['FetchSlide-v1']:
+            performance_params = {'n_epochs': 50, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
+        elif env in ['FetchPickAndPlace-v1']:
+            performance_params = {'n_epochs': 25, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
+        elif env in ['HandReach-v0']:
+            performance_params = {'n_epochs': 70, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.1, 'performance_measure': 'test/success_rate'}
+        else:
+            print("Environment {} is not evaluated with HER algorithm.".format(env))
+            return []
+        for model in TestingAlgos.base_algo_names:
+            if model in ['ppo']:
+                continue
+            for eval_after_n_steps in [500, 3000]:
+                early_stop_last_n = (10000 // eval_after_n_steps) + 1
+                for train_freq in [1, 10, 50, eval_after_n_steps]:
+                    hyper_params = {'model_class': model, 'eval_after_n_steps': eval_after_n_steps,
                                     'early_stop_last_n': early_stop_last_n, 'time_scales': '_',
                                     'train_freq': train_freq,
                                     'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss'}

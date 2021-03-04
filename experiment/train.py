@@ -19,13 +19,13 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
 from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make_robustGoalConditionedModel
 from stable_baselines3.common.bit_flipping_env import BitFlippingEnv
-from stable_baselines3 import HER, DDPG, DQN, SAC, TD3
+from stable_baselines3 import DDPG, DQN, SAC, TD3
 from util.custom_eval_callback import CustomEvalCallback
 from ideas_baselines.mbchac.hierarchical_eval_callback import HierarchicalEvalCallback
 # from util.custom_train_callback import CustomTrainCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.her import HER
+from ideas_baselines.her2 import HER2
 
 ALL_PATH_CONFIG_PARAMS = ['info', 'algorithm']
 
