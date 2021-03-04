@@ -12,7 +12,7 @@ class TestingAlgos:
     def get_her_performance_params(env):
         all_params = []
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 10, 'n_runs': 7, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 40, 'n_runs': 7, 'min_success_runs': 4,
                                   'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
             # performance_params = {'n_epochs': 6, 'n_runs': 4, 'min_success_runs': 2,
             #                       'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
