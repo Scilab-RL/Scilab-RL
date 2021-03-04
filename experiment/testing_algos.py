@@ -6,7 +6,8 @@ class TestingAlgos:
     # base_algo_names = ['sac', 'ddpg', 'td3']
     # algo_names = base_algo_names + ['her', 'mbchac'] #'td3', 'ddpg', 'a2c',
     base_algo_names = ['sac']
-    algo_names = ['mbchac', 'her2']
+    # algo_names = ['mbchac', 'her2']
+    algo_names = ['her2']
 
     @staticmethod
     def get_her_performance_params(env):
