@@ -5,6 +5,7 @@ class TestingAlgos:
 
     base_algo_names = ['sac', 'ddpg', 'td3']
     algo_names = ['mbchac', 'her2'] + base_algo_names
+    algo_names = ['mbchac']
 
     @staticmethod
     def get_her_performance_params(env):
@@ -37,7 +38,7 @@ class TestingAlgos:
     @staticmethod
     def get_mbchac_performance_params(env):
         all_params = []
-        eval_after_n_steps = 2000
+        eval_after_n_steps = 1000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
         model = 'sac'
         hyper_params_all = {'eval_after_n_steps': 2000,
@@ -45,7 +46,7 @@ class TestingAlgos:
                             'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 200, 'n_runs': 7, 'min_success_runs': 4,
                                   'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
@@ -70,6 +71,43 @@ class TestingAlgos:
             all_params.append((performance_params.copy(), hyper_params.copy()))
 
         return all_params
+
+    # @staticmethod
+    # def get_mbchac_performance_params(env):
+    #     all_params = []
+    #     eval_after_n_steps = 2000
+    #     early_stop_last_n = (10000 // eval_after_n_steps) + 1
+    #     model = 'sac'
+    #     hyper_params_all = {'eval_after_n_steps': 2000,
+    #                         'early_stop_last_n': early_stop_last_n,
+    #                         'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
+    #
+    #     if env in ['FetchReach-v1']:
+    #         performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
+    #                               'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
+    #     elif env in ['FetchPush-v1']:
+    #         performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
+    #                               'min_performance_value': 0.05, 'performance_measure': 'test/success_rate'}
+    #     elif env in ['FetchSlide-v1']:
+    #         performance_params = {'n_epochs': 50, 'n_runs': 4, 'min_success_runs': 2,
+    #                               'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
+    #     elif env in ['FetchPickAndPlace-v1']:
+    #         performance_params = {'n_epochs': 25, 'n_runs': 4, 'min_success_runs': 2,
+    #                               'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
+    #     elif env in ['HandReach-v0']:
+    #         performance_params = {'n_epochs': 70, 'n_runs': 4, 'min_success_runs': 2,
+    #                               'min_performance_value': 0.1, 'performance_measure': 'test/success_rate'}
+    #     else:
+    #         print("Environment {} is not evaluated with HER algorithm.".format(env))
+    #         return []
+    #
+    #     for time_scales in ['_', '5,_', '2,5,_']:
+    #         model_classes = [model] * len(time_scales.split(','))
+    #         hyper_params = {'model_classes': ",".join(model_classes), 'time_scales': time_scales}
+    #         hyper_params.update(hyper_params_all)
+    #         all_params.append((performance_params.copy(), hyper_params.copy()))
+    #
+    #     return all_params
 
 
     @staticmethod
