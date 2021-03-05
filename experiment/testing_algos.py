@@ -4,8 +4,6 @@ import gym
 class TestingAlgos:
 
     base_algo_names = ['sac', 'ddpg', 'td3']
-    # algo_names = base_algo_names + ['her', 'mbchac'] #'td3', 'ddpg', 'a2c',
-    # base_algo_names = ['sac']
     algo_names = ['mbchac', 'her2', 'her'] + base_algo_names
 
     @staticmethod
