@@ -192,7 +192,7 @@ class HER2(BaseAlgorithm):
         callback.on_training_start(locals(), globals())
 
         while self.num_timesteps < total_timesteps:
-
+            assert self.n_episodes_rollout > 0 or self.train_freq > 0, "Error collecting rollouts, either episodes or n_steps must be > 0."
             rollout = self.collect_rollouts(
                 self.env,
                 n_episodes=self.n_episodes_rollout,

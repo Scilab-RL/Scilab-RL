@@ -40,8 +40,7 @@ class TestingAlgos:
         eval_after_n_steps = 2000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
         model = 'sac'
-        hyper_params_all = {'model_classes': model,
-                            'eval_after_n_steps': 2000,
+        hyper_params_all = {'eval_after_n_steps': 2000,
                             'early_stop_last_n': early_stop_last_n,
                             'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
 
@@ -66,9 +65,9 @@ class TestingAlgos:
 
         for time_scales in ['_', '5,_', '2,5,_']:
             model_classes = [model] * len(time_scales.split(','))
-            hyper_params = {'model_classes': model_classes, 'time_scales': time_scales}
+            hyper_params = {'model_classes': ",".join(model_classes), 'time_scales': time_scales}
             hyper_params.update(hyper_params_all)
-            all_params.append((performance_params, hyper_params))
+            all_params.append((performance_params.copy(), hyper_params.copy()))
 
         return all_params
 
@@ -78,11 +77,11 @@ class TestingAlgos:
         all_params = []
         eval_after_n_steps = 2000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
-        hyper_params = {'eval_after_n_steps': eval_after_n_steps, 'early_stop_last_n': early_stop_last_n, }
+        hyper_params = {'eval_after_n_steps': eval_after_n_steps, 'early_stop_last_n': early_stop_last_n}
         if env in ['FetchReach-v1']:
             performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
                                   'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
-            hyper_params = {'eval_after_n_steps': 1000, 'train_freq': 0}
+            hyper_params = {'eval_after_n_steps': 1000, 'train_freq': 50}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 0.05, 'performance_measure': 'test/success_rate'}
@@ -102,7 +101,6 @@ class TestingAlgos:
             if model in ['ppo']:
                 continue
             hyper_params_all = {'model_class': model,
-                                'time_scales': '_',
                                 'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
             hyper_params.update(hyper_params_all)
             performance_params['n_epochs'] = (20000 // hyper_params['eval_after_n_steps']) + 1
