@@ -60,7 +60,6 @@ def evaluate_hierarchical_policy(
         model.reset_eval_info_list()
         this_info_list = model.test_episode(env)
         info_list = merge_list_dicts(this_info_list, info_list)
-    # TODO: Implement the rendering for multiple layers.
     if video_writer is not None:
         eval_render_frames = model.get_eval_render_frames()
         if eval_render_frames is not None and len(eval_render_frames) > 0:

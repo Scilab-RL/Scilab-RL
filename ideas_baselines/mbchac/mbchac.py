@@ -224,7 +224,7 @@ class MBCHAC(BaseAlgorithm):
         self.train_callback = None
         self.tmp_train_logger = logger.Logger(folder=None, output_formats=[]) # HumanOutputFormat(sys.stdout)
 
-        self.eval_frames = []
+        self.eval_render_frames = []
         self.eval_render_info = None
 
 
@@ -534,9 +534,15 @@ class MBCHAC(BaseAlgorithm):
             action, state = self.model.predict(obs, state=None, mask=None, deterministic=True)
             new_obs, reward, done, info = eval_env.step(action)
             if self.is_bottom_layer and self.eval_render_info is not None:
-                frame = eval_env.venv.envs[0].render(mode='rgb_array', width=self.eval_render_info['size'][0],
+                if hasattr(eval_env, 'env'):
+                    frame = eval_env.env.render(mode='rgb_array', width=self.eval_render_info['size'][0],
+                                                         height=self.eval_render_info['size'][1])
+                elif hasattr(eval_env, 'venv'):
+                    frame = eval_env.venv.envs[0].render(mode='rgb_array', width=self.eval_render_info['size'][0],
                                                      height=self.eval_render_info['size'][1])
-                self.eval_frames.append(frame)
+                else:
+                    assert False, "Eval env is neither TimeLimit nor Vectorized Env class and has neither env nor venv property."
+                self.eval_render_frames.append(frame)
             if self.sub_model is not None:
                 self.sub_model.reset_eval_info_list()
             step_ctr += 1
@@ -823,11 +829,11 @@ class MBCHAC(BaseAlgorithm):
 
     def get_eval_render_frames(self):
         if self.sub_model is not None:
-            self.sub_model.get_eval_render_frames()
+            return self.sub_model.get_eval_render_frames()
         else:
-            return self.eval_frames
+            return self.eval_render_frames
 
     def reset_eval_render_frames(self):
-        self.eval_frames = []
+        self.eval_render_frames = []
         if self.sub_model is not None:
             self.sub_model.reset_eval_render_frames()
