@@ -8,7 +8,6 @@ class TestingAlgos:
     # base_algo_names = ['sac']
     algo_names = ['mbchac', 'her2', 'her'] + base_algo_names
 
-
     @staticmethod
     def get_her_performance_params(env):
         all_params = []
@@ -42,7 +41,11 @@ class TestingAlgos:
         all_params = []
         eval_after_n_steps = 2000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
-        hyper_params = {'eval_after_n_steps': eval_after_n_steps, 'early_stop_last_n': early_stop_last_n,}
+        model = 'sac'
+        hyper_params_all = {'model_classes': model,
+                            'eval_after_n_steps': 2000,
+                            'early_stop_last_n': early_stop_last_n,
+                            'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
 
         if env in ['FetchReach-v1']:
             performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
@@ -63,16 +66,14 @@ class TestingAlgos:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
 
-        for model in TestingAlgos.base_algo_names:
-            if model in ['ppo']:
-                continue
-            hyper_params_all = {'model_classes': model,
-                                'time_scales': '_',
-                                'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
+        for time_scales in ['_', '5,_', '2,5,_']:
+            model_classes = [model] * len(time_scales.split(','))
+            hyper_params = {'model_classes': model_classes, 'time_scales': time_scales}
             hyper_params.update(hyper_params_all)
-            performance_params['n_epochs'] = (20000 // hyper_params['eval_after_n_steps']) + 1
-            all_params.append((performance_params.copy(), hyper_params.copy()))
+            all_params.append((performance_params, hyper_params))
+
         return all_params
+
 
     @staticmethod
     def get_her2_performance_params(env):
