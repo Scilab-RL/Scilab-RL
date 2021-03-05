@@ -17,7 +17,7 @@ echo "Generating test commands for ${test_mode} mode"
 python3 experiment/generate_testing_commands.py $test_mode
 sleep 2
 
-max_active_procs=7
+max_active_procs=6
 cmd_ctr=0
 n_cmds=$(cat $cmd_file | wc -l)
 declare -a cmd_arr=()

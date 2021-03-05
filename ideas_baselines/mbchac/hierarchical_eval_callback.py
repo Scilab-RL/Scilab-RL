@@ -81,28 +81,35 @@ class HierarchicalEvalCallback(EvalCallback):
         self.vid_size = 1024, 768
         self.vid_fps = 25
         self.eval_count = 0
-        self.video_writer = None
+        if self.render == 'record':
+            self.render_info = {'size': self.vid_size, 'fps': self.vid_fps, 'eval_count': self.eval_count,
+                                'path': self.log_path}
+        else:
+            self.render_info = None
 
-    def reset_video(self):
-        if self.video_writer is not None:
-            self.video_writer.release()
-        self.video_writer = cv2.VideoWriter(self.log_path+'/eval_{}.avi'.format(self.eval_count), cv2.VideoWriter_fourcc('F','M','P','4'), self.vid_fps, self.vid_size)
+    # def reset_video(self):
+    #     if self.video_writer is not None:
+    #         self.video_writer.release()
+    #     self.video_writer = cv2.VideoWriter(self.log_path+'/eval_{}.avi'.format(self.eval_count), cv2.VideoWriter_fourcc('F','M','P','4'), self.vid_fps, self.vid_size)
 
     def _on_step(self, log_prefix='') -> bool:
-        if self.render == 'record':
-            frame = self.model.env.venv.envs[0].render(mode='rgb_array', width=self.vid_size[0], height=self.vid_size[1])
-            if self.video_writer is None:
-                self.reset_video()
-            self.video_writer.write(frame)
-        elif self.render == 'display':
-            self.model.env.venv.envs[0].render()
+        # if self.render == 'record':
+        #     frame = self.model.env.venv.envs[0].render(mode='rgb_array', width=self.vid_size[0], height=self.vid_size[1])
+        #     if self.video_writer is None:
+        #         self.reset_video()
+        #     self.video_writer.write(frame)
+        # elif self.render == 'display':
+        #     self.model.env.venv.envs[0].render()
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
 
+            if self.render_info is not None:
+                self.render_info['eval_count'] = self.eval_count
             info_list = evaluate_hierarchical_policy(
                 self.top_level_model,
                 self.eval_env,
+                self.render_info,
                 n_eval_episodes=self.n_eval_episodes
             )
             # add a few extra kev-value pairs for compatibility with HER.
@@ -116,7 +123,6 @@ class HierarchicalEvalCallback(EvalCallback):
                     info_list[k] = info_list[v]
                 except:
                     logger.warn("Warning, field {} not found in info_list. Compatibility field could not be created.".format(k))
-            self.reset_video()
             for k,v in info_list.items():
                 new_k = k
                 if len(v) == 0 or type(v[0]) == bool:

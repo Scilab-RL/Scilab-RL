@@ -69,7 +69,7 @@ class TestingAlgos:
                     hyper_params = {'model_classes': model, 'eval_after_n_steps': eval_after_n_steps,
                                     'early_stop_last_n': early_stop_last_n, 'time_scales': '_',
                                     'train_freq': train_freq,
-                                    'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss'}
+                                    'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
                     performance_params['n_epochs'] = (20000 // eval_after_n_steps) + 1
                     all_params.append((performance_params.copy(), hyper_params.copy()))
         return all_params
@@ -104,7 +104,7 @@ class TestingAlgos:
                     hyper_params = {'model_class': model, 'eval_after_n_steps': eval_after_n_steps,
                                     'early_stop_last_n': early_stop_last_n, 'time_scales': '_',
                                     'train_freq': train_freq,
-                                    'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss'}
+                                    'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
                     performance_params['n_epochs'] = (20000 // eval_after_n_steps) + 1
                     all_params.append((performance_params.copy(), hyper_params.copy()))
         return all_params

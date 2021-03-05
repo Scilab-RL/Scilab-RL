@@ -224,7 +224,9 @@ class MBCHAC(BaseAlgorithm):
         self.train_callback = None
         self.tmp_train_logger = logger.Logger(folder=None, output_formats=[]) # HumanOutputFormat(sys.stdout)
 
-        test_render = False
+        self.eval_frames = []
+        self.eval_render_info = None
+
 
 
     def _setup_model(self) -> None:
@@ -517,6 +519,7 @@ class MBCHAC(BaseAlgorithm):
         step_ctr = 0
         info = {}
         ep_reward = 0
+        last_succ = 0
         while not done:
             if hasattr(eval_env, 'venv'):
                 obs = eval_env.venv.buf_obs
@@ -530,12 +533,17 @@ class MBCHAC(BaseAlgorithm):
 
             action, state = self.model.predict(obs, state=None, mask=None, deterministic=True)
             new_obs, reward, done, info = eval_env.step(action)
+            if self.is_bottom_layer and self.eval_render_info is not None:
+                frame = eval_env.venv.envs[0].render(mode='rgb_array', width=self.eval_render_info['size'][0],
+                                                     height=self.eval_render_info['size'][1])
+                self.eval_frames.append(frame)
             if self.sub_model is not None:
                 self.sub_model.reset_eval_info_list()
             step_ctr += 1
             if type(info) == list:
                 info = get_concat_dict_from_dict_list(info)
             if 'is_success' in info.keys():
+                last_succ = info['is_success']
                 info['step_success'] = info['is_success']
                 del info['is_success']
             ep_reward += np.sum(reward)
@@ -568,13 +576,10 @@ class MBCHAC(BaseAlgorithm):
             self.eval_info_list[eplen_key] = [step_ctr]
         if success_key not in self.eval_info_list.keys():
             if 'step_success' in info.keys():
-                self.eval_info_list[success_key] = [info['step_success'][-1]]
+                self.eval_info_list[success_key] = [last_succ]
         if reward_key not in self.eval_info_list.keys():
             self.eval_info_list[reward_key] = [ep_reward]
         return self.eval_info_list
-
-
-
 
 
     def _sample_her_transitions(self) -> None:
@@ -810,3 +815,19 @@ class MBCHAC(BaseAlgorithm):
         self._record_logs()
         logger.info("Writing log data to {}".format(logger.get_dir()))
         logger.dump(step=self.num_timesteps)
+
+    def set_eval_render_info(self, render_info):
+        self.eval_render_info = render_info
+        if self.sub_model is not None:
+            self.sub_model.set_eval_render_info(render_info)
+
+    def get_eval_render_frames(self):
+        if self.sub_model is not None:
+            self.sub_model.get_eval_render_frames()
+        else:
+            return self.eval_frames
+
+    def reset_eval_render_frames(self):
+        self.eval_frames = []
+        if self.sub_model is not None:
+            self.sub_model.reset_eval_render_frames()

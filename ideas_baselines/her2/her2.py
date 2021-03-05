@@ -209,7 +209,7 @@ class HER2(BaseAlgorithm):
             if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0:
                 # If no `gradient_steps` is specified,
                 # do as many gradients steps as steps performed during the rollout
-                gradient_steps = self.gradient_steps if self.gradient_steps > 0 else rollout.episode_timesteps
+                gradient_steps = rollout.episode_timesteps
                 self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
 
         callback.on_training_end()

@@ -12,9 +12,10 @@ from util.util import print_dict, check_all_dict_values_equal, interpolate_data
 from typing import Any, Dict, List, Optional, Sequence, TextIO, Tuple, Union
 from stable_baselines3.common.logger import Video, FormatUnsupportedError
 import warnings
+import time
 
 class MatplotlibOutputFormat(KVWriter):
-    def __init__(self, logpath, cols_to_plot=['test/success_rate', 'test/mean_reward']):
+    def __init__(self, logpath, min_secs_wait_for_plot, cols_to_plot=['test/success_rate', 'test/mean_reward']):
         self.logpath = logpath
         self.csv_filename = "plot.csv"
         self.csv_filepath = logpath + "/plot.csv"
@@ -22,9 +23,34 @@ class MatplotlibOutputFormat(KVWriter):
         self.keys = []
         self.sep = ','
         self.data_read_dir = "/".join(logpath.split("/")[:-1])
+        self.lock_file_name = os.path.join(self.data_read_dir, 'last_plot_timestamp.log')
         self.step = 1
         self.cols_to_plot = cols_to_plot
         self.plot_colors = sorted(plt.rcParams['axes.prop_cycle'].by_key()['color'], reverse=True)
+        self.min_secs_wait_for_plot = min_secs_wait_for_plot
+
+    def set_plot_lock_file(self):
+        try:
+            plotlockfile = open(self.lock_file_name, 'w')
+            plotlockfile.write(str(time.time()))
+            plotlockfile.close()
+        except:
+            print("Error, could not write plotlock file")
+
+    def check_plot_frequency(self):
+        last_plot_time = 0
+        try:
+            plotlockfile = open(self.lock_file_name, 'r')
+            time_str = plotlockfile.read()
+            plotlockfile.close()
+            last_plot_time = float(time_str)
+        except:
+            return True
+        if time.time() - last_plot_time > self.min_secs_wait_for_plot:
+            return True
+        else:
+            return False
+
 
     def write(self, kvs, name_to_excluded, step):
         # Add our current row to the history
@@ -51,7 +77,9 @@ class MatplotlibOutputFormat(KVWriter):
                 self.file.write(str(v))
         self.file.write('\n')
         self.file.flush()
-        self.plot_aggregate_kvs()
+        if self.check_plot_frequency():
+            self.plot_aggregate_kvs()
+            self.set_plot_lock_file()
 
     def close(self):
         self.file.close()
