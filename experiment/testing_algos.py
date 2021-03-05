@@ -3,20 +3,18 @@ import gym
 
 class TestingAlgos:
 
-    # base_algo_names = ['sac', 'ddpg', 'td3']
+    base_algo_names = ['sac', 'ddpg', 'td3']
     # algo_names = base_algo_names + ['her', 'mbchac'] #'td3', 'ddpg', 'a2c',
-    base_algo_names = ['sac']
-    # algo_names = ['mbchac', 'her2']
-    algo_names = ['her2']
+    # base_algo_names = ['sac']
+    algo_names = ['mbchac', 'her2', 'her'] + base_algo_names
+
 
     @staticmethod
     def get_her_performance_params(env):
         all_params = []
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 40, 'n_runs': 7, 'min_success_runs': 4,
-                                  'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
-            # performance_params = {'n_epochs': 6, 'n_runs': 4, 'min_success_runs': 2,
-            #                       'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+            performance_params = {'n_epochs': 6, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 0.05, 'performance_measure': 'test/success_rate'}
@@ -35,13 +33,17 @@ class TestingAlgos:
         for model in TestingAlgos.base_algo_names:
             if model in ['ppo']:
                 continue
-            hyper_params = {'model_class': model, 'eval_after_n_steps': 500}
+            hyper_params = {'model_class': model, 'eval_after_n_steps': 2000}
             all_params.append((performance_params, hyper_params))
         return all_params
 
     @staticmethod
     def get_mbchac_performance_params(env):
         all_params = []
+        eval_after_n_steps = 2000
+        early_stop_last_n = (10000 // eval_after_n_steps) + 1
+        hyper_params = {'eval_after_n_steps': eval_after_n_steps, 'early_stop_last_n': early_stop_last_n,}
+
         if env in ['FetchReach-v1']:
             performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
                                   'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
@@ -60,26 +62,28 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
+
         for model in TestingAlgos.base_algo_names:
             if model in ['ppo']:
                 continue
-            for eval_after_n_steps in [500, 3000]:
-                early_stop_last_n = (10000 // eval_after_n_steps) + 1
-                for train_freq in [1, 10, 50, eval_after_n_steps]:
-                    hyper_params = {'model_classes': model, 'eval_after_n_steps': eval_after_n_steps,
-                                    'early_stop_last_n': early_stop_last_n, 'time_scales': '_',
-                                    'train_freq': train_freq,
-                                    'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
-                    performance_params['n_epochs'] = (20000 // eval_after_n_steps) + 1
-                    all_params.append((performance_params.copy(), hyper_params.copy()))
+            hyper_params_all = {'model_classes': model,
+                                'time_scales': '_',
+                                'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
+            hyper_params.update(hyper_params_all)
+            performance_params['n_epochs'] = (20000 // hyper_params['eval_after_n_steps']) + 1
+            all_params.append((performance_params.copy(), hyper_params.copy()))
         return all_params
 
     @staticmethod
     def get_her2_performance_params(env):
         all_params = []
+        eval_after_n_steps = 2000
+        early_stop_last_n = (10000 // eval_after_n_steps) + 1
+        hyper_params = {'eval_after_n_steps': eval_after_n_steps, 'early_stop_last_n': early_stop_last_n, }
         if env in ['FetchReach-v1']:
             performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
                                   'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
+            hyper_params = {'eval_after_n_steps': 1000, 'train_freq': 0}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 0.05, 'performance_measure': 'test/success_rate'}
@@ -98,15 +102,12 @@ class TestingAlgos:
         for model in TestingAlgos.base_algo_names:
             if model in ['ppo']:
                 continue
-            for eval_after_n_steps in [500, 3000]:
-                early_stop_last_n = (10000 // eval_after_n_steps) + 1
-                for train_freq in [1, 10, 50, eval_after_n_steps]:
-                    hyper_params = {'model_class': model, 'eval_after_n_steps': eval_after_n_steps,
-                                    'early_stop_last_n': early_stop_last_n, 'time_scales': '_',
-                                    'train_freq': train_freq,
-                                    'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
-                    performance_params['n_epochs'] = (20000 // eval_after_n_steps) + 1
-                    all_params.append((performance_params.copy(), hyper_params.copy()))
+            hyper_params_all = {'model_class': model,
+                                'time_scales': '_',
+                                'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
+            hyper_params.update(hyper_params_all)
+            performance_params['n_epochs'] = (20000 // hyper_params['eval_after_n_steps']) + 1
+            all_params.append((performance_params.copy(), hyper_params.copy()))
         return all_params
 
     @staticmethod
