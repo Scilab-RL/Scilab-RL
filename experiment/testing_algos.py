@@ -4,7 +4,7 @@ import gym
 class TestingAlgos:
 
     base_algo_names = ['sac', 'ddpg', 'td3']
-    algo_names = ['mbchac', 'her2', 'her'] + base_algo_names
+    algo_names = ['mbchac', 'her2'] + base_algo_names
 
     @staticmethod
     def get_her_performance_params(env):
