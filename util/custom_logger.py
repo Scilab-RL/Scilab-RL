@@ -15,14 +15,17 @@ import warnings
 import time
 
 class MatplotlibOutputFormat(KVWriter):
-    def __init__(self, logpath, min_secs_wait_for_plot, cols_to_plot=['test/success_rate', 'test/mean_reward']):
+    def __init__(self, logpath, min_secs_wait_for_plot, cols_to_plot=['test/success_rate', 'test/mean_reward'], plot_parent_dir=True):
         self.logpath = logpath
         self.csv_filename = "plot.csv"
         self.csv_filepath = logpath + "/plot.csv"
         self.file = open(self.csv_filepath, 'w+t')
         self.keys = []
         self.sep = ','
-        self.data_read_dir = "/".join(logpath.split("/")[:-1])
+        if plot_parent_dir:
+            self.data_read_dir = "/".join(logpath.split("/")[:-1])
+        else:
+            self.data_read_dir = logpath
         self.lock_file_name = os.path.join(self.data_read_dir, 'last_plot_timestamp.log')
         self.step = 1
         self.cols_to_plot = cols_to_plot
@@ -116,7 +119,6 @@ class MatplotlibOutputFormat(KVWriter):
                                     data_dict[config_str][k][config_ctr_str] = []
                         else:
                             for idx,item in enumerate(row):
-                                #     print('huh')
                                 try:
                                     data_dict[config_str][keys[idx]][config_ctr_str].append(float(item))
                                 except:

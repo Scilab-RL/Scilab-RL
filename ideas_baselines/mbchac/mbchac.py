@@ -266,10 +266,7 @@ class MBCHAC(BaseAlgorithm):
                 try:
                     postfix = k.split("/")[1]
                     prefix = k.split("/")[0]
-                    if self.is_top_layer:
-                        new_k = k
-                    else:
-                        new_k = prefix + "_{}".format(self.layer) + "/" + postfix
+                    new_k = prefix + "_{}".format(self.layer) + "/" + postfix
                 except:
                     new_k = k
                 logger.record_mean(new_k, v)
@@ -554,11 +551,8 @@ class MBCHAC(BaseAlgorithm):
                 del info['is_success']
             ep_reward += np.sum(reward)
             for k,v in info.items():
-                if k.find("test") != 0:
-                    if self.is_top_layer:
-                        layered_info_key = "test/{}".format(k)
-                    else:
-                        layered_info_key = "test_{}/{}".format(self.layer, k)
+                if k.find("test_") != 0:
+                    layered_info_key = "test_{}/{}".format(self.layer, k)
                 else:
                     layered_info_key = k
                 if layered_info_key not in self.eval_info_list.keys():
@@ -570,14 +564,9 @@ class MBCHAC(BaseAlgorithm):
                     if isinstance(v, numbers.Number):
                         self.eval_info_list[layered_info_key].append(v)
 
-        if self.is_top_layer:
-            eplen_key = 'test/ep_length'
-            success_key = 'test/ep_success'
-            reward_key = 'test/ep_reward'
-        else:
-            eplen_key = 'test_{}/ep_length'.format(self.layer)
-            success_key = 'test_{}/ep_success'.format(self.layer)
-            reward_key = 'test_{}/ep_reward'.format(self.layer)
+        eplen_key = 'test_{}/ep_length'.format(self.layer)
+        success_key = 'test_{}/ep_success'.format(self.layer)
+        reward_key = 'test_{}/ep_reward'.format(self.layer)
         if eplen_key not in self.eval_info_list.keys():
             self.eval_info_list[eplen_key] = [step_ctr]
         if success_key not in self.eval_info_list.keys():
@@ -787,14 +776,9 @@ class MBCHAC(BaseAlgorithm):
         """
         Write log.
         """
-        if self.is_top_layer:
-            time_pf = "time"
-            rollout_pf = 'rollout'
-            train_pf = 'train'
-        else:
-            time_pf = "time_{}".format(self.layer)
-            rollout_pf = "rollout_{}".format(self.layer)
-            train_pf = "train_{}".format(self.layer)
+        time_pf = "time_{}".format(self.layer)
+        rollout_pf = "rollout_{}".format(self.layer)
+        train_pf = "train_{}".format(self.layer)
 
         fps = int(self.num_timesteps / (time.time() - self.start_time))
         logger.record(time_pf + "/episodes", self._episode_num, exclude="tensorboard")
@@ -819,6 +803,15 @@ class MBCHAC(BaseAlgorithm):
 
     def _dump_logs(self) -> None:
         self._record_logs()
+        top_layer = self.layer
+        # For compatibility with HER, add a few redundant extra fields:
+        copy_fields = {'test/success_rate': 'test_{}/ep_success'.format(top_layer),
+                       'test/mean_ep_length': 'test_{}/ep_length'.format(top_layer),
+                       'test/mean_reward': 'test_{}/ep_reward'.format(top_layer)
+                       }
+
+        for k,v in copy_fields.items():
+            logger.record(k, logger.Logger.CURRENT.name_to_value[v])
         logger.info("Writing log data to {}".format(logger.get_dir()))
         logger.dump(step=self.num_timesteps)
 

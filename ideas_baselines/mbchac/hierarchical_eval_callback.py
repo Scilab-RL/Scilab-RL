@@ -112,17 +112,6 @@ class HierarchicalEvalCallback(EvalCallback):
                 self.render_info,
                 n_eval_episodes=self.n_eval_episodes
             )
-            # add a few extra kev-value pairs for compatibility with HER.
-            # For compatibility with HER, add a few redundant extra fields:
-            copy_fields = {'test/success_rate': 'test/ep_success',
-                           'test/mean_ep_length': 'test/ep_length',
-                           'test/mean_reward': 'test/ep_reward'
-                           }
-            for k,v in copy_fields.items():
-                try:
-                    info_list[k] = info_list[v]
-                except:
-                    logger.warn("Warning, field {} not found in info_list. Compatibility field could not be created.".format(k))
             for k,v in info_list.items():
                 new_k = k
                 if len(v) == 0 or type(v[0]) == bool:
