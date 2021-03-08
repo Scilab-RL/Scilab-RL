@@ -33,6 +33,9 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
         self.goal_size = self.n_objects * 3
         if self.gripper_goal != 'gripper_none':
             self.goal_size += 3
+        self.object_height = 0.05
+        self.table_height = 0.4
+        self.sample_dist_threshold = np.sqrt(2 * self.object_height**2)
 
         has_object = self.n_objects > 0
 
@@ -74,7 +77,31 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
         }
 
     def _reset_sim(self):
-        super(BlocksEnv, self)._reset_sim()
+        self.sim.set_state(self.initial_state)
+        # randomize start position of objects
+        for o in range(self.n_objects):
+            oname = 'object{}'.format(o)
+            # find a position that is not too close to the gripper or another object
+            too_close = True
+            while too_close:
+                object_xpos = self.initial_gripper_xpos[:2] \
+                              + self.np_random.uniform(-self.obj_range, self.obj_range, size=2)
+
+                closest_dist = np.linalg.norm(object_xpos - self.initial_gripper_xpos[:2])
+                # Iterate through all previously placed boxes and select closest:
+                for o_other in range(o):
+                    other_xpos = self.sim.data.get_geom_xpos('object{}'.format(o_other))[:2]
+                    dist = np.linalg.norm(object_xpos - other_xpos)
+                    closest_dist = min(dist, closest_dist)
+                if closest_dist > self.sample_dist_threshold:
+                    too_close = False
+
+            object_qpos = self.sim.data.get_joint_qpos('{}:joint'.format(oname))
+            assert object_qpos.shape == (7,)
+            object_qpos[:2] = object_xpos
+            object_qpos[2] = self.table_height + (self.object_height / 2)
+            self.sim.data.set_joint_qpos('{}:joint'.format(oname), object_qpos)
+        self.sim.forward()
         return True
 
     def _sample_goal(self):
