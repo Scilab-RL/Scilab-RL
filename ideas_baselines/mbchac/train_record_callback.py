@@ -17,7 +17,7 @@ from ideas_baselines.mbchac.hierarchical_env import get_h_envs_from_env
 import matplotlib.pyplot as plt
 import cv2
 
-class HierarchicalEvalCallback(EvalCallback):
+class TrainVideoCallback(BaseCallback):
     """
     Callback for evaluating an agent.
 
@@ -37,57 +37,36 @@ class HierarchicalEvalCallback(EvalCallback):
 
     def __init__(
         self,
-        eval_env: Union[gym.Env, VecEnv],
-        n_eval_episodes: int = 5,
-        eval_freq: int = 10000,
+        env: Union[gym.Env, VecEnv],
         log_path: str = None,
-        deterministic: bool = True,
-        verbose: int = 1,
-        early_stop_data_column: str = 'test/success_rate',
-        early_stop_threshold: float = 1.0,
-        early_stop_last_n: int = 5,
-        top_level_model = None
+        render: str = 'record',
+        model = None
     ):
-        super(EvalCallback, self).__init__(verbose=verbose)
-        self.n_eval_episodes = n_eval_episodes
-        self.eval_freq = eval_freq
-        self.best_early_stop_val = -np.inf
-        self.deterministic = deterministic
-        self.eval_histories = {}
-        self.early_stop_data_column = early_stop_data_column
-        self.early_stop_threshold = early_stop_threshold
-        self.early_stop_last_n = early_stop_last_n
-        self.top_level_model = top_level_model
+        super(TrainVideoCallback, self).__init__(
+            training_env=env,
+            model=model)
 
-        layer_envs = get_h_envs_from_env(eval_env, top_level_model.time_scales, env_list=[], is_testing_env=True, model=top_level_model)
-
-        eval_env = layer_envs[0]
-        eval_env = BaseAlgorithm._wrap_env(eval_env)
-        # Convert to VecEnv for consistency
-        if not isinstance(eval_env, VecEnv):
-            eval_env = DummyVecEnv([lambda: eval_env])
-
-        if isinstance(eval_env, VecEnv):
-            assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
-
-        self.eval_env = eval_env
-        self.log_path = log_path
-        self.best_model_save_path = None
-        self.evaluations_results = []
-        self.evaluations_timesteps = []
-        self.evaluations_length = []
+        self.render = render
         self.vid_size = 1024, 768
         self.vid_fps = 25
         self.eval_count = 0
+        if self.render == 'record':
+            self.render_info = {'size': self.vid_size, 'fps': self.vid_fps, 'eval_count': self.eval_count,
+                                'path': self.log_path}
+        else:
+            self.render_info = None
 
     def _on_step(self, log_prefix='') -> bool:
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
 
+            if self.render_info is not None:
+                self.render_info['eval_count'] = self.eval_count
             info_list = evaluate_hierarchical_policy(
                 self.top_level_model,
                 self.eval_env,
+                self.render_info,
                 n_eval_episodes=self.n_eval_episodes
             )
             for k,v in info_list.items():

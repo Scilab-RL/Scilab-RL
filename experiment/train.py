@@ -25,6 +25,7 @@ from ideas_baselines.mbchac.hierarchical_eval_callback import HierarchicalEvalCa
 # from util.custom_train_callback import CustomTrainCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
+from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
 from ideas_baselines.her2 import HER2
 
 ALL_PATH_CONFIG_PARAMS = ['info', 'algorithm']
@@ -63,12 +64,10 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
                                                  log_path=logger.get_dir(),
                                                  eval_freq=kwargs['eval_after_n_steps'],
                                                  n_eval_episodes=kwargs['n_test_rollouts'],
-                                                 render=kwargs['render_test'],
                                                  early_stop_last_n=kwargs['early_stop_last_n'],
                                                  early_stop_data_column=kwargs['early_stop_data_column'],
                                                  early_stop_threshold=kwargs['early_stop_threshold'],
-                                                 top_level_model=model
-                                                 )
+                                                 top_level_model=model)
     else:
         eval_callback = CustomEvalCallback(eval_env,
                                            log_path=logger.get_dir(),
@@ -81,7 +80,7 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
 
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])
-    model.learn(total_timesteps=total_steps, callback=callback, log_interval=None, )
+    model.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
 
     train_env.close()
     eval_env.close()

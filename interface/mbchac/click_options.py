@@ -16,6 +16,8 @@ click.option('--n_train_batches', type=int, default=0, help='The number of train
 # click.option('--num_threads', type=int, default=1, help='Number of threads used for intraop parallelism on CPU'),
 # click.option('--verbose', type=bool, default=False),
 
+click.option('--render_train', type=click.Choice(['record', 'display', 'none']), default='none', help='Whether and how to render the rollout execution during training. \'record\' is for video, \'display\' for direct visualization.'),
+click.option('--render_test', type=click.Choice(['record', 'display', 'none']), default='none', help='Whether and how to render the rollout execution during testing. \'record\' is for video, \'display\' for direct visualization.'),
 
 # HAC
 # click.option('--target_networks', type=int, default=1),

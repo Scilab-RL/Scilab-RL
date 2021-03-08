@@ -26,6 +26,8 @@ from ideas_baselines.mbchac.util import get_concat_dict_from_dict_list, merge_li
 import numbers
 from stable_baselines3.common.logger import HumanOutputFormat
 import sys
+from stable_baselines3.common.vec_env import VecVideoRecorder
+import cv2
 
 
 def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> int:
@@ -115,6 +117,8 @@ class MBCHAC(BaseAlgorithm):
         n_train_batches: int = 0,
         train_freq: int = 0,
         subgoal_test_perc: float = 0.3,
+        render_train: str = 'none',
+        render_test: str = 'none',
         *args,
         **kwargs,
     ):
@@ -147,6 +151,8 @@ class MBCHAC(BaseAlgorithm):
         super(MBCHAC, self).__init__(policy=BasePolicy, env=this_env, policy_base=BasePolicy, learning_rate=0.0)
         # we will use the policy and learning rate from the model.
         del self.policy, self.learning_rate
+
+
         if self.get_vec_normalize_env() is not None:
             assert online_sampling, "You must pass `online_sampling=True` if you want to use `VecNormalize` with `HER`"
 
@@ -226,11 +232,61 @@ class MBCHAC(BaseAlgorithm):
 
         self.train_callback = None
         self.tmp_train_logger = logger.Logger(folder=None, output_formats=[]) # HumanOutputFormat(sys.stdout)
-
-        self.eval_render_frames = []
-        self.eval_render_info = None
+        self.test_render_frames = []
+        self.test_render_info = None
+        self.train_render_frames = []
+        self.train_render_info = None
         self.subgoal_test_perc = subgoal_test_perc
 
+        self.vid_size = 1024, 768
+        self.vid_fps = 25
+
+        self.render_train = render_train
+        self.render_test = render_test
+
+        if self.render_train == 'record':
+            train_render_info = {'size': self.vid_size, 'fps': self.vid_fps,
+                                'path': logger.get_dir()}
+            self.set_train_render_info(train_render_info)
+            self.train_video_writer = None
+        else:
+            self.train_render_info = None
+            
+        if self.render_test == 'record':
+            test_render_info = {'size': self.vid_size, 'fps': self.vid_fps,
+                                'path': logger.get_dir()}
+            self.set_test_render_info(test_render_info)
+            self.test_video_writer = None
+        else:
+            self.test_render_info = None
+
+        self.epoch_count = 0
+
+    def start_train_video_writer(self, n):
+        self.reset_train_render_frames()
+        self.train_video_writer = cv2.VideoWriter(self.train_render_info['path'] + '/train_{}.avi'.format(n),
+                        cv2.VideoWriter_fourcc('F', 'M', 'P', '4'), self.train_render_info['fps'],
+                        self.train_render_info['size'])
+    def stop_train_video_writer(self):
+        frames = self.get_train_render_frames()
+        if frames is not None and len(frames) > 0:
+            for f in frames:
+                self.train_video_writer.write(f)
+        self.train_video_writer.release()
+        self.reset_train_render_frames()
+        
+    def start_test_video_writer(self, n):
+        self.reset_test_render_frames()
+        self.test_video_writer = cv2.VideoWriter(self.test_render_info['path'] + '/test_{}.avi'.format(n),
+                        cv2.VideoWriter_fourcc('F', 'M', 'P', '4'), self.test_render_info['fps'],
+                        self.test_render_info['size'])
+    def stop_test_video_writer(self):
+        frames = self.get_test_render_frames()
+        if frames is not None and len(frames) > 0:
+            for f in frames:
+                self.test_video_writer.write(f)
+        self.test_video_writer.release()
+        self.reset_test_render_frames()
 
     def _setup_model(self) -> None:
         self.model._setup_model()
@@ -301,6 +357,7 @@ class MBCHAC(BaseAlgorithm):
         layer_total_timesteps, callback = self._setup_learn(
             layer_total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps, tb_log_name
         )
+        self.epoch_count = 0
         self.model.start_time = self.start_time
         self.model.ep_info_buffer = self.ep_info_buffer
         self.model.ep_success_buffer = self.ep_success_buffer
@@ -327,11 +384,17 @@ class MBCHAC(BaseAlgorithm):
         reset_num_timesteps: bool = True,
     ) -> BaseAlgorithm:
 
+        self.epoch_count = 0
+
         total_timesteps, callback = self.init_learn(total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
 
         callback.on_training_start(locals(), globals())
         self.actions_since_last_train = 0
         continue_training = True
+        if self.is_top_layer and self.train_render_info is not None:
+            self.start_train_video_writer(self.epoch_count)
+        if self.is_top_layer and self.test_render_info is not None:
+            self.start_test_video_writer(self.epoch_count)
         while self.num_timesteps < total_timesteps and continue_training:
             continue_training = self.run_and_maybe_train(n_episodes=1)
         callback.on_training_end()
@@ -393,10 +456,15 @@ class MBCHAC(BaseAlgorithm):
 
                 # Select action randomly or according to policy
                 self.model._last_obs = self._last_obs
+                subgoal_test = True if np.random.random_sample() < self.subgoal_test_perc else False
                 action, buffer_action = self._sample_action(learning_starts, action_noise)
 
                 # Perform action
                 new_obs, reward, done, infos = env.step(action)
+                if self.is_bottom_layer and self.train_render_info is not None:
+                    frame = self.env.venv.envs[0].render(mode='rgb_array', width=self.train_render_info['size'][0],
+                                                             height=self.train_render_info['size'][1])
+                    self.train_render_frames.append(frame)
 
                 self.num_timesteps += 1
                 self.model.num_timesteps = self.num_timesteps
@@ -533,16 +601,16 @@ class MBCHAC(BaseAlgorithm):
 
             action, state = self.model.predict(obs, state=None, mask=None, deterministic=True)
             new_obs, reward, done, info = eval_env.step(action)
-            if self.is_bottom_layer and self.eval_render_info is not None:
+            if self.is_bottom_layer and self.test_render_info is not None:
                 if hasattr(eval_env, 'env'):
-                    frame = eval_env.env.render(mode='rgb_array', width=self.eval_render_info['size'][0],
-                                                         height=self.eval_render_info['size'][1])
+                    frame = eval_env.env.render(mode='rgb_array', width=self.test_render_info['size'][0],
+                                                         height=self.test_render_info['size'][1])
                 elif hasattr(eval_env, 'venv'):
-                    frame = eval_env.venv.envs[0].render(mode='rgb_array', width=self.eval_render_info['size'][0],
-                                                     height=self.eval_render_info['size'][1])
+                    frame = eval_env.venv.envs[0].render(mode='rgb_array', width=self.test_render_info['size'][0],
+                                                     height=self.test_render_info['size'][1])
                 else:
                     assert False, "Eval env is neither TimeLimit nor Vectorized Env class and has neither env nor venv property."
-                self.eval_render_frames.append(frame)
+                self.test_render_frames.append(frame)
             if self.sub_model is not None:
                 self.sub_model.reset_eval_info_list()
             step_ctr += 1
@@ -801,6 +869,15 @@ class MBCHAC(BaseAlgorithm):
 
         if self.sub_model is not None:
             self.sub_model._record_logs()
+
+        self.epoch_count += 1
+        if self.is_top_layer and self.train_render_info is not None:
+            self.stop_train_video_writer()
+            self.start_train_video_writer(self.epoch_count)
+
+        if self.is_top_layer and self.test_render_info is not None:
+            self.stop_test_video_writer()
+            self.start_test_video_writer(self.epoch_count)
         # Pass the number of timesteps for tensorboard
 
 
@@ -816,18 +893,34 @@ class MBCHAC(BaseAlgorithm):
         logger.info("Writing log data to {}".format(logger.get_dir()))
         logger.dump(step=self.num_timesteps)
 
-    def set_eval_render_info(self, render_info):
-        self.eval_render_info = render_info
+    def set_test_render_info(self, render_info):
+        self.test_render_info = render_info
         if self.sub_model is not None:
-            self.sub_model.set_eval_render_info(render_info)
+            self.sub_model.set_test_render_info(render_info)
 
-    def get_eval_render_frames(self):
+    def set_train_render_info(self, render_info):
+        self.train_render_info = render_info
         if self.sub_model is not None:
-            return self.sub_model.get_eval_render_frames()
+            self.sub_model.set_train_render_info(render_info)
+
+    def get_test_render_frames(self):
+        if self.sub_model is not None:
+            return self.sub_model.get_test_render_frames()
         else:
-            return self.eval_render_frames
+            return self.test_render_frames
 
-    def reset_eval_render_frames(self):
-        self.eval_render_frames = []
+    def get_train_render_frames(self):
         if self.sub_model is not None:
-            self.sub_model.reset_eval_render_frames()
+            return self.sub_model.get_train_render_frames()
+        else:
+            return self.train_render_frames
+
+    def reset_test_render_frames(self):
+        self.test_render_frames = []
+        if self.sub_model is not None:
+            self.sub_model.reset_test_render_frames()
+
+    def reset_train_render_frames(self):
+        self.train_render_frames = []
+        if self.sub_model is not None:
+            self.sub_model.reset_train_render_frames()

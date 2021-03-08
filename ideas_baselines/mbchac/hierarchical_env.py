@@ -3,8 +3,10 @@ import copy
 import numpy as np
 
 import gym
+from stable_baselines3.common import logger
 from gym import error, spaces
 from gym.utils import seeding
+from gym.envs.robotics import FetchReachEnv
 from typing import List
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from util.custom_evaluation import get_success
@@ -22,10 +24,8 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
     if level_steps_str == '':
         return env_list
     level_steps = [int(s) for s in level_steps_str.split(",")]
-    action_dim = len(bottom_env.env._sample_goal())
-    obs_sample = bottom_env.env._get_obs()
     if len(level_steps) > 1:
-        env = HierarchicalHLEnv(action_dim, obs_sample, is_testing_env=is_testing_env, model=model)
+        env = HierarchicalHLEnv(bottom_env, is_testing_env=is_testing_env, model=model)
         env = gym.wrappers.TimeLimit(env, max_episode_steps=level_steps[0])
     else:
         env = bottom_env
@@ -46,55 +46,34 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
 
 
 class HierarchicalHLEnv(gym.GoalEnv):
-    def __init__(self, action_dim, obs_sample, is_testing_env=None, model=None):
-        # self.action_space = spaces.Box(-np.inf, np.inf, shape=(action_dim,), dtype='float32')
-        self.action_space = spaces.Box(-1.0, 1.0, shape=(action_dim,), dtype='float32')
-        # TODO: fix action space based on goal space.
-        self.observation_space = spaces.Dict(dict(
-            desired_goal=spaces.Box(-np.inf, np.inf, shape=obs_sample['achieved_goal'].shape, dtype='float32'),
-            achieved_goal=spaces.Box(-np.inf, np.inf, shape=obs_sample['achieved_goal'].shape, dtype='float32'),
-            observation=spaces.Box(-np.inf, np.inf, shape=obs_sample['observation'].shape, dtype='float32'),
-        ))
+    def __init__(self, bottom_env, is_testing_env=None, model=None):
+        self.bottom_env = bottom_env
+        self.action_space = bottom_env.observation_space.spaces['desired_goal']
+        if np.inf in self.action_space.high or -np.inf in self.action_space.low:
+            logger.warn("Warning, subgoal space of hierarchical environment not defined. I will need to guess the subgoal bounds based on drawing goal samples.")
+            self.update_action_bound_guess()
+
+        self.observation_space = bottom_env.env.observation_space
         self._sub_env = None
         self.model = model
         self.is_testing_env = is_testing_env
-        # self.test_reward_list = []
-        # self.test_success_list = []
 
-    # def reset_buffers(self):
-    #     self.test_reward_list = []
-    #     self.test_success_list = []
-    #     if type(self._sub_env, HierarchicalHLEnv):
-    #         self._sub_env.reset_buffers()
+    def update_action_bound_guess(self):
+        n_samples = 1000
+        self.action_space.high = [-np.inf] * len(self.action_space.high)
+        self.action_space.low = [np.inf] * len(self.action_space.low)
+        for i in range(n_samples):
+            goal = self.bottom_env.env._sample_goal()
+            self.action_space.high = np.maximum(goal, self.action_space.high)
+            self.action_space.low = np.minimum(goal, self.action_space.low)
+
+        self.action_space.high += np.abs(self.action_space.high - self.action_space.low) * 0.1
+        self.action_space.low -= np.abs(self.action_space.high - self.action_space.low) * 0.1
+
+        logger.info("Updated action bound guess by random sampling: Action space high: {}, Action space low: {}".format(self.action_space.high, self.action_space.low))
 
     def set_sub_env(self, env):
         self._sub_env = env
-
-    # def step(self, action):
-    #     subgoal = np.clip(action, self.action_space.low, self.action_space.high)
-    #     self._sub_env.goal = subgoal
-    #     assert self.model is not None, "Step not possible because no model defined yet."
-    #     info = {'reward_list_{}'.format(self.model.layer): [],
-    #             'success_list_{}'.format(self.model.layer): []}
-    #     if self.is_testing_env:
-    #         info = self.test_step()
-    #         # info['reward_list_{}'.format(self.model.layer)].append(reward_list)
-    #         # info['success_list_{}'.format(self.model.layer)].append(success_list)
-    #     else:
-    #         self.train_step()
-    #     obs = self._get_obs()
-    #     reward = self.compute_reward(obs['achieved_goal'], self.goal, info)
-    #     done = False  # Returning done = true after time steps are done is not necessary here because it is done in TimeLimit wrapper. #TODO: Check if done=True should be returned after goal is achieved.
-    #     self._step_callback()
-    #     succ = self._is_success(obs['achieved_goal'], self.goal)
-    #     if self.model.is_top_layer:
-    #         if 'is_success' not in info.keys():
-    #             info['is_success'] = []
-    #         info_list['is_success'].append(succ)
-    #     if 'is_success{}'.format(self.model.layer) not in info_list.keys():
-    #         info_list['is_success{}'.format(self.model.layer)] = []
-    #     info_list['is_success{}'.format(self.model.layer)].append(succ)
-    #     return obs, reward, done, info_list
 
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
@@ -119,17 +98,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
 
     def test_step(self):
         info_list = self.model.test_step(self)
-        # info_list = {'rewards{}'.format(self.model.layer): []}
-        # done = False
-        # while not done:
-        #     obs = self._get_obs()
-        #     action, state = self.model.sub_model.model.predict(obs, state=None, mask=None, deterministic=True)
-        #     new_obs, reward, done, infos = self._sub_env.step(action)
-        #     info_list['rewards{}'.format(self.model.layer)].append(reward)
-        #     for k,v in infos.items():
-        #         if k+str(self.model.layer) not in info_list.keys():
-        #             info_list[k+str(self.model.layer)] = []
-        #         info_list[k+str(self.model.layer)].append(v)
         return info_list
 
     def reset(self):

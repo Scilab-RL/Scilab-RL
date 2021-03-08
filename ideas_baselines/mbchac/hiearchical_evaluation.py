@@ -13,7 +13,6 @@ from ideas_baselines.mbchac.util import merge_list_dicts
 def evaluate_hierarchical_policy(
     model: "base_class.BaseAlgorithm",
     env: Union[gym.Env, VecEnv],
-    render_info: Dict = None,
     n_eval_episodes: int = 10,
     maybe_reset_env: bool = True
 ) -> OrderedDict:
@@ -37,16 +36,6 @@ def evaluate_hierarchical_policy(
         returns ([float], [int]) when ``return_episode_rewards`` is True
     """
 
-    video_writer = None
-    if render_info is not None:
-        try:
-            video_writer = cv2.VideoWriter(render_info['path'] + '/eval_{}.avi'.format(render_info['eval_count']),
-                                           cv2.VideoWriter_fourcc('F', 'M', 'P', '4'), render_info['fps'],
-                                           render_info['size'])
-            model.set_eval_render_info(render_info)
-        except:
-            print("Error creating video writer")
-
     if isinstance(env, VecEnv):
         assert env.num_envs == 1, "You must pass only one environment when using this function"
 
@@ -60,15 +49,7 @@ def evaluate_hierarchical_policy(
         model.reset_eval_info_list()
         this_info_list = model.test_episode(env)
         info_list = merge_list_dicts(this_info_list, info_list)
-    if video_writer is not None:
-        eval_render_frames = model.get_eval_render_frames()
-        if eval_render_frames is not None and len(eval_render_frames) > 0:
-            for f in eval_render_frames:
-                video_writer.write(f)
-        video_writer.release()
 
-    model.reset_eval_render_frames()
-    model.set_eval_render_info(None)
     if model.is_top_layer:
         # For compatibility with HER, add a few redundant extra fields:
         copy_fields = {'test/success_rate': 'test_{}/ep_success'.format(model.layer),
