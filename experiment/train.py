@@ -12,6 +12,7 @@ import json
 import sys
 from queue import deque
 import numpy as np
+import ideas_envs.register_envs
 import importlib
 from stable_baselines3.common import logger
 from util.custom_logger import MatplotlibOutputFormat
