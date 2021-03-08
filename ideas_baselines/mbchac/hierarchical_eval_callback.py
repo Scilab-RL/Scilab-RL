@@ -87,19 +87,7 @@ class HierarchicalEvalCallback(EvalCallback):
         else:
             self.render_info = None
 
-    # def reset_video(self):
-    #     if self.video_writer is not None:
-    #         self.video_writer.release()
-    #     self.video_writer = cv2.VideoWriter(self.log_path+'/eval_{}.avi'.format(self.eval_count), cv2.VideoWriter_fourcc('F','M','P','4'), self.vid_fps, self.vid_size)
-
     def _on_step(self, log_prefix='') -> bool:
-        # if self.render == 'record':
-        #     frame = self.model.env.venv.envs[0].render(mode='rgb_array', width=self.vid_size[0], height=self.vid_size[1])
-        #     if self.video_writer is None:
-        #         self.reset_video()
-        #     self.video_writer.write(frame)
-        # elif self.render == 'display':
-        #     self.model.env.venv.envs[0].render()
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
@@ -131,7 +119,7 @@ class HierarchicalEvalCallback(EvalCallback):
                     if self.eval_histories[self.early_stop_data_column][-1] >= self.best_early_stop_val:
                         self.best_early_stop_val = self.eval_histories[self.early_stop_data_column][-1]
                         if self.verbose > 0:
-                            print("New best mean {}: {}!".format(self.early_stop_data_column, self.best_early_stop_val))
+                            print("New best mean {}: {:.5f}!".format(self.early_stop_data_column, self.best_early_stop_val))
                         if self.log_path is not None:
                             self.model.save(os.path.join(self.log_path, "best_model"))
 
@@ -139,7 +127,7 @@ class HierarchicalEvalCallback(EvalCallback):
                         mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
                         if mean_val >= self.early_stop_threshold:
                             print(
-                                "Early stop threshold for {} met: Average over last {} evaluations is {} and threshold is {}. Stopping training.".format(
+                                "Early stop threshold for {} met: Average over last {} evaluations is {:5f} and threshold is {}. Stopping training.".format(
                                     self.early_stop_data_column, self.early_stop_last_n, mean_val,
                                     self.early_stop_threshold))
                             if self.log_path is not None:

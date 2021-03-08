@@ -15,8 +15,8 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Rollout
 from stable_baselines3.common.utils import check_for_correct_spaces
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
-from stable_baselines3.her.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
-from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
+from ideas_baselines.mbchac.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
+from ideas_baselines.mbchac.hher_replay_buffer import HHerReplayBuffer
 from ideas_baselines.mbchac.hierarchical_env import get_h_envs_from_env
 from stable_baselines3.common import logger
 from stable_baselines3.common.utils import safe_mean
@@ -114,6 +114,7 @@ class MBCHAC(BaseAlgorithm):
         layer_envs: List[GymEnv] = [],
         n_train_batches: int = 0,
         train_freq: int = 0,
+        subgoal_test_perc: float = 0.3,
         *args,
         **kwargs,
     ):
@@ -204,7 +205,8 @@ class MBCHAC(BaseAlgorithm):
         # storage for transitions of current episode for offline sampling
         # for online sampling, it replaces the "classic" replay buffer completely
         her_buffer_size = self.buffer_size if online_sampling else self.max_episode_length
-        self._episode_storage = HerReplayBuffer(
+        perform_action_replay = not self.is_bottom_layer
+        self._episode_storage = HHerReplayBuffer(
             self.env,
             her_buffer_size,
             max_episode_length,
@@ -214,6 +216,7 @@ class MBCHAC(BaseAlgorithm):
             self.device,
             self.n_envs,
             self.her_ratio,  # pytype: disable=wrong-arg-types
+            perform_action_replay
         )
 
         # counter for steps in episode
@@ -226,7 +229,7 @@ class MBCHAC(BaseAlgorithm):
 
         self.eval_render_frames = []
         self.eval_render_info = None
-
+        self.subgoal_test_perc = subgoal_test_perc
 
 
     def _setup_model(self) -> None:
@@ -804,10 +807,8 @@ class MBCHAC(BaseAlgorithm):
     def _dump_logs(self) -> None:
         self._record_logs()
         top_layer = self.layer
-        # For compatibility with HER, add a few redundant extra fields:
-        copy_fields = {'test/success_rate': 'test_{}/ep_success'.format(top_layer),
-                       'test/mean_ep_length': 'test_{}/ep_length'.format(top_layer),
-                       'test/mean_reward': 'test_{}/ep_reward'.format(top_layer)
+        # # For compatibility with HER, add a few redundant extra fields:
+        copy_fields = {'time/total timesteps': 'time_{}/total timesteps'.format(top_layer)
                        }
 
         for k,v in copy_fields.items():

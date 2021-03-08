@@ -66,6 +66,18 @@ def evaluate_hierarchical_policy(
             for f in eval_render_frames:
                 video_writer.write(f)
         video_writer.release()
+
     model.reset_eval_render_frames()
     model.set_eval_render_info(None)
+    if model.is_top_layer:
+        # For compatibility with HER, add a few redundant extra fields:
+        copy_fields = {'test/success_rate': 'test_{}/ep_success'.format(model.layer),
+                       'test/mean_ep_length': 'test_{}/ep_length'.format(model.layer),
+                       'test/mean_reward': 'test_{}/ep_reward'.format(model.layer)
+                       }
+        for k, v in copy_fields.items():
+            try:
+                info_list[k] = info_list[v]
+            except:
+                "Warning, column {} not in info_list".format(v)
     return info_list
