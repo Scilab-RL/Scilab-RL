@@ -8,7 +8,7 @@ MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'asset
 
 class BlocksEnv(fetch_env.FetchEnv, EzPickle):
     """
-    Environment for block-stacking.
+    Environment for block-stacking. Up to four blocks can be stacked.
     """
 
     def __init__(self, n_objects, gripper_goal, reward_type='sparse'):
@@ -45,9 +45,6 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
                          initial_qpos=initial_qpos, reward_type=reward_type)
         EzPickle.__init__(self)
 
-    def _set_action(self, action):
-        super(BlocksEnv, self)._set_action(np.array([0.2, 0, 0, 0.1]))
-
     def _get_obs(self):
         grip_pos = self.sim.data.get_site_xpos('robot0:grip')
         dt = self.sim.nsubsteps * self.sim.model.opt.timestep
@@ -68,13 +65,27 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
 
         obs = np.concatenate([grip_pos, object_pos, gripper_state, object_rot,
                               grip_velp, object_velp, object_velr, gripper_vel])
-        achieved_goal = obs[:self.goal_size]
+        if self.gripper_goal == 'gripper_none':
+            achieved_goal = obs[3:3 + self.goal_size]
+        else:
+            achieved_goal = obs[:self.goal_size]
 
         return {
             'observation': obs.copy(),
             'achieved_goal': achieved_goal.copy(),
             'desired_goal': self.goal.copy(),
         }
+
+    def _render_callback(self):
+        # visualize the desired positions of the blocks and the gripper
+        start_idx = 0
+        if self.gripper_goal != 'gripper_none':
+            start_idx = 3
+            site_id = self.sim.model.site_name2id('gripper_goal')
+            self.sim.model.site_pos[site_id] = self.goal[:3].copy()
+        for i in range(self.n_objects):
+            site_id = self.sim.model.site_name2id('object{}_goal'.format(i))
+            self.sim.model.site_pos[site_id] = self.goal[start_idx + 3 * i:start_idx + 3 * i + 3].copy()
 
     def _reset_sim(self):
         self.sim.set_state(self.initial_state)
@@ -105,15 +116,43 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
         return True
 
     def _sample_goal(self):
-        return super(BlocksEnv, self)._sample_goal()
+        goal = np.empty(self.goal_size)
+        if self.n_objects > 0:
+            # Find a random position for the tower
+            lowest_block_xy = self.initial_gripper_xpos[:2]\
+                               + self.np_random.uniform(-self.target_range, self.target_range, size=2)
+            # the height z is set below table height for now because we add the object height later
+            z = np.array([self.table_height - self.object_height * 0.5])
+            # if the gripper position is included in the goal, leave the first 3 values free
+            if self.gripper_goal == 'gripper_none':
+                start_idx = 0
+            else:
+                start_idx = 3
+            # set goal positions for the blocks
+            for i in range(self.n_objects):
+                z += self.object_height
+                pos = np.concatenate([lowest_block_xy, z])
+                goal[start_idx + i * 3:start_idx + i * 3 + 3] = pos
 
-    def _env_setup(self, initial_qpos):
-        super(BlocksEnv, self)._env_setup(initial_qpos)
-        # Die Unterschiede sind:
-        # 1.
-        # self.random_gripper_goal_pos_offset = (0.0, 0.0, 0.14)
-        # 2.
-        # if self.n_objects > 0 statt if self.has_object
+            # set the gripper_goal, if there is any
+            if not self.gripper_goal == 'gripper_none':
+                if self.gripper_goal == 'gripper_above':
+                    z += 2 * self.object_height
+                    goal[:3] = np.concatenate([lowest_block_xy, z])
+                if self.gripper_goal == 'gripper_random':
+                    too_close = True
+                    while too_close:
+                        grip_goal = self.initial_gripper_xpos \
+                                    + self.np_random.uniform(-self.target_range, self.target_range, size=3)
+                        closest_dist = np.inf
+                        for i in range(self.n_objects):
+                            closest_dist = min(closest_dist, np.linalg.norm(grip_goal - goal[3 + 3 * i:6 + 3 * i]))
+                        if closest_dist > self.sample_dist_threshold:
+                            too_close = False
+                    goal[:3] = grip_goal
+        else:
+            # n_objects == 0 is only possible with 'gripper_random'
+            goal[:] = self.initial_gripper_xpos \
+                      + self.np_random.uniform(-self.target_range, self.target_range, size=3)
 
-# Was hat es mit der tower_height auf sich? Brauchen wir die?
-# --> scheint überflüssig zu sein, da sie eh immer == n_objects sein soll
+        return goal.copy()

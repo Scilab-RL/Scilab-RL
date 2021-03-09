@@ -3,7 +3,7 @@ from gym.envs.registration import register
 
 for n_objects in range(5):
     for gripper_goal in ['gripper_none', 'gripper_random', 'gripper_above']:
-        if gripper_goal == 'gripper_none' and n_objects == 0:  # Disallow because goal size would be 0
+        if gripper_goal != 'gripper_random' and n_objects == 0:  # Disallow because there would be no goal
             continue
         register(id='Blocks-o{}-{}-v1'.format(n_objects, gripper_goal),
                  entry_point='ideas_envs.blocks.blocks_env:BlocksEnv',
