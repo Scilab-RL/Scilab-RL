@@ -15,3 +15,8 @@ for n_objects in range(3):
              entry_point='ideas_envs.hook.hook_env:HookEnv',
              kwargs={'n_objects': n_objects},
              max_episode_steps=max(50, 100 * n_objects))
+
+    register(id='ButtonUnlock-o{}-v1'.format(n_objects),
+             entry_point='ideas_envs.button_unlock.button_unlock_env:ButtonUnlockEnv',
+             kwargs={'n_buttons': n_objects+1},
+             max_episode_steps=max(50, 50*n_objects))
