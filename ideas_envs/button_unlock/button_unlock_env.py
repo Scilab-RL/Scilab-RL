@@ -30,7 +30,7 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
         }
 
         self.n_buttons = n_buttons
-        self.locked = np.ones(2)
+        self.locked = np.ones(n_buttons-1)
 
         self.table_height = 0.4
         self.sample_dist_threshold = 0.11
@@ -77,7 +77,7 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
                     self.sim.model.geom_rgba[geom_id] = [0.1, 0.9, 0.1, 1]
 
         # open cage if all subgoals were reached
-        if np.all([l == 0 for l in self.locked]):
+        if np.all([l == 0 for l in self.locked]) or len(self.locked) == 0:
             self.sim.data.set_joint_qpos('cage:glassjoint', -1.99)
 
         obs = np.concatenate([grip_pos, buttons_pos, grip_velp, self.locked])
