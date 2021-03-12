@@ -83,11 +83,11 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
         self._sub_env._elapsed_steps = 0 # Set elapsed steps to 0 but don't reset the whole simulated environment
-        self._sub_env.goal = subgoal
+        self._sub_env.env.goal = subgoal
         # self._sub_env._last_obs['desired_goal'] = subgoal
         assert self.model is not None, "Step not possible because no model defined yet."
         if self.is_testing_env:
-            self._sub_env.model.test_overwrite_goals.append(subgoal)
+            # self._sub_env.model.test_overwrite_goals.append(subgoal)
             info = self.test_step()
         else:
             info = {}
@@ -139,7 +139,9 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def _get_obs(self):
         """Returns the observation.
         """
-        return self._sub_env.env._get_obs()
+        obs = self._sub_env.env._get_obs()
+        obs['desired_goal'] = self.goal
+        return obs
 
     # def _set_action(self, action):
     #     """Applies the given action to the simulation.

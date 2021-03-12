@@ -459,7 +459,6 @@ class MBCHAC(BaseAlgorithm):
                 step_obs = observation
                 if self.train_overwrite_goals != []:
                     step_obs['desired_goal'] = self.train_overwrite_goals.copy()
-                    self.train_overwrite_goals = []
                 step_obs = ObsDictWrapper.convert_dict(step_obs)
 
                 subgoal_test = False
@@ -548,7 +547,7 @@ class MBCHAC(BaseAlgorithm):
 
                 if 0 < n_steps <= total_steps:
                     break
-
+            self.train_overwrite_goals = []
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()
 
@@ -590,6 +589,10 @@ class MBCHAC(BaseAlgorithm):
         if self.sub_model is not None:
             self.sub_model.reset_eval_info_list()
 
+    def update_venv_buf_obs(self, env):
+        for i,e in enumerate(env.venv.envs):
+            env._save_obs(i, e.env._get_obs())
+
     def test_episode(self, eval_env, return_ep_info=False):
         done = False
         step_ctr = 0
@@ -602,18 +605,16 @@ class MBCHAC(BaseAlgorithm):
             eval_env = DummyVecEnv([lambda: eval_env])
         while not done:
             if hasattr(eval_env, 'venv'):
+                self.update_venv_buf_obs(eval_env)
                 obs = eval_env.venv.buf_obs
-            # elif hasattr(eval_env, 'env'):
-            #     obs = eval_env.env._get_obs()
-            # elif hasattr(eval_env, '_get_obs'):
-            #     obs = eval_env._get_obs()
             else:
                 assert False, "eval_env type not supported!"
-            if self.test_overwrite_goals != []:
-                obs['desired_goal'] = self.test_overwrite_goals
-                self.test_overwrite_goals = []
+            # if self.test_overwrite_goals != []:
+            #     obs['desired_goal'] = self.test_overwrite_goals
             obs = ObsDictWrapper.convert_dict(obs)
             action, _ = self._sample_action(observation=obs,learning_starts=0, deterministic=True)
+            if self.layer==1 and step_ctr+1 == eval_env.venv.envs[0]._max_episode_steps:
+                action = eval_env.venv.envs[0].goal
             new_obs, reward, done, info = eval_env.step(action)
             if self.is_bottom_layer and self.test_render_info is not None:
                 if hasattr(eval_env, 'env'):
@@ -631,8 +632,8 @@ class MBCHAC(BaseAlgorithm):
             if type(info) == list:
                 info = get_concat_dict_from_dict_list(info)
             if 'is_success' in info.keys():
-                last_succ = info['is_success']
-                info['step_success'] = info['is_success']
+                last_succ = info['is_success'].copy()
+                info['step_success'] = info['is_success'].copy()
                 del info['is_success']
             ep_reward += np.sum(reward)
             for k,v in info.items():
@@ -649,6 +650,7 @@ class MBCHAC(BaseAlgorithm):
                     if isinstance(v, numbers.Number):
                         self.eval_info_list[layered_info_key].append(v)
 
+        # self.test_overwrite_goals = []
         eplen_key = 'test_{}/ep_length'.format(self.layer)
         success_key = 'test_{}/ep_success'.format(self.layer)
         reward_key = 'test_{}/ep_reward'.format(self.layer)
@@ -656,7 +658,7 @@ class MBCHAC(BaseAlgorithm):
             self.eval_info_list[eplen_key] = [step_ctr]
         if success_key not in self.eval_info_list.keys():
             if 'step_success' in info.keys():
-                self.eval_info_list[success_key] = [last_succ]
+                self.eval_info_list[success_key] = last_succ.copy()
         if reward_key not in self.eval_info_list.keys():
             self.eval_info_list[reward_key] = [ep_reward]
         return self.eval_info_list
