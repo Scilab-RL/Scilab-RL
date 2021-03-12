@@ -45,7 +45,9 @@ class HHerReplayBuffer(ReplayBuffer):
         device: Union[th.device, str] = "cpu",
         n_envs: int = 1,
         her_ratio: float = 0.8,
-        perform_action_replay_transitions = True
+        perform_action_replay_transitions = True,
+        test_trans_sampling_fraction = 0.1,
+        subgoal_test_fail_penalty = 10,
     ):
 
         super(HHerReplayBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs)
@@ -70,6 +72,7 @@ class HHerReplayBuffer(ReplayBuffer):
             "next_achieved_goal": (self.env.num_envs, self.env.goal_dim),
             "next_desired_goal": (self.env.num_envs, self.env.goal_dim),
             "done": (1,),
+            "is_subgoal_testing_trans": (1,),
         }
         self.buffer = {
             key: np.zeros((self.max_episode_stored, self.max_episode_length, *dim), dtype=np.float32)
@@ -85,6 +88,11 @@ class HHerReplayBuffer(ReplayBuffer):
         self.her_ratio = her_ratio
 
         self.perform_action_replay_transitions = perform_action_replay_transitions
+
+        self.test_trans_sampling_fraction = test_trans_sampling_fraction
+
+        # self.subgoal_test_fail_penalty = subgoal_test_fail_penalty
+        self.subgoal_test_fail_penalty = 1
 
     def __getstate__(self) -> Dict[str, Any]:
         """
@@ -136,7 +144,6 @@ class HHerReplayBuffer(ReplayBuffer):
         Sample function for online sampling of HER transition,
         this replaces the "regular" replay buffer ``sample()``
         method in the ``train()`` function.
-
         :param batch_size: Number of element to sample
         :param env: Associated gym VecEnv
             to normalize the observations/rewards when sampling
@@ -180,7 +187,78 @@ class HHerReplayBuffer(ReplayBuffer):
 
         return self.buffer["achieved_goal"][her_episode_indices, transitions_indices]
 
-    def _sample_transitions(
+    def _sample_transitions(self,
+        batch_size: Optional[int],
+        maybe_vec_env: Optional[VecNormalize],
+    ) -> Union[ReplayBufferSamples, Tuple[np.ndarray, ...]]:
+
+        n_ga_trans = int(batch_size * (1 - self.test_trans_sampling_fraction))
+        n_test_trans = batch_size - n_ga_trans
+
+        replay_trans = self.sample_goal_action_replay_transitions(batch_size=n_ga_trans, maybe_vec_env=maybe_vec_env)
+
+        if n_test_trans > 0:
+            test_replay_trans = self.sample_test_transitions(batch_size=n_test_trans, maybe_vec_env=maybe_vec_env)
+            tmp_list = []
+            for key in replay_trans._fields:
+                rt_t = replay_trans._asdict()[key]
+                trt_t = test_replay_trans._asdict()[key]
+                concat_t = th.cat((rt_t, trt_t), 0)
+                tmp_list.append(concat_t)
+            replay_trans = ReplayBufferSamples(*tuple(tmp_list))
+
+        return replay_trans
+
+    def sample_test_transitions(
+        self,
+        batch_size: Optional[int],
+        maybe_vec_env: Optional[VecNormalize],
+    ) -> Union[ReplayBufferSamples, Tuple[np.ndarray, ...]]:
+        """
+        :param batch_size: Number of element to sample (only used for online sampling)
+        :param env: associated gym VecEnv to normalize the observations/rewards
+            Only valid when using online sampling
+        :param n_sampled_goal: Number of sampled goals for replay. (offline sampling)
+        :return: Samples.
+        """
+        assert batch_size is not None, "No batch_size specified for online sampling of HER transitions"
+        episode_trans_test_indices = self.buffer['is_subgoal_testing_trans']
+        all_testing_indices = np.argwhere(episode_trans_test_indices == 1)
+        testing_indices_indices = np.random.randint(0, len(all_testing_indices), batch_size)
+
+        testing_indices = all_testing_indices[testing_indices_indices]
+        ti_reshaped = list(np.transpose(testing_indices)[:2])
+        transitions = {key: self.buffer[key][tuple(ti_reshaped)].copy() for key in self.buffer.keys()}
+
+        # Convert info buffer to numpy array
+        successes = np.array(
+            [
+                self.info_buffer[episode_idx][transition_idx][0]['is_success']
+                # for episode_idx, transition_idx in zip(ti_reshaped[0][0], ti_reshaped[0][1])
+                for episode_idx, transition_idx, _ in testing_indices
+            ]
+        )
+
+        rewards = successes * self.subgoal_test_fail_penalty
+        rewards -= self.subgoal_test_fail_penalty
+        transitions["reward"][:, 0] = rewards
+
+        # concatenate observation with (desired) goal
+        observations = ObsDictWrapper.convert_dict(self._normalize_obs(transitions, maybe_vec_env))
+        # HACK to make normalize obs work with the next observation
+        transitions["observation"] = transitions["next_obs"]
+        next_observations = ObsDictWrapper.convert_dict(self._normalize_obs(transitions, maybe_vec_env))
+
+        data = (
+            observations[:, 0],
+            transitions["action"],
+            next_observations[:, 0],
+            transitions["done"],
+            self._normalize_reward(transitions["reward"], maybe_vec_env),
+        )
+        return ReplayBufferSamples(*tuple(map(self.to_torch, data)))
+
+    def sample_goal_action_replay_transitions(
         self,
         batch_size: Optional[int],
         maybe_vec_env: Optional[VecNormalize],
@@ -238,6 +316,7 @@ class HHerReplayBuffer(ReplayBuffer):
             transitions["info"][her_indices, 0],
         )
 
+        # Perform action replay
         if self.perform_action_replay_transitions:
             assert len(transitions['next_achieved_goal'].shape) == 3 and \
                    transitions['next_achieved_goal'].shape[1] == 1 and \
@@ -282,6 +361,11 @@ class HHerReplayBuffer(ReplayBuffer):
         self.buffer["next_obs"][self.pos][self.current_idx] = next_obs["observation"]
         self.buffer["next_achieved_goal"][self.pos][self.current_idx] = next_obs["achieved_goal"]
         self.buffer["next_desired_goal"][self.pos][self.current_idx] = next_obs["desired_goal"]
+        has_test_trans = True in ['is_subgoal_testing_trans' in inf.keys() for inf in infos]
+        if has_test_trans:
+            test_trans = [inf.get('is_subgoal_testing_trans') for inf in infos]
+            test_trans = np.array(test_trans)
+            self.buffer["is_subgoal_testing_trans"][self.pos][self.current_idx] = test_trans
 
         self.info_buffer[self.pos].append(infos)
 

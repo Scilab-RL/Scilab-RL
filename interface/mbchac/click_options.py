@@ -5,9 +5,10 @@ options = [
 click.option('--model_classes', type=str, default='sac,sac'),
 click.option('--goal_selection_strategy', type=click.Choice(['future', 'final', 'episode']), default='future'),
 click.option('--n_sampled_goal', type=int, default=4),
-click.option('--online_sampling', type=bool, default=True),
 click.option('--train_freq', type=int, default=0, help='number of steps in each layer after which to train. 0 sets the training frequency to once per episode.'),
 click.option('--n_train_batches', type=int, default=0, help='The number of training batches per episode. 0 sets training batches to number of actions executed since last training in each layer, which effectively means that n_train_batches=n_train_freq.'),
+
+click.option('--learning_starts', type=int, default=100, help='The number of transitions in each layer required to start NN training.'),
 
 # click.option('--batch_size', type=int, default=1024, help='The number of state transitions processed during network training.'),
 # click.option('--n_train_batches', type=int, default=40, help='The number of batches to train the actor-critic .'),
@@ -29,7 +30,7 @@ click.option('--render_test', type=click.Choice(['record', 'display', 'none']), 
 # click.option('--continuous_subgoals', type=bool, default=False, help='Whether to determine new subgoals with each step.'), # TODO: CURRENTLY NOT IMPLEMENTED!
 click.option('--time_scales', type=str, default='5,_', help='Steps per level from lowest to highest, separated by comma. There must be one \'_\' character in the list to indicates the layer where the time scale is determined from the environment\'s predefined steps.'),
 
-click.option('--subgoal_test_perc', type=float, default=0.3, help='The percentage of subgoals to test.'),
+click.option('--subgoal_test_perc', type=float, default=0.0, help='The percentage of subgoals to test.'),
 # click.option('--level_types', type=str, default='hac,hac', help='Layers to be used'),
 # click.option('--simulate_level', default='0,0', help='Specifiy for which level to add simulated transitions to the replay buffer'),
 # click.option('--halftime', type=int, default=10000, help='Denotes the number of training episodes where the probability of simulating is 50%'),

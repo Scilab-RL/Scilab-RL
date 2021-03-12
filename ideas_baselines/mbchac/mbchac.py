@@ -6,6 +6,7 @@ import numpy as np
 import torch as th
 import gym
 from stable_baselines3.common.base_class import BaseAlgorithm
+from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.noise import ActionNoise
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
@@ -28,6 +29,7 @@ from stable_baselines3.common.logger import HumanOutputFormat
 import sys
 from stable_baselines3.common.vec_env import VecVideoRecorder
 import cv2
+from watchpoints import watch
 
 
 def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> int:
@@ -93,7 +95,6 @@ class MBCHAC(BaseAlgorithm):
     :param n_sampled_goal: Number of sampled goals for replay. (offline sampling)
     :param goal_selection_strategy: Strategy for sampling goals for replay.
         One of ['episode', 'final', 'future', 'random']
-    :param online_sampling: Sample HER transitions online.
     :param learning_rate: learning rate for the optimizer,
         it can be a function of the current progress remaining (from 1 to 0)
     :param max_episode_length: The m
@@ -110,7 +111,6 @@ class MBCHAC(BaseAlgorithm):
         time_scales: str = '_',
         n_sampled_goal: int = 4,
         goal_selection_strategy: Union[GoalSelectionStrategy, str] = "future",
-        online_sampling: bool = False,
         max_episode_length: Optional[int] = None,
         is_top_layer: bool = True,
         layer_envs: List[GymEnv] = [],
@@ -134,8 +134,6 @@ class MBCHAC(BaseAlgorithm):
         assert time_scales.count(
             "_") <= 1, "Error, only one wildcard character \'_\' allowed in time_scales argument {}".format(time_scales)
         if self.is_top_layer == 1:  # Only do this once at top layer.
-            # set train frequency
-            # self.train_freq = env.spec.max_episode_steps
             self.time_scales = compute_time_scales(time_scales, env)
             # Build layer_env from env, depending on steps and action space.
             layer_envs = get_h_envs_from_env(env, self.time_scales)
@@ -152,9 +150,8 @@ class MBCHAC(BaseAlgorithm):
         # we will use the policy and learning rate from the model.
         del self.policy, self.learning_rate
 
-
-        if self.get_vec_normalize_env() is not None:
-            assert online_sampling, "You must pass `online_sampling=True` if you want to use `VecNormalize` with `HER`"
+        self.learning_starts = kwargs['learning_starts']
+        # watch(self.learning_starts)
 
         _init_setup_model = kwargs.get("_init_setup_model", True)
         if "_init_setup_model" in kwargs:
@@ -168,12 +165,13 @@ class MBCHAC(BaseAlgorithm):
         self.layer = len(self.sub_model_classes)
 
         assert (len(sub_model_classes) + 1) == len(layer_envs), "Error, number of sub model classes should be one less than number of envs"
+        sub_level_steps = '0'
         if len(sub_model_classes) > 0:
             sub_level_steps = ",".join(self.time_scales.split(",")[1:])
             self.sub_model = MBCHAC('MlpPolicy', bottom_env, sub_model_classes[0], sub_model_classes[1:],
                                     time_scales=sub_level_steps,
                                     n_sampled_goal=n_sampled_goal, goal_selection_strategy=goal_selection_strategy,
-                                    online_sampling=online_sampling, train_freq=self.train_freq,
+                                    train_freq=self.train_freq,
                                     is_top_layer=False, layer_envs=layer_envs[1:],
                                     **kwargs)
         else:
@@ -202,16 +200,15 @@ class MBCHAC(BaseAlgorithm):
         ), f"Invalid goal selection strategy, please use one of {list(GoalSelectionStrategy)}"
 
         self.n_sampled_goal = n_sampled_goal
-        # if we sample her transitions online use custom replay buffer
-        self.online_sampling = online_sampling
         # compute ratio between HER replays and regular replays in percent for online HER sampling
         self.her_ratio = 1 - (1.0 / (self.n_sampled_goal + 1))
         # maximum steps in episode
         self.max_episode_length = get_time_limit(self.env, max_episode_length)
         # storage for transitions of current episode for offline sampling
         # for online sampling, it replaces the "classic" replay buffer completely
-        her_buffer_size = self.buffer_size if online_sampling else self.max_episode_length
+        her_buffer_size = self.buffer_size
         perform_action_replay = not self.is_bottom_layer
+        sample_test_trans_fraction = (not self.is_bottom_layer) * 0.1
         self._episode_storage = HHerReplayBuffer(
             self.env,
             her_buffer_size,
@@ -222,7 +219,9 @@ class MBCHAC(BaseAlgorithm):
             self.device,
             self.n_envs,
             self.her_ratio,  # pytype: disable=wrong-arg-types
-            perform_action_replay
+            perform_action_replay,
+            sample_test_trans_fraction,
+            int(sub_level_steps)
         )
 
         # counter for steps in episode
@@ -262,6 +261,11 @@ class MBCHAC(BaseAlgorithm):
 
         self.epoch_count = 0
 
+        self.in_subgoal_test_mode = False
+
+        self.train_overwrite_goals = []
+        self.test_overwrite_goals = []
+
     def start_train_video_writer(self, n):
         self.reset_train_render_frames()
         self.train_video_writer = cv2.VideoWriter(self.train_render_info['path'] + '/train_{}.avi'.format(n),
@@ -291,8 +295,7 @@ class MBCHAC(BaseAlgorithm):
     def _setup_model(self) -> None:
         self.model._setup_model()
         # assign episode storage to replay buffer when using online HER sampling
-        if self.online_sampling:
-            self.model.replay_buffer = self._episode_storage
+        self.model.replay_buffer = self._episode_storage
 
     def predict(
         self,
@@ -341,8 +344,7 @@ class MBCHAC(BaseAlgorithm):
             n_episodes=n_episodes,
             n_steps=-1,
             action_noise=self.action_noise,
-            learning_starts=self.learning_starts,
-            log_interval=None,
+            learning_starts=self.learning_starts
         )
         if rollout.continue_training is False:
             return False
@@ -407,7 +409,6 @@ class MBCHAC(BaseAlgorithm):
         n_steps: int = -1,
         action_noise: Optional[ActionNoise] = None,
         learning_starts: int = 0,
-        log_interval: Optional[int] = None,
     ) -> RolloutReturn:
         """
         Collect experiences and store them into a ReplayBuffer.
@@ -423,7 +424,6 @@ class MBCHAC(BaseAlgorithm):
             Required for deterministic policy (e.g. TD3). This can also be used
             in addition to the stochastic policy for SAC.
         :param learning_starts: Number of steps before learning for the warm-up phase.
-        :param log_interval: Log data every ``log_interval`` episodes
         :return:
         """
 
@@ -456,11 +456,26 @@ class MBCHAC(BaseAlgorithm):
 
                 # Select action randomly or according to policy
                 self.model._last_obs = self._last_obs
-                subgoal_test = True if np.random.random_sample() < self.subgoal_test_perc else False
-                action, buffer_action = self._sample_action(learning_starts, action_noise)
+                step_obs = observation
+                if self.train_overwrite_goals != []:
+                    step_obs['desired_goal'] = self.train_overwrite_goals.copy()
+                    self.train_overwrite_goals = []
+                step_obs = ObsDictWrapper.convert_dict(step_obs)
 
-                # Perform action
+                subgoal_test = False
+                if not self.in_subgoal_test_mode and not self.is_bottom_layer: # Next layer can only go in subgoal test mode if this layer is not already in subgoal testing mode
+                    subgoal_test = True if np.random.random_sample() < self.subgoal_test_perc else False
+                    if subgoal_test:
+                        self.set_subgoal_test_mode() # set submodel to testing mode is applicable.
+                if self.in_subgoal_test_mode:
+                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=learning_starts, deterministic=True)
+                else:
+                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=learning_starts, deterministic=False)
+                # if self.layer==1 and episode_timesteps == (self.max_episode_length-1):
+                #     action = observation['desired_goal']
                 new_obs, reward, done, infos = env.step(action)
+                if subgoal_test: # if the subgoal test has started here, unset testing mode of submodel if applicable.
+                    self.unset_subgoal_test_mode()
                 if self.is_bottom_layer and self.train_render_info is not None:
                     frame = self.env.venv.envs[0].render(mode='rgb_array', width=self.train_render_info['size'][0],
                                                              height=self.train_render_info['size'][1])
@@ -487,7 +502,7 @@ class MBCHAC(BaseAlgorithm):
                 else:
                     # Avoid changing the original ones
                     self._last_original_obs, new_obs_, reward_ = observation, new_obs, reward
-                    self._last_original_obs, new_obs_, reward_ = observation, new_obs, reward
+
                     self.model._last_original_obs = self._last_original_obs
 
                 # As the VecEnv resets automatically, new_obs is already the
@@ -499,17 +514,7 @@ class MBCHAC(BaseAlgorithm):
                     next_obs = infos[0]["terminal_observation"]
                 else:
                     next_obs = new_obs_
-
-                if self.online_sampling:
-                    self.replay_buffer.add(self._last_original_obs, next_obs, buffer_action, reward_, done, infos)
-                else:
-                    # concatenate observation with (desired) goal
-                    flattened_obs = ObsDictWrapper.convert_dict(self._last_original_obs)
-                    flattened_next_obs = ObsDictWrapper.convert_dict(next_obs)
-                    # add to replay buffer
-                    self.replay_buffer.add(flattened_obs, flattened_next_obs, buffer_action, reward_, done)
-                    # add current transition to episode storage
-                    self._episode_storage.add(self._last_original_obs, next_obs, buffer_action, reward_, done, infos)
+                self.replay_buffer.add(self._last_original_obs, next_obs, buffer_action, reward_, done, infos)
 
                 self._last_obs = new_obs
                 self.model._last_obs = self._last_obs
@@ -545,14 +550,7 @@ class MBCHAC(BaseAlgorithm):
                     break
 
             if done or self.episode_steps >= self.max_episode_length:
-                if self.online_sampling:
-                    self.replay_buffer.store_episode()
-                else:
-                    self._episode_storage.store_episode()
-                    # sample virtual transitions and store them in replay buffer
-                    self._sample_her_transitions()
-                    # clear storage for current episode
-                    self._episode_storage.reset()
+                self.replay_buffer.store_episode()
 
                 total_episodes += 1
                 self._episode_num += 1
@@ -571,6 +569,16 @@ class MBCHAC(BaseAlgorithm):
 
         return RolloutReturn(mean_reward, total_steps, total_episodes, continue_training)
 
+    def set_subgoal_test_mode(self):
+        if self.sub_model is not None:
+            self.sub_model.in_subgoal_test_mode = True
+            self.sub_model.set_subgoal_test_mode()
+
+    def unset_subgoal_test_mode(self):
+        if self.sub_model is not None:
+            self.sub_model.in_subgoal_test_mode = False
+            self.sub_model.unset_subgoal_test_mode()
+
     def train_step(self):
         self.sub_model.run_and_maybe_train(n_episodes=1)
 
@@ -588,18 +596,24 @@ class MBCHAC(BaseAlgorithm):
         info = {}
         ep_reward = 0
         last_succ = 0
+        eval_env = BaseAlgorithm._wrap_env(eval_env)
+        # Convert to VecEnv for consistency
+        if not isinstance(eval_env, VecEnv):
+            eval_env = DummyVecEnv([lambda: eval_env])
         while not done:
             if hasattr(eval_env, 'venv'):
                 obs = eval_env.venv.buf_obs
-                obs = ObsDictWrapper.convert_dict(obs)
-            elif hasattr(eval_env, 'env'):
-                obs = eval_env.env._get_obs()
-            elif hasattr(eval_env, '_get_obs'):
-                obs = eval_env._get_obs()
+            # elif hasattr(eval_env, 'env'):
+            #     obs = eval_env.env._get_obs()
+            # elif hasattr(eval_env, '_get_obs'):
+            #     obs = eval_env._get_obs()
             else:
                 assert False, "eval_env type not supported!"
-
-            action, state = self.model.predict(obs, state=None, mask=None, deterministic=True)
+            if self.test_overwrite_goals != []:
+                obs['desired_goal'] = self.test_overwrite_goals
+                self.test_overwrite_goals = []
+            obs = ObsDictWrapper.convert_dict(obs)
+            action, _ = self._sample_action(observation=obs,learning_starts=0, deterministic=True)
             new_obs, reward, done, info = eval_env.step(action)
             if self.is_bottom_layer and self.test_render_info is not None:
                 if hasattr(eval_env, 'env'):
@@ -628,7 +642,7 @@ class MBCHAC(BaseAlgorithm):
                     layered_info_key = k
                 if layered_info_key not in self.eval_info_list.keys():
                     self.eval_info_list[layered_info_key] = []
-                if type(v) == list:
+                if type(v) == list and len(v) > 0: # TODO: Something is wrong here!
                     if isinstance(v[0], numbers.Number):
                         self.eval_info_list[layered_info_key] += v
                 else:
@@ -646,7 +660,6 @@ class MBCHAC(BaseAlgorithm):
         if reward_key not in self.eval_info_list.keys():
             self.eval_info_list[reward_key] = [ep_reward]
         return self.eval_info_list
-
 
     def _sample_her_transitions(self) -> None:
         """
@@ -694,7 +707,6 @@ class MBCHAC(BaseAlgorithm):
         # add HER parameters to model
         self.model.n_sampled_goal = self.n_sampled_goal
         self.model.goal_selection_strategy = self.goal_selection_strategy
-        self.model.online_sampling = self.online_sampling
         self.model.model_class = self.model_class
         self.model.max_episode_length = self.max_episode_length
 
@@ -750,7 +762,7 @@ class MBCHAC(BaseAlgorithm):
             kwargs["use_sde"] = True
 
         # Keys that cannot be changed
-        for key in {"model_class", "online_sampling", "max_episode_length"}:
+        for key in {"model_class", "max_episode_length"}:
             if key in kwargs:
                 del kwargs[key]
 
@@ -767,7 +779,6 @@ class MBCHAC(BaseAlgorithm):
             model_class=data["model_class"],
             n_sampled_goal=data["n_sampled_goal"],
             goal_selection_strategy=data["goal_selection_strategy"],
-            online_sampling=data["online_sampling"],
             max_episode_length=data["max_episode_length"],
             policy_kwargs=data["policy_kwargs"],
             _init_setup_model=False,  # pytype: disable=not-instantiable,wrong-keyword-args
@@ -801,7 +812,7 @@ class MBCHAC(BaseAlgorithm):
         self, path: Union[str, pathlib.Path, io.BufferedIOBase], truncate_last_trajectory: bool = True
     ) -> None:
         """
-        Load a replay buffer from a pickle file and set environment for replay buffer (only online sampling).
+        Load a replay buffer from a pickle file and set environment for replay buffer.
 
         :param path: Path to the pickled replay buffer.
         :param truncate_last_trajectory: Only for online sampling.
@@ -810,32 +821,32 @@ class MBCHAC(BaseAlgorithm):
         """
         self.model.load_replay_buffer(path=path)
 
-        if self.online_sampling:
-            # set environment
-            self.replay_buffer.set_env(self.env)
-            # If we are at the start of an episode, no need to truncate
-            current_idx = self.replay_buffer.current_idx
 
-            # truncate interrupted episode
-            if truncate_last_trajectory and current_idx > 0:
-                warnings.warn(
-                    "The last trajectory in the replay buffer will be truncated.\n"
-                    "If you are in the same episode as when the replay buffer was saved,\n"
-                    "you should use `truncate_last_trajectory=False` to avoid that issue."
-                )
-                # get current episode and transition index
-                pos = self.replay_buffer.pos
-                # set episode length for current episode
-                self.replay_buffer.episode_lengths[pos] = current_idx
-                # set done = True for current episode
-                # current_idx was already incremented
-                self.replay_buffer.buffer["done"][pos][current_idx - 1] = np.array([True], dtype=np.float32)
-                # reset current transition index
-                self.replay_buffer.current_idx = 0
-                # increment episode counter
-                self.replay_buffer.pos = (self.replay_buffer.pos + 1) % self.replay_buffer.max_episode_stored
-                # update "full" indicator
-                self.replay_buffer.full = self.replay_buffer.full or self.replay_buffer.pos == 0
+        # set environment
+        self.replay_buffer.set_env(self.env)
+        # If we are at the start of an episode, no need to truncate
+        current_idx = self.replay_buffer.current_idx
+
+        # truncate interrupted episode
+        if truncate_last_trajectory and current_idx > 0:
+            warnings.warn(
+                "The last trajectory in the replay buffer will be truncated.\n"
+                "If you are in the same episode as when the replay buffer was saved,\n"
+                "you should use `truncate_last_trajectory=False` to avoid that issue."
+            )
+            # get current episode and transition index
+            pos = self.replay_buffer.pos
+            # set episode length for current episode
+            self.replay_buffer.episode_lengths[pos] = current_idx
+            # set done = True for current episode
+            # current_idx was already incremented
+            self.replay_buffer.buffer["done"][pos][current_idx - 1] = np.array([True], dtype=np.float32)
+            # reset current transition index
+            self.replay_buffer.current_idx = 0
+            # increment episode counter
+            self.replay_buffer.pos = (self.replay_buffer.pos + 1) % self.replay_buffer.max_episode_stored
+            # update "full" indicator
+            self.replay_buffer.full = self.replay_buffer.full or self.replay_buffer.pos == 0
 
     def get_env_steps(self) -> int:
         if self.sub_model is None:
@@ -892,6 +903,52 @@ class MBCHAC(BaseAlgorithm):
             logger.record(k, logger.Logger.CURRENT.name_to_value[v])
         logger.info("Writing log data to {}".format(logger.get_dir()))
         logger.dump(step=self.num_timesteps)
+
+    def _sample_action(
+        self, observation: np.ndarray = None, learning_starts: int = 0, deterministic: bool = False
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        This function is copied from OffPolicyAlgorithm class, but takes as additional input a "deterministic"
+        parameter to determine whether or not add action noise, instead of the action_noise argument which
+        is more or less unused, as far as I can tell.
+        Sample an action according to the exploration policy.
+        This is either done by sampling the probability distribution of the policy,
+        or sampling a random action (from a uniform distribution over the action space)
+        or by adding noise to the deterministic output.
+
+        :param observation: An optional observation to base the action prediction upon. If not provided,
+            model._last_obs will be used instead.
+        :param deterministic: Whether the policy selects a determinsitic action or adds random noise to it.
+        :param learning_starts: Number of steps before learning for the warm-up phase.
+        :return: action to take in the environment
+            and scaled action that will be stored in the replay buffer.
+            The two differs when the action space is not normalized (bounds are not [-1, 1]).
+        """
+        assert isinstance(self.model, OffPolicyAlgorithm), "Error, model ist not an OffPolicyAlgorithm"
+        if observation is None:
+            observation = self.model._last_obs
+        # Select action randomly or according to policy
+        if self.model.num_timesteps < learning_starts and not (self.model.use_sde and self.model.use_sde_at_warmup):
+            # Warmup phase
+            unscaled_action = np.array([self.model.action_space.sample()])
+        else:
+            # Note: when using continuous actions,
+            # we assume that the policy uses tanh to scale the action
+            # We use non-deterministic action in the case of SAC, for TD3, it does not matter
+            unscaled_action, _ = self.model.predict(observation, deterministic=deterministic)
+
+        # Rescale the action from [low, high] to [-1, 1]
+        if isinstance(self.model.action_space, gym.spaces.Box):
+            scaled_action = self.model.policy.scale_action(unscaled_action)
+
+            # We store the scaled action in the buffer
+            buffer_action = scaled_action
+            action = self.model.policy.unscale_action(scaled_action)
+        else:
+            # Discrete case, no need to normalize or clip
+            buffer_action = unscaled_action
+            action = buffer_action
+        return action, buffer_action
 
     def set_test_render_info(self, render_info):
         self.test_render_info = render_info

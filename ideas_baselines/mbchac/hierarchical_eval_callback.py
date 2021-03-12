@@ -60,17 +60,16 @@ class HierarchicalEvalCallback(EvalCallback):
         self.top_level_model = top_level_model
 
         layer_envs = get_h_envs_from_env(eval_env, top_level_model.time_scales, env_list=[], is_testing_env=True, model=top_level_model)
+        for idx, eval_env in enumerate(layer_envs):
+            eval_env = BaseAlgorithm._wrap_env(eval_env)
+            # Convert to VecEnv for consistency
+            if not isinstance(eval_env, VecEnv):
+                eval_env = DummyVecEnv([lambda: eval_env])
+            if isinstance(eval_env, VecEnv):
+                assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
+            layer_envs[idx] = eval_env
 
-        eval_env = layer_envs[0]
-        eval_env = BaseAlgorithm._wrap_env(eval_env)
-        # Convert to VecEnv for consistency
-        if not isinstance(eval_env, VecEnv):
-            eval_env = DummyVecEnv([lambda: eval_env])
-
-        if isinstance(eval_env, VecEnv):
-            assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
-
-        self.eval_env = eval_env
+        self.eval_env = layer_envs[0]
         self.log_path = log_path
         self.best_model_save_path = None
         self.evaluations_results = []
