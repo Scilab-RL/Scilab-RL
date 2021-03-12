@@ -4,7 +4,7 @@ from gym.envs.robotics import rotations
 from ideas_envs.blocks.blocks_env import BlocksEnv
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'hook.xml')
-POS_MIN, POS_MAX = [0.23, -0.15, 0.42], [0.29, 0.15, 0.42]
+POS_MIN, POS_MAX = [0.28, -0.15, 0.42], [0.34, 0.15, 0.42]
 
 
 class HookEnv(BlocksEnv):
@@ -19,9 +19,6 @@ class HookEnv(BlocksEnv):
         :param model_xml_path: The path to the XML that defines the MuJoCo environment
         """
         super().__init__(n_objects, gripper_goal='gripper_random', reward_type=reward_type, model_xml_path=model_xml_path)
-
-    def _set_action(self, action):
-        super()._set_action(np.array([0.2, 0, 0, 0.1]))
 
     def _get_obs(self):
         # append the hook position, orientation and velocities to the normal BlocksEnv observation

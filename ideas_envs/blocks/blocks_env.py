@@ -23,7 +23,7 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
         """
         initial_qpos = {
             # robot xyz
-            'robot0:slide0': -0.65,
+            'robot0:slide0': -0.6,
             'robot0:slide1': 0,
             'robot0:slide2': 0,
         }
@@ -42,7 +42,7 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
 
         super().__init__(model_xml_path, has_object=has_object, block_gripper=False, n_substeps=20,
                          gripper_extra_height=0.2, target_in_the_air=True, target_offset=0.0,
-                         obj_range=0.15, target_range=0.15, distance_threshold=0.05,
+                         obj_range=0.15, target_range=0.14, distance_threshold=0.05,
                          initial_qpos=initial_qpos, reward_type=reward_type)
         EzPickle.__init__(self)
 

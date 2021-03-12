@@ -22,11 +22,9 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
         """
         initial_qpos = {
             # robot xyz
-            'robot0:slide0': -0.65,
+            'robot0:slide0': -0.6,
             'robot0:slide1': 0,
             'robot0:slide2': 0,
-            #manipulate to good starting pos:
-            # robot0:torso_lift_joint', 'robot0:head_pan_joint', 'robot0:head_tilt_joint', 'robot0:shoulder_pan_joint', 'robot0:shoulder_lift_joint', 'robot0:upperarm_roll_joint', 'robot0:elbow_flex_joint', 'robot0:forearm_roll_joint', 'robot0:wrist_flex_joint', 'robot0:wrist_roll_joint', 'robot0:r_gripper_finger_joint', 'robot0:l_gripper_finger_joint'
         }
 
         self.n_buttons = n_buttons
@@ -37,7 +35,7 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
 
         super().__init__(model_xml_path, has_object=False, block_gripper=True, n_substeps=20,
                          gripper_extra_height=0, target_in_the_air=True, target_offset=0.0,
-                         obj_range=0.15, target_range=0.15, distance_threshold=0.041,
+                         obj_range=0.15, target_range=0.15, distance_threshold=0.03,
                          initial_qpos=initial_qpos, reward_type=reward_type)
         self.action_space = spaces.Box(-1., 1., shape=(2,), dtype='float32')
         EzPickle.__init__(self)

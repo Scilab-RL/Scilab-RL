@@ -13,6 +13,10 @@
 
 		<include file="robot.xml"/>
 
+		<body pos="0 0 0.2" name="table0">
+			<geom size="0.3 0.3 0.2" type="box" mass="2000" material="table_mat"/>
+		</body>
+
 		<!-- buttons -->
 		<body name="object0" pos="-0.2 0.2 0.016">
 			<joint name="object0:joint" type="free" damping="0.01"/>
@@ -29,6 +33,7 @@
             <geom size="0.022 0.022 0.008" type="ellipsoid" condim="3" name="object2" material="block_mat" rgba="0.1 0.1 0.9 1" mass="1000000"/>
 			<geom size="0.025 0.006" type="cylinder" condim="3" name="frame2" material="block_mat" rgba="0.8 0.8 0.81 1" mass="1000000" pos="0 0 -0.003"/>
 		</body>
+
 		<body name="cage" pos="0 0 0.45">
 			<joint name="cage:joint" type="free"/>
 			<geom name="cage:botback" type="box" condim="3" pos="0 0.05 -0.045" size="0.055 0.005 0.005" mass="1000000" rgba="0.8 0.8 0.81 1"/>
@@ -43,10 +48,6 @@
 				<geom name="cage:glassright" type="box" condim="3" pos="0.05 -0.05 0.0255" size="0.001 0.051 0.025" mass="1000" rgba="0.8 0.8 0.81 0.3"/>
 				<geom name="cage:glasstop" type="box" condim="3" pos="0 -0.05 0.05" size="0.05 0.05 0.001" mass="200" rgba="0.8 0.8 0.81 0.3"/>
 			</body>
-		</body>
-
-		<body pos="0 0 0.2" name="table0">
-			<geom size="0.35 0.35 0.2" type="box" mass="2000" material="table_mat"/>
 		</body>
 
 		<light directional="true" ambient="0.2 0.2 0.2" diffuse="0.8 0.8 0.8" specular="0.3 0.3 0.3" castshadow="false" pos="0 0 4" dir="0 0 -1" name="light0"/>

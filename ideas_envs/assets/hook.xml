@@ -18,7 +18,7 @@
 		<include file="robot.xml"/>
 
 		<body pos="0.15 0 0.2" name="table0">
-			<geom size="0.5 0.35 0.2" type="box" mass="2000" material="table_mat"/>
+			<geom size="0.45 0.3 0.2" type="box" mass="2000" material="table_mat"/>
 		</body>
 
 		<!-- 4 blocks -->
