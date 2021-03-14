@@ -7,9 +7,13 @@ from stable_baselines3.common import logger
 from gym import error, spaces
 from gym.utils import seeding
 from gym.envs.robotics import FetchReachEnv
-from typing import List, Any
+from typing import Any, Callable, List, Optional, Sequence, Union
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
+from stable_baselines3.common.vec_env import DummyVecEnv
+from copy import deepcopy
+from stable_baselines3.common.vec_env.base_vec_env import VecEnvStepReturn
 from util.custom_evaluation import get_success
+# from ideas_baselines.mbchac.mbchac import MBCHAC
 # try:
 #     import mujoco_py
 # except ImportError as e:
@@ -36,6 +40,11 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
     if len(env_list) >= 1:
         env_list[-1].set_sub_env(env)
         env_list[-1].action_space = env_list[-1].env.action_space
+    if len(env_list) == 0:
+        env.is_top_level_env = True
+    else:
+        env.is_top_level_env = False
+    env.level = len(level_steps) - 1
     env_list.append(env)
     next_level_steps_str = ",".join([str(s) for s in level_steps[1:]])
     if model is not None and model.sub_model is not None:
@@ -45,6 +54,35 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
     env_list = get_h_envs_from_env(bottom_env, next_level_steps_str, env_list, is_testing_env, next_level_model)
 
     return env_list
+
+class HierarchicalVecEnv(DummyVecEnv):
+    """
+    Thsi class has the same functionality as DummyVecEnv, but it does not reset the simulator when a low-level episode ends.
+    """
+
+    def __init__(self, env_fns: List[Callable[[], gym.Env]]):
+        super().__init__(env_fns)
+
+    # The same function as in DummyVecEnv, but without resetting the simulation when the episode ends.
+    def step_wait(self) -> VecEnvStepReturn:
+        for env_idx in range(self.num_envs):
+            obs, self.buf_rews[env_idx], self.buf_dones[env_idx], self.buf_infos[env_idx] = self.envs[env_idx].step(
+                self.actions[env_idx]
+            )
+            if self.buf_dones[env_idx]:
+                # save final observation where user can get it, but don't reset
+                self.buf_infos[env_idx]["terminal_observation"] = obs
+                # if self.envs[env_idx].is_top_level_env:
+                #     obs = self.envs[env_idx].reset()
+                self.envs[env_idx]._elapsed_steps = 0
+            self._save_obs(env_idx, obs)
+        return (self._obs_from_buf(), np.copy(self.buf_rews), np.copy(self.buf_dones), deepcopy(self.buf_infos))
+
+    def reset_all(self):
+        for env_idx in range(self.num_envs):
+            obs = self.envs[env_idx].reset()
+            self._save_obs(env_idx, obs)
+        return self.buf_obs
 
 class HierarchicalHLEnv(gym.GoalEnv):
     def __init__(self, bottom_env, is_testing_env=None, model=None):
@@ -99,7 +137,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
                     info['is_subgoal_testing_trans'] = 1
                 else:
                     info['is_subgoal_testing_trans'] = 0
-        obs = self._get_obs()
+        obs = self._get_obs() # TODO: here is a problem: after finishing an episode, the environment is automatically reset, causing the achieved goal determind by _get_obs() to have changed. then, The success computation is wrong.
         # obs['desired_goal'] = subgoal
         reward = self.compute_reward(obs['achieved_goal'], self.goal, info)
         done = False  # Returning done = true after time steps are done is not necessary here because it is done in TimeLimit wrapper. #TODO: Check if done=True should be returned after goal is achieved.
@@ -124,6 +162,8 @@ class HierarchicalHLEnv(gym.GoalEnv):
         super(HierarchicalHLEnv, self).reset()
         obs = self._sub_env.reset()
         self.goal = self._sub_env.goal
+        if self.is_testing_env: # DEBUG
+            print("setting new testing goal: {}".format(self.goal))
         self.last_obs = obs
         return obs
 

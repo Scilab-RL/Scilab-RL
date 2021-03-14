@@ -21,6 +21,8 @@ from ideas_baselines.mbchac.hher_replay_buffer import HHerReplayBuffer
 from ideas_baselines.mbchac.hierarchical_env import get_h_envs_from_env
 from stable_baselines3.common import logger
 from stable_baselines3.common.utils import safe_mean
+from stable_baselines3.common.preprocessing import is_image_space
+from ideas_baselines.mbchac.hierarchical_env import HierarchicalVecEnv
 from gym.wrappers import TimeLimit
 import time
 from ideas_baselines.mbchac.util import get_concat_dict_from_dict_list, merge_list_dicts
@@ -30,6 +32,14 @@ import sys
 from stable_baselines3.common.vec_env import VecVideoRecorder
 import cv2
 from watchpoints import watch
+from stable_baselines3.common.vec_env import (
+    DummyVecEnv,
+    VecEnv,
+    VecNormalize,
+    VecTransposeImage,
+    is_wrapped,
+    unwrap_vec_normalize,
+)
 
 
 def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> int:
@@ -550,7 +560,10 @@ class MBCHAC(BaseAlgorithm):
             self.train_overwrite_goals = []
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()
-
+                if self.is_top_layer:
+                    new_obs = self.env.venv.reset_all()
+                    self._last_obs = new_obs
+                    self.model._last_obs = self._last_obs
                 total_episodes += 1
                 self._episode_num += 1
                 self.model._episode_num = self._episode_num
@@ -598,24 +611,30 @@ class MBCHAC(BaseAlgorithm):
         step_ctr = 0
         info = {}
         ep_reward = 0
-        last_succ = 0
-        eval_env = BaseAlgorithm._wrap_env(eval_env)
-        # Convert to VecEnv for consistency
-        if not isinstance(eval_env, VecEnv):
-            eval_env = DummyVecEnv([lambda: eval_env])
+        last_succ = [0]
+        # For consistency wrap env.
+        eval_env = MBCHAC._wrap_env(eval_env)
+        assert hasattr(eval_env, 'venv'), "Error, vectorized environment required."
+        if self.is_top_layer: # Reset simulator for all layers.
+            eval_env.venv.reset_all()
+
         while not done:
-            if hasattr(eval_env, 'venv'):
-                self.update_venv_buf_obs(eval_env)
-                obs = eval_env.venv.buf_obs
-            else:
-                assert False, "eval_env type not supported!"
-            # if self.test_overwrite_goals != []:
-            #     obs['desired_goal'] = self.test_overwrite_goals
+            print("Level {} step {}".format(self.layer, step_ctr))
+            self.update_venv_buf_obs(eval_env)
+            obs = eval_env.venv.buf_obs
             obs = ObsDictWrapper.convert_dict(obs)
             action, _ = self._sample_action(observation=obs,learning_starts=0, deterministic=True)
             if self.layer==1 and step_ctr+1 == eval_env.venv.envs[0]._max_episode_steps:
-                action = eval_env.venv.envs[0].goal
+                action = [eval_env.venv.envs[0].goal.copy()]
+            if self.layer == 1: ## DEBUG
+                print("Setting new subgoal {} for observation {}".format(action, obs))
+            # else:
+            #     print("Executing low-level action {} for observation {}".format(action, obs))
             new_obs, reward, done, info = eval_env.step(action)
+            # if self.layer == 0: ##DEBUG
+            #     print(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
+            #     print(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
+            #     print(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
             if self.is_bottom_layer and self.test_render_info is not None:
                 if hasattr(eval_env, 'env'):
                     frame = eval_env.env.render(mode='rgb_array', width=self.test_render_info['size'][0],
@@ -634,6 +653,8 @@ class MBCHAC(BaseAlgorithm):
             if 'is_success' in info.keys():
                 last_succ = info['is_success'].copy()
                 info['step_success'] = info['is_success'].copy()
+                ## DEBUG:
+                print("Success in layer {}: {}".format(self.layer, info['step_success']))
                 del info['is_success']
             ep_reward += np.sum(reward)
             for k,v in info.items():
@@ -649,6 +670,10 @@ class MBCHAC(BaseAlgorithm):
                 else:
                     if isinstance(v, numbers.Number):
                         self.eval_info_list[layered_info_key].append(v)
+                # if type(v) == list:
+                #     self.eval_info_list[layered_info_key] += v
+                # else:
+                #     self.eval_info_list[layered_info_key].append(v)
 
         # self.test_overwrite_goals = []
         eplen_key = 'test_{}/ep_length'.format(self.layer)
@@ -659,6 +684,8 @@ class MBCHAC(BaseAlgorithm):
         if success_key not in self.eval_info_list.keys():
             if 'step_success' in info.keys():
                 self.eval_info_list[success_key] = last_succ.copy()
+                ## DEBUG
+                print("Episode success in layer {}: {}".format(self.layer, last_succ))
         if reward_key not in self.eval_info_list.keys():
             self.eval_info_list[reward_key] = [ep_reward]
         return self.eval_info_list
@@ -951,6 +978,21 @@ class MBCHAC(BaseAlgorithm):
             buffer_action = unscaled_action
             action = buffer_action
         return action, buffer_action
+
+    @staticmethod
+    def _wrap_env(env: GymEnv, verbose: int = 0) -> HierarchicalVecEnv:
+        if not isinstance(env, ObsDictWrapper):
+            if not isinstance(env, HierarchicalVecEnv):
+                env = HierarchicalVecEnv([lambda: env])
+
+                if is_image_space(env.observation_space) and not is_wrapped(env, VecTransposeImage):
+                    env = VecTransposeImage(env)
+            # check if wrapper for dict support is needed when using HER
+            if isinstance(env.observation_space, gym.spaces.dict.Dict):
+                env = ObsDictWrapper(env)
+
+        return env
+    # wrap_env = _wrap_env
 
     def set_test_render_info(self, render_info):
         self.test_render_info = render_info

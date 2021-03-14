@@ -12,6 +12,7 @@ from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common import logger
 from collections import deque
 import time
+from ideas_baselines.mbchac.mbchac import MBCHAC
 from stable_baselines3.common.utils import safe_mean
 from ideas_baselines.mbchac.hierarchical_env import get_h_envs_from_env
 import matplotlib.pyplot as plt
@@ -61,10 +62,8 @@ class HierarchicalEvalCallback(EvalCallback):
 
         layer_envs = get_h_envs_from_env(eval_env, top_level_model.time_scales, env_list=[], is_testing_env=True, model=top_level_model)
         for idx, eval_env in enumerate(layer_envs):
-            eval_env = BaseAlgorithm._wrap_env(eval_env)
             # Convert to VecEnv for consistency
-            if not isinstance(eval_env, VecEnv):
-                eval_env = DummyVecEnv([lambda: eval_env])
+            eval_env = MBCHAC._wrap_env(eval_env)
             if isinstance(eval_env, VecEnv):
                 assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
             layer_envs[idx] = eval_env
