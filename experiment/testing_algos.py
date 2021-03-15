@@ -43,22 +43,25 @@ class TestingAlgos:
         model = 'sac'
         hyper_params_all = {'eval_after_n_steps': eval_after_n_steps,
                             'early_stop_last_n': early_stop_last_n,
-                            'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
+                            'plot_eval_cols': 'train_0/actor_loss,train_0/critic_loss,train_0/ent_coef,train_0/learning_rate,train_0/n_updates,test_0/success_rate,test_0/mean_reward,train_0/ent_coef_loss,rollout_0/success_rate,'
+                                              + 'train_1/actor_loss,train_1/critic_loss,train_1/ent_coef,train_1/learning_rate,train_1/n_updates,test_1/success_rate,test_1/mean_reward,train_1/ent_coef_loss,rollout_1/success_rate,'
+                                              + 'train_2/actor_loss,train_2/critic_loss,train_2/ent_coef,train_2/learning_rate,train_2/n_updates,test_2/success_rate,test_2/mean_reward,train_2/ent_coef_loss,rollout_2/success_rate'
+                            }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 30, 'n_runs': 6, 'min_success_runs': 4,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
-            performance_params = {'n_epochs': 50, 'n_runs': 7, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 60, 'n_runs': 6, 'min_success_runs': 4,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchSlide-v1']:
-            performance_params = {'n_epochs': 50, 'n_runs': 7, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 60, 'n_runs': 6, 'min_success_runs': 4,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPickAndPlace-v1']:
-            performance_params = {'n_epochs': 50, 'n_runs': 7, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 60, 'n_runs': 6, 'min_success_runs': 4,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif env in ['HandReach-v0']:
-            performance_params = {'n_epochs': 50, 'n_runs': 7, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 60, 'n_runs': 6, 'min_success_runs': 4,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
