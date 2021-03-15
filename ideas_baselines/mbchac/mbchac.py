@@ -469,7 +469,10 @@ class MBCHAC(BaseAlgorithm):
                 step_obs = observation
                 if self.train_overwrite_goals != []:
                     step_obs['desired_goal'] = self.train_overwrite_goals.copy()
-                step_obs = ObsDictWrapper.convert_dict(step_obs)
+                try:
+                    step_obs = ObsDictWrapper.convert_dict(step_obs)
+                except:
+                    print("Ohno")
 
                 subgoal_test = False
                 if not self.in_subgoal_test_mode and not self.is_bottom_layer: # Next layer can only go in subgoal test mode if this layer is not already in subgoal testing mode
@@ -619,19 +622,19 @@ class MBCHAC(BaseAlgorithm):
             eval_env.venv.reset_all()
 
         while not done:
-            print("Level {} step {}".format(self.layer, step_ctr))
+            # print("Level {} step {}".format(self.layer, step_ctr)) ## DEBUG
             self.update_venv_buf_obs(eval_env)
             obs = eval_env.venv.buf_obs
             obs = ObsDictWrapper.convert_dict(obs)
             action, _ = self._sample_action(observation=obs,learning_starts=0, deterministic=True)
             if self.layer==1 and step_ctr+1 == eval_env.venv.envs[0]._max_episode_steps:
                 action = [eval_env.venv.envs[0].goal.copy()]
-            if self.layer == 1: ## DEBUG
-                print("Setting new subgoal {} for observation {}".format(action, obs))
+            # if self.layer == 1: ## DEBUG
+            #     print("Setting new subgoal {} for observation {}".format(action, obs))
             # else:
             #     print("Executing low-level action {} for observation {}".format(action, obs))
             new_obs, reward, done, info = eval_env.step(action)
-            # if self.layer == 0: ##DEBUG
+            # if self.layer == 0: ## DEBUG
             #     print(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
             #     print(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
             #     print(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
@@ -653,8 +656,7 @@ class MBCHAC(BaseAlgorithm):
             if 'is_success' in info.keys():
                 last_succ = info['is_success'].copy()
                 info['step_success'] = info['is_success'].copy()
-                ## DEBUG:
-                print("Success in layer {}: {}".format(self.layer, info['step_success']))
+                # print("Success in layer {}: {}".format(self.layer, info['step_success'])) ## DEBUG:
                 del info['is_success']
             ep_reward += np.sum(reward)
             for k,v in info.items():
@@ -684,8 +686,7 @@ class MBCHAC(BaseAlgorithm):
         if success_key not in self.eval_info_list.keys():
             if 'step_success' in info.keys():
                 self.eval_info_list[success_key] = last_succ.copy()
-                ## DEBUG
-                print("Episode success in layer {}: {}".format(self.layer, last_succ))
+                # print("Episode success in layer {}: {}".format(self.layer, last_succ)) ## DEBUG
         if reward_key not in self.eval_info_list.keys():
             self.eval_info_list[reward_key] = [ep_reward]
         return self.eval_info_list

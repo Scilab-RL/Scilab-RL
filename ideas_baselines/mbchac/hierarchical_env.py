@@ -162,8 +162,8 @@ class HierarchicalHLEnv(gym.GoalEnv):
         super(HierarchicalHLEnv, self).reset()
         obs = self._sub_env.reset()
         self.goal = self._sub_env.goal
-        if self.is_testing_env: # DEBUG
-            print("setting new testing goal: {}".format(self.goal))
+        # if self.is_testing_env: ## DEBUG
+        #     print("setting new testing goal: {}".format(self.goal))
         self.last_obs = obs
         return obs
 
