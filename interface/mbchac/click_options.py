@@ -30,7 +30,7 @@ click.option('--render_test', type=click.Choice(['record', 'display', 'none']), 
 # click.option('--continuous_subgoals', type=bool, default=False, help='Whether to determine new subgoals with each step.'), # TODO: CURRENTLY NOT IMPLEMENTED!
 click.option('--time_scales', type=str, default='5,_', help='Steps per level from lowest to highest, separated by comma. There must be one \'_\' character in the list to indicates the layer where the time scale is determined from the environment\'s predefined steps.'),
 
-click.option('--subgoal_test_perc', type=float, default=0.0, help='The percentage of subgoals to test.'),
+click.option('--subgoal_test_perc', type=float, default=0.3, help='The percentage of subgoals to test.'),
 # click.option('--level_types', type=str, default='hac,hac', help='Layers to be used'),
 # click.option('--simulate_level', default='0,0', help='Specifiy for which level to add simulated transitions to the replay buffer'),
 # click.option('--halftime', type=int, default=10000, help='Denotes the number of training episodes where the probability of simulating is 50%'),
