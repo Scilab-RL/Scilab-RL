@@ -965,7 +965,10 @@ class MBCHAC(BaseAlgorithm):
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action
             # We use non-deterministic action in the case of SAC, for TD3, it does not matter
-            unscaled_action, _ = self.model.predict(observation, deterministic=deterministic)
+            try:
+                unscaled_action, _ = self.model.predict(observation, deterministic=deterministic)
+            except Exception as e:
+                print("ohno {}".format(e))
 
         # Rescale the action from [low, high] to [-1, 1]
         if isinstance(self.model.action_space, gym.spaces.Box):
