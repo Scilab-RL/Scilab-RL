@@ -37,7 +37,7 @@ def write_params_json():
 def main(args):
     if len(args) == 2:
         test_mode = args[1]
-        assert test_mode in ['function', 'performance'], "Error, test mode must be performance or function."
+        assert test_mode in ['function', 'performance'], "Error, test mode must be \'performance\' or \'function\'."
     else:
         test_mode = 'function'
 

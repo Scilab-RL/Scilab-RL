@@ -3,10 +3,17 @@ import copy
 import numpy as np
 
 import gym
+from stable_baselines3.common import logger
 from gym import error, spaces
 from gym.utils import seeding
-from typing import List
-
+from gym.envs.robotics import FetchReachEnv
+from typing import Any, Callable, List, Optional, Sequence, Union
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
+from stable_baselines3.common.vec_env import DummyVecEnv
+from copy import deepcopy
+from stable_baselines3.common.vec_env.base_vec_env import VecEnvStepReturn
+from util.custom_evaluation import get_success
+# from ideas_baselines.mbchac.mbchac import MBCHAC
 # try:
 #     import mujoco_py
 # except ImportError as e:
@@ -16,74 +23,135 @@ DEFAULT_SIZE = 500
 
 
 def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
-                        level_steps: List[int], env_list: List[gym.GoalEnv] = []) -> List[gym.wrappers.TimeLimit]:
-    if len(level_steps) == 0:
+                        level_steps_str: str, env_list: List[gym.GoalEnv] = [],
+                        is_testing_env: bool = False, model: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
+    if level_steps_str == '':
         return env_list
-    action_dim = len(bottom_env.env._sample_goal())
-    obs_sample = bottom_env.env._get_obs()
+    level_steps = [int(s) for s in level_steps_str.split(",")]
     if len(level_steps) > 1:
-        env = HierarchicalHLEnv(action_dim, obs_sample, bottom_env)
+        env = HierarchicalHLEnv(bottom_env, is_testing_env=is_testing_env, model=model)
         env = gym.wrappers.TimeLimit(env, max_episode_steps=level_steps[0])
     else:
         env = bottom_env
         env.spec.max_episode_steps = level_steps[0]
         env._max_episode_steps = level_steps[0]
+        if model is not None:
+            env.env.model = model
     if len(env_list) >= 1:
         env_list[-1].set_sub_env(env)
+        env_list[-1].action_space = env_list[-1].env.action_space
+    if len(env_list) == 0:
+        env.is_top_level_env = True
+    else:
+        env.is_top_level_env = False
+    env.level = len(level_steps) - 1
     env_list.append(env)
-
-    env_list = get_h_envs_from_env(bottom_env, level_steps[1:], env_list)
-
+    next_level_steps_str = ",".join([str(s) for s in level_steps[1:]])
+    if model is not None and model.sub_model is not None:
+        next_level_model = model.sub_model
+    else:
+        next_level_model = None
+    env_list = get_h_envs_from_env(bottom_env, next_level_steps_str, env_list, is_testing_env, next_level_model)
 
     return env_list
 
+class HierarchicalVecEnv(DummyVecEnv):
+    """
+    Thsi class has the same functionality as DummyVecEnv, but it does not reset the simulator when a low-level episode ends.
+    """
 
+    def __init__(self, env_fns: List[Callable[[], gym.Env]]):
+        super().__init__(env_fns)
 
+    # The same function as in DummyVecEnv, but without resetting the simulation when the episode ends.
+    def step_wait(self) -> VecEnvStepReturn:
+        for env_idx in range(self.num_envs):
+            obs, self.buf_rews[env_idx], self.buf_dones[env_idx], self.buf_infos[env_idx] = self.envs[env_idx].step(
+                self.actions[env_idx]
+            )
+            if self.buf_dones[env_idx]:
+                # save final observation where user can get it, but don't reset
+                self.buf_infos[env_idx]["terminal_observation"] = obs
+                # if self.envs[env_idx].is_top_level_env:
+                #     obs = self.envs[env_idx].reset()
+                self.envs[env_idx]._elapsed_steps = 0
+            self._save_obs(env_idx, obs)
+        return (self._obs_from_buf(), np.copy(self.buf_rews), np.copy(self.buf_dones), deepcopy(self.buf_infos))
+
+    def reset_all(self):
+        for env_idx in range(self.num_envs):
+            obs = self.envs[env_idx].reset()
+            self._save_obs(env_idx, obs)
+        return self.buf_obs
 
 class HierarchicalHLEnv(gym.GoalEnv):
-    def __init__(self, action_dim, obs_sample, bottom_env):
-        self.action_space = spaces.Box(-1., 1., shape=(action_dim,), dtype='float32')
-        self.observation_space = spaces.Dict(dict(
-            desired_goal=spaces.Box(-np.inf, np.inf, shape=obs_sample['achieved_goal'].shape, dtype='float32'),
-            achieved_goal=spaces.Box(-np.inf, np.inf, shape=obs_sample['achieved_goal'].shape, dtype='float32'),
-            observation=spaces.Box(-np.inf, np.inf, shape=obs_sample['observation'].shape, dtype='float32'),
-        ))
-        self._sub_env = None
-        self.model = None
+    def __init__(self, bottom_env, is_testing_env=None, model=None):
+        self.bottom_env = bottom_env
+        self.action_space = bottom_env.observation_space.spaces['desired_goal']
+        if np.inf in self.action_space.high or -np.inf in self.action_space.low:
+            logger.warn("Warning, subgoal space of hierarchical environment not defined. I will guess the subgoal bounds based on drawing goal samples when the sub env is set.")
 
+        self.observation_space = bottom_env.env.observation_space
+        self._sub_env = None
+        self.model = model
+        self.is_testing_env = is_testing_env
+
+    def update_action_bound_guess(self):
+        n_samples = 5000
+        self.action_space.high = [-np.inf] * len(self.action_space.high)
+        self.action_space.low = [np.inf] * len(self.action_space.low)
+        for i in range(n_samples):
+            goal = self._sub_env.env._sample_goal()
+            self.action_space.high = np.maximum(goal, self.action_space.high)
+            self.action_space.low = np.minimum(goal, self.action_space.low)
+
+        # Add some small extra margin.
+        self.action_space.high += np.abs(self.action_space.high - self.action_space.low) * 0.01
+        self.action_space.low -= np.abs(self.action_space.high - self.action_space.low) * 0.01
+        # Reset action space to determine whether the space is bounded.
+        self.action_space = gym.spaces.Box(self.action_space.low, self.action_space.high)
+        logger.info("Updated action bound guess by random sampling: Action space high: {}, Action space low: {}".format(self.action_space.high, self.action_space.low))
 
     def set_sub_env(self, env):
         self._sub_env = env
-
-    # @property
-    # def dt(self):
-    #     return self.sim.model.opt.timestep * self.sim.nsubsteps
-
-    # Env methods
-    # ----------------------------
-
-    # def seed(self, seed=None):
-    #     self.np_random, seed = seeding.np_random(seed)
-    #     return [seed]
+        if np.inf in self.action_space.high or -np.inf in self.action_space.low:
+            self.update_action_bound_guess()
+        return
 
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
-        self._sub_env.goal = subgoal
-        if self.model is not None:
-            self.model.sub_model.learn(total_timesteps=1, tb_log_name="MBCHAC_{}".format(self.model.layer-1),
-                                      reset_num_timesteps=False)
+        self._sub_env._elapsed_steps = 0 # Set elapsed steps to 0 but don't reset the whole simulated environment
+        self._sub_env.env.goal = subgoal
+        # self._sub_env._last_obs['desired_goal'] = subgoal
+        assert self.model is not None, "Step not possible because no model defined yet."
+        if self.is_testing_env:
+            # self._sub_env.model.test_overwrite_goals.append(subgoal)
+            info = self.test_step()
         else:
-            print("Step not possible because no model defined yet.")
-
-        self._step_callback()
-        obs = self._get_obs()
-
-        done = False
-        info = {
-            'is_success': self._is_success(obs['achieved_goal'], self.goal),
-        }
+            info = {}
+            self._sub_env.model.train_overwrite_goals.append(subgoal)
+            self.train_step()
+        if not self.is_testing_env:
+            if self.model.sub_model is not None:
+                if self.model.sub_model.in_subgoal_test_mode:
+                    info['is_subgoal_testing_trans'] = 1
+                else:
+                    info['is_subgoal_testing_trans'] = 0
+        obs = self._get_obs() # TODO: here is a problem: after finishing an episode, the environment is automatically reset, causing the achieved goal determind by _get_obs() to have changed. then, The success computation is wrong.
+        # obs['desired_goal'] = subgoal
         reward = self.compute_reward(obs['achieved_goal'], self.goal, info)
+        done = False  # Returning done = true after time steps are done is not necessary here because it is done in TimeLimit wrapper. #TODO: Check if done=True should be returned after goal is achieved.
+        self._step_callback()
+        succ = self._is_success(obs['achieved_goal'], self.goal)
+        info['is_success'] = succ
         return obs, reward, done, info
+
+    def train_step(self):
+        self.model.train_step()
+
+    def test_step(self):
+        info_list = self.model.test_step(self)
+        return info_list
 
     def reset(self):
         # Attempt to reset the simulator. Since we randomize initial conditions, it
@@ -92,8 +160,11 @@ class HierarchicalHLEnv(gym.GoalEnv):
         # In this case, we just keep randomizing until we eventually achieve a valid initial
         # configuration.
         super(HierarchicalHLEnv, self).reset()
-        self.goal = self._sample_goal()
         obs = self._sub_env.reset()
+        self.goal = self._sub_env.goal
+        if self.is_testing_env: # DEBUG
+            print("setting new testing goal: {}".format(self.goal))
+        self.last_obs = obs
         return obs
 
     def close(self):
@@ -108,7 +179,9 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def _get_obs(self):
         """Returns the observation.
         """
-        self._sub_env.get_obs()
+        obs = self._sub_env.env._get_obs()
+        obs['desired_goal'] = self.goal
+        return obs
 
     # def _set_action(self, action):
     #     """Applies the given action to the simulation.
@@ -118,7 +191,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def _is_success(self, achieved_goal, desired_goal):
         """Indicates whether or not the achieved goal successfully achieved the desired goal.
         """
-        return self._sub_env._is_success(achieved_goal, desired_goal)
+        return self._sub_env.env._is_success(achieved_goal, desired_goal)
 
     def _sample_goal(self):
         """Samples a new goal and returns it.
@@ -150,3 +223,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
         """
         pass
         # self._sub_env._step_callback()
+
+    def compute_reward(self, achieved_goal, goal, info):
+        return self._sub_env.env.compute_reward(achieved_goal, goal, info)

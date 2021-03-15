@@ -4,7 +4,7 @@ import os
 def test_error_logs_in_dir(logs_path):
     print("Performing error testing.")
     errors = []
-    for filename in os.listdir(logs_path):
+    for filename in sorted(os.listdir(logs_path)):
         if filename[-8:] == "_err.log":
             f_path = os.path.join(logs_path, filename)
             with open(f_path, 'r') as f:

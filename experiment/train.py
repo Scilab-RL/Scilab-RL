@@ -15,17 +15,19 @@ import numpy as np
 import ideas_envs.register_envs
 import importlib
 from stable_baselines3.common import logger
-from util.custom_logger import MatplotlibOutputFormat
+from util.custom_logger import MatplotlibOutputFormat, FixedHumanOutputFormat
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
 from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make_robustGoalConditionedModel
 from stable_baselines3.common.bit_flipping_env import BitFlippingEnv
-from stable_baselines3 import HER, DDPG, DQN, SAC, TD3
+from stable_baselines3 import DDPG, DQN, SAC, TD3
 from util.custom_eval_callback import CustomEvalCallback
+from ideas_baselines.mbchac.hierarchical_eval_callback import HierarchicalEvalCallback
 # from util.custom_train_callback import CustomTrainCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.her import HER
+from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
+from ideas_baselines.her2 import HER2
 
 ALL_PATH_CONFIG_PARAMS = ['info', 'algorithm']
 
@@ -55,23 +57,31 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
     # actions_per_episode = np.product([int(steps) for steps in kwargs['action_steps'].split(',')])
     # train_actions_per_epoch = steps_per_epoch * kwargs['n_train_rollouts']
     epochs_remaining = n_epochs - starting_epoch
-    total_actions = kwargs['eval_after_n_actions'] * epochs_remaining
+    total_steps = kwargs['eval_after_n_steps'] * epochs_remaining
 
-    checkpoint_callback = CheckpointCallback(save_freq=kwargs['eval_after_n_actions'], save_path=logger.get_dir())
-    eval_callback = CustomEvalCallback(eval_env,
-                                       log_path=logger.get_dir(),
-                                       eval_freq=kwargs['eval_after_n_actions'],
-                                       n_eval_episodes=kwargs['n_test_rollouts'],
-                                       render=kwargs['render_test'],
-                                       early_stop_last_n=5,
-                                       early_stop_data_column=kwargs['early_stop_data_column'],
-                                       early_stop_threshold=kwargs['early_stop_threshold'],
-                                       model=model
-                                       )
+    checkpoint_callback = CheckpointCallback(save_freq=kwargs['eval_after_n_steps'], save_path=logger.get_dir())
+    if hasattr(model, 'time_scales'):
+        eval_callback = HierarchicalEvalCallback(eval_env,
+                                                 log_path=logger.get_dir(),
+                                                 eval_freq=kwargs['eval_after_n_steps'],
+                                                 n_eval_episodes=kwargs['n_test_rollouts'],
+                                                 early_stop_last_n=kwargs['early_stop_last_n'],
+                                                 early_stop_data_column=kwargs['early_stop_data_column'],
+                                                 early_stop_threshold=kwargs['early_stop_threshold'],
+                                                 top_level_model=model)
+    else:
+        eval_callback = CustomEvalCallback(eval_env,
+                                           log_path=logger.get_dir(),
+                                           eval_freq=kwargs['eval_after_n_steps'],
+                                           n_eval_episodes=kwargs['n_test_rollouts'],
+                                           render=kwargs['render_test'],
+                                           early_stop_last_n=kwargs['early_stop_last_n'],
+                                           early_stop_data_column=kwargs['early_stop_data_column'],
+                                           early_stop_threshold=kwargs['early_stop_threshold'])
 
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])
-    model.learn(total_timesteps=total_actions,callback=callback, log_interval=None)
+    model.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
 
     train_env.close()
     eval_env.close()
@@ -190,9 +200,12 @@ def main(ctx, **kwargs):
     log_dict(kwargs, logger)
 
     logger.configure(folder=kwargs['logdir'],
-                     format_strings=['stdout', 'log', 'csv', 'tensorboard'])
+                     format_strings=['csv', 'tensorboard'])
     plot_cols = kwargs['plot_eval_cols'].split(',')
-    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir'],cols_to_plot=plot_cols))
+    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir'], kwargs['plot_at_most_every_secs'], cols_to_plot=plot_cols))
+    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
+    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(kwargs['logdir'], f"log.txt")))
+
     logdir = logger.get_dir()
 
     logger.info("Data dir: {} ".format(logdir))

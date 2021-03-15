@@ -1,11 +1,53 @@
 #!/usr/bin/env bash
-test_mode=$1
-logs_dir="test_logs"
-cmd_file="test_cmds.txt"
+usage() { echo "$0 usage:" && grep " .)\ #" $0; exit 0; }
+[ $# -eq 0 ] && usage
 
-#gpu_ids=(0 1)
 gpu_ids=(0)
 min_mem_free=1500
+max_active_procs=6
+test_mode='function'
+sleep_time=15
+while getopts ":ht:p:m:g:s:" arg; do
+  case $arg in
+    p) # Specify max. number of processes.
+      echo "p is ${OPTARG}"
+      max_active_procs=${OPTARG}
+      ;;
+    m) # Specify min free memory in MB on a GPU to start the next process.
+      echo "m is ${OPTARG}"
+      min_mem_free=${OPTARG}
+      ;;
+    g) # Specify a comma-sparated list of GPU ids to include in the testing, e.g. '0,1', or simply '0' to use GPU 0.
+      echo "g is ${OPTARG}"
+      gpu_ids=',' read -r -a array <<< "${OPTARG}"
+      ;;
+    s) # Specify time to sleep in seconds after each command. This is important to wait for the previous command to create directories and allocate memory before the next process is started.
+      echo "s is ${OPTARG}"
+      sleep_time=${OPTARG}
+      ;;
+    t) # Specify type of testing, either 'function' or 'performance'.
+      test_mode=${OPTARG}
+      if [ $test_mode = "function" -o $test_mode = "performance" ]; then
+        echo "t is $test_mode."
+      else
+        echo "Error. Testing type needs to be either 'function' or 'performance', '$test_mode' found instead."
+        exit 0
+      fi
+      ;;
+    h | *) # Display help.
+      usage
+      exit 0
+      ;;
+  esac
+done
+
+echo "Starting $test_mode test."
+echo "Max. number of parallel processes is $max_active_procs"
+echo "Minimal required free memory is $min_mem_free"
+echo "GPUs to be used are $gpu_ids"
+
+logs_dir="test_logs"
+cmd_file="test_cmds.txt"
 
 rm -rf ${logs_dir}
 rm ${cmd_file}
@@ -16,8 +58,8 @@ echo "Generating test commands for ${test_mode} mode"
 
 python3 experiment/generate_testing_commands.py $test_mode
 sleep 2
-# Use first argument $1 to determine number of active processes, otherwise use 5
-max_active_procs=8
+
+
 cmd_ctr=0
 n_cmds=$(cat $cmd_file | wc -l)
 declare -a cmd_arr=()
@@ -41,7 +83,7 @@ do
     while [ "$n_active_procs" -ge "$max_active_procs" ]; do
 
         echo "${n_active_procs} of ${max_active_procs} processes are running. Waiting..."
-        sleep 15
+        sleep $sleep_time
         n_active_procs=$(pgrep -c -P$$)
     done
 	# Only run if there is a GPU with enough free memory
@@ -55,7 +97,7 @@ do
               break
             fi
             echo "${free_mem} MB is free on GPU ${gpu_id}, but ${min_mem_free} MB is required. Waiting..."
-            sleep 15
+            sleep $sleep_time
         done
     done
     echo "Now executing cmd ${cmd_ctr} / $(( n_cmds )) on GPU ${this_gpu_id} with ${free_mem} MB free memory: "
@@ -63,13 +105,13 @@ do
     export CUDA_VISIBLE_DEVICES=${this_gpu_id}
 #    ${cmd}
     $cmd 1> ${logs_dir}/${cmd_ctr}.log 2> ${logs_dir}/${cmd_ctr}_err.log || true & # Execute in background
-    sleep 15
+    sleep $sleep_time
 done
 echo "All commands have been started. Waiting for last processes to finish."
 while pgrep -c -P$$ > "0"
 do
   echo "$(pgrep -c -P$$) procs remaining".
-  sleep 10
+  sleep $sleep_time
 done
 
 echo "All commands finished."
