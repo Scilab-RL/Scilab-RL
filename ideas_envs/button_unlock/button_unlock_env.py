@@ -6,7 +6,7 @@ from gym.envs.robotics import fetch_env, utils
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'button_unlock.xml')
 
-
+#TODO her2 achieves 1.0 rollout success but 0.0 test success for o1
 class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
     """
     Environment with causal dependencies:
