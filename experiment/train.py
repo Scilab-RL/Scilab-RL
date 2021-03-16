@@ -73,7 +73,6 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
                                            log_path=logger.get_dir(),
                                            eval_freq=kwargs['eval_after_n_steps'],
                                            n_eval_episodes=kwargs['n_test_rollouts'],
-                                           render=kwargs['render_test'],
                                            early_stop_last_n=kwargs['early_stop_last_n'],
                                            early_stop_data_column=kwargs['early_stop_data_column'],
                                            early_stop_threshold=kwargs['early_stop_threshold'])
@@ -100,6 +99,7 @@ def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, re
         model = ModelClass('MlpPolicy', train_env, **policy_args)
     env_alg_compatible = check_env_alg_compatibility(model, train_env)
     if not env_alg_compatible:
+        logger.info("Environment {} and algorithm {} are not compatible.".format(train_env, model))
         sys.exit()
     logger.info("Launching training")
     train(model, train_env, eval_env, n_epochs, starting_epoch=starting_epoch, **kwargs)

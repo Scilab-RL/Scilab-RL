@@ -134,14 +134,11 @@ class HierarchicalHLEnv(gym.GoalEnv):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
         self._sub_env._elapsed_steps = 0 # Set elapsed steps to 0 but don't reset the whole simulated environment
         self._sub_env.env.goal = subgoal
-        # self._sub_env._last_obs['desired_goal'] = subgoal
         assert self.model is not None, "Step not possible because no model defined yet."
         if self.is_testing_env:
-            # self._sub_env.model.test_overwrite_goals.append(subgoal)
             info = self.test_step()
         else:
             info = {}
-            self._sub_env.model.train_overwrite_goals.append(subgoal)
             self.train_step()
         if not self.is_testing_env:
             if self.model.sub_model is not None:

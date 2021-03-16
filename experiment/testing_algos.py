@@ -173,7 +173,7 @@ class TestingAlgos:
 
     @staticmethod
     def get_sac_performance_params(env):
-        if env in []:
+        if env in ['MointainCarContinuous-v0']:
             performance_params = {'n_epochs':  5, 'n_runs': 4, 'min_success_runs': 2,
                                   'min_performance_value': 400, 'performance_measure': 'test/mean_reward'}
             hyper_params = {'n_train_rollouts': 10}

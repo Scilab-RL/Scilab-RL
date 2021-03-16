@@ -2,6 +2,7 @@
 class TestingEnvs:
     env_names = [
                  # 'CartPole-v1',
+                 # 'MountainCarContinuous-v0',
 
                  'FetchReach-v1',
                  'FetchPush-v1',
