@@ -69,7 +69,7 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
 
 class HierarchicalVecEnv(DummyVecEnv):
     """
-    Thsi class has the same functionality as DummyVecEnv, but it does not reset the simulator when a low-level episode ends.
+    This class has the same functionality as DummyVecEnv, but it does not reset the simulator when a low-level episode ends.
     """
 
     def __init__(self, env_fns: List[Callable[[], gym.Env]]):
