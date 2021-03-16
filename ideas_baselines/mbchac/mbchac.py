@@ -175,9 +175,10 @@ class MBCHAC(BaseAlgorithm):
         self.layer = len(self.sub_model_classes)
 
         assert (len(sub_model_classes) + 1) == len(layer_envs), "Error, number of sub model classes should be one less than number of envs"
-        sub_level_steps = '0'
+        next_level_steps = '0'
         if len(sub_model_classes) > 0:
             sub_level_steps = ",".join(self.time_scales.split(",")[1:])
+            next_level_steps = ",".join(self.time_scales.split(",")[1])
             self.sub_model = MBCHAC('MlpPolicy', bottom_env, sub_model_classes[0], sub_model_classes[1:],
                                     time_scales=sub_level_steps,
                                     n_sampled_goal=n_sampled_goal, goal_selection_strategy=goal_selection_strategy,
@@ -231,7 +232,7 @@ class MBCHAC(BaseAlgorithm):
             self.her_ratio,  # pytype: disable=wrong-arg-types
             perform_action_replay,
             sample_test_trans_fraction,
-            int(sub_level_steps)
+            int(next_level_steps)
         )
 
         # counter for steps in episode

@@ -60,7 +60,7 @@ class HierarchicalEvalCallback(EvalCallback):
         self.early_stop_last_n = early_stop_last_n
         self.top_level_model = top_level_model
 
-        layer_envs = get_h_envs_from_env(eval_env, top_level_model.time_scales, env_list=[], is_testing_env=True, model=top_level_model)
+        layer_envs = get_h_envs_from_env(eval_env, top_level_model.time_scales, is_testing_env=True, model=top_level_model)
         for idx, eval_env in enumerate(layer_envs):
             # Convert to VecEnv for consistency
             eval_env = MBCHAC._wrap_env(eval_env)

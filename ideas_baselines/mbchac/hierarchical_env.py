@@ -23,35 +23,47 @@ DEFAULT_SIZE = 500
 
 
 def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
+                        level_steps_str: str,
+                        is_testing_env: bool = False, model: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
+
+    def recursive_get_henvs(bottom_env: gym.wrappers.TimeLimit,
                         level_steps_str: str, env_list: List[gym.GoalEnv] = [],
                         is_testing_env: bool = False, model: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
-    if level_steps_str == '':
+
+        if level_steps_str == '':
+            return env_list
+        level_steps = [int(s) for s in level_steps_str.split(",")]
+        if len(level_steps) > 1:
+            env = HierarchicalHLEnv(bottom_env, is_testing_env=is_testing_env, model=model)
+            env = gym.wrappers.TimeLimit(env, max_episode_steps=level_steps[0])
+        else:
+            env = bottom_env
+            env.spec.max_episode_steps = level_steps[0]
+            env._max_episode_steps = level_steps[0]
+            if model is not None:
+                env.env.model = model
+        env_list.append(env)
+        next_level_steps_str = ",".join([str(s) for s in level_steps[1:]])
+        if model is not None and model.sub_model is not None:
+            next_level_model = model.sub_model
+        else:
+            next_level_model = None
+        env_list = recursive_get_henvs(bottom_env, next_level_steps_str, env_list, is_testing_env, next_level_model)
+
         return env_list
-    level_steps = [int(s) for s in level_steps_str.split(",")]
-    if len(level_steps) > 1:
-        env = HierarchicalHLEnv(bottom_env, is_testing_env=is_testing_env, model=model)
-        env = gym.wrappers.TimeLimit(env, max_episode_steps=level_steps[0])
-    else:
-        env = bottom_env
-        env.spec.max_episode_steps = level_steps[0]
-        env._max_episode_steps = level_steps[0]
-        if model is not None:
-            env.env.model = model
-    if len(env_list) >= 1:
-        env_list[-1].set_sub_env(env)
-        env_list[-1].action_space = env_list[-1].env.action_space
-    if len(env_list) == 0:
-        env.is_top_level_env = True
-    else:
-        env.is_top_level_env = False
-    env.level = len(level_steps) - 1
-    env_list.append(env)
-    next_level_steps_str = ",".join([str(s) for s in level_steps[1:]])
-    if model is not None and model.sub_model is not None:
-        next_level_model = model.sub_model
-    else:
-        next_level_model = None
-    env_list = get_h_envs_from_env(bottom_env, next_level_steps_str, env_list, is_testing_env, next_level_model)
+
+    env_list = recursive_get_henvs(bottom_env=bottom_env, level_steps_str=level_steps_str,
+                                   env_list=[], is_testing_env=is_testing_env, model=model)
+
+    # iterate through reversed list to set sub_envs correctly; necessary for recursive action_space determination.
+    for level, e in enumerate(reversed(env_list)):
+        j = len(env_list) - level - 1
+        if level > 0:
+            env_list[j].set_sub_env(env_list[j+1])
+            # re-set action space also for TimeLimit Wrapper class
+            env_list[j].action_space = env_list[j].env.action_space
+        env_list[j].is_top_level_env = j == 0
+        env_list[j].level = level
 
     return env_list
 
