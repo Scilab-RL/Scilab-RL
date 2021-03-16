@@ -134,7 +134,7 @@ class MBCHAC(BaseAlgorithm):
     ):
         self.gradient_steps = n_train_batches
         self.learn_callback = None
-        # determine time_scales
+
         self.is_top_layer = is_top_layer
         self.time_scales = time_scales
         self.train_freq = train_freq
@@ -143,9 +143,9 @@ class MBCHAC(BaseAlgorithm):
                     len(sub_model_classes) + 1), "Error, number of time scales is not equal to number of layers."
         assert time_scales.count(
             "_") <= 1, "Error, only one wildcard character \'_\' allowed in time_scales argument {}".format(time_scales)
-        if self.is_top_layer == 1:  # Only do this once at top layer.
+        if self.is_top_layer == 1:  # Determine time_scales. Only do this once at top layer.
             self.time_scales = compute_time_scales(time_scales, env)
-            # Build layer_env from env, depending on steps and action space.
+            # Build hierarchical layer_envs from env, depending on steps and action space.
             layer_envs = get_h_envs_from_env(env, self.time_scales)
         time_scales_int = [int(s) for s in self.time_scales.split(",")]
         self.level_steps_per_episode = int(self.time_scales.split(",")[0])
@@ -161,7 +161,7 @@ class MBCHAC(BaseAlgorithm):
         del self.policy, self.learning_rate
 
         self.learning_starts = kwargs['learning_starts']
-        # watch(self.learning_starts)
+
 
         _init_setup_model = kwargs.get("_init_setup_model", True)
         if "_init_setup_model" in kwargs:
@@ -271,8 +271,14 @@ class MBCHAC(BaseAlgorithm):
             self.test_render_info = None
 
         self.epoch_count = 0
-
         self.in_subgoal_test_mode = False
+        self.continue_training = True
+
+    def get_continue_training(self):
+        if self.sub_model is None:
+            return self.continue_training
+        else:
+            return self.sub_model.get_continue_training()
 
     def start_train_video_writer(self, n):
         self.reset_train_render_frames()
@@ -475,7 +481,7 @@ class MBCHAC(BaseAlgorithm):
                     action, buffer_action = self._sample_action(observation=observation, learning_starts=learning_starts, deterministic=True)
                 else:
                     action, buffer_action = self._sample_action(observation=observation, learning_starts=learning_starts, deterministic=False)
-                # if self.layer==1 and episode_timesteps == (self.max_episode_length-1):
+                # if self.layer==1 and episode_timesteps == (self.max_episode_length-1): # Comment this out to hard-set the last subgoal to the final goal
                 #     action = observation['desired_goal']
                 new_obs, reward, done, infos = env.step(action)
                 if subgoal_test: # if the subgoal test has started here, unset testing mode of submodel if applicable.
@@ -518,7 +524,10 @@ class MBCHAC(BaseAlgorithm):
                     next_obs = infos[0]["terminal_observation"]
                 else:
                     next_obs = new_obs_
+                # try:
                 self.replay_buffer.add(self._last_original_obs, next_obs, buffer_action, reward_, done, infos)
+                # except Exception as e:
+                #     print("ohno {}".format(e))
 
                 self._last_obs = new_obs
                 self.model._last_obs = self._last_obs
@@ -544,7 +553,10 @@ class MBCHAC(BaseAlgorithm):
                 if self.is_bottom_layer:
                     # Only stop training if return value is False, not when it is None.
                     if callback.on_step() is False:
-                        return RolloutReturn(0.0, total_steps, total_episodes, continue_training=False)
+                        self.continue_training = False
+                # Ask all sub-layers if we should continue training (self.continue_training is only set in bottom layer)
+                if self.get_continue_training() is False:
+                    return RolloutReturn(0.0, total_steps, total_episodes, continue_training=False)
 
                 self.actions_since_last_train += 1
                 if self.actions_since_last_train >= self.train_freq and self.train_freq != 0:
@@ -631,15 +643,12 @@ class MBCHAC(BaseAlgorithm):
             #     print(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
             #     print(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
             if self.is_bottom_layer and self.test_render_info is not None:
-                if hasattr(eval_env, 'env'):
-                    frame = eval_env.env.render(mode='rgb_array', width=self.test_render_info['size'][0],
-                                                         height=self.test_render_info['size'][1])
-                elif hasattr(eval_env, 'venv'):
+                if self.test_render_info == 'record':
                     frame = eval_env.venv.envs[0].render(mode='rgb_array', width=self.test_render_info['size'][0],
-                                                     height=self.test_render_info['size'][1])
-                else:
-                    assert False, "Eval env is neither TimeLimit nor Vectorized Env class and has neither env nor venv property."
-                self.test_render_frames.append(frame)
+                                                         height=self.test_render_info['size'][1])
+                    self.test_render_frames.append(frame)
+                elif self.test_render_info == 'display':
+                    eval_env.venv.envs[0].render(mode='human')
             if self.sub_model is not None:
                 self.sub_model.reset_eval_info_list()
             step_ctr += 1
