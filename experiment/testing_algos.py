@@ -56,13 +56,13 @@ class TestingAlgos:
             performance_params = {'n_epochs': 600, 'n_runs': 6, 'min_success_runs': 4,
                                   'min_performance_np.abs(self.action_space.high - value': 0.9, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchSlide-v1']:
-            performance_params = {'n_epochs': 300, 'n_runs': 6, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 600, 'n_runs': 6, 'min_success_runs': 4,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPickAndPlace-v1']:
-            performance_params = {'n_epochs': 300, 'n_runs': 6, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 600, 'n_runs': 6, 'min_success_runs': 4,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif env in ['HandReach-v0']:
-            performance_params = {'n_epochs': 300, 'n_runs': 6, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 600, 'n_runs': 6, 'min_success_runs': 4,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
