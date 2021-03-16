@@ -116,10 +116,14 @@ class HierarchicalHLEnv(gym.GoalEnv):
             goal = self._sub_env.env._sample_goal()
             self.action_space.high = np.maximum(goal, self.action_space.high)
             self.action_space.low = np.minimum(goal, self.action_space.low)
-
         # Add some small extra margin.
+        epsilon = np.zeros_like(self.action_space.high) + 0.01
         self.action_space.high += np.abs(self.action_space.high - self.action_space.low) * 0.01
         self.action_space.low -= np.abs(self.action_space.high - self.action_space.low) * 0.01
+        action_space_range = self.action_space.high - self.action_space.low
+        action_space_range = np.maximum(action_space_range, epsilon)
+        self.action_space.high = self.action_space.low + action_space_range
+        # self.action_space.low = self.action_space.low - epsilon
         # Reset action space to determine whether the space is bounded.
         self.action_space = gym.spaces.Box(self.action_space.low, self.action_space.high)
         logger.info("Updated action bound guess by random sampling: Action space high: {}, Action space low: {}".format(self.action_space.high, self.action_space.low))
