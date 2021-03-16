@@ -3,9 +3,9 @@ usage() { echo "$0 usage:" && grep " .)\ #" $0; exit 0; }
 [ $# -eq 0 ] && usage
 
 gpu_ids=(0)
-min_mem_free=1500
+min_mem_free=2500
 max_active_procs=6
-test_mode='function'
+test_mode='performance'
 sleep_time=15
 while getopts ":ht:p:m:g:s:" arg; do
   case $arg in

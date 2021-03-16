@@ -184,6 +184,8 @@ class MBCHAC(BaseAlgorithm):
                                     n_sampled_goal=n_sampled_goal, goal_selection_strategy=goal_selection_strategy,
                                     train_freq=self.train_freq,
                                     is_top_layer=False, layer_envs=layer_envs[1:],
+                                    render_train=render_train,
+                                    render_test=render_test,
                                     **kwargs)
         else:
             self.sub_model = None
@@ -513,10 +515,13 @@ class MBCHAC(BaseAlgorithm):
                 new_obs, reward, done, infos = env.step(action)
                 if subgoal_test: # if the subgoal test has started here, unset testing mode of submodel if applicable.
                     self.unset_subgoal_test_mode()
-                if self.is_bottom_layer and self.train_render_info is not None:
-                    frame = self.env.venv.envs[0].render(mode='rgb_array', width=self.train_render_info['size'][0],
+                if self.is_bottom_layer and self.train_render_info != 'none':
+                    if self.render_train == 'record':
+                        frame = self.env.venv.envs[0].render(mode='rgb_array', width=self.train_render_info['size'][0],
                                                              height=self.train_render_info['size'][1])
-                    self.train_render_frames.append(frame)
+                        self.train_render_frames.append(frame)
+                    elif self.render_train == 'display':
+                        self.env.venv.envs[0].render(mode='human')
 
                 self.num_timesteps += 1
                 self.model.num_timesteps = self.num_timesteps
@@ -670,12 +675,12 @@ class MBCHAC(BaseAlgorithm):
             #     print(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
             #     print(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
             #     print(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
-            if self.is_bottom_layer and self.test_render_info is not None:
-                if self.test_render_info == 'record':
+            if self.is_bottom_layer and self.test_render_info != 'none':
+                if self.render_test == 'record':
                     frame = eval_env.venv.envs[0].render(mode='rgb_array', width=self.test_render_info['size'][0],
                                                          height=self.test_render_info['size'][1])
                     self.test_render_frames.append(frame)
-                elif self.test_render_info == 'display':
+                elif self.render_test == 'display':
                     eval_env.venv.envs[0].render(mode='human')
             if self.sub_model is not None:
                 self.sub_model.reset_eval_info_list()
