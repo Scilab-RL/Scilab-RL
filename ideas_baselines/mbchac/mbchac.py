@@ -273,6 +273,7 @@ class MBCHAC(BaseAlgorithm):
         self.epoch_count = 0
         self.in_subgoal_test_mode = False
         self.continue_training = True
+        self.train_overwrite_goals = []
 
     def get_continue_training(self):
         if self.sub_model is None:
@@ -460,17 +461,43 @@ class MBCHAC(BaseAlgorithm):
             episode_reward, episode_timesteps = 0.0, 0
 
             while not done:
-                # recompute observation with potentially new subgoal
-                self.update_venv_buf_obs(self.env)
-                observation = self.env.venv.buf_obs
+
+                # TODO: The lines below should actually allow for avoiding the ugly train_overwrite_goals variable. However, when using the code the training does not work anby more.
+
+                ## START this should give good results, but doesn't
+                # # recompute observation with potentially new subgoal
+                # self.update_venv_buf_obs(self.env)
+                # observation = self.env.venv.buf_obs
+                # self._last_obs = ObsDictWrapper.convert_dict(observation)
+                #
+                # if self.model.use_sde and self.model.sde_sample_freq > 0 and total_steps % self.model.sde_sample_freq == 0:
+                #     # Sample a new noise matrix
+                #     self.actor.reset_noise()
+                #
+                # # Set model's last_obs to updated wrapped last_obs, with potential new subgoal.
+                # self.model._last_obs = self._last_obs
+                ## END this should give good results, too
+
+                ## START This gives good results
+                observation = self._last_obs
+                # concatenate observation and (desired) goal
                 self._last_obs = ObsDictWrapper.convert_dict(observation)
 
                 if self.model.use_sde and self.model.sde_sample_freq > 0 and total_steps % self.model.sde_sample_freq == 0:
                     # Sample a new noise matrix
                     self.actor.reset_noise()
 
-                # Set model's last_obs to updated wrapped last_obs, with potential new subgoal.
+                # Select action randomly or according to policy
                 self.model._last_obs = self._last_obs
+                ## END
+
+                step_obs = observation
+                if self.train_overwrite_goals != []:
+                    step_obs['desired_goal'] = self.train_overwrite_goals.copy()
+                try:
+                    step_obs = ObsDictWrapper.convert_dict(step_obs)
+                except:
+                    print("Ohno")
 
                 subgoal_test = False
                 if not self.in_subgoal_test_mode and not self.is_bottom_layer: # Next layer can only go in subgoal test mode if this layer is not already in subgoal testing mode
@@ -478,9 +505,9 @@ class MBCHAC(BaseAlgorithm):
                     if subgoal_test:
                         self.set_subgoal_test_mode() # set submodel to testing mode is applicable.
                 if self.in_subgoal_test_mode:
-                    action, buffer_action = self._sample_action(observation=observation, learning_starts=learning_starts, deterministic=True)
+                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=learning_starts, deterministic=True)
                 else:
-                    action, buffer_action = self._sample_action(observation=observation, learning_starts=learning_starts, deterministic=False)
+                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=learning_starts, deterministic=False)
                 # if self.layer==1 and episode_timesteps == (self.max_episode_length-1): # Comment this out to hard-set the last subgoal to the final goal
                 #     action = observation['desired_goal']
                 new_obs, reward, done, infos = env.step(action)
@@ -564,6 +591,7 @@ class MBCHAC(BaseAlgorithm):
 
                 if 0 < n_steps <= total_steps:
                     break
+            self.train_overwrite_goals = []
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()
                 if self.is_top_layer:
