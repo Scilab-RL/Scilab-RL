@@ -506,7 +506,7 @@ class MBCHAC(BaseAlgorithm):
                     subgoal_test = True if np.random.random_sample() < self.subgoal_test_perc else False
                     if subgoal_test:
                         self.set_subgoal_test_mode() # set submodel to testing mode is applicable.
-                if self.level != 0: ## DEBUG: learning starts to inf causes random action to be selected.
+                if self.layer != 0: ## DEBUG: learning starts to inf causes random action to be selected.
                     ls = np.inf
                 else:
                     ls = learning_starts
