@@ -60,7 +60,7 @@ class HierarchicalEvalCallback(EvalCallback):
         self.early_stop_last_n = early_stop_last_n
         self.top_level_model = top_level_model
 
-        layer_envs = get_h_envs_from_env(eval_env, top_level_model.time_scales, env_list=[], is_testing_env=True, model=top_level_model)
+        layer_envs = get_h_envs_from_env(eval_env, top_level_model.time_scales, is_testing_env=True, model=top_level_model)
         for idx, eval_env in enumerate(layer_envs):
             # Convert to VecEnv for consistency
             eval_env = MBCHAC._wrap_env(eval_env)
@@ -69,6 +69,7 @@ class HierarchicalEvalCallback(EvalCallback):
             layer_envs[idx] = eval_env
 
         self.eval_env = layer_envs[0]
+        self.eval_env_layers = layer_envs
         self.log_path = log_path
         self.best_model_save_path = None
         self.evaluations_results = []
@@ -124,7 +125,5 @@ class HierarchicalEvalCallback(EvalCallback):
                 else:
                     logger.warn("Warning, early stop data column {} not in eval history keys {}. This should only happen once during initialization.".format(self.early_stop_data_column, self.eval_histories.keys()))
             self.eval_count += 1
-        return True
-
 
 

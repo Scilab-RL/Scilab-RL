@@ -351,8 +351,10 @@ class HHerReplayBuffer(ReplayBuffer):
         if self.current_idx == 0 and self.full:
             # Clear info buffer
             self.info_buffer[self.pos] = deque(maxlen=self.max_episode_length)
-
-        self.buffer["observation"][self.pos][self.current_idx] = obs["observation"]
+        try:
+            self.buffer["observation"][self.pos][self.current_idx] = obs["observation"]
+        except Exception as e:
+            print("ohno {}".format(e))
         self.buffer["achieved_goal"][self.pos][self.current_idx] = obs["achieved_goal"]
         self.buffer["desired_goal"][self.pos][self.current_idx] = obs["desired_goal"]
         self.buffer["action"][self.pos][self.current_idx] = action
