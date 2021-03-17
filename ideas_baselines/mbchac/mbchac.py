@@ -506,10 +506,14 @@ class MBCHAC(BaseAlgorithm):
                     subgoal_test = True if np.random.random_sample() < self.subgoal_test_perc else False
                     if subgoal_test:
                         self.set_subgoal_test_mode() # set submodel to testing mode is applicable.
-                if self.in_subgoal_test_mode:
-                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=learning_starts, deterministic=True)
+                if self.level != 0: ## DEBUG: learning starts to inf causes random action to be selected.
+                    ls = np.inf
                 else:
-                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=learning_starts, deterministic=False)
+                    ls = learning_starts
+                if self.in_subgoal_test_mode:
+                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=ls, deterministic=True)
+                else:
+                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=ls, deterministic=False)
                 # if self.layer==1 and episode_timesteps == (self.max_episode_length-1): # Comment this out to hard-set the last subgoal to the final goal
                 #     action = observation['desired_goal']
                 new_obs, reward, done, infos = env.step(action)

@@ -76,11 +76,14 @@ class HierarchicalVecEnv(DummyVecEnv):
         super().__init__(env_fns)
 
     # The same function as in DummyVecEnv, but without resetting the simulation when the episode ends.
+    # This function also sets done to true on success
     def step_wait(self) -> VecEnvStepReturn:
         for env_idx in range(self.num_envs):
             obs, self.buf_rews[env_idx], self.buf_dones[env_idx], self.buf_infos[env_idx] = self.envs[env_idx].step(
                 self.actions[env_idx]
             )
+            # Set done to true if success is achieved or if it is done any ways (by TimeLimit)
+            self.buf_dones[env_idx] = np.isclose(self.buf_infos[env_idx]['is_success'], 1) or self.buf_dones[env_idx]
             if self.buf_dones[env_idx]:
                 # save final observation where user can get it, but don't reset
                 self.buf_infos[env_idx]["terminal_observation"] = obs
@@ -151,13 +154,15 @@ class HierarchicalHLEnv(gym.GoalEnv):
                     info['is_subgoal_testing_trans'] = 1
                 else:
                     info['is_subgoal_testing_trans'] = 0
-        obs = self._get_obs() # TODO: here is a problem: after finishing an episode, the environment is automatically reset, causing the achieved goal determind by _get_obs() to have changed. then, The success computation is wrong.
+        obs = self._get_obs()
         # obs['desired_goal'] = subgoal
         reward = self.compute_reward(obs['achieved_goal'], self.goal, info)
-        done = False  # Returning done = true after time steps are done is not necessary here because it is done in TimeLimit wrapper. #TODO: Check if done=True should be returned after goal is achieved.
+
         self._step_callback()
         succ = self._is_success(obs['achieved_goal'], self.goal)
         info['is_success'] = succ
+        done = False  # Returning done = true after time steps are done is not necessary here because it is done in TimeLimit wrapper. #TODO: Check if done=True should be returned after goal is achieved.
+        # done = np.isclose(succ, 1)
         return obs, reward, done, info
 
     def train_step(self):
