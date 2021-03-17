@@ -47,7 +47,7 @@ class HHerReplayBuffer(ReplayBuffer):
         her_ratio: float = 0.8,
         perform_action_replay_transitions = True,
         test_trans_sampling_fraction = 0.1,
-        subgoal_test_fail_penalty = 10,
+        subgoal_test_fail_penalty = 1,
     ):
 
         super(HHerReplayBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs)
@@ -91,8 +91,8 @@ class HHerReplayBuffer(ReplayBuffer):
 
         self.test_trans_sampling_fraction = test_trans_sampling_fraction
 
-        # self.subgoal_test_fail_penalty = subgoal_test_fail_penalty
-        self.subgoal_test_fail_penalty = 1
+        self.subgoal_test_fail_penalty = max(subgoal_test_fail_penalty / 4, 1) # This is a workaround as a compromise between using the full penalty and penalty=1
+        # self.subgoal_test_fail_penalty = 1
 
     def __getstate__(self) -> Dict[str, Any]:
         """

@@ -4,5 +4,5 @@
 # }
 
 ## These parameters will be included in the logging path name
-PATH_CONFIG_PARAMS = ['model_classes', 'eval_after_n_steps', 'train_freq']
+PATH_CONFIG_PARAMS = ['model_classes', 'eval_after_n_steps', 'train_freq', 'time_scales']
 

@@ -5,11 +5,11 @@ class TestingEnvs:
                  # 'MountainCarContinuous-v0',
 
                  'FetchPush-v1',
-                 'FetchSlide-v1',
-                 'FetchPickAndPlace-v1',
-                 'FetchReach-v1',
-
-                 'HandReach-v0'
+                 # 'FetchSlide-v1',
+                 # 'FetchPickAndPlace-v1',
+                 # 'FetchReach-v1',
+                 #
+                 # 'HandReach-v0'
 
                  ]
 

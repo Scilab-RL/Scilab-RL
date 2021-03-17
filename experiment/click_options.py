@@ -26,6 +26,7 @@ click.option('--info', type=str, default='', help='A command line comment that w
 click.option('--tensorboard', type=int, default=2, help='max. number of tensorboard instances allowed at the same time. Will be determined by number of open ports, starting at port 6006'),
 click.option('--plot_eval_cols', type=str, default='test/success_rate,test/mean_reward', help='Data to plot for evaluation. Strings separated by comma.'),
 click.option('--plot_at_most_every_secs', type=int, default=60, help='Number of seconds to wait for next plot with MatplotlibOutputFormat.'),
+click.option('--info', type=str, default='60', help='Some info string to append to the log folder for easier testing and debuggung.'),
 # click.option('--reward_type', type=str, default='sparse', help='the reward type, dense or sparse')
 ]
 

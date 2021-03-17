@@ -79,7 +79,7 @@ def compute_time_scales(time_scales_str, env):
             assert max_steps % defined_steps == 0, "Error defined time_scale not compatible with environment max steps. Max. number of environment steps {} needs to be divisible by product of all defined steps {}.".format(max_steps, defined_steps)
             this_steps = int(max_steps / defined_steps)
             scales[i] = str(this_steps)
-    assert np.product([int(step) for step in scales]) == max_steps, "Error defined time_scale not compatible with environment max steps. Product of all steps needs to be {}".format(max_steps)
+    # assert np.product([int(step) for step in scales]) == max_steps, "Error defined time_scale not compatible with environment max steps. Product of all steps needs to be {}".format(max_steps)
     return ",".join(scales)
 
 
@@ -161,11 +161,11 @@ class MBCHAC(BaseAlgorithm):
         del self.policy, self.learning_rate
 
         self.learning_starts = kwargs['learning_starts']
-
-
         _init_setup_model = kwargs.get("_init_setup_model", True)
+
         if "_init_setup_model" in kwargs:
             del kwargs["_init_setup_model"]
+
         # model initialization
         self.model_class = model_class
         model_args = kwargs.copy()
@@ -221,7 +221,10 @@ class MBCHAC(BaseAlgorithm):
         # for online sampling, it replaces the "classic" replay buffer completely
         her_buffer_size = self.buffer_size
         perform_action_replay = not self.is_bottom_layer
-        sample_test_trans_fraction = (not self.is_bottom_layer) * 0.1
+
+        sample_test_trans_fraction = subgoal_test_perc / (self.n_sampled_goal + 1)
+        sample_test_trans_fraction = (not self.is_bottom_layer) * sample_test_trans_fraction
+        subgoal_test_fail_penalty = next_level_steps
         self._episode_storage = HHerReplayBuffer(
             self.env,
             her_buffer_size,
@@ -234,7 +237,7 @@ class MBCHAC(BaseAlgorithm):
             self.her_ratio,  # pytype: disable=wrong-arg-types
             perform_action_replay,
             sample_test_trans_fraction,
-            next_level_steps
+            subgoal_test_fail_penalty
         )
 
         # counter for steps in episode
@@ -355,7 +358,6 @@ class MBCHAC(BaseAlgorithm):
             logger.info("Did not yet train layer {} because I have not yet enough experience collected.".format(self.layer))
 
     def run_and_maybe_train(self, n_episodes: int):
-
         rollout = self.collect_rollouts(
             self.env,
             n_episodes=n_episodes,
@@ -368,7 +370,6 @@ class MBCHAC(BaseAlgorithm):
         if self.train_freq == 0: # If training frequency is 0, train every episode for the number of gradient steps equal to the number of actions performed.
             self.train_model(rollout.episode_timesteps)
         return True
-
 
     def init_learn(self, total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps):
         tb_log_name = "MBCHAC_{}".format(self.layer)
@@ -491,8 +492,6 @@ class MBCHAC(BaseAlgorithm):
 
                 # Select action randomly or according to policy
                 self.model._last_obs = self._last_obs
-                ## END
-
                 step_obs = observation
                 if self.train_overwrite_goals != []:
                     step_obs['desired_goal'] = self.train_overwrite_goals.copy()
@@ -500,6 +499,7 @@ class MBCHAC(BaseAlgorithm):
                     step_obs = ObsDictWrapper.convert_dict(step_obs)
                 except:
                     print("Ohno")
+                ## END This gives good results.
 
                 subgoal_test = False
                 if not self.in_subgoal_test_mode and not self.is_bottom_layer: # Next layer can only go in subgoal test mode if this layer is not already in subgoal testing mode

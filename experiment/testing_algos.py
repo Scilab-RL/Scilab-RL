@@ -68,7 +68,7 @@ class TestingAlgos:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
 
-        for time_scales in ['_', '5,_', '2,5,_']:
+        for time_scales in ['50', '25', '5,50', '5,25', '10', '5,10']:
             model_classes = [model] * len(time_scales.split(','))
             hyper_params = {'model_classes': ",".join(model_classes), 'time_scales': time_scales}
             hyper_params.update(hyper_params_all)
