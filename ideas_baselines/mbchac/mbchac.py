@@ -26,6 +26,7 @@ from ideas_baselines.mbchac.hierarchical_env import HierarchicalVecEnv
 from gym.wrappers import TimeLimit
 import time
 from ideas_baselines.mbchac.util import get_concat_dict_from_dict_list, merge_list_dicts
+from ideas_envs.wrappers.subgoal_viz_wrapper import SubgoalVisualizationWrapper
 import numbers
 from stable_baselines3.common.logger import HumanOutputFormat
 import sys
@@ -143,6 +144,7 @@ class MBCHAC(BaseAlgorithm):
                     len(sub_model_classes) + 1), "Error, number of time scales is not equal to number of layers."
         assert time_scales.count(
             "_") <= 1, "Error, only one wildcard character \'_\' allowed in time_scales argument {}".format(time_scales)
+        env = SubgoalVisualizationWrapper(env)
         if self.is_top_layer == 1:  # Determine time_scales. Only do this once at top layer.
             self.time_scales = compute_time_scales(time_scales, env)
             # Build hierarchical layer_envs from env, depending on steps and action space.

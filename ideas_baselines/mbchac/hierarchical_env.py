@@ -38,8 +38,8 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
             env = gym.wrappers.TimeLimit(env, max_episode_steps=level_steps[0])
         else:
             env = bottom_env
-            env.spec.max_episode_steps = level_steps[0]
-            env._max_episode_steps = level_steps[0]
+            env.env.spec.max_episode_steps = level_steps[0]
+            env.env._max_episode_steps = level_steps[0]
             if model is not None:
                 env.env.model = model
         env_list.append(env)
@@ -113,7 +113,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self.action_space.high = [-np.inf] * len(self.action_space.high)
         self.action_space.low = [np.inf] * len(self.action_space.low)
         for i in range(n_samples):
-            goal = self._sub_env.env._sample_goal()
+            goal = self._sub_env.env.unwrapped._sample_goal()
             self.action_space.high = np.maximum(goal, self.action_space.high)
             self.action_space.low = np.minimum(goal, self.action_space.low)
 
@@ -189,7 +189,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def _get_obs(self):
         """Returns the observation.
         """
-        obs = self._sub_env.env._get_obs()
+        obs = self._sub_env.env.unwrapped._get_obs()
         obs['desired_goal'] = self.goal
         return obs
 
@@ -201,7 +201,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def _is_success(self, achieved_goal, desired_goal):
         """Indicates whether or not the achieved goal successfully achieved the desired goal.
         """
-        return self._sub_env.env._is_success(achieved_goal, desired_goal)
+        return self._sub_env.env.unwrapped._is_success(achieved_goal, desired_goal)
 
     def _sample_goal(self):
         """Samples a new goal and returns it.
