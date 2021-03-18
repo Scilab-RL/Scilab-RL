@@ -27,6 +27,7 @@ from gym.wrappers import TimeLimit
 import time
 from ideas_baselines.mbchac.util import get_concat_dict_from_dict_list, merge_list_dicts
 import numbers
+from copy import deepcopy
 from stable_baselines3.common.logger import HumanOutputFormat
 import sys
 from stable_baselines3.common.vec_env import VecVideoRecorder
@@ -465,55 +466,29 @@ class MBCHAC(BaseAlgorithm):
 
             while not done:
 
-                # TODO: The lines below should actually allow for avoiding the ugly train_overwrite_goals variable. However, when using the code the training does not work anby more.
-
-                ## START this should give good results, but doesn't
-                # # recompute observation with potentially new subgoal
-                # self.update_venv_buf_obs(self.env)
-                # observation = self.env.venv.buf_obs
-                # self._last_obs = ObsDictWrapper.convert_dict(observation)
-                #
-                # if self.model.use_sde and self.model.sde_sample_freq > 0 and total_steps % self.model.sde_sample_freq == 0:
-                #     # Sample a new noise matrix
-                #     self.actor.reset_noise()
-                #
-                # # Set model's last_obs to updated wrapped last_obs, with potential new subgoal.
-                # self.model._last_obs = self._last_obs
-                ## END this should give good results, too
-
-                ## START This gives good results
-                observation = self._last_obs
-                # concatenate observation and (desired) goal
+                self.update_venv_buf_obs(self.env)
+                observation = self.env.venv.buf_obs
+                observation = deepcopy(observation) # Required so that values don't get changed.
                 self._last_obs = ObsDictWrapper.convert_dict(observation)
+                self.model._last_obs = self._last_obs
 
                 if self.model.use_sde and self.model.sde_sample_freq > 0 and total_steps % self.model.sde_sample_freq == 0:
                     # Sample a new noise matrix
                     self.actor.reset_noise()
-
-                # Select action randomly or according to policy
-                self.model._last_obs = self._last_obs
-                step_obs = observation
-                if self.train_overwrite_goals != []:
-                    step_obs['desired_goal'] = self.train_overwrite_goals.copy()
-                try:
-                    step_obs = ObsDictWrapper.convert_dict(step_obs)
-                except:
-                    print("Ohno")
-                ## END This gives good results.
 
                 subgoal_test = False
                 if not self.in_subgoal_test_mode and not self.is_bottom_layer: # Next layer can only go in subgoal test mode if this layer is not already in subgoal testing mode
                     subgoal_test = True if np.random.random_sample() < self.subgoal_test_perc else False
                     if subgoal_test:
                         self.set_subgoal_test_mode() # set submodel to testing mode is applicable.
-                if self.layer != 0: ## DEBUG: learning starts to inf causes random action to be selected.
-                    ls = np.inf
-                else:
-                    ls = learning_starts
+
+                ls = learning_starts
+                # if self.layer != 0: ## DEBUG: learning starts to inf causes random action to be selected.
+                #     ls = np.inf
                 if self.in_subgoal_test_mode:
-                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=ls, deterministic=True)
+                    action, buffer_action = self._sample_action(observation=self._last_obs, learning_starts=ls, deterministic=True)
                 else:
-                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=ls, deterministic=False)
+                    action, buffer_action = self._sample_action(observation=self._last_obs, learning_starts=ls, deterministic=False)
                 # if self.layer==1 and episode_timesteps == (self.max_episode_length-1): # Comment this out to hard-set the last subgoal to the final goal
                 #     action = observation['desired_goal']
                 new_obs, reward, done, infos = env.step(action)
@@ -603,10 +578,17 @@ class MBCHAC(BaseAlgorithm):
             self.train_overwrite_goals = []
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()
-                if self.is_top_layer:
+                if self.is_top_layer: # Reset environments and _last_obs of all submodels.
                     new_obs = self.env.venv.reset_all()
-                    self._last_obs = new_obs
-                    self.model._last_obs = self._last_obs
+                    tmp_model = self
+                    while True:
+                        tmp_model._last_obs = new_obs
+                        tmp_model._last_obs = self._last_obs
+                        if tmp_model.sub_model is None:
+                            break
+                        else:
+                            tmp_model = self.sub_model
+
                 total_episodes += 1
                 self._episode_num += 1
                 self.model._episode_num = self._episode_num
