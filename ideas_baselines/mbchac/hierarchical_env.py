@@ -146,7 +146,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
             info = self.test_step()
         else:
             info = {}
-            self._sub_env.model.train_overwrite_goals.append(subgoal)
             self.train_step()
         if not self.is_testing_env:
             if self.model.sub_model is not None:

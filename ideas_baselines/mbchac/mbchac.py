@@ -279,7 +279,6 @@ class MBCHAC(BaseAlgorithm):
         self.epoch_count = 0
         self.in_subgoal_test_mode = False
         self.continue_training = True
-        self.train_overwrite_goals = []
 
     def get_continue_training(self):
         if self.sub_model is None:
@@ -575,7 +574,6 @@ class MBCHAC(BaseAlgorithm):
 
                 if 0 < n_steps <= total_steps:
                     break
-            self.train_overwrite_goals = []
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()
                 if self.is_top_layer: # Reset environments and _last_obs of all submodels.
