@@ -38,7 +38,7 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
             env = gym.wrappers.TimeLimit(env, max_episode_steps=level_steps[0])
         else:
             env = bottom_env
-            env.env.spec.max_episode_steps = level_steps[0]
+            env.env.spec.max_episode_steps = level_steps[0]#TODO make independent of number of Wrappers
             env.env._max_episode_steps = level_steps[0]
             if model is not None:
                 env.env.model = model
@@ -132,8 +132,10 @@ class HierarchicalHLEnv(gym.GoalEnv):
 
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
-        self._sub_env._elapsed_steps = 0 # Set elapsed steps to 0 but don't reset the whole simulated environment
-        self._sub_env.env.goal = subgoal
+        self._sub_env.env._elapsed_steps = 0 # Set elapsed steps to 0 but don't reset the whole simulated environment
+        self._sub_env.env.unwrapped.goal = subgoal
+        self._sub_env.display_subgoals(subgoal, size=0.03, form='cylinder')
+
         assert self.model is not None, "Step not possible because no model defined yet."
         if self.is_testing_env:
             info = self.test_step()

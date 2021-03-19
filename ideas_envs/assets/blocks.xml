@@ -18,6 +18,7 @@
 		</body>
 
 		<include file="robot.xml"/>
+		<include file="subgoal_viz.xml"/>
 
 		<body pos="0 0 0.2" name="table0">
 			<geom size="0.3 0.3 0.2" type="box" mass="2000" material="table_mat"/>
