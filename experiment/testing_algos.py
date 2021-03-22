@@ -38,7 +38,7 @@ class TestingAlgos:
     @staticmethod
     def get_mbchac_performance_params(env):
         all_params = []
-        eval_after_n_steps = 2000
+        eval_after_n_steps = 4000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
         model = 'sac'
         hyper_params_all = {'eval_after_n_steps': eval_after_n_steps,
@@ -50,25 +50,28 @@ class TestingAlgos:
                             }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 80, 'n_runs': 6, 'min_success_runs': 4,
+            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
-            performance_params = {'n_epochs': 300, 'n_runs': 6, 'min_success_runs': 4,
-                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchSlide-v1']:
-            performance_params = {'n_epochs': 300, 'n_runs': 6, 'min_success_runs': 4,
-                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPickAndPlace-v1']:
-            performance_params = {'n_epochs': 300, 'n_runs': 6, 'min_success_runs': 4,
-                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif env in ['HandReach-v0']:
-            performance_params = {'n_epochs': 300, 'n_runs': 6, 'min_success_runs': 4,
-                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
+        elif env in ['HandManipulateBlock-v0']:
+            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
 
-        for time_scales in ['_', '5,_', '2,5,_']:
+        for time_scales in ['_', '10,10', '7,7' '_,20',]:
             model_classes = [model] * len(time_scales.split(','))
             hyper_params = {'model_classes': ",".join(model_classes), 'time_scales': time_scales}
             hyper_params.update(hyper_params_all)

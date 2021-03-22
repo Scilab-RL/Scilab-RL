@@ -3,7 +3,7 @@ import importlib
 
 options = [
 click.option('--model_classes', type=str, default='sac,sac'),
-click.option('--goal_selection_strategy', type=click.Choice(['future', 'final', 'episode']), default='future'),
+click.option('--goal_selection_strategy', type=click.Choice(['future', 'final', 'episode', 'rndend']), default='future'),
 click.option('--n_sampled_goal', type=int, default=4),
 click.option('--train_freq', type=int, default=0, help='number of steps in each layer after which to train. 0 sets the training frequency to once per episode.'),
 click.option('--n_train_batches', type=int, default=0, help='The number of training batches per episode. 0 sets training batches to number of actions executed since last training in each layer, which effectively means that n_train_batches=n_train_freq.'),
@@ -28,7 +28,7 @@ click.option('--render_test', type=click.Choice(['record', 'display', 'none']), 
 # click.option('--mu_lr', type=float, default=0.001, help='Actor learning rate'),
 # click.option('--mu_hidden_size', type=int, default=64, help='Hidden size used for the actor network'),
 # click.option('--continuous_subgoals', type=bool, default=False, help='Whether to determine new subgoals with each step.'), # TODO: CURRENTLY NOT IMPLEMENTED!
-click.option('--time_scales', type=str, default='5,_', help='Steps per level from lowest to highest, separated by comma. There must be one \'_\' character in the list to indicates the layer where the time scale is determined from the environment\'s predefined steps.'),
+click.option('--time_scales', type=str, default='5,_', help='Steps per level from highest to lowest, separated by comma. There must be one \'_\' character in the list to indicates the layer where the time scale is determined from the environment\'s predefined steps.'),
 
 click.option('--subgoal_test_perc', type=float, default=0.3, help='The percentage of subgoals to test.'),
 # click.option('--level_types', type=str, default='hac,hac', help='Layers to be used'),

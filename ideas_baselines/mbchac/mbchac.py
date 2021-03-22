@@ -28,6 +28,7 @@ import time
 from ideas_baselines.mbchac.util import get_concat_dict_from_dict_list, merge_list_dicts
 from ideas_envs.wrappers.subgoal_viz_wrapper import SubgoalVisualizationWrapper
 import numbers
+from copy import deepcopy
 from stable_baselines3.common.logger import HumanOutputFormat
 import sys
 from stable_baselines3.common.vec_env import VecVideoRecorder
@@ -77,10 +78,8 @@ def compute_time_scales(time_scales_str, env):
             defined_steps = np.product([int(step) for step in scales[:i]])
             defined_after_steps = np.product([int(step) for step in scales[i+1:]])
             defined_steps *= defined_after_steps
-            assert max_steps % defined_steps == 0, "Error defined time_scale not compatible with environment max steps. Max. number of environment steps {} needs to be divisible by product of all defined steps {}.".format(max_steps, defined_steps)
-            this_steps = int(max_steps / defined_steps)
+            this_steps = int(max_steps / defined_steps) + 1
             scales[i] = str(this_steps)
-    assert np.product([int(step) for step in scales]) == max_steps, "Error defined time_scale not compatible with environment max steps. Product of all steps needs to be {}".format(max_steps)
     return ",".join(scales)
 
 
@@ -163,11 +162,11 @@ class MBCHAC(BaseAlgorithm):
         del self.policy, self.learning_rate
 
         self.learning_starts = kwargs['learning_starts']
-
-
         _init_setup_model = kwargs.get("_init_setup_model", True)
+
         if "_init_setup_model" in kwargs:
             del kwargs["_init_setup_model"]
+
         # model initialization
         self.model_class = model_class
         model_args = kwargs.copy()
@@ -223,7 +222,10 @@ class MBCHAC(BaseAlgorithm):
         # for online sampling, it replaces the "classic" replay buffer completely
         her_buffer_size = self.buffer_size
         perform_action_replay = not self.is_bottom_layer
-        sample_test_trans_fraction = (not self.is_bottom_layer) * 0.1
+
+        sample_test_trans_fraction = subgoal_test_perc / (self.n_sampled_goal + 1)
+        sample_test_trans_fraction = (not self.is_bottom_layer) * sample_test_trans_fraction
+        subgoal_test_fail_penalty = next_level_steps
         self._episode_storage = HHerReplayBuffer(
             self.env,
             her_buffer_size,
@@ -236,7 +238,7 @@ class MBCHAC(BaseAlgorithm):
             self.her_ratio,  # pytype: disable=wrong-arg-types
             perform_action_replay,
             sample_test_trans_fraction,
-            next_level_steps
+            subgoal_test_fail_penalty
         )
 
         # counter for steps in episode
@@ -277,7 +279,6 @@ class MBCHAC(BaseAlgorithm):
         self.epoch_count = 0
         self.in_subgoal_test_mode = False
         self.continue_training = True
-        self.train_overwrite_goals = []
 
     def get_continue_training(self):
         if self.sub_model is None:
@@ -357,7 +358,6 @@ class MBCHAC(BaseAlgorithm):
             logger.info("Did not yet train layer {} because I have not yet enough experience collected.".format(self.layer))
 
     def run_and_maybe_train(self, n_episodes: int):
-
         rollout = self.collect_rollouts(
             self.env,
             n_episodes=n_episodes,
@@ -370,7 +370,6 @@ class MBCHAC(BaseAlgorithm):
         if self.train_freq == 0: # If training frequency is 0, train every episode for the number of gradient steps equal to the number of actions performed.
             self.train_model(rollout.episode_timesteps)
         return True
-
 
     def init_learn(self, total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps):
         tb_log_name = "MBCHAC_{}".format(self.layer)
@@ -466,52 +465,29 @@ class MBCHAC(BaseAlgorithm):
 
             while not done:
 
-                # TODO: The lines below should actually allow for avoiding the ugly train_overwrite_goals variable. However, when using the code the training does not work anby more.
-
-                ## START this should give good results, but doesn't
-                # # recompute observation with potentially new subgoal
-                # self.update_venv_buf_obs(self.env)
-                # observation = self.env.venv.buf_obs
-                # self._last_obs = ObsDictWrapper.convert_dict(observation)
-                #
-                # if self.model.use_sde and self.model.sde_sample_freq > 0 and total_steps % self.model.sde_sample_freq == 0:
-                #     # Sample a new noise matrix
-                #     self.actor.reset_noise()
-                #
-                # # Set model's last_obs to updated wrapped last_obs, with potential new subgoal.
-                # self.model._last_obs = self._last_obs
-                ## END this should give good results, too
-
-                ## START This gives good results
-                observation = self._last_obs
-                # concatenate observation and (desired) goal
+                self.update_venv_buf_obs(self.env)
+                observation = self.env.venv.buf_obs
+                observation = deepcopy(observation) # Required so that values don't get changed.
                 self._last_obs = ObsDictWrapper.convert_dict(observation)
+                self.model._last_obs = self._last_obs
 
                 if self.model.use_sde and self.model.sde_sample_freq > 0 and total_steps % self.model.sde_sample_freq == 0:
                     # Sample a new noise matrix
                     self.actor.reset_noise()
-
-                # Select action randomly or according to policy
-                self.model._last_obs = self._last_obs
-                ## END
-
-                step_obs = observation
-                if self.train_overwrite_goals != []:
-                    step_obs['desired_goal'] = self.train_overwrite_goals.copy()
-                try:
-                    step_obs = ObsDictWrapper.convert_dict(step_obs)
-                except:
-                    print("Ohno")
 
                 subgoal_test = False
                 if not self.in_subgoal_test_mode and not self.is_bottom_layer: # Next layer can only go in subgoal test mode if this layer is not already in subgoal testing mode
                     subgoal_test = True if np.random.random_sample() < self.subgoal_test_perc else False
                     if subgoal_test:
                         self.set_subgoal_test_mode() # set submodel to testing mode is applicable.
+
+                ls = learning_starts
+                if self.layer != 0: ## DEBUG: learning starts to inf causes random action to be selected.
+                    ls = np.inf
                 if self.in_subgoal_test_mode:
-                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=learning_starts, deterministic=True)
+                    action, buffer_action = self._sample_action(observation=self._last_obs, learning_starts=ls, deterministic=True)
                 else:
-                    action, buffer_action = self._sample_action(observation=step_obs, learning_starts=learning_starts, deterministic=False)
+                    action, buffer_action = self._sample_action(observation=self._last_obs, learning_starts=ls, deterministic=False)
                 # if self.layer==1 and episode_timesteps == (self.max_episode_length-1): # Comment this out to hard-set the last subgoal to the final goal
                 #     action = observation['desired_goal']
                 new_obs, reward, done, infos = env.step(action)
@@ -598,13 +574,19 @@ class MBCHAC(BaseAlgorithm):
 
                 if 0 < n_steps <= total_steps:
                     break
-            self.train_overwrite_goals = []
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()
-                if self.is_top_layer:
+                if self.is_top_layer: # Reset environments and _last_obs of all submodels.
                     new_obs = self.env.venv.reset_all()
-                    self._last_obs = new_obs
-                    self.model._last_obs = self._last_obs
+                    tmp_model = self
+                    while True:
+                        tmp_model._last_obs = new_obs
+                        tmp_model._last_obs = self._last_obs
+                        if tmp_model.sub_model is None:
+                            break
+                        else:
+                            tmp_model = self.sub_model
+
                 total_episodes += 1
                 self._episode_num += 1
                 self.model._episode_num = self._episode_num

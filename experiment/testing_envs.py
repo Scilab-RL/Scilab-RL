@@ -3,13 +3,14 @@ class TestingEnvs:
     env_names = [
                  # 'CartPole-v1',
                  # 'MountainCarContinuous-v0',
-
-                 'FetchReach-v1',
+                 'HandReach-v0',
                  'FetchPush-v1',
-                 'FetchSlide-v1',
+                 # 'FetchSlide-v1',
                  'FetchPickAndPlace-v1',
+                 'FetchReach-v1',
+                 #
+                 'HandManipulateBlock-v0'
 
-                 'HandReach-v0'
                  ]
 
     # def get_CartPole_v1_cmds(self):
