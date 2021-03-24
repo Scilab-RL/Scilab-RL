@@ -135,13 +135,12 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self._sub_env = env
         if np.inf in self.action_space.high or -np.inf in self.action_space.low:
             self.update_action_bound_guess()
-        return
 
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
         self._sub_env.env._elapsed_steps = 0 # Set elapsed steps to 0 but don't reset the whole simulated environment
         self._sub_env.env.unwrapped.goal = subgoal
-        self._sub_env.display_subgoals(subgoal, size=0.03, form='cylinder')
+        self._sub_env.display_subgoals(subgoal)  # , size=0.03, shape='cylinder', colors=[0, 0, 0.7, 0.1])
 
         assert self.model is not None, "Step not possible because no model defined yet."
         if self.is_testing_env:
