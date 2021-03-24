@@ -13,6 +13,7 @@ import sys
 from queue import deque
 import numpy as np
 import ideas_envs.register_envs
+import ideas_envs.wrappers.utils
 import importlib
 from stable_baselines3.common import logger
 from util.custom_logger import MatplotlibOutputFormat, FixedHumanOutputFormat
@@ -209,6 +210,10 @@ def main(ctx, **kwargs):
     logdir = logger.get_dir()
 
     logger.info("Data dir: {} ".format(logdir))
+
+    # Prepare xmls for subgoal visualizations
+    ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
+
     with open(os.path.join(logdir, 'params.json'), 'w') as f:
         json.dump(kwargs, f)
     launch(ctx, starting_epoch, policy_args, **kwargs)
