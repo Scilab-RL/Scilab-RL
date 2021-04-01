@@ -10,7 +10,6 @@ class TestingEnvs:
                  'FetchReach-v1',
                  #
                  'HandManipulateBlock-v0'
-
                  ]
 
     # def get_CartPole_v1_cmds(self):

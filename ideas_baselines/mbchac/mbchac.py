@@ -5,6 +5,7 @@ from typing import Any, Iterable, List, Optional, Tuple, Type, Union
 import numpy as np
 import torch as th
 import gym
+import matplotlib.pyplot as plt
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import BaseCallback
@@ -143,7 +144,7 @@ class MBCHAC(BaseAlgorithm):
                     len(sub_model_classes) + 1), "Error, number of time scales is not equal to number of layers."
         assert time_scales.count(
             "_") <= 1, "Error, only one wildcard character \'_\' allowed in time_scales argument {}".format(time_scales)
-        env = SubgoalVisualizationWrapper(env)
+        # env = SubgoalVisualizationWrapper(env)
         if self.is_top_layer == 1:  # Determine time_scales. Only do this once at top layer.
             self.time_scales = compute_time_scales(time_scales, env)
             # Build hierarchical layer_envs from env, depending on steps and action space.
@@ -488,18 +489,19 @@ class MBCHAC(BaseAlgorithm):
                     action, buffer_action = self._sample_action(observation=self._last_obs, learning_starts=ls, deterministic=True)
                 else:
                     action, buffer_action = self._sample_action(observation=self._last_obs, learning_starts=ls, deterministic=False)
-                # if self.layer==1 and episode_timesteps == (self.max_episode_length-1): # Comment this out to hard-set the last subgoal to the final goal
+                # if self.layer==1 and episode_timesteps == (self.max_episode_length-1): # Un-Comment this to hard-set the last subgoal to the final goal
                 #     action = observation['desired_goal']
                 new_obs, reward, done, infos = env.step(action)
                 if subgoal_test: # if the subgoal test has started here, unset testing mode of submodel if applicable.
                     self.unset_subgoal_test_mode()
                 if self.is_bottom_layer and self.train_render_info != 'none':
                     if self.render_train == 'record':
-                        frame = self.env.venv.envs[0].render(mode='rgb_array', width=self.train_render_info['size'][0],
+                        frame = self.env.unwrapped.render(mode='rgb_array', width=self.train_render_info['size'][0],
                                                              height=self.train_render_info['size'][1])
+                        # cv2.imwrite('tmp.png', frame) # For debugging un-comment this.
                         self.train_render_frames.append(frame)
                     elif self.render_train == 'display':
-                        self.env.venv.envs[0].render(mode='human')
+                        self.env.unwrapped.envs[0].render(mode='human')
 
                 self.num_timesteps += 1
                 self.model.num_timesteps = self.num_timesteps
@@ -534,10 +536,10 @@ class MBCHAC(BaseAlgorithm):
                     next_obs = infos[0]["terminal_observation"]
                 else:
                     next_obs = new_obs_
-                # try:
-                self.replay_buffer.add(self._last_original_obs, next_obs, buffer_action, reward_, done, infos)
-                # except Exception as e:
-                #     print("ohno {}".format(e))
+                try:
+                    self.replay_buffer.add(self._last_original_obs, next_obs, buffer_action, reward_, done, infos)
+                except Exception as e:
+                    print("ohno {}".format(e))
 
                 self._last_obs = new_obs
                 self.model._last_obs = self._last_obs
@@ -661,11 +663,11 @@ class MBCHAC(BaseAlgorithm):
             #     print(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
             if self.is_bottom_layer and self.test_render_info != 'none':
                 if self.render_test == 'record':
-                    frame = eval_env.venv.envs[0].render(mode='rgb_array', width=self.test_render_info['size'][0],
+                    frame = eval_env.unwrapped.render(mode='rgb_array', width=self.test_render_info['size'][0],
                                                          height=self.test_render_info['size'][1])
                     self.test_render_frames.append(frame)
                 elif self.render_test == 'display':
-                    eval_env.venv.envs[0].render(mode='human')
+                    eval_env.unwrapped.render(mode='human')
             if self.sub_model is not None:
                 self.sub_model.reset_eval_info_list()
             step_ctr += 1

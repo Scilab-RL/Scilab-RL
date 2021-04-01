@@ -93,33 +93,36 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
         }
 
     def _render_callback(self):
-        for name in self.subgoals:
-            try:
-                site_id = self.sim.model.site_name2id(name)
-                self.sim.model.site_pos[site_id] = self.subgoals[name][0].copy()
-                size = [self.subgoals[name][1]]*3
-                self.sim.model.site_size[site_id] = size
-                self.sim.model.site_rgba[site_id] = self.subgoals[name][2]
-            except ValueError as e:
-                raise ValueError("Site {} does not exist. Please include the ideas_envs.assets.subgoal_viz.xml "
-                                 "in your environment xml.".format(name)) from e
-
-    def display_subgoals(self, subgoals, shape='sphere', size=0.025, colors=None):
-        """
-            :param subgoals is a one dimensional array with the subgoal positions
-                            with the shape: [x, y, x, y, ...]
-            :param shape is the geometric shape of the subgoal visualization site
-                            it can be either 'sphere', 'box' or 'cylinder'
-            :param size is the size of the subgoal visualization site
-            :param colors is a list of colors for the visualizations
-                            with the shape: [r, g, b, a, r, g, b, a, ...]
-        """
-        assert len(subgoals) % 2 == 0, "The subgoals must be provided in the form [x, y, x, y, ...]"
-        if colors is None:
-            colors = SITE_COLORS[:int(len(subgoals)*2)]
-        for i in range(int(len(subgoals)/2)):
-            self.subgoals['subgoal_{}{}'.format(shape, i)] = ([subgoals[i*2], subgoals[i*2 + 1], self.table_height],
-                                                              size, colors[i*4: (i+1)*4])
+        # for name in self.subgoals:
+        #     try:
+        #         site_id = self.sim.model.site_name2id(name)
+        #         self.sim.model.site_pos[site_id] = self.subgoals[name][0].copy()
+        #         size = [self.subgoals[name][1]]*3
+        #         self.sim.model.site_size[site_id] = size
+        #         self.sim.model.site_rgba[site_id] = self.subgoals[name][2]
+        #     except ValueError as e:
+        #         raise ValueError("Site {} does not exist. Please include the ideas_envs.assets.subgoal_viz.xml "
+        #                          "in your environment xml.".format(name)) from e
+        pass
+    def layer_goal_to_3d(self, goal):
+        goal_3d = np.array(list(goal) + [self.table_height])
+        return goal_3d
+    # def display_subgoals(self, subgoals, shape='sphere', size=0.025, colors=None):
+    #     """
+    #         :param subgoals is a one dimensional array with the subgoal positions
+    #                         with the shape: [x, y, x, y, ...]
+    #         :param shape is the geometric shape of the subgoal visualization site
+    #                         it can be either 'sphere', 'box' or 'cylinder'
+    #         :param size is the size of the subgoal visualization site
+    #         :param colors is a list of colors for the visualizations
+    #                         with the shape: [r, g, b, a, r, g, b, a, ...]
+    #     """
+    #     assert len(subgoals) % 2 == 0, "The subgoals must be provided in the form [x, y, x, y, ...]"
+    #     if colors is None:
+    #         colors = SITE_COLORS[:int(len(subgoals)*2)]
+    #     for i in range(int(len(subgoals)/2)):
+    #         self.subgoals['subgoal_{}{}'.format(shape, i)] = ([subgoals[i*2], subgoals[i*2 + 1], self.table_height],
+    #                                                           size, colors[i*4: (i+1)*4])
 
     def _reset_sim(self):
         self.sim.set_state(self.initial_state)
