@@ -6,7 +6,6 @@ import gym
 from stable_baselines3.common import logger
 from gym import error, spaces
 from gym.utils import seeding
-from gym.envs.robotics import FetchReachEnv
 from typing import Any, Callable, List, Optional, Sequence, Union
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -52,6 +51,8 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
 
         return env_list
 
+    bottom_env = inject_subgoal_geometry(bottom_env)
+
     env_list = recursive_get_henvs(bottom_env=bottom_env, level_steps_str=level_steps_str,
                                    env_list=[], is_testing_env=is_testing_env, model=model)
 
@@ -66,6 +67,10 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
         env_list[j].level = level
 
     return env_list
+
+def inject_subgoal_geometry(bottom_env):
+    # TBD
+    return bottom_env
 
 class HierarchicalVecEnv(DummyVecEnv):
     """
@@ -135,6 +140,9 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self._sub_env = env
         if np.inf in self.action_space.high or -np.inf in self.action_space.low:
             self.update_action_bound_guess()
+
+
+
 
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
