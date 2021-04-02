@@ -122,7 +122,7 @@ class HierarchicalVecEnv(DummyVecEnv):
         layer = 0
         while True:
             layer_goals_to_render = current_goal_viz_env.unwrapped.goal
-            if hasattr(current_goal_viz_env, 'layer_goal_to_3d'):
+            if hasattr(self.envs[env_idx], 'layer_goal_to_3d'):
                 layer_goals_to_render = self.envs[env_idx].layer_goal_to_3d(layer_goals_to_render.copy())
             if len(layer_goals_to_render) % 3 == 0:
                 n_goals = len(layer_goals_to_render) // 3

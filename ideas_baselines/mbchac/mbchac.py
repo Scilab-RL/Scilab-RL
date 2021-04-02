@@ -498,10 +498,10 @@ class MBCHAC(BaseAlgorithm):
                     if self.render_train == 'record':
                         frame = self.env.unwrapped.render(mode='rgb_array', width=self.train_render_info['size'][0],
                                                              height=self.train_render_info['size'][1])
-                        # cv2.imwrite('tmp.png', frame) # For debugging un-comment this.
+                        cv2.imwrite('tmp.png', frame) # For debugging un-comment this.
                         self.train_render_frames.append(frame)
                     elif self.render_train == 'display':
-                        self.env.unwrapped.envs[0].render(mode='human')
+                        self.env.unwrapped.render(mode='human')
 
                 self.num_timesteps += 1
                 self.model.num_timesteps = self.num_timesteps
