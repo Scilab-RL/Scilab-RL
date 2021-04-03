@@ -36,12 +36,12 @@ import sys
 from stable_baselines3.common.vec_env import VecVideoRecorder
 import cv2
 from watchpoints import watch
+from stable_baselines3.common.vec_env import is_wrapped
 from stable_baselines3.common.vec_env import (
     DummyVecEnv,
     VecEnv,
     VecNormalize,
     VecTransposeImage,
-    is_wrapped,
     unwrap_vec_normalize,
 )
 

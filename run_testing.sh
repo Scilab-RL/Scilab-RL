@@ -19,7 +19,12 @@ while getopts ":ht:p:m:g:s:" arg; do
       ;;
     g) # Specify a comma-sparated list of GPU ids to include in the testing, e.g. '0,1', or simply '0' to use GPU 0.
       echo "g is ${OPTARG}"
-      gpu_ids=',' read -r -a array <<< "${OPTARG}"
+      IFS=', ' read -r -a gpu_ids <<< "${OPTARG}"
+#      for element in "${array[@]}"
+#      do
+#          echo "$element"
+#      done
+#      gpu_ids=',' read -r -a array <<< "${OPTARG}"
       ;;
     s) # Specify time to sleep in seconds after each command. This is important to wait for the previous command to create directories and allocate memory before the next process is started.
       echo "s is ${OPTARG}"
