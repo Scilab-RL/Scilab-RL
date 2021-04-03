@@ -335,10 +335,10 @@ class HHerReplayBuffer(ReplayBuffer):
 
         # Perform action replay
         if self.perform_action_replay_transitions:
-            assert len(transitions['next_achieved_goal'].shape) == 3 and \
-                   transitions['next_achieved_goal'].shape[1] == 1 and \
+            assert len(transitions['achieved_goal'].shape) == 3 and \
+                   transitions['achieved_goal'].shape[1] == 1 and \
                    len(transitions['action'].shape) == 2, "Error! Unexpected dimension during action replay transition sampling."
-            transitions['action'] = transitions['next_achieved_goal'].reshape([transitions['next_achieved_goal'].shape[0], transitions['next_achieved_goal'].shape[2]])
+            transitions['action'] = transitions['achieved_goal'].reshape([transitions['achieved_goal'].shape[0], transitions['achieved_goal'].shape[2]])
 
         # concatenate observation with (desired) goal
         observations = ObsDictWrapper.convert_dict(self._normalize_obs(transitions, maybe_vec_env))

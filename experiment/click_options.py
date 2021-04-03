@@ -27,6 +27,7 @@ click.option('--tensorboard', type=int, default=2, help='max. number of tensorbo
 click.option('--plot_eval_cols', type=str, default='test/success_rate,test/mean_reward', help='Data to plot for evaluation. Strings separated by comma.'),
 click.option('--plot_at_most_every_secs', type=int, default=60, help='Number of seconds to wait for next plot with MatplotlibOutputFormat.'),
 click.option('--info', type=str, default='60', help='Some info string to append to the log folder for easier testing and debuggung.'),
+click.option('--save_model_freq', type=int, default=5000, help='The number of steps after which to save the model.'),
 # click.option('--reward_type', type=str, default='sparse', help='the reward type, dense or sparse')
 ]
 

@@ -67,6 +67,15 @@ class TestingAlgos:
         elif env in ['HandManipulateBlock-v0']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
+        elif 'Blocks-o' in env:
+            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
+        elif 'ButtonUnlock-o' in env:
+            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
+        elif 'Hook-o' in env:
+            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []

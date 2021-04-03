@@ -14,7 +14,8 @@ from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.policies import BasePolicy
 from stable_baselines3.common.save_util import load_from_zip_file, recursive_setattr
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, RolloutReturn
-from stable_baselines3.common.utils import check_for_correct_spaces
+from ideas_baselines.mbchac.util import check_for_correct_spaces
+# from stable_baselines3.common.utils import check_for_correct_spaces
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
 from ideas_baselines.mbchac.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
@@ -130,12 +131,13 @@ class MBCHAC(BaseAlgorithm):
         subgoal_test_perc: float = 0.3,
         render_train: str = 'none',
         render_test: str = 'none',
+        render_every_n_eval: int = 1,
         *args,
         **kwargs,
     ):
         self.gradient_steps = n_train_batches
         self.learn_callback = None
-
+        self.render_every_n_eval = render_every_n_eval
         self.is_top_layer = is_top_layer
         self.time_scales = time_scales
         self.train_freq = train_freq
@@ -188,6 +190,7 @@ class MBCHAC(BaseAlgorithm):
                                     is_top_layer=False, layer_envs=layer_envs[1:],
                                     render_train=render_train,
                                     render_test=render_test,
+                                    render_every_n_eval=render_every_n_eval,
                                     **kwargs)
         else:
             self.sub_model = None
@@ -227,6 +230,12 @@ class MBCHAC(BaseAlgorithm):
         sample_test_trans_fraction = subgoal_test_perc / (self.n_sampled_goal + 1)
         sample_test_trans_fraction = (not self.is_bottom_layer) * sample_test_trans_fraction
         subgoal_test_fail_penalty = next_level_steps
+
+        ## DEBUG to disable action replay and testing transitions on all layers.
+        sample_test_trans_fraction = 0.0
+        perform_action_replay = False
+        ## END DEBUG
+
         self._episode_storage = HHerReplayBuffer(
             self.env,
             her_buffer_size,
@@ -494,11 +503,11 @@ class MBCHAC(BaseAlgorithm):
                 new_obs, reward, done, infos = env.step(action)
                 if subgoal_test: # if the subgoal test has started here, unset testing mode of submodel if applicable.
                     self.unset_subgoal_test_mode()
-                if self.is_bottom_layer and self.train_render_info != 'none':
+                if self.is_bottom_layer and self.train_render_info != 'none' and self.epoch_count % self.render_every_n_eval == 0:
                     if self.render_train == 'record':
                         frame = self.env.unwrapped.render(mode='rgb_array', width=self.train_render_info['size'][0],
                                                              height=self.train_render_info['size'][1])
-                        cv2.imwrite('tmp.png', frame) # For debugging un-comment this.
+                        # cv2.imwrite('tmp.png', frame) ## DEBUG
                         self.train_render_frames.append(frame)
                     elif self.render_train == 'display':
                         self.env.unwrapped.render(mode='human')
@@ -650,8 +659,8 @@ class MBCHAC(BaseAlgorithm):
             obs = ObsDictWrapper.convert_dict(obs)
             action, _ = self._sample_action(observation=obs,learning_starts=0, deterministic=True)
             # If it is the last high-level action, then set subgoal to end goal.
-            if self.layer!=0 and step_ctr+1 == eval_env.venv.envs[0]._max_episode_steps:
-                action = [eval_env.venv.envs[0].goal.copy()]
+            # if self.layer != 0 and step_ctr+1 == eval_env.venv.envs[0]._max_episode_steps:
+            #     action = [eval_env.venv.envs[0].goal.copy()]
             # if self.layer == 1: ## DEBUG
             #     print("Setting new subgoal {} for observation {}".format(action, obs))
             # else:
@@ -661,10 +670,11 @@ class MBCHAC(BaseAlgorithm):
             #     print(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
             #     print(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
             #     print(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
-            if self.is_bottom_layer and self.test_render_info != 'none':
+            if self.is_bottom_layer and self.test_render_info != 'none' and self.epoch_count % self.render_every_n_eval == 0:
                 if self.render_test == 'record':
                     frame = eval_env.unwrapped.render(mode='rgb_array', width=self.test_render_info['size'][0],
                                                          height=self.test_render_info['size'][1])
+                    # cv2.imwrite('tmp_test.png', frame)  ## DEBUG
                     self.test_render_frames.append(frame)
                 elif self.render_test == 'display':
                     eval_env.unwrapped.render(mode='human')
@@ -798,23 +808,25 @@ class MBCHAC(BaseAlgorithm):
 
         # check if given env is valid
         if env is not None:
-            # Wrap first if needed
-            env = cls._wrap_env(env, data["verbose"])
+            # Wrap first if needed just to compare the spaces
+            wrapped_env = cls._wrap_env(env, data["verbose"])
             # Check if given env is valid
-            check_for_correct_spaces(env, data["observation_space"], data["action_space"])
+            check_for_correct_spaces(wrapped_env, data["observation_space"], data["action_space"])
         else:
             # Use stored env, if one exists. If not, continue as is (can be used for predict)
             if "env" in data:
                 env = data["env"]
+                del data['env']
 
-        if "use_sde" in data and data["use_sde"]:
-            kwargs["use_sde"] = True
+        # if "use_sde" in data and data["use_sde"]:
+        #     kwargs["use_sde"] = True
 
         # Keys that cannot be changed
         for key in {"model_class", "max_episode_length"}:
             if key in kwargs:
                 del kwargs[key]
 
+        # data.update(kwargs)
         # Keys that can be changed
         for key in {"n_sampled_goal", "goal_selection_strategy"}:
             if key in kwargs:
@@ -826,10 +838,10 @@ class MBCHAC(BaseAlgorithm):
             policy=data["policy_class"],
             env=env,
             model_class=data["model_class"],
-            n_sampled_goal=data["n_sampled_goal"],
+            # n_sampled_goal=data["n_sampled_goal"],
             goal_selection_strategy=data["goal_selection_strategy"],
             max_episode_length=data["max_episode_length"],
-            policy_kwargs=data["policy_kwargs"],
+            # policy_kwargs=data["policy_kwargs"],
             _init_setup_model=False,  # pytype: disable=not-instantiable,wrong-keyword-args
             **kwargs,
         )
@@ -931,14 +943,25 @@ class MBCHAC(BaseAlgorithm):
             self.sub_model._record_logs()
 
         self.epoch_count += 1
-        if self.is_top_layer and self.train_render_info is not None:
-            self.stop_train_video_writer()
-            self.start_train_video_writer(self.epoch_count)
-
-        if self.is_top_layer and self.test_render_info is not None:
-            self.stop_test_video_writer()
-            self.start_test_video_writer(self.epoch_count)
-        # Pass the number of timesteps for tensorboard
+        if self.is_top_layer:
+            if self.epoch_count % self.render_every_n_eval == 0:
+                if self.train_render_info is not None:
+                    self.start_train_video_writer(self.epoch_count)
+                if self.test_render_info is not None:
+                    self.start_test_video_writer(self.epoch_count)
+            if (self.epoch_count - 1) % self.render_every_n_eval == 0:
+                if self.train_render_info is not None:
+                    self.stop_train_video_writer()
+                if self.test_render_info is not None:
+                    self.stop_test_video_writer()
+        # if self.is_top_layer and self.train_render_info is not None:
+        #     self.stop_train_video_writer()
+        #     self.start_train_video_writer(self.epoch_count)
+        #
+        # if self.is_top_layer and self.test_render_info is not None:
+        #     self.stop_test_video_writer()
+        #     self.start_test_video_writer(self.epoch_count)
+        # # Pass the number of timesteps for tensorboard
 
 
     def _dump_logs(self) -> None:

@@ -3,13 +3,19 @@ class TestingEnvs:
     env_names = [
                  # 'CartPole-v1',
                  # 'MountainCarContinuous-v0',
-                 'HandReach-v0',
-                 'FetchPush-v1',
-                 # 'FetchSlide-v1',
-                 'FetchPickAndPlace-v1',
+                 # 'FetchPush-v1',
+                 # # 'FetchSlide-v1',
+                 # 'FetchPickAndPlace-v1',
                  'FetchReach-v1',
+                 # #
+                 # 'HandManipulateBlock-v0',
                  #
-                 'HandManipulateBlock-v0'
+                 'Blocks-o0-gripper_random-v1',
+                 'Blocks-o1-gripper_above-v1',
+                 'Blocks-o1-gripper_random-v1',
+                 'ButtonUnlock-o0-v1',
+                 'ButtonUnlock-o1-v1',
+                 'Hook-o1-v1'
                  ]
 
     # def get_CartPole_v1_cmds(self):
