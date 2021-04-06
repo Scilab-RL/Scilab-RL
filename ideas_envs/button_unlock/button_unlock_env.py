@@ -123,6 +123,7 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
 
     def _reset_sim(self):
         self.sim.set_state(self.initial_state)
+        self.locked = np.ones(self.n_buttons-1)
         # randomize start position of buttons
         for i in range(self.n_buttons):
             # find a position that is not too close to the gripper or another button
