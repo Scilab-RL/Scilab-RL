@@ -1,6 +1,5 @@
 from gym.core import Wrapper
 
-SPHERE, BOX, CYLINDER = 'sphere', 'box', 'cylinder'
 SITE_COLORS = [1, 0, 0, 0.3,
                0, 1, 0, 0.3,
                0, 0, 1, 0.3,
@@ -34,7 +33,7 @@ class SubgoalVisualizationWrapper(Wrapper):
                 raise ValueError("Site {} does not exist. Please include the ideas_envs.assets.subgoal_viz.xml "
                                  "in your environment xml.".format(name)) from e
 
-    def display_subgoals(self, subgoals, shape=SPHERE, size=0.025, colors=None):
+    def display_subgoals(self, subgoals, shape='sphere', size=0.025, colors=None):
         """
             :param subgoals is a one dimensional array with the subgoal positions
                             with the shape: [x, y, z, x, y, z, ...]
@@ -44,9 +43,10 @@ class SubgoalVisualizationWrapper(Wrapper):
             :param colors is a list of colors for the visualizations
                             with the shape: [r, g, b, a, r, g, b, a, ...]
         """
-        assert len(subgoals) % 3 == 0, "The subgoals must be provided in the form [x, y, z, x, y, z, ...]"
         if hasattr(self.env.unwrapped, 'display_subgoals'):
             self.env.unwrapped.display_subgoals(subgoals)
+            return
+        assert len(subgoals) % 3 == 0, "The subgoals must be provided in the form [x, y, z, x, y, z, ...]"
         if colors is None:
             colors = SITE_COLORS[:int((len(subgoals)/3) * 4)]
         for i in range(int(len(subgoals)/3)):
