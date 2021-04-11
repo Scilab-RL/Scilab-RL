@@ -47,8 +47,8 @@ class TestingAlgos:
                                               + 'train_0/actor_loss,train_0/critic_loss,train_0/ent_coef,train_0/n_updates,test_0/ep_success,test_0/ep_reward,train_0/ent_coef_loss,rollout_0/success_rate,'
                                               + 'train_1/actor_loss,train_1/critic_loss,train_1/ent_coef,train_1/n_updates,test_1/ep_success,test_1/ep_reward,train_1/ent_coef_loss,rollout_1/success_rate,'
                                               + 'train_2/actor_loss,train_2/critic_loss,train_2/ent_coef,train_2/n_updates,test_2/ep_success,test_2/ep_reward,train_2/ent_coef_loss,rollout_2/success_rate',
-                            'render_test' : 'record',
-                            'render_train': 'record',
+                            'render_test' : 'none',
+                            'render_train': 'none',
                             }
 
         if env in ['FetchReach-v1']:
