@@ -50,8 +50,8 @@ class TestingAlgos:
                             }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 1,
-                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+            performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
@@ -68,8 +68,8 @@ class TestingAlgos:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
-                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
+            performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
