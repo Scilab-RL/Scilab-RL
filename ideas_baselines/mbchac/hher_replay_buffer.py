@@ -71,8 +71,8 @@ class HHerReplayBuffer(ReplayBuffer):
 
         self.test_trans_sampling_fraction = test_trans_sampling_fraction
 
-        self.subgoal_test_fail_penalty = max(subgoal_test_fail_penalty, 1) # This is a workaround as a compromise between using the full penalty and penalty=1
-        # self.subgoal_test_fail_penalty = 1
+        self.subgoal_test_fail_penalty = max(subgoal_test_fail_penalty, 1)
+
 
         # input dimensions for buffer initialization
         self.input_shape = {
@@ -337,12 +337,13 @@ class HHerReplayBuffer(ReplayBuffer):
             assert len(transitions['next_achieved_goal'].shape) == 3 and \
                    transitions['next_achieved_goal'].shape[1] == 1 and \
                    len(transitions['action'].shape) == 2, "Error! Unexpected dimension during action replay transition sampling."
+            # perform action replay only where the action was not successful.
+            infos = transitions['info']
+            success = np.array([[inf['is_success'] for inf in info] for info in infos])[:,0]
+            no_success_idxs = np.where(np.isclose(success, 0.0))
             unscaled_action = transitions['next_achieved_goal'].reshape([transitions['next_achieved_goal'].shape[0], transitions['next_achieved_goal'].shape[2]])
             scaled_action = self.env.unwrapped.envs[0].unwrapped.model.policy.scale_action(unscaled_action)
-            transitions['action'] = scaled_action
-                # self.env.unwrapped.envs[0].unwrapped.model.policy.unscale_action(scaled_action)
-            # transitions['action'] = self.model.policy.unscale_action(scaled_action)
-
+            transitions['action'][no_success_idxs] = scaled_action[no_success_idxs]
 
         # concatenate observation with (desired) goal
         observations = ObsDictWrapper.convert_dict(self._normalize_obs(transitions, maybe_vec_env))

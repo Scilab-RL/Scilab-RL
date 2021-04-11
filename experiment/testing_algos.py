@@ -46,11 +46,13 @@ class TestingAlgos:
                             'plot_eval_cols': 'test/success_rate,test/mean_reward,'
                                               + 'train_0/actor_loss,train_0/critic_loss,train_0/ent_coef,train_0/n_updates,test_0/ep_success,test_0/ep_reward,train_0/ent_coef_loss,rollout_0/success_rate,'
                                               + 'train_1/actor_loss,train_1/critic_loss,train_1/ent_coef,train_1/n_updates,test_1/ep_success,test_1/ep_reward,train_1/ent_coef_loss,rollout_1/success_rate,'
-                                              + 'train_2/actor_loss,train_2/critic_loss,train_2/ent_coef,train_2/n_updates,test_2/ep_success,test_2/ep_reward,train_2/ent_coef_loss,rollout_2/success_rate'
+                                              + 'train_2/actor_loss,train_2/critic_loss,train_2/ent_coef,train_2/n_updates,test_2/ep_success,test_2/ep_reward,train_2/ent_coef_loss,rollout_2/success_rate',
+                            'render_test' : 'record',
+                            'render_train': 'record',
                             }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
+            performance_params = {'n_epochs': 75, 'n_runs': 7, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
@@ -68,7 +70,7 @@ class TestingAlgos:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
+            performance_params = {'n_epochs': 75, 'n_runs': 7, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
