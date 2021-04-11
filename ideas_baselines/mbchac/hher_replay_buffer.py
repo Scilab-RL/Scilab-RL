@@ -71,7 +71,7 @@ class HHerReplayBuffer(ReplayBuffer):
 
         self.test_trans_sampling_fraction = test_trans_sampling_fraction
 
-        self.subgoal_test_fail_penalty = max(subgoal_test_fail_penalty / 4, 1) # This is a workaround as a compromise between using the full penalty and penalty=1
+        self.subgoal_test_fail_penalty = max(subgoal_test_fail_penalty, 1) # This is a workaround as a compromise between using the full penalty and penalty=1
         # self.subgoal_test_fail_penalty = 1
 
         # input dimensions for buffer initialization
