@@ -20,7 +20,7 @@ click.option('--use_action_replay', type=int, default=1, help='Whether to use ac
 
 click.option('--render_train', type=click.Choice(['record', 'display', 'none']), default='none', help='Whether and how to render the rollout execution during training. \'record\' is for video, \'display\' for direct visualization.'),
 click.option('--render_test', type=click.Choice(['record', 'display', 'none']), default='none', help='Whether and how to render the rollout execution during testing. \'record\' is for video, \'display\' for direct visualization.'),
-click.option('--render_every_n_eval', type=int, default=10, help='The number of evaluations (epochs) after which to render the simluation. This has only an effect if \'render_train\' or \'render_test\' is not set to \'none\'.'),
+click.option('--render_every_n_eval', type=int, default=15, help='The number of evaluations (epochs) after which to render the simluation. This has only an effect if \'render_train\' or \'render_test\' is not set to \'none\'.'),
 # HAC
 # click.option('--target_networks', type=int, default=1),
 # click.option('--tau', type=float, default=0.005, help='Tau to update target networks'),
