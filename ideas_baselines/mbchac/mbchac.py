@@ -35,8 +35,11 @@ from stable_baselines3.common.logger import HumanOutputFormat
 import sys
 from stable_baselines3.common.vec_env import VecVideoRecorder
 import cv2
-from watchpoints import watch
-from stable_baselines3.common.vec_env import is_wrapped
+try:
+    from stable_baselines3.common.env_util import is_wrapped # stable-baselines v.3
+except Exception as e:
+    from stable_baselines3.common.vec_env import is_wrapped # stable-baselines v.0.1
+
 from stable_baselines3.common.vec_env import (
     DummyVecEnv,
     VecEnv,
@@ -44,7 +47,6 @@ from stable_baselines3.common.vec_env import (
     VecTransposeImage,
     unwrap_vec_normalize,
 )
-
 
 def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> int:
     """
@@ -132,6 +134,7 @@ class MBCHAC(BaseAlgorithm):
         render_train: str = 'none',
         render_test: str = 'none',
         render_every_n_eval: int = 1,
+        use_action_replay: bool = True,
         *args,
         **kwargs,
     ):
@@ -142,6 +145,7 @@ class MBCHAC(BaseAlgorithm):
         self.time_scales = time_scales
         self.train_freq = train_freq
         self.is_bottom_layer = len(self.time_scales.split(",")) == 1
+        self.parent_model = None
         assert len(time_scales.split(",")) == (
                     len(sub_model_classes) + 1), "Error, number of time scales is not equal to number of layers."
         assert time_scales.count(
@@ -191,7 +195,9 @@ class MBCHAC(BaseAlgorithm):
                                     render_train=render_train,
                                     render_test=render_test,
                                     render_every_n_eval=render_every_n_eval,
+                                    use_action_replay=use_action_replay,
                                     **kwargs)
+            self.sub_model.parent_model = self
         else:
             self.sub_model = None
 
@@ -225,16 +231,15 @@ class MBCHAC(BaseAlgorithm):
         # storage for transitions of current episode for offline sampling
         # for online sampling, it replaces the "classic" replay buffer completely
         her_buffer_size = self.buffer_size
-        perform_action_replay = not self.is_bottom_layer
+        self.subgoal_test_perc = subgoal_test_perc
 
-        sample_test_trans_fraction = subgoal_test_perc / (self.n_sampled_goal + 1)
+        sample_test_trans_fraction = self.subgoal_test_perc / (self.n_sampled_goal + 1)
         sample_test_trans_fraction = (not self.is_bottom_layer) * sample_test_trans_fraction
         subgoal_test_fail_penalty = next_level_steps
 
-        ## DEBUG to disable action replay and testing transitions on all layers.
-        sample_test_trans_fraction = 0.0
-        perform_action_replay = False
-        ## END DEBUG
+        perform_action_replay = not self.is_bottom_layer
+        self.perform_action_replay = perform_action_replay and use_action_replay
+
 
         self._episode_storage = HHerReplayBuffer(
             self.env,
@@ -246,7 +251,7 @@ class MBCHAC(BaseAlgorithm):
             self.device,
             self.n_envs,
             self.her_ratio,  # pytype: disable=wrong-arg-types
-            perform_action_replay,
+            self.perform_action_replay,
             sample_test_trans_fraction,
             subgoal_test_fail_penalty
         )
@@ -262,7 +267,6 @@ class MBCHAC(BaseAlgorithm):
         self.test_render_info = None
         self.train_render_frames = []
         self.train_render_info = None
-        self.subgoal_test_perc = subgoal_test_perc
 
         self.vid_size = 1024, 768
         self.vid_fps = 25
@@ -289,6 +293,15 @@ class MBCHAC(BaseAlgorithm):
         self.epoch_count = 0
         self.in_subgoal_test_mode = False
         self.continue_training = True
+        self.actions_since_last_train = 0
+        self.learning_enabled = False
+        if self.layer == 0:  # Always start training on lowest layer
+            self.set_learning_enabled()
+        else:
+            # Start learning for higher layers only if using action replay.
+            # Otherwise wait until the lower level layer is stable (see  _record_logs() below)
+            if use_action_replay:
+                self.set_learning_enabled()
 
     def get_continue_training(self):
         if self.sub_model is None:
@@ -344,9 +357,9 @@ class MBCHAC(BaseAlgorithm):
             action = self.sub_model.predict(observation, state, mask, deterministic)
         return action
 
-
     def train_model(self, n_gradient_steps: int):
-        if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0:
+        # if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0 and self.learning_enabled is True:
+        if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > self.learning_starts and self.learning_enabled is True:
             logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
             # assign temporary logger to avoid generating duplicate keys for the different layers.
             real_logger = logger.Logger.CURRENT
@@ -381,6 +394,13 @@ class MBCHAC(BaseAlgorithm):
             self.train_model(rollout.episode_timesteps)
         return True
 
+    def set_learning_enabled(self):
+        if self.learning_enabled is False:
+            self.actions_since_last_train = 0
+            self.learning_enabled = True
+            self.replay_buffer.reset()
+
+
     def init_learn(self, total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps):
         tb_log_name = "MBCHAC_{}".format(self.layer)
         layer_total_timesteps = total_timesteps / self.max_steps_per_layer_action
@@ -398,7 +418,6 @@ class MBCHAC(BaseAlgorithm):
         if self.sub_model is not None:
             self.sub_model.init_learn(total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
         self.train_callback = callback
-        self.actions_since_last_train = 0
         return layer_total_timesteps, callback
 
     def learn(
@@ -938,6 +957,9 @@ class MBCHAC(BaseAlgorithm):
 
         if len(self.ep_success_buffer) > 0:
             logger.record(rollout_pf + "/success_rate", safe_mean(self.ep_success_buffer))
+            if safe_mean(self.ep_success_buffer) > 0.9:
+                if self.parent_model is not None:
+                    self.parent_model.set_learning_enabled()
 
         if self.sub_model is not None:
             self.sub_model._record_logs()
@@ -954,6 +976,8 @@ class MBCHAC(BaseAlgorithm):
                     self.stop_train_video_writer()
                 if self.test_render_info is not None:
                     self.stop_test_video_writer()
+
+
         # if self.is_top_layer and self.train_render_info is not None:
         #     self.stop_train_video_writer()
         #     self.start_train_video_writer(self.epoch_count)
@@ -1000,7 +1024,9 @@ class MBCHAC(BaseAlgorithm):
         if observation is None:
             observation = self.model._last_obs
         # Select action randomly or according to policy
-        if self.model.num_timesteps < learning_starts and not (self.model.use_sde and self.model.use_sde_at_warmup):
+        # if self.model.num_timesteps < learning_starts or self.learning_enabled is False:
+        if self.replay_buffer.size() < learning_starts or self.learning_enabled is False:
+        # if self.model.num_timesteps < learning_starts and (not (self.model.use_sde and self.model.use_sde_at_warmup)):
             # Warmup phase
             unscaled_action = np.array([self.model.action_space.sample()])
         else:

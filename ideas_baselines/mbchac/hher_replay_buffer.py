@@ -59,29 +59,9 @@ class HHerReplayBuffer(ReplayBuffer):
         # buffer with episodes
         # number of episodes which can be stored until buffer size is reached
         self.max_episode_stored = self.buffer_size // self.max_episode_length
-        self.current_idx = 0
 
-        # input dimensions for buffer initialization
-        input_shape = {
-            "observation": (self.env.num_envs, self.env.obs_dim),
-            "achieved_goal": (self.env.num_envs, self.env.goal_dim),
-            "desired_goal": (self.env.num_envs, self.env.goal_dim),
-            "action": (self.action_dim,),
-            "reward": (1,),
-            "next_obs": (self.env.num_envs, self.env.obs_dim),
-            "next_achieved_goal": (self.env.num_envs, self.env.goal_dim),
-            "next_desired_goal": (self.env.num_envs, self.env.goal_dim),
-            "done": (1,),
-            "is_subgoal_testing_trans": (1,),
-        }
-        self.buffer = {
-            key: np.zeros((self.max_episode_stored, self.max_episode_length, *dim), dtype=np.float32)
-            for key, dim in input_shape.items()
-        }
-        # Store info dicts are it can be used to compute the reward (e.g. continuity cost)
-        self.info_buffer = [deque(maxlen=self.max_episode_length) for _ in range(self.max_episode_stored)]
-        # episode length storage, needed for episodes which has less steps than the maximum length
         self.episode_lengths = np.zeros(self.max_episode_stored, dtype=np.int64)
+
 
         self.goal_selection_strategy = goal_selection_strategy
         # percentage of her indices
@@ -93,6 +73,25 @@ class HHerReplayBuffer(ReplayBuffer):
 
         self.subgoal_test_fail_penalty = max(subgoal_test_fail_penalty / 4, 1) # This is a workaround as a compromise between using the full penalty and penalty=1
         # self.subgoal_test_fail_penalty = 1
+
+        # input dimensions for buffer initialization
+        self.input_shape = {
+            "observation": (self.env.num_envs, self.env.obs_dim),
+            "achieved_goal": (self.env.num_envs, self.env.goal_dim),
+            "desired_goal": (self.env.num_envs, self.env.goal_dim),
+            "action": (self.action_dim,),
+            "reward": (1,),
+            "next_obs": (self.env.num_envs, self.env.obs_dim),
+            "next_achieved_goal": (self.env.num_envs, self.env.goal_dim),
+            "next_desired_goal": (self.env.num_envs, self.env.goal_dim),
+            "done": (1,),
+            "is_subgoal_testing_trans": (1,),
+        }
+
+        self.reset()
+
+
+
 
     def __getstate__(self) -> Dict[str, Any]:
         """
@@ -335,10 +334,15 @@ class HHerReplayBuffer(ReplayBuffer):
 
         # Perform action replay
         if self.perform_action_replay_transitions:
-            assert len(transitions['achieved_goal'].shape) == 3 and \
-                   transitions['achieved_goal'].shape[1] == 1 and \
+            assert len(transitions['next_achieved_goal'].shape) == 3 and \
+                   transitions['next_achieved_goal'].shape[1] == 1 and \
                    len(transitions['action'].shape) == 2, "Error! Unexpected dimension during action replay transition sampling."
-            transitions['action'] = transitions['achieved_goal'].reshape([transitions['achieved_goal'].shape[0], transitions['achieved_goal'].shape[2]])
+            unscaled_action = transitions['next_achieved_goal'].reshape([transitions['next_achieved_goal'].shape[0], transitions['next_achieved_goal'].shape[2]])
+            scaled_action = self.env.unwrapped.envs[0].unwrapped.model.policy.scale_action(unscaled_action)
+            transitions['action'] = scaled_action
+                # self.env.unwrapped.envs[0].unwrapped.model.policy.unscale_action(scaled_action)
+            # transitions['action'] = self.model.policy.unscale_action(scaled_action)
+
 
         # concatenate observation with (desired) goal
         observations = ObsDictWrapper.convert_dict(self._normalize_obs(transitions, maybe_vec_env))
@@ -426,6 +430,13 @@ class HHerReplayBuffer(ReplayBuffer):
         """
         Reset the buffer.
         """
+        self.buffer = {
+            key: np.zeros((self.max_episode_stored, self.max_episode_length, *dim), dtype=np.float32)
+            for key, dim in self.input_shape.items()
+        }
+        # Store info dicts are it can be used to compute the reward (e.g. continuity cost)
+        self.info_buffer = [deque(maxlen=self.max_episode_length) for _ in range(self.max_episode_stored)]
+        # episode length storage, needed for episodes which has less steps than the maximum length
         self.pos = 0
         self.current_idx = 0
         self.full = False

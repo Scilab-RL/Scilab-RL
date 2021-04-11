@@ -80,11 +80,20 @@ class TestingAlgos:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
 
-        for time_scales in ['_', '10,10', '7,7' '_,20',]:
+        # ts = ['_', '10,10', '7,7', '_,20']
+        ts = ['10,10']
+        ar = [1, 0]
+        sg_test_perc = [0, 0.3]
+        hyper_params = {}
+        for time_scales in ts:
             model_classes = [model] * len(time_scales.split(','))
-            hyper_params = {'model_classes': ",".join(model_classes), 'time_scales': time_scales}
-            hyper_params.update(hyper_params_all)
-            all_params.append((performance_params.copy(), hyper_params.copy()))
+            hyper_params.update({'model_classes': ",".join(model_classes), 'time_scales': time_scales})
+            for action_replay in ar:
+                hyper_params.update({'use_action_replay': str(action_replay)})
+                for subgoal_test_perc in sg_test_perc:
+                    hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
+                    hyper_params.update(hyper_params_all)
+                    all_params.append((performance_params.copy(), hyper_params.copy()))
 
         return all_params
 
