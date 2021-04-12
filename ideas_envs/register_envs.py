@@ -25,3 +25,8 @@ register(id='Ant4Rooms-v1',
          entry_point='ideas_envs.ant.ant_4_rooms_env:Ant4RoomsEnv',
          kwargs={},
          max_episode_steps=600)
+
+register(id='AntReacher-v1',
+         entry_point='ideas_envs.ant.ant_reacher_env:AntReacherEnv',
+         kwargs={},
+         max_episode_steps=500)
