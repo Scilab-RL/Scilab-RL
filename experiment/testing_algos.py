@@ -54,7 +54,7 @@ class TestingAlgos:
                             }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 60, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 60, 'n_runs': 7, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
@@ -72,7 +72,7 @@ class TestingAlgos:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 60, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 60, 'n_runs': 7, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
@@ -86,8 +86,10 @@ class TestingAlgos:
 
         # ts = ['10,10']
         ts = ['50']
-        ar = [1, 0]
-        sg_test_perc = [0, 0.3]
+        # ar = [1, 0]
+        ar = [0]
+        # sg_test_perc = [0, 0.3]
+        sg_test_perc = [0]
         ep_early_done_on_succ = [0,1]
         hyper_params = {}
         for time_scales in ts:
