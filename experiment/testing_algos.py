@@ -44,17 +44,17 @@ class TestingAlgos:
         hyper_params_all = {'eval_after_n_steps': eval_after_n_steps,
                             'early_stop_last_n': early_stop_last_n,
                             'plot_eval_cols': 'test/success_rate,test/mean_reward,'
-                                              + 'train_0/actor_loss,train_0/critic_loss,train_0/ent_coef,train_0/n_updates,test_0/ep_success,test_0/ep_reward,train_0/ent_coef_loss,rollout_0/success_rate,test_0/q_mean,'
-                                              + 'train_1/actor_loss,train_1/critic_loss,train_1/ent_coef,train_1/n_updates,test_1/ep_success,test_1/ep_reward,train_1/ent_coef_loss,rollout_1/success_rate,test_1/q_mean,'
-                                              + 'train_2/actor_loss,train_2/critic_loss,train_2/ent_coef,train_2/n_updates,test_2/ep_success,test_2/ep_reward,train_2/ent_coef_loss,rollout_2/success_rate,test_2/q_mean',
+                                              + 'train_0/actor_loss,train_0/critic_loss,train_0/ent_coef,train_0/n_updates,test_0/ep_success,test_0/ep_reward,train_0/ent_coef_loss,rollout_0/success_rate,test_0/q_mean,test_0/ep_length,train_0/ep_length,test_0/step_success,'
+                                              + 'train_1/actor_loss,train_1/critic_loss,train_1/ent_coef,train_1/n_updates,test_1/ep_success,test_1/ep_reward,train_1/ent_coef_loss,rollout_1/success_rate,test_1/q_mean,test_1/ep_length,train_0/ep_length,test_1/step_success,'
+                                              + 'train_2/actor_loss,train_2/critic_loss,train_2/ent_coef,train_2/n_updates,test_2/ep_success,test_2/ep_reward,train_2/ent_coef_loss,rollout_2/success_rate,test_2/q_mean,test_2/ep_length,train_0/ep_length,test_2/step_success',
                             'render_test' : 'record',
                             'render_train': 'record',
                             'render_every_n_eval': 5,
-                            'save_model_freq': 20000
+                            'save_model_freq': 50000
                             }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 60, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
@@ -72,11 +72,11 @@ class TestingAlgos:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 60, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
-            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
-                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
+            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'Hook-o' in env:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
@@ -91,7 +91,7 @@ class TestingAlgos:
         # sg_test_perc = [0, 0.3]
         sg_test_perc = [0]
         ep_early_done_on_succ = [0,1]
-        goal_selection_strategy = ['future', 'rndend']
+        goal_selection_strategy = ['future', 'rndend', 'final']
         hyper_params = {}
         for gss in goal_selection_strategy:
             hyper_params.update({'goal_selection_strategy': gss})
