@@ -263,9 +263,7 @@ class MBCHAC(BaseAlgorithm):
 
         self.train_callback = None
         self.tmp_train_logger = logger.Logger(folder=None, output_formats=[]) # HumanOutputFormat(sys.stdout)
-        self.test_render_frames = []
         self.test_render_info = None
-        self.train_render_frames = []
         self.train_render_info = None
 
         self.vid_size = 1024, 768
@@ -309,31 +307,21 @@ class MBCHAC(BaseAlgorithm):
         else:
             return self.sub_model.get_continue_training()
 
-    def start_train_video_writer(self, n):
-        self.reset_train_render_frames()
-        self.train_video_writer = cv2.VideoWriter(self.train_render_info['path'] + '/train_{}.avi'.format(n),
+    def start_train_video_writer(self, filename_postfix):
+        self.train_video_writer = cv2.VideoWriter(self.train_render_info['path'] + '/train_{}.avi'.format(filename_postfix),
                         cv2.VideoWriter_fourcc('F', 'M', 'P', '4'), self.train_render_info['fps'],
                         self.train_render_info['size'])
+
     def stop_train_video_writer(self):
-        frames = self.get_train_render_frames()
-        if frames is not None and len(frames) > 0:
-            for f in frames:
-                self.train_video_writer.write(f)
         self.train_video_writer.release()
-        self.reset_train_render_frames()
-        
-    def start_test_video_writer(self, n):
-        self.reset_test_render_frames()
-        self.test_video_writer = cv2.VideoWriter(self.test_render_info['path'] + '/test_{}.avi'.format(n),
+
+    def start_test_video_writer(self, filename_postfix):
+        self.test_video_writer = cv2.VideoWriter(self.test_render_info['path'] + '/test_{}.avi'.format(filename_postfix),
                         cv2.VideoWriter_fourcc('F', 'M', 'P', '4'), self.test_render_info['fps'],
                         self.test_render_info['size'])
+
     def stop_test_video_writer(self):
-        frames = self.get_test_render_frames()
-        if frames is not None and len(frames) > 0:
-            for f in frames:
-                self.test_video_writer.write(f)
         self.test_video_writer.release()
-        self.reset_test_render_frames()
 
     def _setup_model(self) -> None:
         self.model._setup_model()
@@ -441,9 +429,9 @@ class MBCHAC(BaseAlgorithm):
         self.actions_since_last_train = 0
         continue_training = True
         if self.is_top_layer and self.train_render_info is not None:
-            self.start_train_video_writer(self.epoch_count)
+            self.start_train_video_writer(self.get_env_steps())
         if self.is_top_layer and self.test_render_info is not None:
-            self.start_test_video_writer(self.epoch_count)
+            self.start_test_video_writer(self.get_env_steps())
         while self.num_timesteps < total_timesteps and continue_training:
             continue_training = self.run_and_maybe_train(n_episodes=1)
         callback.on_training_end()
@@ -527,7 +515,7 @@ class MBCHAC(BaseAlgorithm):
                         frame = self.env.unwrapped.render(mode='rgb_array', width=self.train_render_info['size'][0],
                                                              height=self.train_render_info['size'][1])
                         # cv2.imwrite('tmp.png', frame) ## DEBUG
-                        self.train_render_frames.append(frame)
+                        self.get_top_model().train_video_writer.write(frame)
                     elif self.render_train == 'display':
                         self.env.unwrapped.render(mode='human')
 
@@ -583,7 +571,7 @@ class MBCHAC(BaseAlgorithm):
 
                 # For DQN, check if the target network should be updated
                 # and update the exploration schedule
-                # For SAC/TD3, the update is done as the same time as the gradient update
+                # For SAC/TD3, the update is done at the same time as the gradient update
                 # see https://github.com/hill-a/stable-baselines/issues/900
                 self.model._on_step()
 
@@ -677,6 +665,7 @@ class MBCHAC(BaseAlgorithm):
             obs = eval_env.venv.buf_obs
             obs = ObsDictWrapper.convert_dict(obs)
             action, _ = self._sample_action(observation=obs,learning_starts=0, deterministic=True)
+            q_val = self.maybe_get_model_q_value(action, obs)
             # If it is the last high-level action, then set subgoal to end goal.
             # if self.layer != 0 and step_ctr+1 == eval_env.venv.envs[0]._max_episode_steps:
             #     action = [eval_env.venv.envs[0].goal.copy()]
@@ -685,6 +674,7 @@ class MBCHAC(BaseAlgorithm):
             # else:
             #     print("Executing low-level action {} for observation {}".format(action, obs))
             new_obs, reward, done, info = eval_env.step(action)
+            info.append({'q_val': q_val})
             # if self.layer == 0: ## DEBUG
             #     print(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
             #     print(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
@@ -694,7 +684,7 @@ class MBCHAC(BaseAlgorithm):
                     frame = eval_env.unwrapped.render(mode='rgb_array', width=self.test_render_info['size'][0],
                                                          height=self.test_render_info['size'][1])
                     # cv2.imwrite('tmp_test.png', frame)  ## DEBUG
-                    self.test_render_frames.append(frame)
+                    self.get_top_model().test_video_writer.write(frame)
                 elif self.render_test == 'display':
                     eval_env.unwrapped.render(mode='human')
             if self.sub_model is not None:
@@ -738,6 +728,15 @@ class MBCHAC(BaseAlgorithm):
         if reward_key not in self.eval_info_list.keys():
             self.eval_info_list[reward_key] = [ep_reward]
         return self.eval_info_list
+
+    def maybe_get_model_q_value(self, action, obs):
+        try: # if we are lucky the model will compute the q value like this.
+            th_obs = th.from_numpy(obs).cuda()
+            th_act = th.from_numpy(action).cuda()
+            q = self.model.critic(th_obs, th_act)
+        except Exception as e: # otherwise just return none.
+            q = None
+        return q
 
     def _sample_her_transitions(self) -> None:
         """
@@ -968,24 +967,14 @@ class MBCHAC(BaseAlgorithm):
         if self.is_top_layer:
             if self.epoch_count % self.render_every_n_eval == 0:
                 if self.train_render_info is not None:
-                    self.start_train_video_writer(self.epoch_count)
+                    self.start_train_video_writer(self.get_env_steps())
                 if self.test_render_info is not None:
-                    self.start_test_video_writer(self.epoch_count)
+                    self.start_test_video_writer(self.get_env_steps())
             if (self.epoch_count - 1) % self.render_every_n_eval == 0:
                 if self.train_render_info is not None:
                     self.stop_train_video_writer()
                 if self.test_render_info is not None:
                     self.stop_test_video_writer()
-
-
-        # if self.is_top_layer and self.train_render_info is not None:
-        #     self.stop_train_video_writer()
-        #     self.start_train_video_writer(self.epoch_count)
-        #
-        # if self.is_top_layer and self.test_render_info is not None:
-        #     self.stop_test_video_writer()
-        #     self.start_test_video_writer(self.epoch_count)
-        # # Pass the number of timesteps for tensorboard
 
 
     def _dump_logs(self) -> None:
@@ -1066,6 +1055,12 @@ class MBCHAC(BaseAlgorithm):
         return env
     # wrap_env = _wrap_env
 
+    def get_top_model(self):
+        if self.is_top_layer:
+            return self
+        else:
+            return self.parent_model.get_top_model()
+
     def set_test_render_info(self, render_info):
         self.test_render_info = render_info
         if self.sub_model is not None:
@@ -1075,25 +1070,3 @@ class MBCHAC(BaseAlgorithm):
         self.train_render_info = render_info
         if self.sub_model is not None:
             self.sub_model.set_train_render_info(render_info)
-
-    def get_test_render_frames(self):
-        if self.sub_model is not None:
-            return self.sub_model.get_test_render_frames()
-        else:
-            return self.test_render_frames
-
-    def get_train_render_frames(self):
-        if self.sub_model is not None:
-            return self.sub_model.get_train_render_frames()
-        else:
-            return self.train_render_frames
-
-    def reset_test_render_frames(self):
-        self.test_render_frames = []
-        if self.sub_model is not None:
-            self.sub_model.reset_test_render_frames()
-
-    def reset_train_render_frames(self):
-        self.train_render_frames = []
-        if self.sub_model is not None:
-            self.sub_model.reset_train_render_frames()

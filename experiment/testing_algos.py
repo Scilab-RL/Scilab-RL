@@ -38,7 +38,7 @@ class TestingAlgos:
     @staticmethod
     def get_mbchac_performance_params(env):
         all_params = []
-        eval_after_n_steps = 4000
+        eval_after_n_steps = 5000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
         model = 'sac'
         hyper_params_all = {'eval_after_n_steps': eval_after_n_steps,
@@ -47,12 +47,14 @@ class TestingAlgos:
                                               + 'train_0/actor_loss,train_0/critic_loss,train_0/ent_coef,train_0/n_updates,test_0/ep_success,test_0/ep_reward,train_0/ent_coef_loss,rollout_0/success_rate,'
                                               + 'train_1/actor_loss,train_1/critic_loss,train_1/ent_coef,train_1/n_updates,test_1/ep_success,test_1/ep_reward,train_1/ent_coef_loss,rollout_1/success_rate,'
                                               + 'train_2/actor_loss,train_2/critic_loss,train_2/ent_coef,train_2/n_updates,test_2/ep_success,test_2/ep_reward,train_2/ent_coef_loss,rollout_2/success_rate',
-                            'render_test' : 'none',
-                            'render_train': 'none',
+                            'render_test' : 'record',
+                            'render_train': 'record',
+                            'render_every_n_eval': 5,
+                            'save_model_freq': 20000
                             }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 75, 'n_runs': 7, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 60, 'n_runs': 7, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
@@ -70,7 +72,7 @@ class TestingAlgos:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 75, 'n_runs': 7, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 60, 'n_runs': 7, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
@@ -82,7 +84,6 @@ class TestingAlgos:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
 
-        # ts = ['_', '10,10', '7,7', '_,20']
         ts = ['10,10']
         ar = [1, 0]
         sg_test_perc = [0, 0.3]
