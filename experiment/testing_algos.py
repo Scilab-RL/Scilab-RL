@@ -54,7 +54,7 @@ class TestingAlgos:
                             }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 60, 'n_runs': 7, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 60, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
@@ -72,7 +72,7 @@ class TestingAlgos:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 60, 'n_runs': 7, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 60, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
@@ -84,9 +84,11 @@ class TestingAlgos:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
 
-        ts = ['10,10']
+        # ts = ['10,10']
+        ts = ['50']
         ar = [1, 0]
         sg_test_perc = [0, 0.3]
+        ep_early_done_on_succ = [0,1]
         hyper_params = {}
         for time_scales in ts:
             model_classes = [model] * len(time_scales.split(','))
@@ -95,8 +97,10 @@ class TestingAlgos:
                 hyper_params.update({'use_action_replay': str(action_replay)})
                 for subgoal_test_perc in sg_test_perc:
                     hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
-                    hyper_params.update(hyper_params_all)
-                    all_params.append((performance_params.copy(), hyper_params.copy()))
+                    for eedos in ep_early_done_on_succ:
+                        hyper_params.update({'ep_early_done_on_succ': str(eedos)})
+                        hyper_params.update(hyper_params_all)
+                        all_params.append((performance_params.copy(), hyper_params.copy()))
 
         return all_params
 

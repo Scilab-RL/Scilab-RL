@@ -135,9 +135,11 @@ class MBCHAC(BaseAlgorithm):
         render_test: str = 'none',
         render_every_n_eval: int = 1,
         use_action_replay: bool = True,
+        ep_early_done_on_succ: bool = True,
         *args,
         **kwargs,
     ):
+        self.ep_early_done_on_succ = ep_early_done_on_succ
         self.gradient_steps = n_train_batches
         self.learn_callback = None
         self.render_every_n_eval = render_every_n_eval
@@ -196,6 +198,7 @@ class MBCHAC(BaseAlgorithm):
                                     render_test=render_test,
                                     render_every_n_eval=render_every_n_eval,
                                     use_action_replay=use_action_replay,
+                                    ep_early_done_on_succ=ep_early_done_on_succ,
                                     **kwargs)
             self.sub_model.parent_model = self
         else:
@@ -654,7 +657,7 @@ class MBCHAC(BaseAlgorithm):
         ep_reward = 0
         last_succ = [0]
         # For consistency wrap env.
-        eval_env = MBCHAC._wrap_env(eval_env)
+        eval_env = self._wrap_env(eval_env)
         assert hasattr(eval_env, 'venv'), "Error, vectorized environment required."
         if self.is_top_layer: # Reset simulator for all layers.
             eval_env.venv.reset_all()
@@ -665,7 +668,7 @@ class MBCHAC(BaseAlgorithm):
             obs = eval_env.venv.buf_obs
             obs = ObsDictWrapper.convert_dict(obs)
             action, _ = self._sample_action(observation=obs,learning_starts=0, deterministic=True)
-            q_val = self.maybe_get_model_q_value(action, obs)
+            q_mean, q_std = self.maybe_get_model_q_value(action, obs)
             # If it is the last high-level action, then set subgoal to end goal.
             # if self.layer != 0 and step_ctr+1 == eval_env.venv.envs[0]._max_episode_steps:
             #     action = [eval_env.venv.envs[0].goal.copy()]
@@ -674,7 +677,7 @@ class MBCHAC(BaseAlgorithm):
             # else:
             #     print("Executing low-level action {} for observation {}".format(action, obs))
             new_obs, reward, done, info = eval_env.step(action)
-            info.append({'q_val': q_val})
+            info.append({'q_mean': q_mean, 'q_std': q_std})
             # if self.layer == 0: ## DEBUG
             #     print(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
             #     print(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
@@ -730,13 +733,17 @@ class MBCHAC(BaseAlgorithm):
         return self.eval_info_list
 
     def maybe_get_model_q_value(self, action, obs):
-        try: # if we are lucky the model will compute the q value like this.
+        try: # if we are lucky we obtain get the model's q value like this.
             th_obs = th.from_numpy(obs).cuda()
             th_act = th.from_numpy(action).cuda()
-            q = self.model.critic(th_obs, th_act)
+            with th.no_grad():
+                q = th.stack(self.model.critic(th_obs, th_act))
+                q_mean = float(th.mean(q))
+                q_std = float(th.std(q))
         except Exception as e: # otherwise just return none.
-            q = None
-        return q
+            q_mean = None
+            q_std = None
+        return q_mean, q_std
 
     def _sample_her_transitions(self) -> None:
         """
@@ -1040,11 +1047,11 @@ class MBCHAC(BaseAlgorithm):
             action = buffer_action
         return action, buffer_action
 
-    @staticmethod
-    def _wrap_env(env: GymEnv, verbose: int = 0) -> HierarchicalVecEnv:
+    #@staticmethod
+    def _wrap_env(self, env: GymEnv, verbose: int = 0) -> HierarchicalVecEnv:
         if not isinstance(env, ObsDictWrapper):
             if not isinstance(env, HierarchicalVecEnv):
-                env = HierarchicalVecEnv([lambda: env])
+                env = HierarchicalVecEnv([lambda: env], self.ep_early_done_on_succ)
 
                 if is_image_space(env.observation_space) and not is_wrapped(env, VecTransposeImage):
                     env = VecTransposeImage(env)
