@@ -4,5 +4,5 @@
 # }
 
 ## These parameters will be included in the logging path name
-PATH_CONFIG_PARAMS = ['model_classes', 'time_scales', 'use_action_replay', 'subgoal_test_perc', 'ep_early_done_on_succ']
+PATH_CONFIG_PARAMS = ['model_classes', 'time_scales', 'use_action_replay', 'subgoal_test_perc', 'ep_early_done_on_succ', 'goal_selection_strategy']
 

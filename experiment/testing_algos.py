@@ -91,18 +91,21 @@ class TestingAlgos:
         # sg_test_perc = [0, 0.3]
         sg_test_perc = [0]
         ep_early_done_on_succ = [0,1]
+        goal_selection_strategy = ['future', 'rndend']
         hyper_params = {}
-        for time_scales in ts:
-            model_classes = [model] * len(time_scales.split(','))
-            hyper_params.update({'model_classes': ",".join(model_classes), 'time_scales': time_scales})
-            for action_replay in ar:
-                hyper_params.update({'use_action_replay': str(action_replay)})
-                for subgoal_test_perc in sg_test_perc:
-                    hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
-                    for eedos in ep_early_done_on_succ:
-                        hyper_params.update({'ep_early_done_on_succ': str(eedos)})
-                        hyper_params.update(hyper_params_all)
-                        all_params.append((performance_params.copy(), hyper_params.copy()))
+        for gss in goal_selection_strategy:
+            hyper_params.update({'goal_selection_strategy': gss})
+            for time_scales in ts:
+                model_classes = [model] * len(time_scales.split(','))
+                hyper_params.update({'model_classes': ",".join(model_classes), 'time_scales': time_scales})
+                for action_replay in ar:
+                    hyper_params.update({'use_action_replay': str(action_replay)})
+                    for subgoal_test_perc in sg_test_perc:
+                        hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
+                        for eedos in ep_early_done_on_succ:
+                            hyper_params.update({'ep_early_done_on_succ': str(eedos)})
+                            hyper_params.update(hyper_params_all)
+                            all_params.append((performance_params.copy(), hyper_params.copy()))
 
         return all_params
 
