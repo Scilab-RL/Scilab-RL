@@ -88,7 +88,7 @@ class TestingAlgos:
         ar = [0]
         # sg_test_perc = [0, 0.3]
         sg_test_perc = [0]
-        ep_early_done_on_succ = [0]
+        ep_early_done_on_succ = [0, 1]
         n_sampled_goal = [4]
         # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
         goal_selection_strategy = ['future', 'rndend', 'rndend2', 'rndend3']
