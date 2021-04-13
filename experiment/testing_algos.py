@@ -38,7 +38,7 @@ class TestingAlgos:
     @staticmethod
     def get_mbchac_performance_params(env):
         all_params = []
-        eval_after_n_steps = 500
+        eval_after_n_steps = 5000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
         model = 'sac'
         plot_col_names_template = 'train_##/actor_loss,train_##/critic_loss,train_##/ent_coef,train_##/n_updates,test_##/ep_success,test_##/ep_reward,train_##/ent_coef_loss,rollout_##/success_rate,test_##/q_mean,test_##/ep_length,train_##/ep_length,test_##/step_success'
@@ -52,7 +52,7 @@ class TestingAlgos:
                             }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 400, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
@@ -70,7 +70,7 @@ class TestingAlgos:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 400, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
             performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 1,
