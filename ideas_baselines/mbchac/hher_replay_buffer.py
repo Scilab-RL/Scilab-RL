@@ -210,7 +210,7 @@ class HHerReplayBuffer(ReplayBuffer):
                 pass
                 # print("Good")
             else:
-                print("ERROR! nag_t != ag_t+1 not good")
+                assert False, "ERROR! nag_t != ag_t+1 not good"
 
         elif self.goal_selection_strategy == GoalSelectionStrategy.EPISODE:
             # replay with random state which comes from the same episode as current transition
