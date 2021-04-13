@@ -193,7 +193,7 @@ class HHerReplayBuffer(ReplayBuffer):
             else:
                 print("ERROR! nag_t != ag_t+1 not good")
 
-        elif self.goal_selection_strategy == GoalSelectionStrategy.FUTURE3:
+        elif self.goal_selection_strategy == GoalSelectionStrategy.FUTURE3: # same as FUTURE2, but we remove the last transition before.
             # replay with random state which comes from the same episode and was observed after current transition
             transitions_indices = np.random.randint(
                 transitions_indices[her_indices], self.episode_lengths[her_episode_indices]
@@ -235,7 +235,8 @@ class HHerReplayBuffer(ReplayBuffer):
             replace_trans_idxs = self.episode_lengths[her_episode_indices][sample_final_idxs] - 1
             transitions_indices[sample_final_idxs] = replace_trans_idxs
             goals = self.buffer["achieved_goal"][her_episode_indices, transitions_indices]
-        elif self.goal_selection_strategy == GoalSelectionStrategy.RNDEND2:
+
+        elif self.goal_selection_strategy == GoalSelectionStrategy.RNDEND2: # Here we do also select the last transition but select the next_achieved_goal instead.
             # replay with random state which comes from the same episode and was observed after current transition
             # This distribution is such that if the length of an episode is max, then we have a uniform distribution, but the shorter it gets the more we sample from the last sample.
 
@@ -252,11 +253,30 @@ class HHerReplayBuffer(ReplayBuffer):
             # Finally update those transition indices where to sample from the end.
             transitions_indices[sample_final_idxs] = replace_trans_idxs
             goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
+
+        elif self.goal_selection_strategy == GoalSelectionStrategy.RNDEND3: # Here we have selected only transitions before the last one, but select the achieved_goal.
+            # replay with random state which comes from the same episode and was observed after current transition
+            # This distribution is such that if the length of an episode is max, then we have a uniform distribution, but the shorter it gets the more we sample from the last sample.
+
+            # First sample future transition indices just like in future.
+            transitions_indices = np.random.randint(
+                transitions_indices[her_indices], self.episode_lengths[her_episode_indices]
+            )
+
+            # Then determine the episodes where to sample from the end.
+            n_final_sample_prob = (self.max_episode_length - self.episode_lengths[
+                her_episode_indices]) / self.max_episode_length
+            rnd_sample = np.random.random_sample(n_final_sample_prob.shape)
+            sample_final_idxs = np.where(rnd_sample < n_final_sample_prob)
+            replace_trans_idxs = self.episode_lengths[her_episode_indices][sample_final_idxs] - 1
+            # Finally update those transition indices where to sample from the end.
+            transitions_indices[sample_final_idxs] = replace_trans_idxs
+            goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
         else:
             raise ValueError(f"Strategy {self.goal_selection_strategy} for sampling goals not supported!")
 
         return goals
-        return
+
 
     def _sample_transitions(self,
         batch_size: Optional[int],
@@ -350,7 +370,8 @@ class HHerReplayBuffer(ReplayBuffer):
 
         # Special case when using the "future" or "rndend" goal sampling strategy
         # we cannot sample all transitions, we have to remove the last timestep
-        if self.goal_selection_strategy in [GoalSelectionStrategy.FUTURE, GoalSelectionStrategy.RNDEND, GoalSelectionStrategy.FUTURE3]:
+        if self.goal_selection_strategy in [GoalSelectionStrategy.FUTURE, GoalSelectionStrategy.RNDEND,
+                                            GoalSelectionStrategy.FUTURE3, GoalSelectionStrategy.RNDEND3]:
             # restrict the sampling domain when ep_lengths > 1
             # otherwise filter out the indices
             her_indices = her_indices[ep_lengths[her_indices] > 1]
