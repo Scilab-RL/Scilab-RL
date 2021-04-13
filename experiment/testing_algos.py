@@ -38,15 +38,13 @@ class TestingAlgos:
     @staticmethod
     def get_mbchac_performance_params(env):
         all_params = []
-        eval_after_n_steps = 5000
+        eval_after_n_steps = 500
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
         model = 'sac'
+        plot_col_names_template = 'train_##/actor_loss,train_##/critic_loss,train_##/ent_coef,train_##/n_updates,test_##/ep_success,test_##/ep_reward,train_##/ent_coef_loss,rollout_##/success_rate,test_##/q_mean,test_##/ep_length,train_##/ep_length,test_##/step_success'
+        other_plot_col_names = 'test/success_rate,test/mean_reward'
         hyper_params_all = {'eval_after_n_steps': eval_after_n_steps,
                             'early_stop_last_n': early_stop_last_n,
-                            'plot_eval_cols': 'test/success_rate,test/mean_reward,'
-                                              + 'train_0/actor_loss,train_0/critic_loss,train_0/ent_coef,train_0/n_updates,test_0/ep_success,test_0/ep_reward,train_0/ent_coef_loss,rollout_0/success_rate,test_0/q_mean,test_0/ep_length,train_0/ep_length,test_0/step_success,'
-                                              + 'train_1/actor_loss,train_1/critic_loss,train_1/ent_coef,train_1/n_updates,test_1/ep_success,test_1/ep_reward,train_1/ent_coef_loss,rollout_1/success_rate,test_1/q_mean,test_1/ep_length,train_0/ep_length,test_1/step_success,'
-                                              + 'train_2/actor_loss,train_2/critic_loss,train_2/ent_coef,train_2/n_updates,test_2/ep_success,test_2/ep_reward,train_2/ent_coef_loss,rollout_2/success_rate,test_2/q_mean,test_2/ep_length,train_0/ep_length,test_2/step_success',
                             'render_test' : 'record',
                             'render_train': 'record',
                             'render_every_n_eval': 5,
@@ -54,7 +52,7 @@ class TestingAlgos:
                             }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 400, 'n_runs': 15, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
@@ -72,7 +70,7 @@ class TestingAlgos:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 400, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
             performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 1,
@@ -90,7 +88,7 @@ class TestingAlgos:
         ar = [0]
         # sg_test_perc = [0, 0.3]
         sg_test_perc = [0]
-        ep_early_done_on_succ = [0,1]
+        ep_early_done_on_succ = [0, 1]
         goal_selection_strategy = ['future', 'rndend', 'final']
         hyper_params = {}
         for gss in goal_selection_strategy:
@@ -104,9 +102,14 @@ class TestingAlgos:
                         hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
                         for eedos in ep_early_done_on_succ:
                             hyper_params.update({'ep_early_done_on_succ': str(eedos)})
+                            
+                            n_layers = len(time_scales.split(","))
+                            plot_col_names = other_plot_col_names
+                            for lay in range(n_layers):
+                                plot_col_names += "," + plot_col_names_template.replace("##", str(lay))
+                            hyper_params.update({'plot_eval_cols': plot_col_names})
                             hyper_params.update(hyper_params_all)
                             all_params.append((performance_params.copy(), hyper_params.copy()))
-
         return all_params
 
     # @staticmethod
