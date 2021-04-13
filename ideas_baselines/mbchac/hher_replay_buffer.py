@@ -213,18 +213,17 @@ class HHerReplayBuffer(ReplayBuffer):
             # replay with random state which comes from the same episode and was observed after current transition
             # This distribution is such that if the length of an episode is max, then we have a uniform distribution, but the shorter it gets the more we sample from the last sample.
 
-            n_final_sample_prob = (self.max_episode_length - self.episode_lengths[her_episode_indices]) / self.max_episode_length
-            rnd_sample = np.random.random_sample(n_final_sample_prob.shape)
-            sample_final_idxs = np.where(rnd_sample < n_final_sample_prob)
-            # sample_ps = np.zeros_like(self.buffer["achieved_goal"][her_episode_indices])
-            # sample_ps
-            # sample_ranges = np.arange(transitions_indices[her_indices] + 1, self.episode_lengths[her_episode_indices])
-            # all_transition_idxs =
-            # transitions_indices = np.random.choice(all_transition_idxs, p=sample_ps)
+            # First sample future transition indices just like in future.
             transitions_indices = np.random.randint(
                 transitions_indices[her_indices], self.episode_lengths[her_episode_indices]
             )
+
+            # Then determine the episodes where to sample from the end.
+            n_final_sample_prob = (self.max_episode_length - self.episode_lengths[her_episode_indices]) / self.max_episode_length
+            rnd_sample = np.random.random_sample(n_final_sample_prob.shape)
+            sample_final_idxs = np.where(rnd_sample < n_final_sample_prob)
             replace_trans_idxs = self.episode_lengths[her_episode_indices][sample_final_idxs] - 1
+            # Finally update those transition indices where to sample from the end.
             transitions_indices[sample_final_idxs] = replace_trans_idxs
             goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
         else:
