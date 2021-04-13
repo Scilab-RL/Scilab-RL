@@ -62,7 +62,6 @@ class HHerReplayBuffer(ReplayBuffer):
 
         self.episode_lengths = np.zeros(self.max_episode_stored, dtype=np.int64)
 
-
         self.goal_selection_strategy = goal_selection_strategy
         # percentage of her indices
         self.her_ratio = her_ratio
@@ -72,7 +71,6 @@ class HHerReplayBuffer(ReplayBuffer):
         self.test_trans_sampling_fraction = test_trans_sampling_fraction
 
         self.subgoal_test_fail_penalty = max(subgoal_test_fail_penalty, 1)
-
 
         # input dimensions for buffer initialization
         self.input_shape = {
@@ -89,9 +87,6 @@ class HHerReplayBuffer(ReplayBuffer):
         }
 
         self.reset()
-
-
-
 
     def __getstate__(self) -> Dict[str, Any]:
         """
