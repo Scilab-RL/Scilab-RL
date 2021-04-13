@@ -89,7 +89,8 @@ class TestingAlgos:
         # sg_test_perc = [0, 0.3]
         sg_test_perc = [0]
         ep_early_done_on_succ = [0]
-        goal_selection_strategy = ['future', 'future2']
+        # goal_selection_strategy = ['future', 'future2', 'future3']
+        goal_selection_strategy = ['future3']
         # goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
         hyper_params = {}
         for gss in goal_selection_strategy:

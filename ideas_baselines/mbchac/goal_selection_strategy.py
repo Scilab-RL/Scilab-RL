@@ -22,6 +22,8 @@ class GoalSelectionStrategy(Enum):
 
     RNDEND2 = 5
 
+    FUTURE3 = 6
+
 # For convenience
 # that way, we can use string to select a strategy
 KEY_TO_GOAL_STRATEGY = {
@@ -31,4 +33,5 @@ KEY_TO_GOAL_STRATEGY = {
     "rndend": GoalSelectionStrategy.RNDEND,
     "future2": GoalSelectionStrategy.FUTURE2,
     "rndend2": GoalSelectionStrategy.RNDEND2,
+    "future3": GoalSelectionStrategy.FUTURE3,
 }
