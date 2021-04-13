@@ -89,7 +89,7 @@ class TestingAlgos:
         # sg_test_perc = [0, 0.3]
         sg_test_perc = [0]
         ep_early_done_on_succ = [0, 1]
-        goal_selection_strategy = ['future', 'rndend']
+        goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
         hyper_params = {}
         for gss in goal_selection_strategy:
             hyper_params.update({'goal_selection_strategy': gss})

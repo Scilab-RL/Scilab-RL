@@ -18,6 +18,10 @@ class GoalSelectionStrategy(Enum):
     # randomly after the current step, in the same episode, but samples are drawn more towards the end of the episode
     RNDEND = 3
 
+    FUTURE2 = 4
+
+    RNDEND2 = 5
+
 # For convenience
 # that way, we can use string to select a strategy
 KEY_TO_GOAL_STRATEGY = {
@@ -25,4 +29,6 @@ KEY_TO_GOAL_STRATEGY = {
     "final": GoalSelectionStrategy.FINAL,
     "episode": GoalSelectionStrategy.EPISODE,
     "rndend": GoalSelectionStrategy.RNDEND,
+    "future2": GoalSelectionStrategy.FUTURE2,
+    "rndend2": GoalSelectionStrategy.RNDEND2,
 }

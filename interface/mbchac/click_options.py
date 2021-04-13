@@ -3,7 +3,7 @@ import importlib
 
 options = [
 click.option('--model_classes', type=str, default='sac,sac'),
-click.option('--goal_selection_strategy', type=click.Choice(['future', 'final', 'episode', 'rndend']), default='future'),
+click.option('--goal_selection_strategy', type=click.Choice(['future', 'final', 'episode', 'rndend', 'future2']), default='future'),
 click.option('--n_sampled_goal', type=int, default=4),
 click.option('--train_freq', type=int, default=0, help='number of steps in each layer after which to train. 0 sets the training frequency to once per episode.'),
 click.option('--n_train_batches', type=int, default=0, help='The number of training batches per episode. 0 sets training batches to number of actions executed since last training in each layer, which effectively means that n_train_batches=n_train_freq.'),
