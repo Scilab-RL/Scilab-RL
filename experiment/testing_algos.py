@@ -52,7 +52,7 @@ class TestingAlgos:
                             }
 
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 400, 'n_runs': 15, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 400, 'n_runs': 5, 'min_success_runs': 3,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
