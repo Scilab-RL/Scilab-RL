@@ -482,9 +482,8 @@ class MBCHAC(BaseAlgorithm):
         while total_steps < n_steps or total_episodes < n_episodes:
             done = False
             episode_reward, episode_timesteps = 0.0, 0
-
+            last_steps_succ = []
             while not done:
-
                 self.update_venv_buf_obs(self.env)
                 observation = self.env.venv.buf_obs
                 observation = deepcopy(observation) # Required so that values don't get changed.
@@ -511,6 +510,8 @@ class MBCHAC(BaseAlgorithm):
                 # if self.layer==1 and episode_timesteps == (self.max_episode_length-1): # Un-Comment this to hard-set the last subgoal to the final goal
                 #     action = observation['desired_goal']
                 new_obs, reward, done, infos = env.step(action)
+                # success = infos['is_success']
+                # last_steps_succ.append(success)
                 if subgoal_test: # if the subgoal test has started here, unset testing mode of submodel if applicable.
                     self.unset_subgoal_test_mode()
                 if self.is_bottom_layer and self.train_render_info != 'none' and self.epoch_count % self.render_every_n_eval == 0:
@@ -555,10 +556,15 @@ class MBCHAC(BaseAlgorithm):
                     next_obs = infos[0]["terminal_observation"]
                 else:
                     next_obs = new_obs_
-                try:
-                    self.replay_buffer.add(self._last_original_obs, next_obs, buffer_action, reward_, done, infos)
-                except Exception as e:
-                    print("ohno {}".format(e))
+                # try:
+                self.replay_buffer.add(self._last_original_obs, next_obs, buffer_action, reward_, done, infos)
+
+                finished = self.check_last_succ()
+
+                done = np.logical_or(done, finished)
+
+                # except Exception as e:
+                #     print("ohno {}".format(e))
 
                 self._last_obs = new_obs
                 self.model._last_obs = self._last_obs
@@ -625,6 +631,19 @@ class MBCHAC(BaseAlgorithm):
 
         return RolloutReturn(mean_reward, total_steps, total_episodes, continue_training)
 
+    def check_last_succ(self):
+        buffer_pos = self.replay_buffer.pos
+        ep_info_buffer = self.replay_buffer.info_buffer[buffer_pos]
+        succ_array = []
+        if self.ep_early_done_on_succ > 0 and len(ep_info_buffer) >= self.ep_early_done_on_succ:
+            last_infos = list(ep_info_buffer)[-self.ep_early_done_on_succ:]
+            success = np.array([[inf['is_success'] for inf in info] for info in last_infos])[:, 0]
+            # succ_array.append(success)
+            finished = np.all(success)
+            return finished
+        else:
+            return False
+
     def set_subgoal_test_mode(self):
         if self.sub_model is not None:
             self.sub_model.in_subgoal_test_mode = True
@@ -655,7 +674,7 @@ class MBCHAC(BaseAlgorithm):
         step_ctr = 0
         info = {}
         ep_reward = 0
-        last_succ = [0]
+        last_succ = []
         # For consistency wrap env.
         eval_env = self._wrap_env(eval_env)
         assert hasattr(eval_env, 'venv'), "Error, vectorized environment required."
@@ -696,10 +715,15 @@ class MBCHAC(BaseAlgorithm):
             if type(info) == list:
                 info = get_concat_dict_from_dict_list(info)
             if 'is_success' in info.keys():
-                last_succ = info['is_success'].copy()
+                last_succ.append(info['is_success'].copy())
                 info['step_success'] = info['is_success'].copy()
-                # print("Success in layer {}: {}".format(self.layer, info['step_success'])) ## DEBUG:
                 del info['is_success']
+                # print("Success in layer {}: {}".format(self.layer, info['step_success'])) ## DEBUG:
+                if self.ep_early_done_on_succ > 0 and len(last_succ) >= self.ep_early_done_on_succ:
+                    last_succ_steps = last_succ[-self.ep_early_done_on_succ:]
+                    finished = np.all(last_succ_steps)
+                    done = np.logical_or(done, finished)
+
             ep_reward += np.sum(reward)
             for k,v in info.items():
                 if k.find("test_") != 0:
@@ -726,7 +750,7 @@ class MBCHAC(BaseAlgorithm):
             self.eval_info_list[eplen_key] = [step_ctr]
         if success_key not in self.eval_info_list.keys():
             if 'step_success' in info.keys():
-                self.eval_info_list[success_key] = last_succ.copy()
+                self.eval_info_list[success_key] = last_succ[-1].copy()
                 # print("Episode success in layer {}: {}".format(self.layer, last_succ)) ## DEBUG
         if reward_key not in self.eval_info_list.keys():
             self.eval_info_list[reward_key] = [ep_reward]

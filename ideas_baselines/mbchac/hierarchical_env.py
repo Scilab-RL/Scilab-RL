@@ -170,8 +170,8 @@ class HierarchicalVecEnv(DummyVecEnv):
                 self.actions[env_idx]
             )
             # Set done to true if success is achieved or if it is done any ways (by TimeLimit)
-            if self.early_done_on_success:
-                self.buf_dones[env_idx] = np.isclose(self.buf_infos[env_idx]['is_success'], 1) or self.buf_dones[env_idx]
+            # if self.early_done_on_success:
+            #     self.buf_dones[env_idx] = np.isclose(self.buf_infos[env_idx]['is_success'], 1) or self.buf_dones[env_idx]
             if self.buf_dones[env_idx]:
                 # save final observation where user can get it, but don't reset
                 self.buf_infos[env_idx]["terminal_observation"] = obs
