@@ -70,26 +70,26 @@ class TestingAlgos:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
-            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 1,
+            performance_params = {'n_epochs': 100, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'Hook-o' in env:
-            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
-                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
+            performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
 
         # ts = ['10,10']
-        ts = ['50']
-        # ar = [1, 0]
-        ar = [0]
-        # sg_test_perc = [0, 0.3]
-        sg_test_perc = [0]
-        n_succ_steps_for_early_ep_done = [0, 1, 2, 3]
-        n_sampled_goal = [2,4]
+        ts = ['50', '7,7']
+        ar = [1, 0]
+        # ar = [0]
+        sg_test_perc = [0, 0.3]
+        # sg_test_perc = [0]
+        n_succ_steps_for_early_ep_done = [0, 1, 2]
+        n_sampled_goal = [3]
         # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
         goal_selection_strategy = ['future']
         # goal_selection_strategy = ['future3']
