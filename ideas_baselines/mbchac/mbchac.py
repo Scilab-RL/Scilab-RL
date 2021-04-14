@@ -148,6 +148,7 @@ class MBCHAC(BaseAlgorithm):
         self.train_freq = train_freq
         self.is_bottom_layer = len(self.time_scales.split(",")) == 1
         self.parent_model = None
+        self.reset_train_info_list()
         assert len(time_scales.split(",")) == (
                     len(sub_model_classes) + 1), "Error, number of time scales is not equal to number of layers."
         assert time_scales.count(
@@ -603,6 +604,7 @@ class MBCHAC(BaseAlgorithm):
                     break
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()
+
                 if self.is_top_layer: # Reset environments and _last_obs of all submodels.
                     new_obs = self.env.venv.reset_all()
                     tmp_model = self
@@ -613,7 +615,7 @@ class MBCHAC(BaseAlgorithm):
                             break
                         else:
                             tmp_model = self.sub_model
-
+                self.train_info_list['ep_length'].append(episode_timesteps)
                 total_episodes += 1
                 self._episode_num += 1
                 self.model._episode_num = self._episode_num
@@ -987,12 +989,18 @@ class MBCHAC(BaseAlgorithm):
 
         if len(self.ep_success_buffer) > 0:
             logger.record(rollout_pf + "/success_rate", safe_mean(self.ep_success_buffer))
-            if safe_mean(self.ep_success_buffer) > 0.9:
+            if safe_mean(self.ep_success_buffer) > 0.9: # Start training of higher level layer if the success rate is above 90%. This has only an effect if action replay is disabled.
                 if self.parent_model is not None:
                     self.parent_model.set_learning_enabled()
 
         if self.sub_model is not None:
             self.sub_model._record_logs()
+
+
+        for k,v in self.train_info_list.items():
+            logger.record(train_pf + f"/{k}", safe_mean(v))
+            logger.record(train_pf + f"/{k}_std", np.std(v))
+        self.reset_train_info_list()
 
         self.epoch_count += 1
         if self.is_top_layer:
@@ -1007,7 +1015,8 @@ class MBCHAC(BaseAlgorithm):
                 if self.test_render_info is not None:
                     self.stop_test_video_writer()
 
-
+    def reset_train_info_list(self):
+        self.train_info_list = {'ep_length': []}
     def _dump_logs(self) -> None:
         self._record_logs()
         top_layer = self.layer
