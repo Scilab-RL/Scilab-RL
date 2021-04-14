@@ -88,7 +88,7 @@ class TestingAlgos:
         ar = [0]
         # sg_test_perc = [0, 0.3]
         sg_test_perc = [0]
-        ep_early_done_on_succ = [0, 1, 2, 3]
+        n_succ_steps_for_early_ep_done = [0, 1, 2, 3]
         n_sampled_goal = [4]
         # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
         goal_selection_strategy = ['future', 'rndend', 'rndend2', 'rndend3']
@@ -106,8 +106,8 @@ class TestingAlgos:
                         hyper_params.update({'use_action_replay': str(action_replay)})
                         for subgoal_test_perc in sg_test_perc:
                             hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
-                            for eedos in ep_early_done_on_succ:
-                                hyper_params.update({'ep_early_done_on_succ': str(eedos)})
+                            for eedos in n_succ_steps_for_early_ep_done:
+                                hyper_params.update({'n_succ_steps_for_early_ep_done': str(eedos)})
 
                                 n_layers = len(time_scales.split(","))
                                 plot_col_names = other_plot_col_names
