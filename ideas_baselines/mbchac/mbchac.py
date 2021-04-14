@@ -135,11 +135,11 @@ class MBCHAC(BaseAlgorithm):
         render_test: str = 'none',
         render_every_n_eval: int = 1,
         use_action_replay: bool = True,
-        n_succ_steps_for_early_ep_done: bool = True,
+        ep_early_done_on_succ: bool = True,
         *args,
         **kwargs,
     ):
-        self.n_succ_steps_for_early_ep_done = n_succ_steps_for_early_ep_done
+        self.ep_early_done_on_succ = ep_early_done_on_succ
         self.gradient_steps = n_train_batches
         self.learn_callback = None
         self.render_every_n_eval = render_every_n_eval
@@ -199,7 +199,7 @@ class MBCHAC(BaseAlgorithm):
                                     render_test=render_test,
                                     render_every_n_eval=render_every_n_eval,
                                     use_action_replay=use_action_replay,
-                                    n_succ_steps_for_early_ep_done=n_succ_steps_for_early_ep_done,
+                                    ep_early_done_on_succ=ep_early_done_on_succ,
                                     **kwargs)
             self.sub_model.parent_model = self
         else:
@@ -637,8 +637,8 @@ class MBCHAC(BaseAlgorithm):
         buffer_pos = self.replay_buffer.pos
         ep_info_buffer = self.replay_buffer.info_buffer[buffer_pos]
         succ_array = []
-        if self.n_succ_steps_for_early_ep_done > 0 and len(ep_info_buffer) >= self.n_succ_steps_for_early_ep_done:
-            last_infos = list(ep_info_buffer)[-self.n_succ_steps_for_early_ep_done:]
+        if self.ep_early_done_on_succ > 0 and len(ep_info_buffer) >= self.ep_early_done_on_succ:
+            last_infos = list(ep_info_buffer)[-self.ep_early_done_on_succ:]
             success = np.array([[inf['is_success'] for inf in info] for info in last_infos])[:, 0]
             # succ_array.append(success)
             finished = np.all(success)
@@ -721,8 +721,8 @@ class MBCHAC(BaseAlgorithm):
                 info['step_success'] = info['is_success'].copy()
                 del info['is_success']
                 # print("Success in layer {}: {}".format(self.layer, info['step_success'])) ## DEBUG:
-                if self.n_succ_steps_for_early_ep_done > 0 and len(last_succ) >= self.n_succ_steps_for_early_ep_done:
-                    last_succ_steps = last_succ[-self.n_succ_steps_for_early_ep_done:]
+                if self.ep_early_done_on_succ > 0 and len(last_succ) >= self.ep_early_done_on_succ:
+                    last_succ_steps = last_succ[-self.ep_early_done_on_succ:]
                     finished = np.all(last_succ_steps)
                     done = np.logical_or(done, finished)
 
@@ -1084,7 +1084,7 @@ class MBCHAC(BaseAlgorithm):
     def _wrap_env(self, env: GymEnv, verbose: int = 0) -> HierarchicalVecEnv:
         if not isinstance(env, ObsDictWrapper):
             if not isinstance(env, HierarchicalVecEnv):
-                env = HierarchicalVecEnv([lambda: env], self.n_succ_steps_for_early_ep_done)
+                env = HierarchicalVecEnv([lambda: env], self.ep_early_done_on_succ)
 
                 if is_image_space(env.observation_space) and not is_wrapped(env, VecTransposeImage):
                     env = VecTransposeImage(env)

@@ -107,7 +107,7 @@ class TestingAlgos:
                         for subgoal_test_perc in sg_test_perc:
                             hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
                             for eedos in n_succ_steps_for_early_ep_done:
-                                hyper_params.update({'n_succ_steps_for_early_ep_done': str(eedos)})
+                                hyper_params.update({'ep_early_done_on_succ': str(eedos)})
 
                                 n_layers = len(time_scales.split(","))
                                 plot_col_names = other_plot_col_names
