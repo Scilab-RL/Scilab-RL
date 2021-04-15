@@ -21,6 +21,11 @@ for n_objects in range(3):
              kwargs={'n_buttons': n_objects+1},
              max_episode_steps=max(50, 50*n_objects))
 
+    register(id='AntButtonUnlock-o{}-v1'.format(n_objects),
+             entry_point='ideas_envs.ant.ant_button_unlock_env:AntButtonUnlockEnv',
+             kwargs={'n_buttons': n_objects+1},
+             max_episode_steps=500*(n_objects+1))
+
 register(id='Ant4Rooms-v1',
          entry_point='ideas_envs.ant.ant_4_rooms_env:Ant4RoomsEnv',
          kwargs={},
