@@ -10,6 +10,8 @@ click.option('--n_train_batches', type=int, default=0, help='The number of train
 
 click.option('--learning_starts', type=int, default=100, help='The number of transitions in each layer required to start NN training.'),
 
+click.option('--learning_rates', type=str, default="9e-4,3e-4", help='The learning rates of the models. From highest to lowest layer.'),
+
 click.option('--use_action_replay', type=int, default=1, help='Whether to use action replay'),
 click.option('--ep_early_done_on_succ', type=int, default=1, help='Whether to finish an episode for a (sub-)goal early when the (sub-)goal has been achieved.'),
 # click.option('--batch_size', type=int, default=1024, help='The number of state transitions processed during network training.'),

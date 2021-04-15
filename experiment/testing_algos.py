@@ -47,7 +47,8 @@ class TestingAlgos:
                             'early_stop_last_n': early_stop_last_n,
                             'render_test' : 'record',
                             'render_train': 'record',
-                            'render_every_n_eval': 5,
+                            'render_every_n_eval': 20,
+                            'n_test_rollouts': 10,
                             'save_model_freq': 50000
                             }
 
@@ -69,8 +70,14 @@ class TestingAlgos:
         elif env in ['HandManipulateBlock-v0']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
-        elif 'Blocks-o' in env:
+        elif 'Blocks-o0' in env:
+            performance_params = {'n_epochs': 15, 'n_runs': 3, 'min_success_runs': 3,
+                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+        elif 'Blocks-o1' in env:
             performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 3,
+                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+        elif 'Blocks-o' in env:
+            performance_params = {'n_epochs': 400, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
             performance_params = {'n_epochs': 100, 'n_runs': 3, 'min_success_runs': 1,

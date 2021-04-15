@@ -123,6 +123,7 @@ class MBCHAC(BaseAlgorithm):
         model_class: Type[OffPolicyAlgorithm],
         sub_model_classes: List[Type[OffPolicyAlgorithm]] = [],
         time_scales: str = '_',
+        learning_rates: str = '3e-4',
         n_sampled_goal: int = 4,
         goal_selection_strategy: Union[GoalSelectionStrategy, str] = "future",
         max_episode_length: Optional[int] = None,
@@ -159,6 +160,9 @@ class MBCHAC(BaseAlgorithm):
             # Build hierarchical layer_envs from env, depending on steps and action space.
             layer_envs = get_h_envs_from_env(env, self.time_scales)
         time_scales_int = [int(s) for s in self.time_scales.split(",")]
+        self.learning_rates = learning_rates
+        learning_rates_float = [float(lr) for lr in self.learning_rates.split(",")]
+        self.learning_rate = learning_rates_float[0]
         self.level_steps_per_episode = int(self.time_scales.split(",")[0])
         if max_episode_length is None:
             max_episode_length = self.level_steps_per_episode
@@ -167,9 +171,9 @@ class MBCHAC(BaseAlgorithm):
         this_env = layer_envs[0]
         this_env.env.model = self
         # Build policy, convert env into <ObstDictWrapper> class.
-        super(MBCHAC, self).__init__(policy=BasePolicy, env=this_env, policy_base=BasePolicy, learning_rate=0.0)
-        # we will use the policy and learning rate from the model.
-        del self.policy, self.learning_rate
+        super(MBCHAC, self).__init__(policy=BasePolicy, env=this_env, policy_base=BasePolicy, learning_rate=self.learning_rate)
+        # we will use the policy from the model.
+        del self.policy
 
         self.learning_starts = kwargs['learning_starts']
         _init_setup_model = kwargs.get("_init_setup_model", True)
@@ -189,14 +193,18 @@ class MBCHAC(BaseAlgorithm):
         next_level_steps = 0
         if len(sub_model_classes) > 0:
             sub_level_steps = ",".join(self.time_scales.split(",")[1:])
+            sub_level_lr = ",".join(self.learning_rates.split(",")[1:])
             next_level_steps = int(self.time_scales.split(",")[1])
             self.sub_model = MBCHAC('MlpPolicy', bottom_env, sub_model_classes[0], sub_model_classes[1:],
                                     time_scales=sub_level_steps,
-                                    n_sampled_goal=n_sampled_goal, goal_selection_strategy=goal_selection_strategy,
+                                    n_sampled_goal=n_sampled_goal,
+                                    goal_selection_strategy=goal_selection_strategy,
                                     train_freq=self.train_freq,
-                                    is_top_layer=False, layer_envs=layer_envs[1:],
+                                    is_top_layer=False,
+                                    layer_envs=layer_envs[1:],
                                     render_train=render_train,
                                     render_test=render_test,
+                                    learning_rates=sub_level_lr,
                                     render_every_n_eval=render_every_n_eval,
                                     use_action_replay=use_action_replay,
                                     ep_early_done_on_succ=ep_early_done_on_succ,
@@ -209,6 +217,7 @@ class MBCHAC(BaseAlgorithm):
             policy=policy,
             env=self.env,
             _init_setup_model=False,  # pytype: disable=wrong-keyword-args
+            learning_rate=self.learning_rate,
             *args,
             **model_args,  # pytype: disable=wrong-keyword-args
         )
