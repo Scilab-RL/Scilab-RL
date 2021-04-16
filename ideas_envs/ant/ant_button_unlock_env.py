@@ -54,7 +54,7 @@ class AntButtonUnlockEnv(AntEnv):
 
         # randomize ant starting position
         ant_pos = self.sim.data.get_joint_qpos('root')
-        ant_pos[:2] = np.random.uniform(-self.range, self.range, size=2)
+        ant_pos[:2] = self.np_random.uniform(-self.range, self.range, size=2)
         self.sim.data.set_joint_qpos('root', ant_pos)
 
         # randomize start position of buttons

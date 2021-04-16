@@ -27,13 +27,13 @@ class Ant4RoomsEnv(AntEnv):
 
         # Place ant in room different than room containing goal
 
-        initial_room = np.random.randint(0, 4)
+        initial_room = self.np_random.randint(0, 4)
         while initial_room == goal_room:
-            initial_room = np.random.randint(0, 4)
+            initial_room = self.np_random.randint(0, 4)
 
         # Move ant to correct room
-        self.sim.data.qpos[0] = np.random.uniform(3, 6.5)
-        self.sim.data.qpos[1] = np.random.uniform(3, 6.5)
+        self.sim.data.qpos[0] = self.np_random.uniform(3, 6.5)
+        self.sim.data.qpos[1] = self.np_random.uniform(3, 6.5)
 
         # If goal should be in top left quadrant
         if initial_room == 1:
@@ -55,12 +55,12 @@ class Ant4RoomsEnv(AntEnv):
         goal = np.zeros(3)
 
         # Randomly select one of the four rooms in which the goal will be located
-        room_num = np.random.randint(0, 4)
+        room_num = self.np_random.randint(0, 4)
 
         # Pick exact goal location
-        goal[0] = np.random.uniform(3, 6.5)
-        goal[1] = np.random.uniform(3, 6.5)
-        goal[2] = np.random.uniform(0.45, 0.55)
+        goal[0] = self.np_random.uniform(3, 6.5)
+        goal[1] = self.np_random.uniform(3, 6.5)
+        goal[2] = self.np_random.uniform(0.45, 0.55)
 
         # If goal should be in top left quadrant
         if room_num == 1:
