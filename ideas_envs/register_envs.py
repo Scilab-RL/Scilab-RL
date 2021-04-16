@@ -35,3 +35,11 @@ register(id='AntReacher-v1',
          entry_point='ideas_envs.ant.ant_reacher_env:AntReacherEnv',
          kwargs={},
          max_episode_steps=500)
+
+# Ant environments from HIRO paper
+for task in ['Maze', 'Push', 'Fall']:
+    kwargs = {'task': task}
+    register(id='Ant{}-v0'.format(task),
+             entry_point='ideas_envs.ant.ant_maze_push_fall_env:AntMazePushFallEnv',
+             kwargs=kwargs,
+             max_episode_steps=600)
