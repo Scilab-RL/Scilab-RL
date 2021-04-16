@@ -40,11 +40,18 @@ class AntMazePushFallEnv(AntEnv):
         self.g_slice = 3 if self.task == 'Fall' else 2
         self.reward_fn = get_reward_fn(task)
         self.subgoal_bound = get_subgoal_bounds(task)
+
         super().__init__(xml_path, reward_type, distance_threshold)
+
         low = np.array([-10, -10, -0.5, -1, -1, -1, -1,
                         -0.5, -0.3, -0.5, -0.3, -0.5, -0.3, -0.5, -0.3])
         self.observation_space['observation'].low[:15] = low
         self.observation_space['observation'].high[:15] = -low
+        site_id = self.sim.model.site_name2id("goal")
+        self.sim.model.site_size[site_id][0] = MAX_GOAL_DIST
+
+    def _set_action(self, action):
+        super()._set_action(action*30)
 
     def _obs2goal(self, obs):
         return obs[:self.g_slice].copy()
@@ -91,4 +98,5 @@ class AntMazePushFallEnv(AntEnv):
         return reward
 
     def _render_callback(self):
-        pass
+        site_id = self.sim.model.site_name2id("goal")
+        self.sim.model.site_pos[site_id][:self.g_slice] = self.goal[:self.g_slice].copy()

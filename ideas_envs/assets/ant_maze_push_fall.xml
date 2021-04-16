@@ -73,19 +73,8 @@
         </body>
 
         <!-- Create goal and subgoal visualizations -->
-        <body name="goal_platform" pos="0 0 0.4" mocap="true">
-            <site type="sphere" size="0.5" rgba="1 1 0 1"/>
-        </body>
-
-        <body name="subgoal_0" pos="0 0 0.4" mocap="true">
-            <site type="sphere" size="0.5" rgba="1 0 1 0"/>
-        </body>
-        <body name="subgoal_1" pos="0 0 0.4" mocap="true">
-            <site type="sphere" size="0.5" rgba="0 1 0 0"/>
-        </body>
-
-        <body name="goal_threshold" pos="0 0 0.4" mocap="true">
-            <site type="sphere" size="0.1" rgba="1 1 0 0"/>
+        <body>
+            <site pos="0 0 0.4" name="goal" type="sphere" size="0.4 0.4 0.4" rgba="1 1 0 0.1"/>
         </body>
 
     </worldbody>
