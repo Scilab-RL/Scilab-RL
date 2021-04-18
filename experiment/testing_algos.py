@@ -82,6 +82,9 @@ class TestingAlgos:
         elif 'ButtonUnlock-o' in env:
             performance_params = {'n_epochs': 100, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
+        elif 'ButtonUnlock-o2' in env:
+            performance_params = {'n_epochs': 250, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'Hook-o' in env:
             performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
@@ -95,7 +98,7 @@ class TestingAlgos:
         # ar = [0]
         sg_test_perc = [0, 0.3]
         # sg_test_perc = [0]
-        n_succ_steps_for_early_ep_done = [0, 1, 2]
+        n_succ_steps_for_early_ep_done = [0, 2]
         n_sampled_goal = [3]
         # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
         goal_selection_strategy = ['future']
