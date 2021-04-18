@@ -77,10 +77,10 @@ class TestingAlgos:
             performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 400, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 100, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
-            performance_params = {'n_epochs': 100, 'n_runs': 3, 'min_success_runs': 1,
+            performance_params = {'n_epochs': 150, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o2' in env:
             performance_params = {'n_epochs': 250, 'n_runs': 3, 'min_success_runs': 1,
