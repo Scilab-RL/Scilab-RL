@@ -97,6 +97,7 @@ class TestingAlgos:
         ar = [1, 0]
         # ar = [0]
         sg_test_perc = [0, 0.3]
+        learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
         # sg_test_perc = [0]
         n_succ_steps_for_early_ep_done = [0, 2]
         n_sampled_goal = [3]
@@ -118,14 +119,16 @@ class TestingAlgos:
                             hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
                             for eedos in n_succ_steps_for_early_ep_done:
                                 hyper_params.update({'ep_early_done_on_succ': str(eedos)})
-
-                                n_layers = len(time_scales.split(","))
-                                plot_col_names = other_plot_col_names
-                                for lay in range(n_layers):
-                                    plot_col_names += "," + plot_col_names_template.replace("##", str(lay))
-                                hyper_params.update({'plot_eval_cols': plot_col_names})
-                                hyper_params.update(hyper_params_all)
-                                all_params.append((performance_params.copy(), hyper_params.copy()))
+                                for lrs in learning_rates:
+                                    n_layers = len(time_scales.split(","))
+                                    if n_layers != len(lrs.split(",")):
+                                        continue
+                                    plot_col_names = other_plot_col_names
+                                    for lay in range(n_layers):
+                                        plot_col_names += "," + plot_col_names_template.replace("##", str(lay))
+                                    hyper_params.update({'plot_eval_cols': plot_col_names})
+                                    hyper_params.update(hyper_params_all)
+                                    all_params.append((performance_params.copy(), hyper_params.copy()))
         return all_params
 
     # @staticmethod
