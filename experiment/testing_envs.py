@@ -14,9 +14,9 @@ class TestingEnvs:
                  # 'Blocks-o1-gripper_above-v1',
                  # 'Blocks-o1-gripper_random-v1',
                  # 'ButtonUnlock-o0-v1',
-                 'Hook-o1-v1',
-                 'ButtonUnlock-o1-v1',
-                 'ButtonUnlock-o2-v1',
+                 # 'Hook-o1-v1',
+                 # 'ButtonUnlock-o1-v1',
+                 'ButtonUnlock-o2-v1'
                  ]
 
     # def get_CartPole_v1_cmds(self):
