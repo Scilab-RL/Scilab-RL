@@ -60,7 +60,7 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
     epochs_remaining = n_epochs - starting_epoch
     total_steps = kwargs['eval_after_n_steps'] * epochs_remaining
 
-    checkpoint_callback = CheckpointCallback(save_freq=kwargs['eval_after_n_steps'], save_path=logger.get_dir())
+    checkpoint_callback = CheckpointCallback(save_freq=kwargs['save_model_freq'], save_path=logger.get_dir())
     if hasattr(model, 'time_scales'):
         eval_callback = HierarchicalEvalCallback(eval_env,
                                                  log_path=logger.get_dir(),
@@ -96,7 +96,7 @@ def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, re
     train_env = gym.make(env)
     eval_env = gym.make(env)
     if restore_policy is not None:
-        model = ModelClass.load(restore_policy, env=train_env)
+        model = ModelClass.load(restore_policy, **policy_args, env=train_env)
     else:
         model = ModelClass('MlpPolicy', train_env, **policy_args)
     env_alg_compatible = check_env_alg_compatibility(model, train_env)

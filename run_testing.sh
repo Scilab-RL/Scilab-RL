@@ -19,7 +19,9 @@ while getopts ":ht:p:m:g:s:" arg; do
       ;;
     g) # Specify a comma-sparated list of GPU ids to include in the testing, e.g. '0,1', or simply '0' to use GPU 0.
       echo "g is ${OPTARG}"
-      gpu_ids=',' read -r -a array <<< "${OPTARG}"
+      IFS=', ' read -r -a gpu_ids <<< "${OPTARG}"
+#
+#      gpu_ids=',' read -r -a array <<< "${OPTARG}"
       ;;
     s) # Specify time to sleep in seconds after each command. This is important to wait for the previous command to create directories and allocate memory before the next process is started.
       echo "s is ${OPTARG}"
@@ -44,7 +46,11 @@ done
 echo "Starting $test_mode test."
 echo "Max. number of parallel processes is $max_active_procs"
 echo "Minimal required free memory is $min_mem_free"
-echo "GPUs to be used are $gpu_ids"
+echo "GPUs to be used are:"
+for element in "${gpu_ids[@]}"
+do
+    echo "$element"
+done
 
 logs_dir="test_logs"
 cmd_file="test_cmds.txt"

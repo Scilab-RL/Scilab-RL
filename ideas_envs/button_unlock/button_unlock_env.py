@@ -104,9 +104,11 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
         #         raise ValueError("Site {} does not exist. Please include the ideas_envs.assets.subgoal_viz.xml "
         #                          "in your environment xml.".format(name)) from e
         pass
+
     def layer_goal_to_3d(self, goal):
         goal_3d = np.array(list(goal) + [self.table_height])
         return goal_3d
+
     # def display_subgoals(self, subgoals, shape='sphere', size=0.025, colors=None):
     #     """
     #         :param subgoals is a one dimensional array with the subgoal positions

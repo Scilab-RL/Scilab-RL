@@ -1,16 +1,26 @@
 # environments used for testing
 class TestingEnvs:
     env_names = [
-                 # 'CartPole-v1',
-                 # 'MountainCarContinuous-v0',
-                 'HandReach-v0',
-                 'FetchPush-v1',
-                 # 'FetchSlide-v1',
-                 'FetchPickAndPlace-v1',
-                 'FetchReach-v1',
-                 #
-                 'HandManipulateBlock-v0'
-                 ]
+        # 'CartPole-v1',
+        # 'MountainCarContinuous-v0',
+        'HandReach-v0',
+        'FetchPush-v1',
+        # 'FetchSlide-v1',
+        'FetchPickAndPlace-v1',
+        'FetchReach-v1',
+        #
+        'HandManipulateBlock-v0',
+        'Hook-o1-v1',
+        'ButtonUnlock-o2-v1',
+        'ButtonUnlock-o1-v1',
+
+        #     'AntReacherEnv-v0',
+        #     'AntFourRoomsEnv-v0',
+        #     'AntMazeEnv-v0',
+        #     'AntPushEnv-v0',
+        #     'AntFallEnv-v0',
+
+    ]
 
     # def get_CartPole_v1_cmds(self):
     #     cmd = " --env CartPole-v1"

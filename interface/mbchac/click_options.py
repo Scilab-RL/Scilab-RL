@@ -3,13 +3,17 @@ import importlib
 
 options = [
 click.option('--model_classes', type=str, default='sac,sac'),
-click.option('--goal_selection_strategy', type=click.Choice(['future', 'final', 'episode', 'rndend']), default='future'),
+click.option('--goal_selection_strategy', type=click.Choice(['future', 'future2', 'future3', 'future4', 'final', 'episode', 'rndend', 'rndend2', 'rndend3']), default='future'),
 click.option('--n_sampled_goal', type=int, default=4),
 click.option('--train_freq', type=int, default=0, help='number of steps in each layer after which to train. 0 sets the training frequency to once per episode.'),
 click.option('--n_train_batches', type=int, default=0, help='The number of training batches per episode. 0 sets training batches to number of actions executed since last training in each layer, which effectively means that n_train_batches=n_train_freq.'),
 
 click.option('--learning_starts', type=int, default=100, help='The number of transitions in each layer required to start NN training.'),
 
+click.option('--learning_rates', type=str, default="9e-4,3e-4", help='The learning rates of the models. From highest to lowest layer.'),
+
+click.option('--use_action_replay', type=int, default=1, help='Whether to use action replay'),
+click.option('--ep_early_done_on_succ', type=int, default=1, help='Whether to finish an episode for a (sub-)goal early when the (sub-)goal has been achieved.'),
 # click.option('--batch_size', type=int, default=1024, help='The number of state transitions processed during network training.'),
 # click.option('--n_train_batches', type=int, default=40, help='The number of batches to train the actor-critic .'),
 # click.option('--buffer_size', type=str, default="500,500", help='The number of episodes to store in each level\'s replay buffer.'),
@@ -19,7 +23,7 @@ click.option('--learning_starts', type=int, default=100, help='The number of tra
 
 click.option('--render_train', type=click.Choice(['record', 'display', 'none']), default='none', help='Whether and how to render the rollout execution during training. \'record\' is for video, \'display\' for direct visualization.'),
 click.option('--render_test', type=click.Choice(['record', 'display', 'none']), default='none', help='Whether and how to render the rollout execution during testing. \'record\' is for video, \'display\' for direct visualization.'),
-
+click.option('--render_every_n_eval', type=int, default=15, help='The number of evaluations (epochs) after which to render the simluation. This has only an effect if \'render_train\' or \'render_test\' is not set to \'none\'.'),
 # HAC
 # click.option('--target_networks', type=int, default=1),
 # click.option('--tau', type=float, default=0.005, help='Tau to update target networks'),

@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Sequence, TextIO, Tuple, Union
 from stable_baselines3.common.logger import Video, FormatUnsupportedError
 import warnings
 import time
+from cycler import cycler
 
 class MatplotlibOutputFormat(KVWriter):
     def __init__(self, logpath, min_secs_wait_for_plot, cols_to_plot=None, plot_parent_dir=True):
@@ -32,6 +33,8 @@ class MatplotlibOutputFormat(KVWriter):
         self.step = 1
         self.cols_to_plot = cols_to_plot
         self.plot_colors = sorted(plt.rcParams['axes.prop_cycle'].by_key()['color'], reverse=True)
+        self.linestyles = ['-', '--', ':', '-.']
+        self.plot_cycler = (cycler(linestyle=self.linestyles) * cycler(color=self.plot_colors))
         self.min_secs_wait_for_plot = min_secs_wait_for_plot
 
     def set_plot_lock_file(self):
@@ -188,6 +191,8 @@ class MatplotlibOutputFormat(KVWriter):
 
         for k in self.cols_to_plot:
             fig = plt.figure(figsize=(20, 10))
+            ax = fig.gca()
+            ax.set_prop_cycle(self.plot_cycler)
             color_idx = 0
             all_data_info = {}
             for config_str in reduced_data.keys():
@@ -205,10 +210,10 @@ class MatplotlibOutputFormat(KVWriter):
                     xs = range(0, data_info['shortest_data_count'])
                     xs_label = 'epochs'
                 all_data_info[config_str] = data_info
-                plt.plot(xs, median[:min_data_len], color=self.plot_colors[color_idx], label=config_str + '-' + k)
+                line, = plt.plot(xs, median[:min_data_len], label=config_str + '-' + k)
                 plt.fill_between(xs, lower[:min_data_len],
                                  upper[:min_data_len],
-                                 alpha=0.25, color=self.plot_colors[color_idx])
+                                 alpha=0.25, color=line.get_color())
                 plt.xlabel(xs_label)
                 plt.ylabel(k)
                 color_idx += 1

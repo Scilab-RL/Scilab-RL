@@ -15,7 +15,7 @@ click.option('--restore_policy', type=str, default=None, help='The pretrained po
 click.option('--rollout_batch_size', type=int, default=1, help='The number of simultaneous rollouts.'),
 click.option('--eval_after_n_steps', type=int, default=2000, help='The number of training steps after which to evaluate the policy.'),
 click.option('--n_epochs', type=int, default=30, help='the max. number of training epochs to run. One epoch consists of \'eval_after_n_steps\' actions.'),
-click.option('--n_test_rollouts', type=int, default=25, help='The number of testing rollouts.'),
+click.option('--n_test_rollouts', type=int, default=10, help='The number of testing rollouts.'),
 click.option('--max_try_idx', type=int, default=399, help='Max. number of tries for this training config.'),
 click.option('--try_start_idx', type=int, default=100, help='Index for first try.'),
 click.option('--early_stop_last_n', type=int, default=5, help='The n last epochs over which to average for determining early stopping condition.'),
@@ -26,7 +26,7 @@ click.option('--info', type=str, default='', help='A command line comment that w
 click.option('--tensorboard', type=int, default=2, help='max. number of tensorboard instances allowed at the same time. Will be determined by number of open ports, starting at port 6006'),
 click.option('--plot_eval_cols', type=str, default='test/success_rate,test/mean_reward', help='Data to plot for evaluation. Strings separated by comma.'),
 click.option('--plot_at_most_every_secs', type=int, default=60, help='Number of seconds to wait for next plot with MatplotlibOutputFormat.'),
-click.option('--info', type=str, default='60', help='Some info string to append to the log folder for easier testing and debuggung.'),
+click.option('--save_model_freq', type=int, default=5000, help='The number of steps after which to save the model.'),
 # click.option('--reward_type', type=str, default='sparse', help='the reward type, dense or sparse')
 ]
 

@@ -59,10 +59,21 @@ class HHerReplayBuffer(ReplayBuffer):
         # buffer with episodes
         # number of episodes which can be stored until buffer size is reached
         self.max_episode_stored = self.buffer_size // self.max_episode_length
-        self.current_idx = 0
+
+        self.episode_lengths = np.zeros(self.max_episode_stored, dtype=np.int64)
+
+        self.goal_selection_strategy = goal_selection_strategy
+        # percentage of her indices
+        self.her_ratio = her_ratio
+
+        self.perform_action_replay_transitions = perform_action_replay_transitions
+
+        self.test_trans_sampling_fraction = test_trans_sampling_fraction
+
+        self.subgoal_test_fail_penalty = max(subgoal_test_fail_penalty, 1)
 
         # input dimensions for buffer initialization
-        input_shape = {
+        self.input_shape = {
             "observation": (self.env.num_envs, self.env.obs_dim),
             "achieved_goal": (self.env.num_envs, self.env.goal_dim),
             "desired_goal": (self.env.num_envs, self.env.goal_dim),
@@ -74,25 +85,8 @@ class HHerReplayBuffer(ReplayBuffer):
             "done": (1,),
             "is_subgoal_testing_trans": (1,),
         }
-        self.buffer = {
-            key: np.zeros((self.max_episode_stored, self.max_episode_length, *dim), dtype=np.float32)
-            for key, dim in input_shape.items()
-        }
-        # Store info dicts are it can be used to compute the reward (e.g. continuity cost)
-        self.info_buffer = [deque(maxlen=self.max_episode_length) for _ in range(self.max_episode_stored)]
-        # episode length storage, needed for episodes which has less steps than the maximum length
-        self.episode_lengths = np.zeros(self.max_episode_stored, dtype=np.int64)
 
-        self.goal_selection_strategy = goal_selection_strategy
-        # percentage of her indices
-        self.her_ratio = her_ratio
-
-        self.perform_action_replay_transitions = perform_action_replay_transitions
-
-        self.test_trans_sampling_fraction = test_trans_sampling_fraction
-
-        self.subgoal_test_fail_penalty = max(subgoal_test_fail_penalty / 4, 1) # This is a workaround as a compromise between using the full penalty and penalty=1
-        # self.subgoal_test_fail_penalty = 1
+        self.reset()
 
     def __getstate__(self) -> Dict[str, Any]:
         """
@@ -171,16 +165,57 @@ class HHerReplayBuffer(ReplayBuffer):
         if self.goal_selection_strategy == GoalSelectionStrategy.FINAL:
             # replay with final state of current episode
             transitions_indices = self.episode_lengths[her_episode_indices] - 1
+            goals = self.buffer["achieved_goal"][her_episode_indices, transitions_indices]
 
         elif self.goal_selection_strategy == GoalSelectionStrategy.FUTURE:
             # replay with random state which comes from the same episode and was observed after current transition
             transitions_indices = np.random.randint(
                 transitions_indices[her_indices] + 1, self.episode_lengths[her_episode_indices]
             )
+            goals = self.buffer["achieved_goal"][her_episode_indices, transitions_indices]
+
+        elif self.goal_selection_strategy == GoalSelectionStrategy.FUTURE2:
+            # replay with random state which comes from the same episode and was observed after current transition
+            transitions_indices = np.random.randint(
+                transitions_indices[her_indices], self.episode_lengths[her_episode_indices]
+            )
+            goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
+
+            valid_trans_idx_mask = transitions_indices < (self.episode_lengths[her_episode_indices] - 1)
+            valid_trans_idxs = transitions_indices[valid_trans_idx_mask]
+            debug_goals = self.buffer["next_achieved_goal"][her_episode_indices[valid_trans_idx_mask], valid_trans_idxs]
+            ag_goals = self.buffer["achieved_goal"][her_episode_indices[valid_trans_idx_mask], (valid_trans_idxs + 1)]
+            same = np.isclose(ag_goals, debug_goals)
+            same_all = same.all()
+            if same_all:
+                pass
+                # print("Good")
+            else:
+                print("ERROR! nag_t != ag_t+1 not good")
+
+        elif self.goal_selection_strategy == GoalSelectionStrategy.FUTURE3: # same as FUTURE2, but we remove the last transition before.
+            # replay with random state which comes from the same episode and was observed after current transition
+            transitions_indices = np.random.randint(
+                transitions_indices[her_indices], self.episode_lengths[her_episode_indices]
+            )
+            goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
+
+            valid_trans_idx_mask = transitions_indices < (self.episode_lengths[her_episode_indices] - 1)
+            valid_trans_idxs = transitions_indices[valid_trans_idx_mask]
+            debug_goals = self.buffer["next_achieved_goal"][her_episode_indices[valid_trans_idx_mask], valid_trans_idxs]
+            ag_goals = self.buffer["achieved_goal"][her_episode_indices[valid_trans_idx_mask], (valid_trans_idxs + 1)]
+            same = np.isclose(ag_goals, debug_goals)
+            same_all = same.all()
+            if same_all:
+                pass
+                # print("Good")
+            else:
+                assert False, "ERROR! nag_t != ag_t+1 not good"
 
         elif self.goal_selection_strategy == GoalSelectionStrategy.EPISODE:
             # replay with random state which comes from the same episode as current transition
             transitions_indices = np.random.randint(self.episode_lengths[her_episode_indices])
+            goals = self.buffer["achieved_goal"][her_episode_indices, transitions_indices]
 
         elif self.goal_selection_strategy == GoalSelectionStrategy.RNDEND:
             # replay with random state which comes from the same episode and was observed after current transition
@@ -199,10 +234,49 @@ class HHerReplayBuffer(ReplayBuffer):
             )
             replace_trans_idxs = self.episode_lengths[her_episode_indices][sample_final_idxs] - 1
             transitions_indices[sample_final_idxs] = replace_trans_idxs
+            goals = self.buffer["achieved_goal"][her_episode_indices, transitions_indices]
+
+        elif self.goal_selection_strategy == GoalSelectionStrategy.RNDEND2: # Here we do also select the last transition but select the next_achieved_goal instead.
+            # replay with random state which comes from the same episode and was observed after current transition
+            # This distribution is such that if the length of an episode is max, then we have a uniform distribution, but the shorter it gets the more we sample from the last sample.
+
+            # First sample future transition indices just like in future.
+            transitions_indices = np.random.randint(
+                transitions_indices[her_indices], self.episode_lengths[her_episode_indices]
+            )
+
+            # Then determine the episodes where to sample from the end.
+            n_final_sample_prob = (self.max_episode_length - self.episode_lengths[her_episode_indices]) / self.max_episode_length
+            rnd_sample = np.random.random_sample(n_final_sample_prob.shape)
+            sample_final_idxs = np.where(rnd_sample < n_final_sample_prob)
+            replace_trans_idxs = self.episode_lengths[her_episode_indices][sample_final_idxs] - 1
+            # Finally update those transition indices where to sample from the end.
+            transitions_indices[sample_final_idxs] = replace_trans_idxs
+            goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
+
+        elif self.goal_selection_strategy == GoalSelectionStrategy.RNDEND3: # Here we have selected only transitions before the last one, but select the achieved_goal.
+            # replay with random state which comes from the same episode and was observed after current transition
+            # This distribution is such that if the length of an episode is max, then we have a uniform distribution, but the shorter it gets the more we sample from the last sample.
+
+            # First sample future transition indices just like in future.
+            transitions_indices = np.random.randint(
+                transitions_indices[her_indices], self.episode_lengths[her_episode_indices]
+            )
+
+            # Then determine the episodes where to sample from the end.
+            n_final_sample_prob = (self.max_episode_length - self.episode_lengths[
+                her_episode_indices]) / self.max_episode_length
+            rnd_sample = np.random.random_sample(n_final_sample_prob.shape)
+            sample_final_idxs = np.where(rnd_sample < n_final_sample_prob)
+            replace_trans_idxs = self.episode_lengths[her_episode_indices][sample_final_idxs] - 1
+            # Finally update those transition indices where to sample from the end.
+            transitions_indices[sample_final_idxs] = replace_trans_idxs
+            goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
         else:
             raise ValueError(f"Strategy {self.goal_selection_strategy} for sampling goals not supported!")
 
-        return self.buffer["achieved_goal"][her_episode_indices, transitions_indices]
+        return goals
+
 
     def _sample_transitions(self,
         batch_size: Optional[int],
@@ -296,7 +370,8 @@ class HHerReplayBuffer(ReplayBuffer):
 
         # Special case when using the "future" or "rndend" goal sampling strategy
         # we cannot sample all transitions, we have to remove the last timestep
-        if self.goal_selection_strategy in [GoalSelectionStrategy.FUTURE, GoalSelectionStrategy.RNDEND]:
+        if self.goal_selection_strategy in [GoalSelectionStrategy.FUTURE, GoalSelectionStrategy.RNDEND,
+                                            GoalSelectionStrategy.FUTURE3, GoalSelectionStrategy.RNDEND3]:
             # restrict the sampling domain when ep_lengths > 1
             # otherwise filter out the indices
             her_indices = her_indices[ep_lengths[her_indices] > 1]
@@ -338,7 +413,13 @@ class HHerReplayBuffer(ReplayBuffer):
             assert len(transitions['next_achieved_goal'].shape) == 3 and \
                    transitions['next_achieved_goal'].shape[1] == 1 and \
                    len(transitions['action'].shape) == 2, "Error! Unexpected dimension during action replay transition sampling."
-            transitions['action'] = transitions['next_achieved_goal'].reshape([transitions['next_achieved_goal'].shape[0], transitions['next_achieved_goal'].shape[2]])
+            # perform action replay only where the action was not successful.
+            infos = transitions['info']
+            success = np.array([[inf['is_success'] for inf in info] for info in infos])[:,0]
+            no_success_idxs = np.where(np.isclose(success, 0.0))
+            unscaled_action = transitions['next_achieved_goal'].reshape([transitions['next_achieved_goal'].shape[0], transitions['next_achieved_goal'].shape[2]])
+            scaled_action = self.env.unwrapped.envs[0].unwrapped.model.policy.scale_action(unscaled_action)
+            transitions['action'][no_success_idxs] = scaled_action[no_success_idxs]
 
         # concatenate observation with (desired) goal
         observations = ObsDictWrapper.convert_dict(self._normalize_obs(transitions, maybe_vec_env))
@@ -426,6 +507,13 @@ class HHerReplayBuffer(ReplayBuffer):
         """
         Reset the buffer.
         """
+        self.buffer = {
+            key: np.zeros((self.max_episode_stored, self.max_episode_length, *dim), dtype=np.float32)
+            for key, dim in self.input_shape.items()
+        }
+        # Store info dicts are it can be used to compute the reward (e.g. continuity cost)
+        self.info_buffer = [deque(maxlen=self.max_episode_length) for _ in range(self.max_episode_stored)]
+        # episode length storage, needed for episodes which has less steps than the maximum length
         self.pos = 0
         self.current_idx = 0
         self.full = False

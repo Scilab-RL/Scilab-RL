@@ -63,7 +63,7 @@ class HierarchicalEvalCallback(EvalCallback):
         layer_envs = get_h_envs_from_env(eval_env, top_level_model.time_scales, is_testing_env=True, model=top_level_model)
         for idx, eval_env in enumerate(layer_envs):
             # Convert to VecEnv for consistency
-            eval_env = MBCHAC._wrap_env(eval_env)
+            eval_env = top_level_model._wrap_env(eval_env)
             if isinstance(eval_env, VecEnv):
                 assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
             layer_envs[idx] = eval_env
