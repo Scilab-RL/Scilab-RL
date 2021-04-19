@@ -56,7 +56,7 @@ class TestingAlgos:
         ts = ['50']
         # ts = ['7,7']
         # ar = [1, 0]
-        ar = [0]
+        ar = [1]
         # sg_test_perc = [0, 0.3]
         sg_test_perc = [0]
         # learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
