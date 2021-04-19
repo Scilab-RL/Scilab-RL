@@ -114,8 +114,6 @@ def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, re
 @main_linker.click_main
 @click.pass_context
 def main(ctx, **kwargs):
-    for var,val in os.environ.items():
-        print(f'var: {var}, val: {val}')
     config = main_linker.import_creator(kwargs['algorithm'])
     all_cmd_kvs = {ctx.args[i][2:]: ctx.args[i+1] for i in range(0, len(ctx.args), 2)}
     policy_args = ctx.forward(main_linker.get_algorithm_click).copy()
