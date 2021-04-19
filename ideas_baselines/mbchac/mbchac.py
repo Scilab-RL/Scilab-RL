@@ -137,6 +137,7 @@ class MBCHAC(BaseAlgorithm):
         render_every_n_eval: int = 1,
         use_action_replay: bool = True,
         ep_early_done_on_succ: bool = True,
+        hindsight_sampling_done_if_success: int = 1,
         *args,
         **kwargs,
     ):
@@ -149,6 +150,7 @@ class MBCHAC(BaseAlgorithm):
         self.train_freq = train_freq
         self.is_bottom_layer = len(self.time_scales.split(",")) == 1
         self.parent_model = None
+        self.hindsight_sampling_done_if_success = hindsight_sampling_done_if_success
         self.reset_train_info_list()
         assert len(time_scales.split(",")) == (
                     len(sub_model_classes) + 1), "Error, number of time scales is not equal to number of layers."
@@ -266,7 +268,8 @@ class MBCHAC(BaseAlgorithm):
             self.her_ratio,  # pytype: disable=wrong-arg-types
             self.perform_action_replay,
             sample_test_trans_fraction,
-            subgoal_test_fail_penalty
+            subgoal_test_fail_penalty,
+            self.hindsight_sampling_done_if_success,
         )
 
         # counter for steps in episode
@@ -520,7 +523,7 @@ class MBCHAC(BaseAlgorithm):
                 # if self.layer==1 and episode_timesteps == (self.max_episode_length-1): # Un-Comment this to hard-set the last subgoal to the final goal
                 #     action = observation['desired_goal']
                 new_obs, reward, done, infos = env.step(action)
-                # success = infos['is_success']
+                success = np.array([info['is_success'] for info in infos])
                 # last_steps_succ.append(success)
                 if subgoal_test: # if the subgoal test has started here, unset testing mode of submodel if applicable.
                     self.unset_subgoal_test_mode()
@@ -567,11 +570,19 @@ class MBCHAC(BaseAlgorithm):
                 else:
                     next_obs = new_obs_
                 # try:
+                finished_early = False
+                if self.ep_early_done_on_succ > 1:
+                    finished_early = self.check_last_succ(n_ep=self.ep_early_done_on_succ-1) # Check the last episodes except this one.
+                    finished_early = np.logical_and(finished_early, success) # Then check if this episode is also finished.
+                elif self.ep_early_done_on_succ == 1:
+                    finished_early = success # If there is only one step to determined early stop, check if this episode is successful now.
+
+                done = np.logical_or(done, finished_early) # The episode is done if it is finshed early or if it is done via timeout
+
                 self.replay_buffer.add(self._last_original_obs, next_obs, buffer_action, reward_, done, infos)
 
-                finished = self.check_last_succ()
+                # finished = self.check_last_succ()
 
-                done = np.logical_or(done, finished)
 
                 # except Exception as e:
                 #     print("ohno {}".format(e))
@@ -642,12 +653,14 @@ class MBCHAC(BaseAlgorithm):
 
         return RolloutReturn(mean_reward, total_steps, total_episodes, continue_training)
 
-    def check_last_succ(self):
+    def check_last_succ(self, n_ep=None):
+        if n_ep is None:
+            n_ep = self.ep_early_done_on_succ
         buffer_pos = self.replay_buffer.pos
         ep_info_buffer = self.replay_buffer.info_buffer[buffer_pos]
         succ_array = []
-        if self.ep_early_done_on_succ > 0 and len(ep_info_buffer) >= self.ep_early_done_on_succ:
-            last_infos = list(ep_info_buffer)[-self.ep_early_done_on_succ:]
+        if n_ep > 0 and len(ep_info_buffer) >= n_ep:
+            last_infos = list(ep_info_buffer)[-n_ep:]
             success = np.array([[inf['is_success'] for inf in info] for info in last_infos])[:, 0]
             # succ_array.append(success)
             finished = np.all(success)

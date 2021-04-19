@@ -146,9 +146,13 @@ def main(ctx, **kwargs):
                             k))
                 else:
                     policy_args[k] = v
+            try:
+                class_list.append(getattr(importlib.import_module('stable_baselines3.' + class_name),
+                                          class_name.upper()))
+            except:
+                    class_list.append(getattr(importlib.import_module('ideas_baselines.' + class_name),
+                                              class_name.upper()))
 
-            class_list.append(getattr(importlib.import_module('stable_baselines3.' + class_name),
-                                      class_name.upper()))
         kwargs.update(policy_args.copy())
         # In policy args, exchange the string representing the model class with the actual class object.
         policy_args['model_class'] = class_list[0]

@@ -6,11 +6,11 @@ import torch as th
 from gym import spaces
 
 from stable_baselines3.common.buffers import ReplayBuffer
-from stable_baselines3.common.type_aliases import ReplayBufferSamples, RolloutBufferSamples
+from stable_baselines3.common.type_aliases import RolloutBufferSamples
+from ideas_baselines.common.type_aliases import ReplayBufferSamplesWithTestTrans
 from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
 from ideas_baselines.mbchac.goal_selection_strategy import GoalSelectionStrategy
-
 
 
 class HHerReplayBuffer(ReplayBuffer):
@@ -32,6 +32,7 @@ class HHerReplayBuffer(ReplayBuffer):
         (between 0 and 1, for online sampling)
         The default value ``her_ratio=0.8`` corresponds to 4 virtual transitions
         for one real transition (4 / (4 + 1) = 0.8)
+    :hindsight_sampling_done_if_success: This determines whether an episodes is considered as done if it is successful *in hindsight*. This is important e.g. in SAC when computing the q-value because the discounted future return is set to 0 when an episode is done.
     """
 
     def __init__(
@@ -48,10 +49,11 @@ class HHerReplayBuffer(ReplayBuffer):
         perform_action_replay_transitions = True,
         test_trans_sampling_fraction = 0.1,
         subgoal_test_fail_penalty = 1,
+        hindsight_sampling_done_if_success = True,
     ):
 
         super(HHerReplayBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs)
-
+        self.hindsight_sampling_done_if_success = hindsight_sampling_done_if_success
         self.env = env
         self.buffer_size = buffer_size
         self.max_episode_length = max_episode_length
@@ -123,7 +125,7 @@ class HHerReplayBuffer(ReplayBuffer):
 
     def _get_samples(
         self, batch_inds: np.ndarray, env: Optional[VecNormalize] = None
-    ) -> Union[ReplayBufferSamples, RolloutBufferSamples]:
+    ) -> Union[ReplayBufferSamplesWithTestTrans, RolloutBufferSamples]:
         """
         Abstract method from base class.
         """
@@ -133,7 +135,7 @@ class HHerReplayBuffer(ReplayBuffer):
         self,
         batch_size: int,
         env: Optional[VecNormalize],
-    ) -> Union[ReplayBufferSamples, Tuple[np.ndarray, ...]]:
+    ) -> Union[ReplayBufferSamplesWithTestTrans, Tuple[np.ndarray, ...]]:
         """
         Sample function for online sampling of HER transition,
         this replaces the "regular" replay buffer ``sample()``
@@ -281,7 +283,7 @@ class HHerReplayBuffer(ReplayBuffer):
     def _sample_transitions(self,
         batch_size: Optional[int],
         maybe_vec_env: Optional[VecNormalize],
-    ) -> Union[ReplayBufferSamples, Tuple[np.ndarray, ...]]:
+    ) -> Union[ReplayBufferSamplesWithTestTrans, Tuple[np.ndarray, ...]]:
 
         n_ga_trans = int(batch_size * (1 - self.test_trans_sampling_fraction))
         n_test_trans = batch_size - n_ga_trans
@@ -292,11 +294,16 @@ class HHerReplayBuffer(ReplayBuffer):
             test_replay_trans = self.sample_test_transitions(batch_size=n_test_trans, maybe_vec_env=maybe_vec_env)
             tmp_list = []
             for key in replay_trans._fields:
-                rt_t = replay_trans._asdict()[key]
+
+                if key == 'is_test_trans':
+                    rt_t = replay_trans._asdict()[key] * 0 # Set the testing transitions flag of the goal replay transitions to 0 when sampling because these are treated as normal transitions when computing the q value.
+                else:
+                    rt_t = replay_trans._asdict()[key]
                 trt_t = test_replay_trans._asdict()[key]
                 concat_t = th.cat((rt_t, trt_t), 0)
                 tmp_list.append(concat_t)
-            replay_trans = ReplayBufferSamples(*tuple(tmp_list))
+
+            replay_trans = ReplayBufferSamplesWithTestTrans(*tuple(tmp_list))
 
         return replay_trans
 
@@ -304,7 +311,7 @@ class HHerReplayBuffer(ReplayBuffer):
         self,
         batch_size: Optional[int],
         maybe_vec_env: Optional[VecNormalize],
-    ) -> Union[ReplayBufferSamples, Tuple[np.ndarray, ...]]:
+    ) -> Union[ReplayBufferSamplesWithTestTrans, Tuple[np.ndarray, ...]]:
         """
         :param batch_size: Number of element to sample (only used for online sampling)
         :param env: associated gym VecEnv to normalize the observations/rewards
@@ -346,14 +353,15 @@ class HHerReplayBuffer(ReplayBuffer):
             next_observations[:, 0],
             transitions["done"],
             self._normalize_reward(transitions["reward"], maybe_vec_env),
+            transitions['is_subgoal_testing_trans'],
         )
-        return ReplayBufferSamples(*tuple(map(self.to_torch, data)))
+        return ReplayBufferSamplesWithTestTrans(*tuple(map(self.to_torch, data)))
 
     def sample_goal_action_replay_transitions(
         self,
         batch_size: Optional[int],
         maybe_vec_env: Optional[VecNormalize],
-    ) -> Union[ReplayBufferSamples, Tuple[np.ndarray, ...]]:
+    ) -> Union[ReplayBufferSamplesWithTestTrans, Tuple[np.ndarray, ...]]:
         """
         :param batch_size: Number of element to sample (only used for online sampling)
         :param env: associated gym VecEnv to normalize the observations/rewards
@@ -407,15 +415,16 @@ class HHerReplayBuffer(ReplayBuffer):
             transitions["desired_goal"][her_indices, 0],
             transitions["info"][her_indices, 0],
         )
-
+        infos = transitions['info']
+        success = np.array([[inf['is_success'] for inf in info] for info in infos])
+        if self.hindsight_sampling_done_if_success:
+            transitions['done'] = success
         # Perform action replay
         if self.perform_action_replay_transitions:
             assert len(transitions['next_achieved_goal'].shape) == 3 and \
                    transitions['next_achieved_goal'].shape[1] == 1 and \
                    len(transitions['action'].shape) == 2, "Error! Unexpected dimension during action replay transition sampling."
             # perform action replay only where the action was not successful.
-            infos = transitions['info']
-            success = np.array([[inf['is_success'] for inf in info] for info in infos])[:,0]
             no_success_idxs = np.where(np.isclose(success, 0.0))
             unscaled_action = transitions['next_achieved_goal'].reshape([transitions['next_achieved_goal'].shape[0], transitions['next_achieved_goal'].shape[2]])
             scaled_action = self.env.unwrapped.envs[0].unwrapped.model.policy.scale_action(unscaled_action)
@@ -433,8 +442,9 @@ class HHerReplayBuffer(ReplayBuffer):
             next_observations[:, 0],
             transitions["done"],
             self._normalize_reward(transitions["reward"], maybe_vec_env),
+            transitions["is_subgoal_testing_trans"],
         )
-        return ReplayBufferSamples(*tuple(map(self.to_torch, data)))
+        return ReplayBufferSamplesWithTestTrans(*tuple(map(self.to_torch, data)))
 
     def add(
         self,
