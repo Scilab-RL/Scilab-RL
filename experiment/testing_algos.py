@@ -147,6 +147,7 @@ class TestingAlgos:
                                         n_layers = len(time_scales.split(","))
                                         if n_layers != len(lrs.split(",")):
                                             continue
+                                        hyper_params.update({'learning_rates':lrs})
                                         plot_col_names = other_plot_col_names
                                         for lay in range(n_layers):
                                             plot_col_names += "," + plot_col_names_template.replace("##", str(lay))
