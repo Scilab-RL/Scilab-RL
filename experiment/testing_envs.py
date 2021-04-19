@@ -5,7 +5,7 @@ class TestingEnvs:
         # 'MountainCarContinuous-v0',
         'HandReach-v0',
         'FetchPush-v1',
-        # 'FetchSlide-v1',
+        'FetchSlide-v1',
         'FetchPickAndPlace-v1',
         'FetchReach-v1',
         #
@@ -14,12 +14,11 @@ class TestingEnvs:
         'ButtonUnlock-o2-v1',
         'ButtonUnlock-o1-v1',
 
-        #     'AntReacherEnv-v0',
-        #     'AntFourRoomsEnv-v0',
-        #     'AntMazeEnv-v0',
-        #     'AntPushEnv-v0',
-        #     'AntFallEnv-v0',
-
+        'AntReacher-v1',
+        'Ant4Rooms-v1',
+        'AntMaze-v1',
+        'AntPush-v1',
+        'AntFall-v1',
     ]
 
     # def get_CartPole_v1_cmds(self):
