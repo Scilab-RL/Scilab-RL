@@ -65,13 +65,14 @@ class TestingAlgos:
         learning_rates = ['3e-4']
 
 
-        n_succ_steps_for_early_ep_done = [0, 1, 2]
+        n_succ_steps_for_early_ep_done = [0, 2]
         # n_succ_steps_for_early_ep_done = [2]
         n_sampled_goal = [4]
         # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
         # goal_selection_strategy = ['future']
         # goal_selection_strategy = ['future3']
         goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
+        goal_selection_strategy = ['future', 'future2']
         hindsight_sampling_done_if_success = [0,1]
 
         if env in ['FetchReach-v1']:
