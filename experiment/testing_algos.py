@@ -52,6 +52,25 @@ class TestingAlgos:
                             'save_model_freq': 50000
                             }
 
+        # ts = ['10,10']
+        ts = ['50', '7,7']
+        # ts = ['7,7']
+        # ar = [1, 0]
+        ar = [0]
+        # sg_test_perc = [0, 0.3]
+        sg_test_perc = [0]
+        # learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
+        # learning_rates = ['3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
+        learning_rates = ['3e-4', '3e-4,3e-4']
+
+        n_succ_steps_for_early_ep_done = [0, 2]
+        n_succ_steps_for_early_ep_done = [2]
+        n_sampled_goal = [3]
+        # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
+        goal_selection_strategy = ['future']
+        # goal_selection_strategy = ['future3']
+        # goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
+
         if env in ['FetchReach-v1']:
             performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
@@ -88,28 +107,21 @@ class TestingAlgos:
         elif 'Hook-o' in env:
             performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+        elif 'Ant' in env:
+            performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+            ts = ['500', '10,50', '20,25']
+            # 'AntReacher-v1',
+            # 'Ant4Rooms-v1',
+            # 'AntMaze-v1',
+            # 'AntPush-v1',
+            # 'AntFall-v1',
+
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
 
-        # ts = ['10,10']
-        ts = ['50', '7,7']
-        # ts = ['7,7']
-        # ar = [1, 0]
-        ar = [0]
-        # sg_test_perc = [0, 0.3]
-        sg_test_perc = [0]
-        # learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
-        # learning_rates = ['3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
-        learning_rates = ['3e-4','3e-4,3e-4']
 
-        n_succ_steps_for_early_ep_done = [0, 2]
-        n_succ_steps_for_early_ep_done = [2]
-        n_sampled_goal = [3]
-        # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
-        goal_selection_strategy = ['future']
-        # goal_selection_strategy = ['future3']
-        # goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
         hyper_params = {}
         for nsg in n_sampled_goal:
             hyper_params.update({'n_sampled_goal': nsg})
