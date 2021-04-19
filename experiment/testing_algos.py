@@ -40,7 +40,7 @@ class TestingAlgos:
         all_params = []
         eval_after_n_steps = 5000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
-        model = 'sac'
+        model = 'sacvg'
         plot_col_names_template = 'train_##/actor_loss,train_##/critic_loss,train_##/ent_coef,train_##/n_updates,test_##/ep_success,test_##/ep_reward,train_##/ent_coef_loss,rollout_##/success_rate,test_##/q_mean,test_##/ep_length,train_##/ep_length,test_##/step_success'
         other_plot_col_names = 'test/success_rate,test/mean_reward'
         hyper_params_all = {'eval_after_n_steps': eval_after_n_steps,
