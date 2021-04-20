@@ -68,9 +68,11 @@ class SACVG(SAC):
     def __init__(
         self,
         # hindsight_sampling_done_if_success: int = 1,
+        set_fut_ret_zero_if_done: int = 1,
         **kwargs):
 
         # self.hindsight_sampling_done_if_success = hindsight_sampling_done_if_success
+        self.set_fut_ret_zero_if_done = set_fut_ret_zero_if_done
         super(SACVG, self).__init__(
             **kwargs
         )
@@ -132,7 +134,10 @@ class SACVG(SAC):
                     gamma = self.gamma * (1 - replay_data.is_test_trans)
                 else:
                     gamma = self.gamma
-                q_backup = replay_data.rewards + (1 - replay_data.dones) * gamma * target_q
+                if self.set_fut_ret_zero_if_done:
+                    q_backup = replay_data.rewards + (1 - replay_data.dones) * gamma * target_q
+                else:
+                    q_backup = replay_data.rewards + gamma * target_q
 
             # Get current Q estimates for each critic network
             # using action from the replay buffer

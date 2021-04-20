@@ -5,7 +5,7 @@ class TestingAlgos:
 
     base_algo_names = ['sac', 'ddpg', 'td3']
     algo_names = ['mbchac', 'her2'] + base_algo_names
-    # algo_names = ['mbchac']
+    algo_names = ['mbchac']
 
     @staticmethod
     def get_her_performance_params(env):
@@ -63,15 +63,15 @@ class TestingAlgos:
         # learning_rates = ['3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
         # learning_rates = ['3e-4', '3e-4,3e-4']
         learning_rates = ['3e-4']
+        set_fut_ret_zero_if_done = [0,1]
 
-
-        n_succ_steps_for_early_ep_done = [1]
+        n_succ_steps_for_early_ep_done = [0, 1]
         # n_succ_steps_for_early_ep_done = [2]
         n_sampled_goal = [4]
         # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
         # goal_selection_strategy = ['future']
         # goal_selection_strategy = ['future3']
-        goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
+        goal_selection_strategy = ['future', 'future2']
         # goal_selection_strategy = ['future', 'future2']
         # goal_selection_strategy = ['rndend', 'rndend2']
         hindsight_sampling_done_if_success = [0, 1]
@@ -129,32 +129,34 @@ class TestingAlgos:
 
 
         hyper_params = {}
-        for hsdis in hindsight_sampling_done_if_success:
-            hyper_params.update({'hindsight_sampling_done_if_success': hsdis})
-            for nsg in n_sampled_goal:
-                hyper_params.update({'n_sampled_goal': nsg})
-                for gss in goal_selection_strategy:
-                    hyper_params.update({'goal_selection_strategy': gss})
-                    for time_scales in ts:
-                        model_classes = [model] * len(time_scales.split(','))
-                        hyper_params.update({'model_classes': ",".join(model_classes), 'time_scales': time_scales})
-                        for action_replay in ar:
-                            hyper_params.update({'use_action_replay': str(action_replay)})
-                            for subgoal_test_perc in sg_test_perc:
-                                hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
-                                for eedos in n_succ_steps_for_early_ep_done:
-                                    hyper_params.update({'ep_early_done_on_succ': str(eedos)})
-                                    for lrs in learning_rates:
-                                        n_layers = len(time_scales.split(","))
-                                        if n_layers != len(lrs.split(",")):
-                                            continue
-                                        hyper_params.update({'learning_rates':lrs})
-                                        plot_col_names = other_plot_col_names
-                                        for lay in range(n_layers):
-                                            plot_col_names += "," + plot_col_names_template.replace("##", str(lay))
-                                        hyper_params.update({'plot_eval_cols': plot_col_names})
-                                        hyper_params.update(hyper_params_all)
-                                        all_params.append((performance_params.copy(), hyper_params.copy()))
+        for frz in set_fut_ret_zero_if_done:
+            hyper_params.update({'set_fut_ret_zero_if_done': frz})
+            for hsdis in hindsight_sampling_done_if_success:
+                hyper_params.update({'hindsight_sampling_done_if_success': hsdis})
+                for nsg in n_sampled_goal:
+                    hyper_params.update({'n_sampled_goal': nsg})
+                    for gss in goal_selection_strategy:
+                        hyper_params.update({'goal_selection_strategy': gss})
+                        for time_scales in ts:
+                            model_classes = [model] * len(time_scales.split(','))
+                            hyper_params.update({'model_classes': ",".join(model_classes), 'time_scales': time_scales})
+                            for action_replay in ar:
+                                hyper_params.update({'use_action_replay': str(action_replay)})
+                                for subgoal_test_perc in sg_test_perc:
+                                    hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
+                                    for eedos in n_succ_steps_for_early_ep_done:
+                                        hyper_params.update({'ep_early_done_on_succ': str(eedos)})
+                                        for lrs in learning_rates:
+                                            n_layers = len(time_scales.split(","))
+                                            if n_layers != len(lrs.split(",")):
+                                                continue
+                                            hyper_params.update({'learning_rates':lrs})
+                                            plot_col_names = other_plot_col_names
+                                            for lay in range(n_layers):
+                                                plot_col_names += "," + plot_col_names_template.replace("##", str(lay))
+                                            hyper_params.update({'plot_eval_cols': plot_col_names})
+                                            hyper_params.update(hyper_params_all)
+                                            all_params.append((performance_params.copy(), hyper_params.copy()))
         return all_params
 
     # @staticmethod
