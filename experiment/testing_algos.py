@@ -63,7 +63,7 @@ class TestingAlgos:
         # learning_rates = ['3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
         # learning_rates = ['3e-4', '3e-4,3e-4']
         learning_rates = ['3e-4']
-        set_fut_ret_zero_if_done = [0,1]
+        set_fut_ret_zero_if_done = [0, 1]
 
         n_succ_steps_for_early_ep_done = [0, 2]
         # n_succ_steps_for_early_ep_done = [2]
