@@ -38,7 +38,7 @@ class TestingAlgos:
     @staticmethod
     def get_mbchac_performance_params(env):
         all_params = []
-        eval_after_n_steps = 5000
+        eval_after_n_steps = 500
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
         model = 'sacvg'
         plot_col_names_template = 'train_##/actor_loss,train_##/critic_loss,train_##/ent_coef,train_##/n_updates,test_##/ep_success,test_##/ep_reward,train_##/ent_coef_loss,rollout_##/success_rate,test_##/q_mean,test_##/ep_length,train_##/ep_length,test_##/step_success'
