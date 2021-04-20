@@ -74,7 +74,7 @@ class TestingAlgos:
         goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
         # goal_selection_strategy = ['future', 'future2']
         # goal_selection_strategy = ['rndend', 'rndend2']
-        hindsight_sampling_done_if_success = [0,1]
+        hindsight_sampling_done_if_success = [0, 1]
 
         if env in ['FetchReach-v1']:
             performance_params = {'n_epochs': 80, 'n_runs': 3, 'min_success_runs': 3,
