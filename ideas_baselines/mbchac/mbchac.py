@@ -841,8 +841,10 @@ class MBCHAC(BaseAlgorithm):
         self.model.goal_selection_strategy = self.goal_selection_strategy
         self.model.model_class = self.model_class
         self.model.max_episode_length = self.max_episode_length
-
-        self.model.save(path, exclude, include)
+        layer_path = path + f"_lay{self.layer}"
+        self.model.save(layer_path, exclude, include)
+        if self.sub_model is not None:
+            self.sub_model.save()
 
     @classmethod
     def load(
@@ -862,7 +864,10 @@ class MBCHAC(BaseAlgorithm):
         :param device: Device on which the code should run.
         :param kwargs: extra arguments to change the model when loading
         """
-        data, params, pytorch_variables = load_from_zip_file(path, device=device)
+        n_layers = len(kwargs['model_classes'].split(","))
+        for lay in range(n_layers):
+            layer_path = path + f"_lay{lay}"
+            data, params, pytorch_variables = load_from_zip_file(layer_path, device=device)
 
         # Remove stored device information and replace with ours
         if "policy_kwargs" in data:
