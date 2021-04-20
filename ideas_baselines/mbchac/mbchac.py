@@ -852,7 +852,7 @@ class MBCHAC(BaseAlgorithm):
         path: Union[str, pathlib.Path, io.BufferedIOBase],
         env: Optional[GymEnv] = None,
         device: Union[th.device, str] = "auto",
-        **kwargs,
+        **policy_args,
     ) -> "BaseAlgorithm":
         """
         Load the model from a zip-file
@@ -864,88 +864,93 @@ class MBCHAC(BaseAlgorithm):
         :param device: Device on which the code should run.
         :param kwargs: extra arguments to change the model when loading
         """
-        n_layers = len(kwargs['model_classes'].split(","))
+        parent_loaded_model = cls('MlpPolicy', env, **policy_args)
+        layer_model = parent_loaded_model
+        n_layers = len(policy_args['model_classes'].split(","))
         for lay in range(n_layers):
             layer_path = path + f"_lay{lay}"
             data, params, pytorch_variables = load_from_zip_file(layer_path, device=device)
+            # Remove stored device information and replace with ours
+            if "policy_kwargs" in data:
+                if "device" in data["policy_kwargs"]:
+                    del data["policy_kwargs"]["device"]
 
-        # Remove stored device information and replace with ours
-        if "policy_kwargs" in data:
-            if "device" in data["policy_kwargs"]:
-                del data["policy_kwargs"]["device"]
+            # if "policy_kwargs" in kwargs and kwargs["policy_kwargs"] != data["policy_kwargs"]:
+            #     raise ValueError(
+            #         f"The specified policy kwargs do not equal the stored policy kwargs."
+            #         f"Stored kwargs: {data['policy_kwargs']}, specified kwargs: {kwargs['policy_kwargs']}"
+            #     )
 
-        if "policy_kwargs" in kwargs and kwargs["policy_kwargs"] != data["policy_kwargs"]:
-            raise ValueError(
-                f"The specified policy kwargs do not equal the stored policy kwargs."
-                f"Stored kwargs: {data['policy_kwargs']}, specified kwargs: {kwargs['policy_kwargs']}"
-            )
+            # check if observation space and action space are part of the saved parameters
+            if "observation_space" not in data or "action_space" not in data:
+                raise KeyError("The observation_space and action_space were not given, can't verify new environments")
 
-        # check if observation space and action space are part of the saved parameters
-        if "observation_space" not in data or "action_space" not in data:
-            raise KeyError("The observation_space and action_space were not given, can't verify new environments")
 
-        # check if given env is valid
-        if env is not None:
-            # Wrap first if needed just to compare the spaces
-            wrapped_env = cls._wrap_env(env, data["verbose"])
-            # Check if given env is valid
-            check_for_correct_spaces(wrapped_env, data["observation_space"], data["action_space"])
-        else:
-            # Use stored env, if one exists. If not, continue as is (can be used for predict)
-            if "env" in data:
-                env = data["env"]
-                del data['env']
+            # # check if given env is valid
+            # if "env" in data:
+            #     env = data["env"]
+            #     del data['env']
+            # elif env is not None:
+            #     # Wrap first if needed just to compare the spaces
+            #     wrapped_env = cls._wrap_env(env, data["verbose"])
+            #     # Check if given env is valid
+            #     check_for_correct_spaces(wrapped_env, data["observation_space"], data["action_space"])
+            # else:
+            #     raise KeyError("No environment given")
 
-        # if "use_sde" in data and data["use_sde"]:
-        #     kwargs["use_sde"] = True
-
-        # Keys that cannot be changed
-        for key in {"model_class", "max_episode_length"}:
-            if key in kwargs:
-                del kwargs[key]
-
-        # data.update(kwargs)
-        # Keys that can be changed
-        for key in {"n_sampled_goal", "goal_selection_strategy"}:
-            if key in kwargs:
-                data[key] = kwargs[key]  # pytype: disable=unsupported-operands
-                del kwargs[key]
-
-        # noinspection PyArgumentList
-        loaded_model = cls(
-            policy=data["policy_class"],
-            env=env,
-            model_class=data["model_class"],
-            # n_sampled_goal=data["n_sampled_goal"],
-            goal_selection_strategy=data["goal_selection_strategy"],
-            max_episode_length=data["max_episode_length"],
-            # policy_kwargs=data["policy_kwargs"],
-            _init_setup_model=False,  # pytype: disable=not-instantiable,wrong-keyword-args
-            **kwargs,
-        )
+        # # if "use_sde" in data and data["use_sde"]:
+        # #     kwargs["use_sde"] = True
+        #
+        # # Keys that cannot be changed
+        # for key in {"model_class", "max_episode_length"}:
+        #     if key in kwargs:
+        #         del kwargs[key]
+        #
+        # # data.update(kwargs)
+        # # Keys that can be changed
+        # for key in {"n_sampled_goal", "goal_selection_strategy"}:
+        #     if key in kwargs:
+        #         data[key] = kwargs[key]  # pytype: disable=unsupported-operands
+        #         del kwargs[key]
+        #
+        # # noinspection PyArgumentList
+        # loaded_model = cls(
+        #     policy=data["policy_class"],
+        #     env=env,
+        #     model_class=data["model_class"],
+        #     # n_sampled_goal=data["n_sampled_goal"],
+        #     goal_selection_strategy=data["goal_selection_strategy"],
+        #     max_episode_length=data["max_episode_length"],
+        #     # policy_kwargs=data["policy_kwargs"],
+        #     _init_setup_model=False,  # pytype: disable=not-instantiable,wrong-keyword-args
+        #     **kwargs,
+        # )
 
         # load parameters
-        loaded_model.model.__dict__.update(data)
-        loaded_model.model.__dict__.update(kwargs)
-        loaded_model._setup_model()
 
-        loaded_model._total_timesteps = loaded_model.model._total_timesteps
-        loaded_model.num_timesteps = loaded_model.model.num_timesteps
-        loaded_model._episode_num = loaded_model.model._episode_num
+            layer_model.model.__dict__.update(data)
+            # layer_model.model.__dict__.update(kwargs)
+            layer_model._setup_model()
 
-        # put state_dicts back in place
-        loaded_model.model.set_parameters(params, exact_match=True, device=device)
+            layer_model._total_timesteps = layer_model.model._total_timesteps
+            layer_model.num_timesteps = layer_model.model.num_timesteps
+            layer_model._episode_num = layer_model.model._episode_num
 
-        # put other pytorch variables back in place
-        if pytorch_variables is not None:
-            for name in pytorch_variables:
-                recursive_setattr(loaded_model.model, name, pytorch_variables[name])
+            # put state_dicts back in place
+            layer_model.model.set_parameters(params, exact_match=True, device=device)
 
-        # Sample gSDE exploration matrix, so it uses the right device
-        # see issue #44
-        if loaded_model.model.use_sde:
-            loaded_model.model.policy.reset_noise()  # pytype: disable=attribute-error
-        return loaded_model
+            # put other pytorch variables back in place
+            if pytorch_variables is not None:
+                for name in pytorch_variables:
+                    recursive_setattr(layer_model.model, name, pytorch_variables[name])
+
+            # Sample gSDE exploration matrix, so it uses the right device
+            # see issue #44
+            if layer_model.model.use_sde:
+                layer_model.model.policy.reset_noise()  # pytype: disable=attribute-error
+
+            layer_model = layer_model.sub_model
+        return parent_loaded_model
 
     def load_replay_buffer(
         self, path: Union[str, pathlib.Path, io.BufferedIOBase], truncate_last_trajectory: bool = True
