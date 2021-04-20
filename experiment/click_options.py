@@ -30,7 +30,6 @@ click.option('--save_model_freq', type=int, default=5000, help='The number of st
 # click.option('--reward_type', type=str, default='sparse', help='the reward type, dense or sparse')
 ]
 
-
 @click.command(context_settings=dict(
     ignore_unknown_options=True,
     allow_extra_args=True,
@@ -40,6 +39,7 @@ def get_algorithm_click(ctx, **kwargs):
     policy_linker = importlib.import_module('interface.' + kwargs['algorithm'] + ".click_options", package=__package__)
     policy_args = ctx.forward(policy_linker.get_click_option)
     return policy_args
+
 
 def import_creator(library_path):
     config = importlib.import_module('interface.' + library_path + ".config", package=__package__)

@@ -4,11 +4,17 @@ class TestingEnvs:
         # 'CartPole-v1',
         # 'MountainCarContinuous-v0',
         # 'HandReach-v0',
+
         'FetchPush-v1',
         'FetchSlide-v1',
         'FetchPickAndPlace-v1',
         'FetchReach-v1',
-        #
+
+        'BlockStackMujocoEnv-gripper_random-o0-v1',
+        'BlockStackMujocoEnv-gripper_random-o2-v1',
+        'BlockStackMujocoEnv-gripper_above-o1-v1',
+        'BlockStackMujocoEnv-gripper_none-o1-v1',
+
         'HandManipulateBlock-v0',
         'Hook-o1-v1',
         'ButtonUnlock-o2-v1',
