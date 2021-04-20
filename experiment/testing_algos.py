@@ -65,14 +65,15 @@ class TestingAlgos:
         learning_rates = ['3e-4']
         set_fut_ret_zero_if_done = [0,1]
 
-        n_succ_steps_for_early_ep_done = [0, 1]
+        n_succ_steps_for_early_ep_done = [0, 2]
         # n_succ_steps_for_early_ep_done = [2]
         n_sampled_goal = [4]
         # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
         # goal_selection_strategy = ['future']
         # goal_selection_strategy = ['future3']
         goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
-        goal_selection_strategy = ['future', 'future2']
+        # goal_selection_strategy = ['future', 'future2']
+        goal_selection_strategy = ['future', 'rndend', 'rndend2']
         # goal_selection_strategy = ['rndend', 'rndend2']
         hindsight_sampling_done_if_success = [0, 1]
 
@@ -149,6 +150,10 @@ class TestingAlgos:
                                         for lrs in learning_rates:
                                             n_layers = len(time_scales.split(","))
                                             if n_layers != len(lrs.split(",")):
+                                                continue
+                                            if gss == 'future' and  n_succ_steps_for_early_ep_done != 0:
+                                                continue
+                                            if 'rndend' in gss and n_succ_steps_for_early_ep_done == 0:
                                                 continue
                                             hyper_params.update({'learning_rates':lrs})
                                             plot_col_names = other_plot_col_names
