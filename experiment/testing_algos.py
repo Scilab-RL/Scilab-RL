@@ -155,10 +155,10 @@ class TestingAlgos:
                                             n_layers = len(time_scales.split(","))
                                             if n_layers != len(lrs.split(",")):
                                                 continue
-                                            if gss == 'future' and eedos != 0:
-                                                continue
-                                            if 'rndend' in gss and eedos == 0:
-                                                continue
+                                            # if gss == 'future' and eedos != 0:
+                                            #     continue
+                                            # if 'rndend' in gss and eedos == 0:
+                                            #     continue
                                             hyper_params.update({'learning_rates':lrs})
                                             plot_col_names = other_plot_col_names
                                             for lay in range(n_layers):
