@@ -56,7 +56,7 @@ class TestingAlgos:
         ts = ['50']
         # ts = ['7,7']
         # ar = [1, 0]
-        ar = [1]
+        ar = [0]
         # sg_test_perc = [0, 0.3]
         sg_test_perc = [0]
         # learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
@@ -73,6 +73,7 @@ class TestingAlgos:
         # goal_selection_strategy = ['future3']
         goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
         goal_selection_strategy = ['future', 'future2']
+        goal_selection_strategy = ['rndend', 'rndend2']
         hindsight_sampling_done_if_success = [0,1]
 
         if env in ['FetchReach-v1']:
