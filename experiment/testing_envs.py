@@ -14,12 +14,12 @@ class TestingEnvs:
         # 'BlockStackMujocoEnv-gripper_random-o2-v1',
         # 'BlockStackMujocoEnv-gripper_above-o1-v1',
         # 'BlockStackMujocoEnv-gripper_none-o1-v1',
-        #
+
         # 'HandManipulateBlock-v0',
         # 'Hook-o1-v1',
         # 'ButtonUnlock-o2-v1',
         # 'ButtonUnlock-o1-v1',
-        #
+
         # 'AntReacher-v1',
         # 'Ant4Rooms-v1',
         # 'AntMaze-v1',
