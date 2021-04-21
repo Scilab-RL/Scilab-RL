@@ -138,6 +138,7 @@ class MBCHAC(BaseAlgorithm):
         use_action_replay: bool = True,
         ep_early_done_on_succ: bool = True,
         hindsight_sampling_done_if_success: int = 1,
+        set_fut_ret_zero_if_done: int = 1, # FIXME: should be in kwargs
         *args,
         **kwargs,
     ):
@@ -295,7 +296,7 @@ class MBCHAC(BaseAlgorithm):
             self.train_video_writer = None
         else:
             self.train_render_info = None
-            
+
         if self.render_test == 'record':
             test_render_info = {'size': self.vid_size, 'fps': self.vid_fps,
                                 'path': logger.get_dir()}
