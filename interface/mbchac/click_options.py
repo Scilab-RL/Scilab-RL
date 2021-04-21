@@ -15,7 +15,7 @@ click.option('--learning_rates', type=str, default="9e-4,3e-4", help='The learni
 click.option('--use_action_replay', type=int, default=1, help='Whether to use action replay'),
 click.option('--ep_early_done_on_succ', type=int, default=2, help='Number of successive successful steps to stop an episode early when the (sub-)goal has been achieved. 0 disables early stopping.'),
 click.option('--hindsight_sampling_done_if_success', type=int, default=1, help='Whether to consider an episode as done *in hindsight* during goal replay if the hindsight goal has been achieved. This is important e.g. in SAC, where the discounted expected return is set to 0 of an episode is done.'),
-click.option('--set_fut_ret_zero_if_done', type=int, default=0, help='Whether to set the future expected return to 0 if an episode is done when computing the TD q value.'),
+# click.option('--set_fut_ret_zero_if_done', type=int, default=0, help='Whether to set the future expected return to 0 if an episode is done when computing the TD q value.'),
 
 # click.option('--batch_size', type=int, default=1024, help='The number of state transitions processed during network training.'),
 # click.option('--n_train_batches', type=int, default=40, help='The number of batches to train the actor-critic .'),

@@ -22,9 +22,16 @@ class MatplotlibOutputFormat(KVWriter):
         self.logpath = logpath
         self.csv_filename = "plot.csv"
         self.csv_filepath = logpath + "/plot.csv"
-        self.file = open(self.csv_filepath, 'w+t')
-        self.keys = []
         self.sep = ','
+        file = open(self.csv_filepath, 'r')
+        reader = csv.reader(file, delimiter=self.sep, quotechar='|')
+        existing_keys = []
+        for line, row in enumerate(reader):
+            if line == 0:
+                existing_keys = row
+                break
+        self.keys = existing_keys
+        self.file = open(self.csv_filepath, 'a+')
         if plot_parent_dir:
             self.data_read_dir = "/".join(logpath.split("/")[:-1])
         else:
@@ -183,11 +190,6 @@ class MatplotlibOutputFormat(KVWriter):
             for k in data.keys():
                 if k in self.cols_to_plot + ['time/total timesteps']:
                     reduced_data[config_str][k] = interpolate_data(data[k], timesteps)
-            #     else:
-            #         cols_to_del.append(k)
-            # for k in cols_to_del:
-            #     if k in data.keys():
-            #         del data_dict[config_str][k]
 
         for k in self.cols_to_plot:
             fig = plt.figure(figsize=(20, 10))

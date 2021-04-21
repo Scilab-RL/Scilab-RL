@@ -82,6 +82,7 @@ def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
 
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])
+
     model.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
 
     train_env.close()
