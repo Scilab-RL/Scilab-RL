@@ -6,12 +6,10 @@ defaults:
 
 #the name of the OpenAI Gym environment that you want to train on. E.g. TowerBuildMujocoEnv-sparse-gripper_random-o2-h1-2-v1, AntFourRoomsEnv-v0
 env: 'AntFourRoomsEnv-v0'
-
+seed: 0
 
 # the path to where logs and policy pickles should go. If not specified, creates a folder in /tmp/
 base_logdir: 'data'
-
-seed: 0
 
 # The pretrained policy file to start with to avoid learning from scratch again. Useful for interrupting and restoring training sessions.
 restore_policy: null
