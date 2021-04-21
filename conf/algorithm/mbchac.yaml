@@ -56,7 +56,7 @@ render_every_n_eval: 15
 # character in the list to indicates the layer where the time scale is determined from the environment\'s predefined steps.'),
 time_scales:
   - 5
-  - _
+  - 0
 
 # The percentage of subgoals to test.
 subgoal_test_perc: 0.3

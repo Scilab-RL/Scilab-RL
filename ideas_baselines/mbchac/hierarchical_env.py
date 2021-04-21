@@ -61,12 +61,12 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
                 env.env.model = model
 
         env_list.append(env)
-        next_level_steps_str = ",".join([str(s) for s in level_steps[1:]])
+        next_level_steps = level_steps[1:]
         if model is not None and model.sub_model is not None:
             next_level_model = model.sub_model
         else:
             next_level_model = None
-        env_list = recursive_get_henvs(bottom_env, next_level_steps_str, env_list, is_testing_env, next_level_model)
+        env_list = recursive_get_henvs(bottom_env, next_level_steps, env_list, is_testing_env, next_level_model)
 
         return env_list
 

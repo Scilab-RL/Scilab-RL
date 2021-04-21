@@ -77,14 +77,12 @@ def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> in
 def compute_time_scales(scales, env):
     max_steps = env.spec.max_episode_steps
     for i,s in enumerate(scales):
-        if s == '_':
+        if s == 0:
             defined_steps = np.product([int(step) for step in scales[:i]])
             defined_after_steps = np.product([int(step) for step in scales[i+1:]])
             defined_steps *= defined_after_steps
-            this_steps = int(max_steps / defined_steps) + 1
-            scales[i] = int(this_steps)
+            scales[i] = int(max_steps / defined_steps) + 1
     return scales
-
 
 
 class MBCHAC(BaseAlgorithm):
@@ -121,7 +119,7 @@ class MBCHAC(BaseAlgorithm):
         env: Union[GymEnv, str],
         model_class: Type[OffPolicyAlgorithm],
         sub_model_classes: List[Type[OffPolicyAlgorithm]] = [],
-        time_scales: str = '_',
+        time_scales: int = 0,
         learning_rates: str = '3e-4',
         n_sampled_goal: int = 4,
         goal_selection_strategy: Union[GoalSelectionStrategy, str] = "future",
@@ -160,15 +158,13 @@ class MBCHAC(BaseAlgorithm):
         if self.is_top_layer == 1:  # Determine time_scales. Only do this once at top layer.
             self.time_scales = compute_time_scales(time_scales, env)
             # Build hierarchical layer_envs from env, depending on steps and action space.
-            layer_envs = get_h_envs_from_env(env, self.time_scales)
-        time_scales_int = [int(s) for s in self.time_scales]
+            layer_envs = get_h_envs_from_env(env, time_scales)
         self.learning_rates = learning_rates
         learning_rates_float = [float(lr) for lr in self.learning_rates]
         self.learning_rate = learning_rates_float[0]
-        self.level_steps_per_episode = int(time_scales[0])
         if max_episode_length is None:
-            max_episode_length = self.level_steps_per_episode
-        self.max_steps_per_layer_action = np.product(time_scales_int[1:]) # the max. number of low-level steps per action on this layer.
+            max_episode_length = int(self.time_scales[0])
+        self.max_steps_per_layer_action = np.product(self.time_scales[1:]) # the max. number of low-level steps per action on this layer.
         bottom_env = layer_envs[-1]
         this_env = layer_envs[0]
         this_env.env.model = self
@@ -194,9 +190,9 @@ class MBCHAC(BaseAlgorithm):
         assert (len(sub_model_classes) + 1) == len(layer_envs), "Error, number of sub model classes should be one less than number of envs"
         next_level_steps = 0
         if len(sub_model_classes) > 0:
-            next_level_steps = int(time_scales[1])
+            next_level_steps = int(self.time_scales[1])
             self.sub_model = MBCHAC('MlpPolicy', bottom_env, sub_model_classes[0], sub_model_classes[1:],
-                                    time_scales=time_scales[1:],
+                                    time_scales=self.time_scales[1:],
                                     n_sampled_goal=n_sampled_goal,
                                     goal_selection_strategy=goal_selection_strategy,
                                     train_freq=self.train_freq,
