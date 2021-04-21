@@ -5,7 +5,7 @@ class TestingAlgos:
 
     base_algo_names = ['sac', 'ddpg', 'td3']
     algo_names = ['mbchac', 'her2'] + base_algo_names
-    algo_names = ['mbchac']
+    # algo_names = ['mbchac']
 
     @staticmethod
     def get_her_performance_params(env):
@@ -61,13 +61,13 @@ class TestingAlgos:
         sg_test_perc = [0]
         # learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
         # learning_rates = ['3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
-        # learning_rates = ['3e-4', '3e-4,3e-4']
-        learning_rates = ['3e-4']
+        learning_rates = ['3e-4', '3e-4,3e-4']
+        # learning_rates = ['3e-4']
         set_fut_ret_zero_if_done = [0, 1]
-        set_fut_ret_zero_if_done = [0]
+        # set_fut_ret_zero_if_done = [0]
 
         n_succ_steps_for_early_ep_done = [0, 1, 2, 3]
-        # n_succ_steps_for_early_ep_done = [2]
+        n_succ_steps_for_early_ep_done = [0, 2]
         n_sampled_goal = [4]
         # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
         # goal_selection_strategy = ['future']
