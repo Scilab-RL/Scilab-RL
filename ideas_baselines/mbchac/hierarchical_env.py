@@ -41,16 +41,15 @@ DEFAULT_SIZE = 500
 
 
 def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
-                        level_steps_str: str,
+                        level_steps: List,
                         is_testing_env: bool = False, model: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
 
     def recursive_get_henvs(bottom_env: gym.wrappers.TimeLimit,
-                        level_steps_str: str, env_list: List[gym.GoalEnv] = [],
+                        level_steps: List[int], env_list: List[gym.GoalEnv] = [],
                         is_testing_env: bool = False, model: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
 
-        if level_steps_str == '':
+        if not level_steps:
             return env_list
-        level_steps = [int(s) for s in level_steps_str.split(",")]
         if len(level_steps) > 1:
             env = HierarchicalHLEnv(bottom_env, is_testing_env=is_testing_env, model=model)
             env = gym.wrappers.TimeLimit(env, max_episode_steps=level_steps[0])
@@ -73,7 +72,7 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
 
     # bottom_env = inject_subgoal_geometry(bottom_env) # TODO: What for is this?
 
-    env_list = recursive_get_henvs(bottom_env=bottom_env, level_steps_str=level_steps_str,
+    env_list = recursive_get_henvs(bottom_env=bottom_env, level_steps=level_steps,
                                    env_list=[], is_testing_env=is_testing_env, model=model)
 
     # iterate through reversed list to set sub_envs and parent_envs correctly; necessary for recursive action_space determination.
