@@ -51,6 +51,24 @@ class HHerReplayBuffer(ReplayBuffer):
         subgoal_test_fail_penalty = 1,
         hindsight_sampling_done_if_success = True,
     ):
+        """
+
+        Args:
+            env:
+            buffer_size:
+            max_episode_length:
+            goal_selection_strategy:
+            observation_space:
+            action_space:
+            device:
+            n_envs:
+            her_ratio:
+            perform_action_replay_transitions:
+            test_trans_sampling_fraction:
+            subgoal_test_fail_penalty:
+            hindsight_sampling_done_if_success:
+            set_dones_one: Whether to set all dones for all steps to one. This is used for disabling setting the discounted future reward to 0 if using SAC.
+        """
 
         super(HHerReplayBuffer, self).__init__(buffer_size, observation_space, action_space, device, n_envs)
         self.hindsight_sampling_done_if_success = hindsight_sampling_done_if_success
@@ -266,8 +284,7 @@ class HHerReplayBuffer(ReplayBuffer):
             )
 
             # Then determine the episodes where to sample from the end.
-            n_final_sample_prob = (self.max_episode_length - self.episode_lengths[
-                her_episode_indices]) / self.max_episode_length
+            n_final_sample_prob = (self.max_episode_length - self.episode_lengths[her_episode_indices]) / self.max_episode_length
             rnd_sample = np.random.random_sample(n_final_sample_prob.shape)
             sample_final_idxs = np.where(rnd_sample < n_final_sample_prob)
             replace_trans_idxs = self.episode_lengths[her_episode_indices][sample_final_idxs] - 1
@@ -299,6 +316,7 @@ class HHerReplayBuffer(ReplayBuffer):
                     rt_t = replay_trans._asdict()[key] * 0 # Set the testing transitions flag of the goal replay transitions to 0 when sampling because these are treated as normal transitions when computing the q value.
                 else:
                     rt_t = replay_trans._asdict()[key]
+
                 trt_t = test_replay_trans._asdict()[key]
                 concat_t = th.cat((rt_t, trt_t), 0)
                 tmp_list.append(concat_t)

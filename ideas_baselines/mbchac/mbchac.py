@@ -438,9 +438,7 @@ class MBCHAC(BaseAlgorithm):
     ) -> BaseAlgorithm:
 
         self.epoch_count = 0
-
         total_timesteps, callback = self.init_learn(total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
-
         callback.on_training_start(locals(), globals())
         self.actions_since_last_train = 0
         continue_training = True
@@ -964,6 +962,7 @@ class MBCHAC(BaseAlgorithm):
             If it is set to ``False`` we assume that we continue the same trajectory (same episode).
         """
         self.model.load_replay_buffer(path=path)
+
 
 
         # set environment
