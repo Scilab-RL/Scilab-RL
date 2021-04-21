@@ -74,8 +74,7 @@ def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> in
     return current_max_episode_length
 
 
-def compute_time_scales(time_scales_str, env):
-    scales = time_scales_str.split(",")
+def compute_time_scales(scales, env):
     max_steps = env.spec.max_episode_steps
     for i,s in enumerate(scales):
         if s == '_':
@@ -83,8 +82,8 @@ def compute_time_scales(time_scales_str, env):
             defined_after_steps = np.product([int(step) for step in scales[i+1:]])
             defined_steps *= defined_after_steps
             this_steps = int(max_steps / defined_steps) + 1
-            scales[i] = str(this_steps)
-    return ",".join(scales)
+            scales[i] = int(this_steps)
+    return scales
 
 
 
@@ -149,11 +148,11 @@ class MBCHAC(BaseAlgorithm):
         self.is_top_layer = is_top_layer
         self.time_scales = time_scales
         self.train_freq = train_freq
-        self.is_bottom_layer = len(self.time_scales.split(",")) == 1
+        self.is_bottom_layer = len(time_scales) == 1
         self.parent_model = None
         self.hindsight_sampling_done_if_success = hindsight_sampling_done_if_success
         self.reset_train_info_list()
-        assert len(time_scales.split(",")) == (
+        assert len(time_scales) == (
                     len(sub_model_classes) + 1), "Error, number of time scales is not equal to number of layers."
         assert time_scales.count(
             "_") <= 1, "Error, only one wildcard character \'_\' allowed in time_scales argument {}".format(time_scales)
@@ -162,11 +161,11 @@ class MBCHAC(BaseAlgorithm):
             self.time_scales = compute_time_scales(time_scales, env)
             # Build hierarchical layer_envs from env, depending on steps and action space.
             layer_envs = get_h_envs_from_env(env, self.time_scales)
-        time_scales_int = [int(s) for s in self.time_scales.split(",")]
+        time_scales_int = [int(s) for s in self.time_scales]
         self.learning_rates = learning_rates
-        learning_rates_float = [float(lr) for lr in self.learning_rates.split(",")]
+        learning_rates_float = [float(lr) for lr in self.learning_rates]
         self.learning_rate = learning_rates_float[0]
-        self.level_steps_per_episode = int(self.time_scales.split(",")[0])
+        self.level_steps_per_episode = int(time_scales[0])
         if max_episode_length is None:
             max_episode_length = self.level_steps_per_episode
         self.max_steps_per_layer_action = np.product(time_scales_int[1:]) # the max. number of low-level steps per action on this layer.
@@ -195,11 +194,9 @@ class MBCHAC(BaseAlgorithm):
         assert (len(sub_model_classes) + 1) == len(layer_envs), "Error, number of sub model classes should be one less than number of envs"
         next_level_steps = 0
         if len(sub_model_classes) > 0:
-            sub_level_steps = ",".join(self.time_scales.split(",")[1:])
-            sub_level_lr = ",".join(self.learning_rates.split(",")[1:])
-            next_level_steps = int(self.time_scales.split(",")[1])
+            next_level_steps = int(time_scales[1])
             self.sub_model = MBCHAC('MlpPolicy', bottom_env, sub_model_classes[0], sub_model_classes[1:],
-                                    time_scales=sub_level_steps,
+                                    time_scales=time_scales[1:],
                                     n_sampled_goal=n_sampled_goal,
                                     goal_selection_strategy=goal_selection_strategy,
                                     train_freq=self.train_freq,
@@ -207,7 +204,7 @@ class MBCHAC(BaseAlgorithm):
                                     layer_envs=layer_envs[1:],
                                     render_train=render_train,
                                     render_test=render_test,
-                                    learning_rates=sub_level_lr,
+                                    learning_rates=learning_rates[1:],
                                     render_every_n_eval=render_every_n_eval,
                                     use_action_replay=use_action_replay,
                                     ep_early_done_on_succ=ep_early_done_on_succ,
@@ -216,6 +213,7 @@ class MBCHAC(BaseAlgorithm):
         else:
             self.sub_model = None
 
+        del model_args['name']
         self.model = model_class(
             policy=policy,
             env=self.env,

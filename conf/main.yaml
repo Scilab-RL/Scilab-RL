@@ -1,0 +1,58 @@
+defaults:
+  - hydra/job_logging: default
+  - hydra/output: custom
+  # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg', 'her2', 'mbchac')
+  - algorithm: 'sac'
+
+#the name of the OpenAI Gym environment that you want to train on. E.g. TowerBuildMujocoEnv-sparse-gripper_random-o2-h1-2-v1, AntFourRoomsEnv-v0
+env: 'AntFourRoomsEnv-v0'
+
+
+# the path to where logs and policy pickles should go. If not specified, creates a folder in /tmp/
+base_logdir: 'data'
+
+seed: 0
+
+# The pretrained policy file to start with to avoid learning from scratch again. Useful for interrupting and restoring training sessions.
+restore_policy: null
+
+# The number of training steps after which to evaluate the policy.
+eval_after_n_steps: 2000
+
+# The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
+n_epochs: 30
+
+# The number of testing rollouts.
+n_test_rollouts: 10
+
+# Max. number of tries for this training config.
+max_try_idx: 399
+
+# Index for first try.
+try_start_idx: 100
+
+# The n last epochs over which to average for determining early stopping condition.
+early_stop_last_n: 5
+# The early stopping threshold.
+early_stop_threshold: 0.99
+
+# The data column on which early stopping is based.
+early_stop_data_column: 'test/success_rate'
+# A command line comment that will be integrated in the folder where the results
+# are stored. Useful for debugging and addressing temporary changes to the code..
+info: ''
+
+# Max. number of tensorboard instances allowed at the same time.
+# Will be determined by number of open ports, starting at port 6006
+tensorboard: 2
+
+# Data to plot for evaluation. Strings separated by comma.
+plot_eval_cols:
+ - 'test/success_rate'
+ - 'test/mean_reward'
+
+# Number of seconds to wait for next plot with MatplotlibOutputFormat.
+plot_at_most_every_secs: 60
+
+# The number of steps after which to save the model.
+save_model_freq: 5000
