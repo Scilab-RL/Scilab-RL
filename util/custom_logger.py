@@ -21,16 +21,19 @@ class MatplotlibCSVOutputFormat(KVWriter):
             cols_to_plot = ['test/success_rate', 'test/mean_reward']
         self.logpath = logpath
         self.csv_filename = "progress.csv"
-        self.csv_filepath = os.join(logpath,self.csv_filename)
+        self.csv_filepath = os.path.join(logpath,self.csv_filename)
         self.sep = ','
-        file = open(self.csv_filepath, 'r')
-        reader = csv.reader(file, delimiter=self.sep, quotechar='|')
-        existing_keys = []
-        for line, row in enumerate(reader):
-            if line == 0:
-                existing_keys = row
-                break
-        self.keys = existing_keys
+        if os.path.isfile(self.csv_filepath): # If a file is already existing, maybe because we continue training with restore_policy.
+            file = open(self.csv_filepath, 'r')
+            reader = csv.reader(file, delimiter=self.sep, quotechar='|')
+            existing_keys = []
+            for line, row in enumerate(reader):
+                if line == 0:
+                    existing_keys = row
+                    break
+            self.keys = existing_keys
+        else:
+            self.keys = []
         self.file = open(self.csv_filepath, 'a+')
         if plot_parent_dir:
             self.data_read_dir = "/".join(logpath.split("/")[:-1])
