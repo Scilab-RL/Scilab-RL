@@ -51,7 +51,7 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
         if level_steps_str == '':
             return env_list
         level_steps = [int(s) for s in level_steps_str.split(",")]
-        if len(level_steps) > 1:
+        if len(level_steps) > 1: # If this is not bottom environment
             env = HierarchicalHLEnv(bottom_env, is_testing_env=is_testing_env, model=model)
             env = gym.wrappers.TimeLimit(env, max_episode_steps=level_steps[0])
         else:
@@ -170,13 +170,9 @@ class HierarchicalVecEnv(DummyVecEnv):
                 self.actions[env_idx]
             )
             # Set done to true if success is achieved or if it is done any ways (by TimeLimit)
-            # if self.early_done_on_success:
-            #     self.buf_dones[env_idx] = np.isclose(self.buf_infos[env_idx]['is_success'], 1) or self.buf_dones[env_idx]
             if self.buf_dones[env_idx]:
                 # save final observation where user can get it, but don't reset
                 self.buf_infos[env_idx]["terminal_observation"] = obs
-                # if self.envs[env_idx].is_top_level_env:
-                #     obs = self.envs[env_idx].reset()
                 self.envs[env_idx]._elapsed_steps = 0
             self._save_obs(env_idx, obs)
         return (self._obs_from_buf(), np.copy(self.buf_rews), np.copy(self.buf_dones), deepcopy(self.buf_infos))
