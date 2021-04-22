@@ -16,7 +16,7 @@ import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
 import importlib
 from stable_baselines3.common import logger
-from util.custom_logger import MatplotlibOutputFormat, FixedHumanOutputFormat
+from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
 from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make_robustGoalConditionedModel
@@ -207,9 +207,9 @@ def main(ctx, **kwargs):
     log_dict(kwargs, logger)
 
     logger.configure(folder=kwargs['logdir'],
-                     format_strings=['csv', 'tensorboard'])
+                     format_strings=[])
     plot_cols = kwargs['plot_eval_cols'].split(',')
-    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(kwargs['logdir'], kwargs['plot_at_most_every_secs'], cols_to_plot=plot_cols))
+    logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(kwargs['logdir'], kwargs['plot_at_most_every_secs'], cols_to_plot=plot_cols))
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(kwargs['logdir'], f"log.txt")))
 

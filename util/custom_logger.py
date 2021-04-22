@@ -15,13 +15,13 @@ import warnings
 import time
 from cycler import cycler
 
-class MatplotlibOutputFormat(KVWriter):
+class MatplotlibCSVOutputFormat(KVWriter):
     def __init__(self, logpath, min_secs_wait_for_plot, cols_to_plot=None, plot_parent_dir=True):
         if cols_to_plot is None:
             cols_to_plot = ['test/success_rate', 'test/mean_reward']
         self.logpath = logpath
-        self.csv_filename = "plot.csv"
-        self.csv_filepath = logpath + "/plot.csv"
+        self.csv_filename = "progress.csv"
+        self.csv_filepath = os.join(logpath,self.csv_filename)
         self.sep = ','
         file = open(self.csv_filepath, 'r')
         reader = csv.reader(file, delimiter=self.sep, quotechar='|')
