@@ -101,7 +101,7 @@ def main(cfg: DictConfig) -> None:
     max_ctr = cfg['max_try_idx']
 
     while subdir_exists:
-        param_dir = get_subdir_by_params(path_dir_params)
+        param_dir = get_subdir_by_params(path_dir_params, ctr)
         run_dir = os.path.join(os.path.split(original_dir)[0], param_dir)
         subdir_exists = os.path.exists(run_dir)
         ctr += 1

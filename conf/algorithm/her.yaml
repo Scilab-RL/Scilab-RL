@@ -4,5 +4,6 @@ name: 'her2'
 
 exp_path_params:
   - 'layer_classes'
+  - 'verbose'
 
 verbose: True

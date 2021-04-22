@@ -31,8 +31,8 @@ class TestingAlgos:
         for model in TestingAlgos.base_algo_names:
             if model in ['ppo']:
                 continue
-            hyper_params = {'model_class': model, 'eval_after_n_steps': 2000}
-            all_params.append((performance_params, hyper_params))
+            hyper_params = {'layer_classes': [model], 'eval_after_n_steps': 2000}
+            all_params.append((performance_params, hyper_params, {}))
         return all_params
 
     @staticmethod
@@ -41,19 +41,20 @@ class TestingAlgos:
         eval_after_n_steps = 5000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
         model = 'sacvg'
-        plot_col_names_template = 'train_##/actor_loss,train_##/critic_loss,train_##/ent_coef,train_##/n_updates,test_##/ep_success,test_##/ep_reward,train_##/ent_coef_loss,rollout_##/success_rate,test_##/q_mean,test_##/ep_length,train_##/ep_length,test_##/step_success'
-        other_plot_col_names = 'test/success_rate,test/mean_reward'
+        plot_col_names_template = [
+            'train_##/actor_loss','train_##/critic_loss','train_##/ent_coef','train_##/n_updates',
+            'test_##/ep_success','test_##/ep_reward','train_##/ent_coef_loss','rollout_##/success_rate','test_##/q_mean',
+            'test_##/ep_length','train_##/ep_length','test_##/step_success'
+        ]
+        other_plot_col_names = ['test/success_rate', 'test/mean_reward']
         hyper_params_all = {'eval_after_n_steps': eval_after_n_steps,
                             'early_stop_last_n': early_stop_last_n,
-                            'render_test' : 'record',
-                            'render_train': 'record',
-                            'render_every_n_eval': 20,
                             'n_test_rollouts': 10,
                             'save_model_freq': 50000
                             }
 
         # ts = ['10,10']
-        ts = ['50']
+        ts = [[50, -1],[10,10]]
         # ts = ['7,7']
         # ar = [1, 0]
         ar = [0]
@@ -61,7 +62,7 @@ class TestingAlgos:
         sg_test_perc = [0]
         # learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
         # learning_rates = ['3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
-        learning_rates = ['3e-4', '3e-4,3e-4']
+        learning_rates = [[3e-4], [3e-4, 3e-4]]
         # learning_rates = ['3e-4']
         set_fut_ret_zero_if_done = [0, 1]
         # set_fut_ret_zero_if_done = [0]
@@ -132,40 +133,46 @@ class TestingAlgos:
 
 
         hyper_params = {}
+        algo_params = {
+            'render_test' : 'record',
+            'render_train': 'record',
+            'render_every_n_eval': 20
+        }
         for frz in set_fut_ret_zero_if_done:
-            hyper_params.update({'set_fut_ret_zero_if_done': frz})
+            algo_params.update({'set_fut_ret_zero_if_done': frz})
             for hsdis in hindsight_sampling_done_if_success:
-                hyper_params.update({'hindsight_sampling_done_if_success': hsdis})
+                algo_params.update({'hindsight_sampling_done_if_success': hsdis})
                 if frz != hsdis: # Setting hindsight goal transitions to done only makes sense if setting future returns to zero on done.
                     continue
                 for nsg in n_sampled_goal:
-                    hyper_params.update({'n_sampled_goal': nsg})
+                    algo_params.update({'n_sampled_goal': nsg})
                     for gss in goal_selection_strategy:
-                        hyper_params.update({'goal_selection_strategy': gss})
+                        algo_params.update({'goal_selection_strategy': gss})
                         for time_scales in ts:
-                            model_classes = [model] * len(time_scales.split(','))
-                            hyper_params.update({'model_classes': ",".join(model_classes), 'time_scales': time_scales})
+                            hyper_params.update({'layer_classes': [model] * len(time_scales)})
+                            algo_params.update({'time_scales': time_scales})
                             for action_replay in ar:
-                                hyper_params.update({'use_action_replay': str(action_replay)})
+                                algo_params.update({'use_action_replay': action_replay})
                                 for subgoal_test_perc in sg_test_perc:
-                                    hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
+                                    algo_params.update({'subgoal_test_perc': subgoal_test_perc})
                                     for eedos in n_succ_steps_for_early_ep_done:
-                                        hyper_params.update({'ep_early_done_on_succ': str(eedos)})
+                                        algo_params.update({'ep_early_done_on_succ': str(eedos)})
                                         for lrs in learning_rates:
-                                            n_layers = len(time_scales.split(","))
-                                            if n_layers != len(lrs.split(",")):
+                                            n_layers = len(time_scales)
+                                            if len(time_scales) != len(lrs):
                                                 continue
                                             # if gss == 'future' and eedos != 0:
                                             #     continue
                                             # if 'rndend' in gss and eedos == 0:
                                             #     continue
-                                            hyper_params.update({'learning_rates':lrs})
+                                            algo_params.update({'learning_rates':lrs})
                                             plot_col_names = other_plot_col_names
                                             for lay in range(n_layers):
-                                                plot_col_names += "," + plot_col_names_template.replace("##", str(lay))
+                                                for plt_col_template in plot_col_names_template:
+                                                    plot_col_names.append(plt_col_template.replace("##", str(lay)))
                                             hyper_params.update({'plot_eval_cols': plot_col_names})
                                             hyper_params.update(hyper_params_all)
-                                            all_params.append((performance_params.copy(), hyper_params.copy()))
+                                            all_params.append((performance_params.copy(), hyper_params.copy(), algo_params.copy()))
         return all_params
 
     # @staticmethod
@@ -234,11 +241,11 @@ class TestingAlgos:
         for model in TestingAlgos.base_algo_names:
             if model in ['ppo']:
                 continue
-            hyper_params_all = {'model_class': model,
-                                'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
+            hyper_params_all = {'layer_classes': [model],
+                                'plot_eval_cols': ['train/actor_loss','train/critic_loss','train/ent_coef','train/learning_rate','train/n_updates','test/success_rate','test/mean_reward','train/ent_coef_loss','rollout/success_rate']}
             hyper_params.update(hyper_params_all)
             performance_params['n_epochs'] = (20000 // hyper_params['eval_after_n_steps']) + 1
-            all_params.append((performance_params.copy(), hyper_params.copy()))
+            all_params.append((performance_params.copy(), hyper_params.copy(), {}))
         return all_params
 
     @staticmethod
@@ -250,7 +257,7 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with TD3 algorithm.".format(env))
             return []
-        return [(performance_params, hyper_params)]
+        return [(performance_params, hyper_params, {})]
 
     @staticmethod
     def get_ddpg_performance_params(env):
@@ -261,7 +268,7 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with DDPG algorithm.".format(env))
             return []
-        return [(performance_params, hyper_params)]
+        return [(performance_params, hyper_params, {})]
 
     @staticmethod
     def get_sac_performance_params(env):
@@ -272,7 +279,7 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with SAC algorithm.".format(env))
             return []
-        return [(performance_params, hyper_params)]
+        return [(performance_params, hyper_params, {})]
 
     @staticmethod
     def get_dqn_performance_params(env):
@@ -283,7 +290,7 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with DQN algorithm.".format(env))
             return []
-        return [(performance_params, hyper_params)]
+        return [(performance_params, hyper_params, {})]
 
     # @staticmethod
     # def get_her_pytorch_performance_params(env):

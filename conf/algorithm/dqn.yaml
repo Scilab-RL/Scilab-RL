@@ -3,6 +3,6 @@
 name: 'dqn'
 
 exp_path_params:
-  - ''
+  - 'verbose'
 
 verbose: True
