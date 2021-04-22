@@ -27,9 +27,9 @@ def write_params_json():
             params_list = eval("TestingAlgos.get_{}_performance_params".format(alg))(env)
             for params in params_list:
                 if params is not None:
-                    performance_params, hyper_params = params
+                    performance_params, hyper_params, algo_params = params
                     env_alg_performance[env].append({'alg': alg, 'performance_params': performance_params.copy(),
-                                                     'hyper_params': hyper_params.copy()})
+                        'hyper_params': hyper_params.copy(), 'algo_params': algo_params.copy()})
     with open('./test_logs/performance_params.json', 'w') as outfile:
         json.dump(env_alg_performance, outfile, indent=4, sort_keys=True)
     outfile.close()
@@ -46,11 +46,12 @@ def main(args):
     cmds = []
     n_test_rollouts = 20
     whoami = getpass.getuser()
-    default_opts_values = {}
-    default_opts_values['n_test_rollouts'] = n_test_rollouts
-    default_opts_values['base_logdir'] = "/data/" + whoami + "/baselines/" + test_mode
-    default_opts_values['try_start_idx'] = 100
-    default_opts_values['plot_at_most_every_secs'] = 120
+    default_opts_values = {
+        'n_test_rollouts': n_test_rollouts,
+        'base_logdir': "/data/" + whoami + "/baselines/" + test_mode,
+        'try_start_idx': 100,
+        'plot_at_most_every_secs': 120
+    }
     write_params_json ()
     base_cmd = "python3 train.py"
     get_params_functions = {}
@@ -65,7 +66,7 @@ def main(args):
             extra = 'xvfb-run -a '
         for alg in TestingAlgos.algo_names:
             params_list = get_params_functions[alg](env)
-            for performance_params, hyper_params in params_list:
+            for performance_params, hyper_params, algo_params in params_list:
                 cmd = env_base_cmd
                 cmd += " algorithm=" + str(alg)
                 cmd += ' max_try_idx={}'.format(default_opts_values['try_start_idx'] + performance_params['n_runs'] - 1)
@@ -79,7 +80,12 @@ def main(args):
                 all_kvs['early_stop_data_column'] = performance_params['performance_measure']
                 all_kvs['early_stop_threshold'] = performance_params['min_performance_value']
                 for k, v in sorted(all_kvs.items()):
-                    cmd += " {key}={value}".format(key=k, value=v)
+                    cmd += " " + "{key}={value}".format(key=k, value=v).replace(" ", "")
+
+                if len(algo_params) > 0:
+                    for k,v in sorted(algo_params.items()):
+                        cmd += " " + "algorithm.{key}={value}".format(key=k, value=v).replace(" ", "")
+
                 for _ in range(performance_params['n_runs']):
                     cmds.append(extra + cmd)
 

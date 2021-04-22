@@ -77,7 +77,9 @@ def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> in
 def compute_time_scales(scales, env):
     max_steps = env.spec.max_episode_steps
     for i,s in enumerate(scales):
-        if s == -1:
+        if s == 0:
+            raise ValueError("Use -1 in time scale instead of 0")
+        elif s == -1:
             defined_steps = np.product([int(step) for step in scales[:i]])
             defined_after_steps = np.product([int(step) for step in scales[i+1:]])
             defined_steps *= defined_after_steps
@@ -254,7 +256,7 @@ class MBCHAC(BaseAlgorithm):
         self._episode_storage = HHerReplayBuffer(
             self.env,
             her_buffer_size,
-            max_episode_length,
+            self.max_episode_length,
             self.goal_selection_strategy,
             self.env.observation_space,
             self.env.action_space,
