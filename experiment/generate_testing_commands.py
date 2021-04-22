@@ -52,13 +52,13 @@ def main(args):
     default_opts_values['try_start_idx'] = 100
     default_opts_values['plot_at_most_every_secs'] = 120
     write_params_json ()
-    base_cmd = "python3 experiment/train.py"
+    base_cmd = "python3 train.py"
     get_params_functions = {}
     for alg in TestingAlgos.algo_names:
         get_params_functions[alg] = eval("TestingAlgos.get_{}_performance_params".format(alg))
 
     for env in TestingEnvs.env_names:
-        env_base_cmd = base_cmd + " --env {}".format(env)
+        env_base_cmd = base_cmd + " env={}".format(env)
         extra = ''
         if 'CopReacherEnv' in env:
             # necessary for running on servers
@@ -67,8 +67,8 @@ def main(args):
             params_list = get_params_functions[alg](env)
             for performance_params, hyper_params in params_list:
                 cmd = env_base_cmd
-                cmd += " --algorithm " + str(alg)
-                cmd += ' --max_try_idx {}'.format(default_opts_values['try_start_idx'] + performance_params['n_runs'] - 1)
+                cmd += " algorithm=" + str(alg)
+                cmd += ' max_try_idx={}'.format(default_opts_values['try_start_idx'] + performance_params['n_runs'] - 1)
                 all_kvs = default_opts_values.copy()
                 all_kvs.update(hyper_params)
                 if test_mode == 'function':
@@ -79,7 +79,7 @@ def main(args):
                 all_kvs['early_stop_data_column'] = performance_params['performance_measure']
                 all_kvs['early_stop_threshold'] = performance_params['min_performance_value']
                 for k, v in sorted(all_kvs.items()):
-                    cmd += " --{}".format(k) + " {}".format(str(v))
+                    cmd += " {key}={value}".format(key=k, value=v)
                 for _ in range(performance_params['n_runs']):
                     cmds.append(extra + cmd)
 

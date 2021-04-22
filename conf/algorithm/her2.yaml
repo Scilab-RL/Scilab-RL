@@ -1,0 +1,10 @@
+# @package _group_
+
+name: 'her2'
+
+exp_path_params:
+  - 'layer_classes'
+  - 'eval_after_n_steps'
+  - 'train_freq'
+
+verbose: True

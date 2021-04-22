@@ -77,7 +77,7 @@ def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> in
 def compute_time_scales(scales, env):
     max_steps = env.spec.max_episode_steps
     for i,s in enumerate(scales):
-        if s == 0:
+        if s == -1:
             defined_steps = np.product([int(step) for step in scales[:i]])
             defined_after_steps = np.product([int(step) for step in scales[i+1:]])
             defined_steps *= defined_after_steps
@@ -102,7 +102,7 @@ class MBCHAC(BaseAlgorithm):
 
     :param policy: The policy model to use.
     :param env: The environment to learn from (if registered in Gym, can be str)
-    :param model_classes: Array of Off policy models which will be used with hindsight experience replay. (SAC, TD3, DDPG, DQN)
+    :param layer_classes: Array of Off policy models which will be used with hindsight experience replay. (SAC, TD3, DDPG, DQN)
     :param n_sampled_goal: Number of sampled goals for replay. (offline sampling)
     :param goal_selection_strategy: Strategy for sampling goals for replay.
         One of ['episode', 'final', 'future', 'random']
@@ -117,9 +117,9 @@ class MBCHAC(BaseAlgorithm):
         self,
         policy: Union[str, Type[BasePolicy]],
         env: Union[GymEnv, str],
-        model_class: Type[OffPolicyAlgorithm],
-        sub_model_classes: List[Type[OffPolicyAlgorithm]] = [],
-        time_scales: int = 0,
+        layer_class: Type[OffPolicyAlgorithm],
+        sub_layer_classes: List[Type[OffPolicyAlgorithm]] = [],
+        time_scales: int = 1,
         learning_rates: str = '3e-4',
         n_sampled_goal: int = 4,
         goal_selection_strategy: Union[GoalSelectionStrategy, str] = "future",
@@ -151,7 +151,7 @@ class MBCHAC(BaseAlgorithm):
         self.hindsight_sampling_done_if_success = hindsight_sampling_done_if_success
         self.reset_train_info_list()
         assert len(time_scales) == (
-                    len(sub_model_classes) + 1), "Error, number of time scales is not equal to number of layers."
+                    len(sub_layer_classes) + 1), "Error, number of time scales is not equal to number of layers."
         assert time_scales.count(
             "_") <= 1, "Error, only one wildcard character \'_\' allowed in time_scales argument {}".format(time_scales)
         # env = SubgoalVisualizationWrapper(env)
@@ -180,18 +180,19 @@ class MBCHAC(BaseAlgorithm):
             del kwargs["_init_setup_model"]
 
         # model initialization
-        self.model_class = model_class
+        self.layer_class = layer_class
         model_args = kwargs.copy()
-        del model_args['model_classes']
+        if 'sub_layer_classes' in model_args:
+            del model_args['sub_layer_classes']
 
-        self.sub_model_classes = sub_model_classes
-        self.layer = len(self.sub_model_classes)
+        self.sub_layer_classes = sub_layer_classes
+        self.layer = len(self.sub_layer_classes)
 
-        assert (len(sub_model_classes) + 1) == len(layer_envs), "Error, number of sub model classes should be one less than number of envs"
+        assert (len(sub_layer_classes) + 1) == len(layer_envs), "Error, number of sub model classes should be one less than number of envs"
         next_level_steps = 0
-        if len(sub_model_classes) > 0:
+        if len(sub_layer_classes) > 0:
             next_level_steps = int(self.time_scales[1])
-            self.sub_model = MBCHAC('MlpPolicy', bottom_env, sub_model_classes[0], sub_model_classes[1:],
+            self.sub_model = MBCHAC('MlpPolicy', bottom_env, sub_layer_classes[0], sub_layer_classes[1:],
                                     time_scales=self.time_scales[1:],
                                     n_sampled_goal=n_sampled_goal,
                                     goal_selection_strategy=goal_selection_strategy,
@@ -209,8 +210,7 @@ class MBCHAC(BaseAlgorithm):
         else:
             self.sub_model = None
 
-        del model_args['name']
-        self.model = model_class(
+        self.model = layer_class(
             policy=policy,
             env=self.env,
             _init_setup_model=False,  # pytype: disable=wrong-keyword-args
@@ -832,7 +832,7 @@ class MBCHAC(BaseAlgorithm):
         # add HER parameters to model
         self.model.n_sampled_goal = self.n_sampled_goal
         self.model.goal_selection_strategy = self.goal_selection_strategy
-        self.model.model_class = self.model_class
+        self.model.layer_class = self.layer_class
         self.model.max_episode_length = self.max_episode_length
         layer_path = path + f"_lay{self.layer}"
         self.model.save(layer_path, exclude, include)
@@ -893,7 +893,7 @@ class MBCHAC(BaseAlgorithm):
         #     kwargs["use_sde"] = True
 
         # Keys that cannot be changed
-        for key in {"model_class", "max_episode_length"}:
+        for key in {"layer_class", "max_episode_length"}:
             if key in kwargs:
                 del kwargs[key]
 
@@ -908,7 +908,7 @@ class MBCHAC(BaseAlgorithm):
         loaded_model = cls(
             policy=data["policy_class"],
             env=env,
-            model_class=data["model_class"],
+            layer_class=data["layer_class"],
             # n_sampled_goal=data["n_sampled_goal"],
             goal_selection_strategy=data["goal_selection_strategy"],
             max_episode_length=data["max_episode_length"],

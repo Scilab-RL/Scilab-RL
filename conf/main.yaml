@@ -4,9 +4,14 @@ defaults:
   # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg', 'her2', 'mbchac')
   - algorithm: 'sac'
 
-#the name of the OpenAI Gym environment that you want to train on. E.g. TowerBuildMujocoEnv-sparse-gripper_random-o2-h1-2-v1, AntFourRoomsEnv-v0
-env: 'AntFourRoomsEnv-v0'
+# The name of the OpenAI Gym environment that you want to train on. E.g. AntFourRoomsEnv-v0
+env: 'Ant4RoomsEnv-v0'
 seed: 0
+
+# layer classes for the algorithm
+layer_classes:
+  - sacvg
+  - sacvg
 
 # the path to where logs and policy pickles should go. If not specified, creates a folder in /tmp/
 base_logdir: 'data'
@@ -31,11 +36,13 @@ try_start_idx: 100
 
 # The n last epochs over which to average for determining early stopping condition.
 early_stop_last_n: 5
+
 # The early stopping threshold.
 early_stop_threshold: 0.99
 
 # The data column on which early stopping is based.
 early_stop_data_column: 'test/success_rate'
+
 # A command line comment that will be integrated in the folder where the results
 # are stored. Useful for debugging and addressing temporary changes to the code..
 info: ''
