@@ -3,7 +3,6 @@ import numpy as np
 from gym import spaces
 from gym.utils import EzPickle
 from gym.envs.robotics import fetch_env, utils
-from ideas_envs.wrappers.subgoal_viz_wrapper import SITE_COLORS
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'button_unlock.xml')
 
@@ -34,6 +33,8 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
         self.sample_dist_threshold = 0.11
 
         self.subgoals = {}
+        self.goal = np.zeros(3)
+        self.reset_since_last_goal_sampled = False
 
         super().__init__(model_xml_path, has_object=False, block_gripper=True, n_substeps=20,
                          gripper_extra_height=0, target_in_the_air=True, target_offset=0.0,
@@ -82,8 +83,8 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
 
         obs = np.concatenate([grip_pos, buttons_pos, grip_velp, self.locked])
 
-        achieved_goal = obs[:2]
-        desired_goal = obs[3:5]
+        achieved_goal = obs[:3]
+        desired_goal = self.goal
 
         return {
             'observation': obs.copy(),
@@ -92,38 +93,7 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
         }
 
     def _render_callback(self):
-        # for name in self.subgoals:
-        #     try:
-        #         site_id = self.sim.model.site_name2id(name)
-        #         self.sim.model.site_pos[site_id] = self.subgoals[name][0].copy()
-        #         size = [self.subgoals[name][1]]*3
-        #         self.sim.model.site_size[site_id] = size
-        #         self.sim.model.site_rgba[site_id] = self.subgoals[name][2]
-        #     except ValueError as e:
-        #         raise ValueError("Site {} does not exist. Please include the ideas_envs.assets.subgoal_viz.xml "
-        #                          "in your environment xml.".format(name)) from e
         pass
-
-    def layer_goal_to_3d(self, goal):
-        goal_3d = np.array(list(goal) + [self.table_height])
-        return goal_3d
-
-    # def display_subgoals(self, subgoals, shape='sphere', size=0.025, colors=None):
-    #     """
-    #         :param subgoals is a one dimensional array with the subgoal positions
-    #                         with the shape: [x, y, x, y, ...]
-    #         :param shape is the geometric shape of the subgoal visualization site
-    #                         it can be either 'sphere', 'box' or 'cylinder'
-    #         :param size is the size of the subgoal visualization site
-    #         :param colors is a list of colors for the visualizations
-    #                         with the shape: [r, g, b, a, r, g, b, a, ...]
-    #     """
-    #     assert len(subgoals) % 2 == 0, "The subgoals must be provided in the form [x, y, x, y, ...]"
-    #     if colors is None:
-    #         colors = SITE_COLORS[:int(len(subgoals)*2)]
-    #     for i in range(int(len(subgoals)/2)):
-    #         self.subgoals['subgoal_{}{}'.format(shape, i)] = ([subgoals[i*2], subgoals[i*2 + 1], self.table_height],
-    #                                                           size, colors[i*4: (i+1)*4])
 
     def _reset_sim(self):
         self.sim.set_state(self.initial_state)
@@ -161,10 +131,15 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
         self.sim.data.set_joint_qpos('cage:joint', goal_pos)
 
         self.sim.forward()
+        self.reset_since_last_goal_sampled = True
         return True
 
     def _sample_goal(self):
+        if not self.reset_since_last_goal_sampled:
+            self._reset_sim()
+        self.reset_since_last_goal_sampled = False
         obs = self._get_obs()
         if obs is not None:
-            goal = obs['observation'].copy()[3:5]
+            goal = obs['observation'].copy()[3:6]
+            goal[2] = 0.435  # z position of gripper
         return goal
