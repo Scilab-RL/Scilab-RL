@@ -201,7 +201,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self.action_space.high = [-np.inf] * len(self.action_space.high)
         self.action_space.low = [np.inf] * len(self.action_space.low)
         for i in range(n_samples):
-            self._sub_env.env.unwrapped._reset_sim() # This is necessary for some environments where the goal depends on the environment setup.
             goal = self._sub_env.env.unwrapped._sample_goal()
             self.action_space.high = np.maximum(goal, self.action_space.high)
             self.action_space.low = np.minimum(goal, self.action_space.low)
