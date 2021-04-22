@@ -6,6 +6,8 @@ model_classes:
   - sac
   - sac
 
+verbose: True
+
 # 'future', 'future2', 'future3', 'future4', 'final', 'episode', 'rndend', 'rndend2', 'rndend3'
 goal_selection_strategy: 'future'
 
