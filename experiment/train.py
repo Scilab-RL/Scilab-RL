@@ -28,7 +28,7 @@ from ideas_baselines.mbchac.hierarchical_eval_callback import HierarchicalEvalCa
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
-from ideas_baselines.her2 import HER2
+from ideas_baselines import HER2, MBCHAC, SACVG
 import os
 
 ALL_PATH_CONFIG_PARAMS = ['info', 'algorithm']
