@@ -64,7 +64,7 @@ class HER2(BaseAlgorithm):
 
     :param policy: The policy model to use.
     :param env: The environment to learn from (if registered in Gym, can be str)
-    :param model_class: Off policy model which will be used with hindsight experience replay. (SAC, TD3, DDPG, DQN)
+    :param layer_class: Off policy model which will be used with hindsight experience replay. (SAC, TD3, DDPG, DQN)
     :param n_sampled_goal: Number of sampled goals for replay. (offline sampling)
     :param goal_selection_strategy: Strategy for sampling goals for replay.
         One of ['episode', 'final', 'future', 'random']
@@ -79,7 +79,7 @@ class HER2(BaseAlgorithm):
         self,
         policy: Union[str, Type[BasePolicy]],
         env: Union[GymEnv, str],
-        model_class: Type[OffPolicyAlgorithm],
+        layer_class: Type[OffPolicyAlgorithm],
         n_sampled_goal: int = 4,
         goal_selection_strategy: Union[GoalSelectionStrategy, str] = "future",
         online_sampling: bool = False,
@@ -98,8 +98,8 @@ class HER2(BaseAlgorithm):
         if "_init_setup_model" in kwargs:
             del kwargs["_init_setup_model"]
         # model initialization
-        self.model_class = model_class
-        self.model = model_class(
+        self.layer_class = layer_class
+        self.model = layer_class(
             policy=policy,
             env=self.env,
             _init_setup_model=False,  # pytype: disable=wrong-keyword-args
@@ -423,7 +423,7 @@ class HER2(BaseAlgorithm):
         self.model.n_sampled_goal = self.n_sampled_goal
         self.model.goal_selection_strategy = self.goal_selection_strategy
         self.model.online_sampling = self.online_sampling
-        self.model.model_class = self.model_class
+        self.model.layer_class = self.layer_class
         self.model.max_episode_length = self.max_episode_length
 
         self.model.save(path, exclude, include)
@@ -478,7 +478,7 @@ class HER2(BaseAlgorithm):
             kwargs["use_sde"] = True
 
         # Keys that cannot be changed
-        for key in {"model_class", "online_sampling", "max_episode_length"}:
+        for key in {"layer_class", "online_sampling", "max_episode_length"}:
             if key in kwargs:
                 del kwargs[key]
 
@@ -492,7 +492,7 @@ class HER2(BaseAlgorithm):
         her_model = cls(
             policy=data["policy_class"],
             env=env,
-            model_class=data["model_class"],
+            layer_class=data["layer_class"],
             n_sampled_goal=data["n_sampled_goal"],
             goal_selection_strategy=data["goal_selection_strategy"],
             online_sampling=data["online_sampling"],

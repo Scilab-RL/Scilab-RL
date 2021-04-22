@@ -44,6 +44,19 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
     1. A function check to determine whether a process crashed
     1. A performance test to determine whether certain predefined success rates are met. These success rates are defined in `experiment/testing_algos.py` (see Section on Testing below.)
 
+## Start training manually (hydra debugging)
+
+```bash
+python3 train.py env=FetchReach-v1 algorithm=mbchac algorithm.render_test=record algorithm.time_scales=[5,0]
+python train.py env=FetchReach-v1 algorithm=mbchac model_classes=['sac','ddpg']
+```
+
+```bash
+python train.py env=FetchReach-v1 algorithm=her2 model_classes=['sacvg']
+# also works with ddpg
+```
+
+
 ## File structure
 
 * The root directory contains shell scripts for automated testing and data generation.

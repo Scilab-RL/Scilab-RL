@@ -1,10 +1,16 @@
 # @package _group_
 
 name: 'mbchac'
-
-model_classes:
-  - sac
-  - sac
+exp_path_params:
+  - 'time_scales'
+  - 'use_action_replay'
+  - 'subgoal_test_perc'
+  - 'ep_early_done_on_succ'
+  - 'goal_selection_strategy'
+  - 'n_sampled_goal'
+  - 'learning_rates'
+  - 'hindsight_sampling_done_if_success'
+  - 'set_fut_ret_zero_if_done'
 
 verbose: True
 
@@ -13,7 +19,8 @@ goal_selection_strategy: 'future'
 
 n_sampled_goal: 4
 
-# number of steps in each layer after which to train. 0 sets the training frequency to once per episode.
+# number of steps in each layer after which to train.
+# 0 sets the training frequency to once per episode.
 train_freq: 0
 
 # The number of training batches per episode. 0 sets training batches to number of
@@ -40,7 +47,8 @@ ep_early_done_on_succ: 2
 # where the discounted expected return is set to 0 of an episode is done.
 hindsight_sampling_done_if_success: 1
 
-# Whether to set the future expected return to 0 if an episode is done when computing the TD q value.
+# Whether to set the future expected return to 0 if an episode is
+# done when computing the TD q value.
 set_fut_ret_zero_if_done: 0
 
 # Whether and how to render the rollout execution during training. \'record\' is for video, \'display\' for direct visualization.
@@ -54,11 +62,12 @@ render_test: null
 # This has only an effect if \'render_train\' or \'render_test\' is not set to \'none\'.
 render_every_n_eval: 15
 
-# 'Steps per level from highest to lowest, separated by comma. There must be one \'_\'
-# character in the list to indicates the layer where the time scale is determined from the environment\'s predefined steps.'),
+# Steps per level from highest to lowest, separated by comma. There must be one -1
+# in the list to indicates the layer where the time scale is determined from the
+# environment's predefined steps.
 time_scales:
   - 5
-  - 0
+  - -1
 
 # The percentage of subgoals to test.
 subgoal_test_perc: 0.3

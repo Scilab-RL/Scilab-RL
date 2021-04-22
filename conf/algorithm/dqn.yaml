@@ -1,6 +1,6 @@
 # @package _group_
 
-name: 'sac'
+name: 'dqn'
 
 exp_path_params:
   - ''
