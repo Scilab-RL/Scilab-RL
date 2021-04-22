@@ -5,7 +5,7 @@ class TestingAlgos:
 
     base_algo_names = ['sac', 'ddpg', 'td3']
     algo_names = ['mbchac', 'her2'] + base_algo_names
-    algo_names = ['mbchac']
+    # algo_names = ['mbchac']
 
     @staticmethod
     def get_her_performance_params(env):
@@ -40,7 +40,7 @@ class TestingAlgos:
         all_params = []
         eval_after_n_steps = 5000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
-        model = 'sac'
+        model = 'sacvg'
         plot_col_names_template = 'train_##/actor_loss,train_##/critic_loss,train_##/ent_coef,train_##/n_updates,test_##/ep_success,test_##/ep_reward,train_##/ent_coef_loss,rollout_##/success_rate,test_##/q_mean,test_##/ep_length,train_##/ep_length,test_##/step_success'
         other_plot_col_names = 'test/success_rate,test/mean_reward'
         hyper_params_all = {'eval_after_n_steps': eval_after_n_steps,
@@ -52,9 +52,37 @@ class TestingAlgos:
                             'save_model_freq': 50000
                             }
 
+        # ts = ['10,10']
+        ts = ['50']
+        # ts = ['7,7']
+        # ar = [1, 0]
+        ar = [0]
+        # sg_test_perc = [0, 0.3]
+        sg_test_perc = [0]
+        # learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
+        # learning_rates = ['3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
+        learning_rates = ['3e-4', '3e-4,3e-4']
+        # learning_rates = ['3e-4']
+        set_fut_ret_zero_if_done = [0, 1]
+        # set_fut_ret_zero_if_done = [0]
+
+        n_succ_steps_for_early_ep_done = [0, 1, 2, 3]
+        n_succ_steps_for_early_ep_done = [0, 2]
+        n_sampled_goal = [4]
+        # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
+        # goal_selection_strategy = ['future']
+        # goal_selection_strategy = ['future3']
+        goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
+        # goal_selection_strategy = ['future', 'future2']
+        # goal_selection_strategy = ['future', 'rndend2']
+        # goal_selection_strategy = ['rndend', 'rndend2']
+        hindsight_sampling_done_if_success = [0, 1]
+        hindsight_sampling_done_if_success = [0]
+
         if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 40, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 80, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+            hyper_params_all.update({'eval_after_n_steps': 1000})
         elif env in ['FetchPush-v1']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
@@ -77,52 +105,67 @@ class TestingAlgos:
             performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o' in env:
-            performance_params = {'n_epochs': 400, 'n_runs': 3, 'min_success_runs': 3,
+            performance_params = {'n_epochs': 100, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
         elif 'ButtonUnlock-o' in env:
-            performance_params = {'n_epochs': 100, 'n_runs': 3, 'min_success_runs': 1,
+            performance_params = {'n_epochs': 150, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
+        elif 'ButtonUnlock-o2' in env:
+            performance_params = {'n_epochs': 250, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'Hook-o' in env:
             performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+        elif 'Ant' in env:
+            performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
+                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+            ts = ['500', '10,50', '20,25']
+            # 'AntReacher-v1',
+            # 'Ant4Rooms-v1',
+            # 'AntMaze-v1',
+            # 'AntPush-v1',
+            # 'AntFall-v1',
+
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
 
-        # ts = ['10,10']
-        ts = ['50', '7,7']
-        ar = [1, 0]
-        # ar = [0]
-        sg_test_perc = [0, 0.3]
-        # sg_test_perc = [0]
-        n_succ_steps_for_early_ep_done = [0, 1, 2]
-        n_sampled_goal = [3]
-        # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
-        goal_selection_strategy = ['future']
-        # goal_selection_strategy = ['future3']
-        # goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
-        hyper_params = {}
-        for nsg in n_sampled_goal:
-            hyper_params.update({'n_sampled_goal': nsg})
-            for gss in goal_selection_strategy:
-                hyper_params.update({'goal_selection_strategy': gss})
-                for time_scales in ts:
-                    model_classes = [model] * len(time_scales.split(','))
-                    hyper_params.update({'model_classes': ",".join(model_classes), 'time_scales': time_scales})
-                    for action_replay in ar:
-                        hyper_params.update({'use_action_replay': str(action_replay)})
-                        for subgoal_test_perc in sg_test_perc:
-                            hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
-                            for eedos in n_succ_steps_for_early_ep_done:
-                                hyper_params.update({'ep_early_done_on_succ': str(eedos)})
 
-                                n_layers = len(time_scales.split(","))
-                                plot_col_names = other_plot_col_names
-                                for lay in range(n_layers):
-                                    plot_col_names += "," + plot_col_names_template.replace("##", str(lay))
-                                hyper_params.update({'plot_eval_cols': plot_col_names})
-                                hyper_params.update(hyper_params_all)
-                                all_params.append((performance_params.copy(), hyper_params.copy()))
+        hyper_params = {}
+        for frz in set_fut_ret_zero_if_done:
+            hyper_params.update({'set_fut_ret_zero_if_done': frz})
+            for hsdis in hindsight_sampling_done_if_success:
+                hyper_params.update({'hindsight_sampling_done_if_success': hsdis})
+                if frz != hsdis: # Setting hindsight goal transitions to done only makes sense if setting future returns to zero on done.
+                    continue
+                for nsg in n_sampled_goal:
+                    hyper_params.update({'n_sampled_goal': nsg})
+                    for gss in goal_selection_strategy:
+                        hyper_params.update({'goal_selection_strategy': gss})
+                        for time_scales in ts:
+                            model_classes = [model] * len(time_scales.split(','))
+                            hyper_params.update({'model_classes': ",".join(model_classes), 'time_scales': time_scales})
+                            for action_replay in ar:
+                                hyper_params.update({'use_action_replay': str(action_replay)})
+                                for subgoal_test_perc in sg_test_perc:
+                                    hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
+                                    for eedos in n_succ_steps_for_early_ep_done:
+                                        hyper_params.update({'ep_early_done_on_succ': str(eedos)})
+                                        for lrs in learning_rates:
+                                            n_layers = len(time_scales.split(","))
+                                            if n_layers != len(lrs.split(",")):
+                                                continue
+                                            # if gss == 'future' and eedos != 0:
+                                            #     continue
+                                            # if 'rndend' in gss and eedos == 0:
+                                            #     continue
+                                            hyper_params.update({'learning_rates':lrs})
+                                            plot_col_names = other_plot_col_names
+                                            for lay in range(n_layers):
+                                                plot_col_names += "," + plot_col_names_template.replace("##", str(lay))
+                                            hyper_params.update({'plot_eval_cols': plot_col_names})
+                                            hyper_params.update(hyper_params_all)
+                                            all_params.append((performance_params.copy(), hyper_params.copy()))
         return all_params
 
     # @staticmethod

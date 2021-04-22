@@ -20,3 +20,26 @@ for n_objects in range(3):
              entry_point='ideas_envs.button_unlock.button_unlock_env:ButtonUnlockEnv',
              kwargs={'n_buttons': n_objects+1},
              max_episode_steps=max(50, 50*n_objects))
+
+    register(id='AntButtonUnlock-o{}-v1'.format(n_objects),
+             entry_point='ideas_envs.ant.ant_button_unlock_env:AntButtonUnlockEnv',
+             kwargs={'n_buttons': n_objects+1},
+             max_episode_steps=500*(n_objects+1))
+
+register(id='Ant4Rooms-v1',
+         entry_point='ideas_envs.ant.ant_4_rooms_env:Ant4RoomsEnv',
+         kwargs={},
+         max_episode_steps=600)
+
+register(id='AntReacher-v1',
+         entry_point='ideas_envs.ant.ant_reacher_env:AntReacherEnv',
+         kwargs={},
+         max_episode_steps=500)
+
+# Ant environments from HIRO paper
+for task in ['Maze', 'Push', 'Fall']:
+    kwargs = {'task': task}
+    register(id='Ant{}-v0'.format(task),
+             entry_point='ideas_envs.ant.ant_maze_push_fall_env:AntMazePushFallEnv',
+             kwargs=kwargs,
+             max_episode_steps=600)
