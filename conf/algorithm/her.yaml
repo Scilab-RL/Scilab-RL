@@ -1,9 +1,8 @@
 # @package _group_
 
-name: 'her2'
+name: 'her'
 
 exp_path_params:
-  - 'layer_classes'
   - 'verbose'
 
 verbose: True
