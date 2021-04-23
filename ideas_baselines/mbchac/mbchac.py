@@ -104,7 +104,7 @@ class MBCHAC(BaseAlgorithm):
 
     :param policy: The policy to use.
     :param env: The environment to learn from (if registered in Gym, can be str)
-    :param layer_classes: Array of Off policy algorithms 
+    :param layer_classes: Array of Off policy algorithms
         which will be used with hindsight experience replay. (SAC, TD3, DDPG, DQN)
     :param n_sampled_goal: Number of sampled goals for replay. (offline sampling)
     :param goal_selection_strategy: Strategy for sampling goals for replay.
@@ -777,8 +777,12 @@ class MBCHAC(BaseAlgorithm):
 
     def maybe_get_layer_q_value(self, action, obs):
         try: # if we are lucky we obtain the layer_alg's q value like this.
-            th_obs = th.from_numpy(obs).cuda()
-            th_act = th.from_numpy(action).cuda()
+            if self.device.type != 'cpu':
+                th_obs = th.from_numpy(obs).cuda()
+                th_act = th.from_numpy(action).cuda()
+            else:
+                th_obs = th.from_numpy(obs)
+                th_act = th.from_numpy(action)
             with th.no_grad():
                 q = th.stack(self.layer_alg.critic(th_obs, th_act))
                 q_mean = float(th.mean(q))
