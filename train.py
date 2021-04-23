@@ -40,7 +40,7 @@ def train(baseline, train_env, eval_env, cfg):
                                                  early_stop_last_n=cfg.early_stop_last_n,
                                                  early_stop_data_column=cfg.early_stop_data_column,
                                                  early_stop_threshold=cfg.early_stop_threshold,
-                                                 top_level_model=baseline)
+                                                 top_level_layer=baseline)
     else:
         eval_callback = CustomEvalCallback(eval_env,
                                            log_path=logger.get_dir(),

@@ -30,7 +30,7 @@ n_train_batches: 0
 # The number of transitions in each layer required to start NN training.
 learning_starts: 100
 
-# The learning rates of the models. From highest to lowest layer.
+# The learning rates of the layers. From highest to lowest layer.
 learning_rates:
   - 9e-4
   - 3e-4

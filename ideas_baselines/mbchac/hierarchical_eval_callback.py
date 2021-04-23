@@ -47,7 +47,7 @@ class HierarchicalEvalCallback(EvalCallback):
         early_stop_data_column: str = 'test/success_rate',
         early_stop_threshold: float = 1.0,
         early_stop_last_n: int = 5,
-        top_level_model = None
+        top_level_layer = None
     ):
         super(EvalCallback, self).__init__(verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
@@ -58,12 +58,12 @@ class HierarchicalEvalCallback(EvalCallback):
         self.early_stop_data_column = early_stop_data_column
         self.early_stop_threshold = early_stop_threshold
         self.early_stop_last_n = early_stop_last_n
-        self.top_level_model = top_level_model
+        self.top_level_layer = top_level_layer
 
-        layer_envs = get_h_envs_from_env(eval_env, top_level_model.time_scales, is_testing_env=True, model=top_level_model)
+        layer_envs = get_h_envs_from_env(eval_env, top_level_layer.time_scales, is_testing_env=True, layer_alg=top_level_layer)
         for idx, eval_env in enumerate(layer_envs):
             # Convert to VecEnv for consistency
-            eval_env = top_level_model._wrap_env(eval_env)
+            eval_env = top_level_layer._wrap_env(eval_env)
             if isinstance(eval_env, VecEnv):
                 assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
             layer_envs[idx] = eval_env
@@ -85,7 +85,7 @@ class HierarchicalEvalCallback(EvalCallback):
             sync_envs_normalization(self.training_env, self.eval_env)
 
             info_list = evaluate_hierarchical_policy(
-                self.top_level_model,
+                self.top_level_layer,
                 self.eval_env,
                 n_eval_episodes=self.n_eval_episodes
             )
@@ -101,8 +101,8 @@ class HierarchicalEvalCallback(EvalCallback):
                     self.eval_histories[new_k] = []
                 self.eval_histories[new_k].append(mean)
 
-            if self.top_level_model is not None:
-                self.top_level_model._dump_logs()
+            if self.top_level_layer is not None:
+                self.top_level_layer._dump_logs()
                 print("Log path: {}".format(self.log_path))
                 if self.early_stop_data_column in self.eval_histories.keys():
                     if self.eval_histories[self.early_stop_data_column][-1] >= self.best_early_stop_val:

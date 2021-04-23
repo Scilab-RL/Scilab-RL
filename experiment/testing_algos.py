@@ -28,10 +28,10 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
-        for model in TestingAlgos.base_algo_names:
-            if model in ['ppo']:
+        for algo in TestingAlgos.base_algo_names:
+            if algo in ['ppo']:
                 continue
-            hyper_params = {'layer_classes': [model], 'eval_after_n_steps': 2000}
+            hyper_params = {'layer_classes': [algo], 'eval_after_n_steps': 2000}
             all_params.append((performance_params, hyper_params, {}))
         return all_params
 
@@ -40,7 +40,7 @@ class TestingAlgos:
         all_params = []
         eval_after_n_steps = 5000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
-        model = 'sacvg'
+        algo = 'sacvg'
         plot_col_names_template = [
             'train_##/actor_loss','train_##/critic_loss','train_##/ent_coef','train_##/n_updates',
             'test_##/ep_success','test_##/ep_reward','train_##/ent_coef_loss','rollout_##/success_rate','test_##/q_mean',
@@ -149,7 +149,7 @@ class TestingAlgos:
                     for gss in goal_selection_strategy:
                         algo_params.update({'goal_selection_strategy': gss})
                         for time_scales in ts:
-                            hyper_params.update({'layer_classes': [model] * len(time_scales)})
+                            hyper_params.update({'layer_classes': [algo] * len(time_scales)})
                             algo_params.update({'time_scales': time_scales})
                             for action_replay in ar:
                                 algo_params.update({'use_action_replay': action_replay})
@@ -174,44 +174,6 @@ class TestingAlgos:
                                             hyper_params.update(hyper_params_all)
                                             all_params.append((performance_params.copy(), hyper_params.copy(), algo_params.copy()))
         return all_params
-
-    # @staticmethod
-    # def get_mbchac_performance_params(env):
-    #     all_params = []
-    #     eval_after_n_steps = 2000
-    #     early_stop_last_n = (10000 // eval_after_n_steps) + 1
-    #     model = 'sac'
-    #     hyper_params_all = {'eval_after_n_steps': 2000,
-    #                         'early_stop_last_n': early_stop_last_n,
-    #                         'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
-    #
-    #     if env in ['FetchReach-v1']:
-    #         performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
-    #                               'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
-    #     elif env in ['FetchPush-v1']:
-    #         performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
-    #                               'min_performance_value': 0.05, 'performance_measure': 'test/success_rate'}
-    #     elif env in ['FetchSlide-v1']:
-    #         performance_params = {'n_epochs': 50, 'n_runs': 4, 'min_success_runs': 2,
-    #                               'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
-    #     elif env in ['FetchPickAndPlace-v1']:
-    #         performance_params = {'n_epochs': 25, 'n_runs': 4, 'min_success_runs': 2,
-    #                               'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
-    #     elif env in ['HandReach-v0']:
-    #         performance_params = {'n_epochs': 70, 'n_runs': 4, 'min_success_runs': 2,
-    #                               'min_performance_value': 0.1, 'performance_measure': 'test/success_rate'}
-    #     else:
-    #         print("Environment {} is not evaluated with HER algorithm.".format(env))
-    #         return []
-    #
-    #     for time_scales in ['_', '5,_', '2,5,_']:
-    #         model_classes = [model] * len(time_scales.split(','))
-    #         hyper_params = {'model_classes': ",".join(model_classes), 'time_scales': time_scales}
-    #         hyper_params.update(hyper_params_all)
-    #         all_params.append((performance_params.copy(), hyper_params.copy()))
-    #
-    #     return all_params
-
 
     @staticmethod
     def get_her2_performance_params(env):
@@ -238,10 +200,10 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
-        for model in TestingAlgos.base_algo_names:
-            if model in ['ppo']:
+        for algo in TestingAlgos.base_algo_names:
+            if algo in ['ppo']:
                 continue
-            hyper_params_all = {'layer_classes': [model],
+            hyper_params_all = {'layer_classes': [algo],
                                 'plot_eval_cols': ['train/actor_loss','train/critic_loss','train/ent_coef','train/learning_rate','train/n_updates','test/success_rate','test/mean_reward','train/ent_coef_loss','rollout/success_rate']}
             hyper_params.update(hyper_params_all)
             performance_params['n_epochs'] = (20000 // hyper_params['eval_after_n_steps']) + 1
