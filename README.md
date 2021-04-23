@@ -48,11 +48,11 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
 ```bash
 python3 train.py env=FetchReach-v1 algorithm=mbchac algorithm.render_test=record algorithm.time_scales=[5,0]
-python train.py env=FetchReach-v1 algorithm=mbchac model_classes=['sac','ddpg']
+python train.py env=FetchReach-v1 algorithm=mbchac layer_classes=['sac','ddpg']
 ```
 
 ```bash
-python train.py env=FetchReach-v1 algorithm=her2 model_classes=['sacvg']
+python train.py env=FetchReach-v1 algorithm=her2 layer_classes=['sacvg']
 # also works with ddpg
 ```
 
