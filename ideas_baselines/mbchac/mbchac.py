@@ -777,8 +777,12 @@ class MBCHAC(BaseAlgorithm):
 
     def maybe_get_model_q_value(self, action, obs):
         try: # if we are lucky we obtain get the model's q value like this.
-            th_obs = th.from_numpy(obs).cuda()
-            th_act = th.from_numpy(action).cuda()
+            if self.device.type != 'cpu':
+                th_obs = th.from_numpy(obs).cuda()
+                th_act = th.from_numpy(action).cuda()
+            else:
+                th_obs = th.from_numpy(obs)
+                th_act = th.from_numpy(action)
             with th.no_grad():
                 q = th.stack(self.model.critic(th_obs, th_act))
                 q_mean = float(th.mean(q))
