@@ -404,7 +404,7 @@ class MBCHAC(BaseAlgorithm):
 
     def init_learn(self, total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps):
         tb_log_name = "MBCHAC_{}".format(self.layer)
-        layer_total_timesteps = total_timesteps / self.max_steps_per_layer_action
+        layer_total_timesteps = total_timesteps // self.max_steps_per_layer_action
         layer_total_timesteps, callback = self._setup_learn(
             layer_total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps, tb_log_name
         )
