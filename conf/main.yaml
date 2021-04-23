@@ -5,7 +5,7 @@ defaults:
   - algorithm: 'sac'
 
 # The name of the OpenAI Gym environment that you want to train on. E.g. AntFourRoomsEnv-v0
-env: 'Ant4RoomsEnv-v0'
+env: 'Ant4Rooms-v1'
 seed: 0
 
 # layer classes for the algorithm
