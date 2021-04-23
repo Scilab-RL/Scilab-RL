@@ -58,11 +58,9 @@ python train.py env=FetchReach-v1 algorithm=her2 layer_classes=['sacvg']
 
 
 ## File structure
-
+* The main script from which all algorithms are started is `train.py`.
 * The root directory contains shell scripts for automated testing and data generation.
 * The folder `experiment` contains all architectural stuff for evaluation.
-
-    * `train.py` is the main function to start with.
 
     * `plot.py` is for plotting
 
@@ -77,7 +75,7 @@ python train.py env=FetchReach-v1 algorithm=her2 layer_classes=['sacvg']
 * The folder `ideas_baselines` contains the new MBCHAC implementation and an implementation of HER. Other new algorithms should be added here, too. For details on the specific algorithms, see below.
 * The folder `ideas_envs` should contain new environments (but we may also choose to put environments in a completely different repository).
 * The folder `interface` contains for each algorithm, both stable-baselines3 algorithms and the algorithms here, a file `config.py` and `click_options.py`. The click options file determines the kwargs passed on to the model (MBCHAC, SAC, TD3, etc). These are specifyable as command-line options. The file `config.py` is right now just for determining the parameters to be used for generating a path name for the log directory.
-* The folder `util` contains soime misc utilities.
+* The folder `util` contains some misc utilities.
 
 ## Testing
 
