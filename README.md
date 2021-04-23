@@ -47,7 +47,7 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 ## Start training manually (hydra debugging)
 
 ```bash
-python3 train.py env=FetchReach-v1 algorithm=mbchac algorithm.render_test=record algorithm.time_scales=[5,0]
+python3 train.py env=FetchReach-v1 algorithm=mbchac algorithm.render_test=record algorithm.time_scales=[5,-1]
 python train.py env=FetchReach-v1 algorithm=mbchac layer_classes=['sac','ddpg']
 ```
 
