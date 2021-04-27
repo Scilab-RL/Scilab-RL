@@ -1,0 +1,62 @@
+defaults:
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: tpe
+#  - override hydra/launcher: joblib # For multiprocessing with n_jobs > 1
+
+hydra:
+  sweeper:
+    sampler:
+      _target_: optuna.samplers.TPESampler
+      seed: 123
+      consider_prior: true
+      prior_weight: 1.0
+      consider_magic_clip: true
+      consider_endpoints: false
+      n_startup_trials: 10
+      n_ei_candidates: 24
+      multivariate: false
+      warn_independent_sampling: true
+    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+    direction: maximize
+    study_name: simple_mnist
+    storage: sqlite:///simple_mnist_hyperopt.db
+#    storage: null
+#    storage: mysql://hyperopt_user@localhost/ideas_hrl_hyperopt_database
+    n_trials: 1
+    n_jobs: 1
+
+    search_space:
+      model.fc1_units:
+        type: int
+        low: 8
+        high: 256
+        step: 8
+      model.fc2_units:
+        type: int
+        low: 8
+        high: 256
+        step: 8
+
+model:
+  conv1:
+    kernel_size: 3
+    n_kernels: 6
+  conv2:
+    kernel_size: 3
+    n_kernels: 16
+  fc1_units: 64
+  fc2_units: 64
+
+optimizer:
+  lr: 0.001
+  momentum: 0.9
+
+train:
+  batch_size: 16
+  epoch: 2
+
+test:
+  batch_size: 16
+
+mlflow:
+  runname: "testrun"
