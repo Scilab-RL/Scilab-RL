@@ -69,7 +69,7 @@ def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> in
                 "The max episode length could not be inferred.\n"
                 "You must specify a `max_episode_steps` when registering the environment,\n"
                 "use a `gym.wrappers.TimeLimit` wrapper "
-                "or pass `max_episode_length` to the model constructor"
+                "or pass `max_episode_length` to the algorithm constructor"
             )
     return current_max_episode_length
 
@@ -90,27 +90,28 @@ def compute_time_scales(scales, env):
 class MBCHAC(BaseAlgorithm):
     """
     Model-based curious hierarchical actor-critic MBCHAC
-    Cobed based on Hindsight Experience Replay (HER) code of stable baselines 3 repository
+    Code based on Hindsight Experience Replay (HER) code of stable baselines 3 repository
 
     .. warning::
 
       For performance reasons, the maximum number of steps per episodes must be specified.
       In most cases, it will be inferred if you specify ``max_episode_steps`` when registering the environment
       or if you use a ``gym.wrappers.TimeLimit`` (and ``env.spec`` is not None).
-      Otherwise, you can directly pass ``max_episode_length`` to the model constructor
+      Otherwise, you can directly pass ``max_episode_length`` to the algorithm constructor
 
 
     For additional offline algorithm specific arguments please have a look at the corresponding documentation.
 
-    :param policy: The policy model to use.
+    :param policy: The policy to use.
     :param env: The environment to learn from (if registered in Gym, can be str)
-    :param layer_classes: Array of Off policy models which will be used with hindsight experience replay. (SAC, TD3, DDPG, DQN)
+    :param layer_classes: Array of Off policy algorithms
+        which will be used with hindsight experience replay. (SAC, TD3, DDPG, DQN)
     :param n_sampled_goal: Number of sampled goals for replay. (offline sampling)
     :param goal_selection_strategy: Strategy for sampling goals for replay.
         One of ['episode', 'final', 'future', 'random']
     :param learning_rate: learning rate for the optimizer,
         it can be a function of the current progress remaining (from 1 to 0)
-    :param max_episode_length: The m
+    :param max_episode_length: The maximum number of steps for one episode
     aximum length of an episode. If not specified,
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
     """
@@ -149,7 +150,7 @@ class MBCHAC(BaseAlgorithm):
         self.time_scales = time_scales
         self.train_freq = train_freq
         self.is_bottom_layer = len(time_scales) == 1
-        self.parent_model = None
+        self.parent_layer = None
         self.hindsight_sampling_done_if_success = hindsight_sampling_done_if_success
         self.reset_train_info_list()
         assert len(time_scales) == (
@@ -169,10 +170,10 @@ class MBCHAC(BaseAlgorithm):
         self.max_steps_per_layer_action = np.product(self.time_scales[1:]) # the max. number of low-level steps per action on this layer.
         bottom_env = layer_envs[-1]
         this_env = layer_envs[0]
-        this_env.env.model = self
+        this_env.env.layer_alg = self
         # Build policy, convert env into <ObstDictWrapper> class.
         super(MBCHAC, self).__init__(policy=BasePolicy, env=this_env, policy_base=BasePolicy, learning_rate=self.learning_rate)
-        # we will use the policy from the model.
+        # we will use the policy from the layer_alg.
         del self.policy
 
         self.learning_starts = kwargs['learning_starts']
@@ -181,20 +182,20 @@ class MBCHAC(BaseAlgorithm):
         if "_init_setup_model" in kwargs:
             del kwargs["_init_setup_model"]
 
-        # model initialization
+        # layer algorithm initialization
         self.layer_class = layer_class
-        model_args = kwargs.copy()
-        if 'sub_layer_classes' in model_args:
-            del model_args['sub_layer_classes']
+        layer_args = kwargs.copy()
+        if 'sub_layer_classes' in layer_args:
+            del layer_args['sub_layer_classes']
 
         self.sub_layer_classes = sub_layer_classes
         self.layer = len(self.sub_layer_classes)
 
-        assert (len(sub_layer_classes) + 1) == len(layer_envs), "Error, number of sub model classes should be one less than number of envs"
+        assert (len(sub_layer_classes) + 1) == len(layer_envs), "Error, number of sub_layer classes should be one less than number of envs"
         next_level_steps = 0
         if len(sub_layer_classes) > 0:
             next_level_steps = int(self.time_scales[1])
-            self.sub_model = MBCHAC('MlpPolicy', bottom_env, sub_layer_classes[0], sub_layer_classes[1:],
+            self.sub_layer = MBCHAC('MlpPolicy', bottom_env, sub_layer_classes[0], sub_layer_classes[1:],
                                     time_scales=self.time_scales[1:],
                                     n_sampled_goal=n_sampled_goal,
                                     goal_selection_strategy=goal_selection_strategy,
@@ -208,21 +209,21 @@ class MBCHAC(BaseAlgorithm):
                                     use_action_replay=use_action_replay,
                                     ep_early_done_on_succ=ep_early_done_on_succ,
                                     **kwargs)
-            self.sub_model.parent_model = self
+            self.sub_layer.parent_layer = self
         else:
-            self.sub_model = None
+            self.sub_layer = None
 
-        self.model = layer_class(
+        self.layer_alg = layer_class(
             policy=policy,
             env=self.env,
             _init_setup_model=False,  # pytype: disable=wrong-keyword-args
             learning_rate=self.learning_rate,
             *args,
-            **model_args,  # pytype: disable=wrong-keyword-args
+            **layer_args,  # pytype: disable=wrong-keyword-args
         )
 
-        self.verbose = self.model.verbose
-        self.tensorboard_log = self.model.tensorboard_log
+        self.verbose = self.layer_alg.verbose
+        self.tensorboard_log = self.layer_alg.tensorboard_log
 
         # convert goal_selection_strategy into GoalSelectionStrategy if string
         if isinstance(goal_selection_strategy, str):
@@ -315,10 +316,10 @@ class MBCHAC(BaseAlgorithm):
                 self.set_learning_enabled()
 
     def get_continue_training(self):
-        if self.sub_model is None:
+        if self.sub_layer is None:
             return self.continue_training
         else:
-            return self.sub_model.get_continue_training()
+            return self.sub_layer.get_continue_training()
 
     def start_train_video_writer(self, filename_postfix):
         self.train_video_writer = cv2.VideoWriter(self.train_render_info['path'] + '/train_{}.avi'.format(filename_postfix),
@@ -337,9 +338,9 @@ class MBCHAC(BaseAlgorithm):
         self.test_video_writer.release()
 
     def _setup_model(self) -> None:
-        self.model._setup_model()
+        self.layer_alg._setup_model()
         # assign episode storage to replay buffer when using online HER sampling
-        self.model.replay_buffer = self._episode_storage
+        self.layer_alg.replay_buffer = self._episode_storage
 
     def predict(
         self,
@@ -349,16 +350,15 @@ class MBCHAC(BaseAlgorithm):
         deterministic: bool = False,
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         # if self.continuous_subgoals and
-        if self.sub_model is not None:
-            subgoal = self.model.predict(observation, state, mask, deterministic)
+        if self.sub_layer is not None:
+            subgoal = self.layer_alg.predict(observation, state, mask, deterministic)
             observation['desired_goal'] = subgoal[0]
-        if self.sub_model is None:
-            action = self.model.predict(observation, state, mask, deterministic)
+            action = self.sub_layer.predict(observation, state, mask, deterministic)
         else:
-            action = self.sub_model.predict(observation, state, mask, deterministic)
+            action = self.layer_alg.predict(observation, state, mask, deterministic)
         return action
 
-    def train_model(self, n_gradient_steps: int):
+    def train_layer(self, n_gradient_steps: int):
         # if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0 and self.learning_enabled is True:
         if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > self.learning_starts and self.learning_enabled is True:
             logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
@@ -392,7 +392,7 @@ class MBCHAC(BaseAlgorithm):
         if rollout.continue_training is False:
             return False
         if self.train_freq == 0: # If training frequency is 0, train every episode for the number of gradient steps equal to the number of actions performed.
-            self.train_model(rollout.episode_timesteps)
+            self.train_layer(rollout.episode_timesteps)
         return True
 
     def set_learning_enabled(self):
@@ -409,15 +409,15 @@ class MBCHAC(BaseAlgorithm):
             layer_total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps, tb_log_name
         )
         self.epoch_count = 0
-        self.model.start_time = self.start_time
-        self.model.ep_info_buffer = self.ep_info_buffer
-        self.model.ep_success_buffer = self.ep_success_buffer
-        self.model.num_timesteps = self.num_timesteps
-        self.model._episode_num = self._episode_num
-        self.model._last_obs = self._last_obs
-        self.model._total_timesteps = self._total_timesteps
-        if self.sub_model is not None:
-            self.sub_model.init_learn(total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
+        self.layer_alg.start_time = self.start_time
+        self.layer_alg.ep_info_buffer = self.ep_info_buffer
+        self.layer_alg.ep_success_buffer = self.ep_success_buffer
+        self.layer_alg.num_timesteps = self.num_timesteps
+        self.layer_alg._episode_num = self._episode_num
+        self.layer_alg._last_obs = self._last_obs
+        self.layer_alg._total_timesteps = self._total_timesteps
+        if self.sub_layer is not None:
+            self.sub_layer.init_learn(total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
         self.train_callback = callback
         return layer_total_timesteps, callback
 
@@ -479,7 +479,7 @@ class MBCHAC(BaseAlgorithm):
         assert isinstance(env, VecEnv), "You must pass a VecEnv"
         assert env.num_envs == 1, "OffPolicyAlgorithm only support single environment"
 
-        if self.model.use_sde:
+        if self.layer_alg.use_sde:
             self.actor.reset_noise()
 
         callback = self.train_callback
@@ -496,9 +496,9 @@ class MBCHAC(BaseAlgorithm):
                 observation = self.env.venv.buf_obs
                 observation = deepcopy(observation) # Required so that values don't get changed.
                 self._last_obs = ObsDictWrapper.convert_dict(observation)
-                self.model._last_obs = self._last_obs
+                self.layer_alg._last_obs = self._last_obs
 
-                if self.model.use_sde and self.model.sde_sample_freq > 0 and total_steps % self.model.sde_sample_freq == 0:
+                if self.layer_alg.use_sde and self.layer_alg.sde_sample_freq > 0 and total_steps % self.layer_alg.sde_sample_freq == 0:
                     # Sample a new noise matrix
                     self.actor.reset_noise()
 
@@ -506,7 +506,7 @@ class MBCHAC(BaseAlgorithm):
                 if not self.in_subgoal_test_mode and not self.is_bottom_layer: # Next layer can only go in subgoal test mode if this layer is not already in subgoal testing mode
                     subgoal_test = True if np.random.random_sample() < self.subgoal_test_perc else False
                     if subgoal_test:
-                        self.set_subgoal_test_mode() # set submodel to testing mode is applicable.
+                        self.set_subgoal_test_mode() # set sub_layer to testing mode is applicable.
 
                 ls = learning_starts
                 # if self.layer != 0: ## DEBUG: learning starts to inf causes random action to be selected.
@@ -520,19 +520,19 @@ class MBCHAC(BaseAlgorithm):
                 new_obs, reward, done, infos = env.step(action)
                 success = np.array([info['is_success'] for info in infos])
                 # last_steps_succ.append(success)
-                if subgoal_test: # if the subgoal test has started here, unset testing mode of submodel if applicable.
+                if subgoal_test: # if the subgoal test has started here, unset testing mode of sub_layer if applicable.
                     self.unset_subgoal_test_mode()
                 if self.is_bottom_layer and self.train_render_info != 'none' and self.epoch_count % self.render_every_n_eval == 0:
                     if self.render_train == 'record':
                         frame = self.env.unwrapped.render(mode='rgb_array', width=self.train_render_info['size'][0],
                                                              height=self.train_render_info['size'][1])
                         # cv2.imwrite('tmp.png', frame) ## DEBUG
-                        self.get_top_model().train_video_writer.write(frame)
+                        self.get_top_layer().train_video_writer.write(frame)
                     elif self.render_train == 'display':
                         self.env.unwrapped.render(mode='human')
 
                 self.num_timesteps += 1
-                self.model.num_timesteps = self.num_timesteps
+                self.layer_alg.num_timesteps = self.num_timesteps
                 episode_timesteps += 1
                 total_steps += 1
 
@@ -540,8 +540,8 @@ class MBCHAC(BaseAlgorithm):
 
                 # Retrieve reward and episode length if using Monitor wrapper
                 self._update_info_buffer(infos, done)
-                self.model.ep_info_buffer = self.ep_info_buffer
-                self.model.ep_success_buffer = self.ep_success_buffer
+                self.layer_alg.ep_info_buffer = self.ep_info_buffer
+                self.layer_alg.ep_success_buffer = self.ep_success_buffer
 
                 # == Store transition in the replay buffer and/or in the episode storage ==
 
@@ -553,7 +553,7 @@ class MBCHAC(BaseAlgorithm):
                     # Avoid changing the original ones
                     self._last_original_obs, new_obs_, reward_ = observation, new_obs, reward
 
-                    self.model._last_original_obs = self._last_original_obs
+                    self.layer_alg._last_original_obs = self._last_original_obs
 
                 # As the VecEnv resets automatically, new_obs is already the
                 # first observation of the next episode
@@ -583,22 +583,22 @@ class MBCHAC(BaseAlgorithm):
                 #     print("ohno {}".format(e))
 
                 self._last_obs = new_obs
-                self.model._last_obs = self._last_obs
+                self.layer_alg._last_obs = self._last_obs
 
                 # Save the unnormalized new observation
                 if self._vec_normalize_env is not None:
                     self._last_original_obs = new_obs_
-                    self.model._last_original_obs = self._last_original_obs
+                    self.layer_alg._last_original_obs = self._last_original_obs
 
                 # Update progress only for top layer because _total_timesteps is not known for lower-level layers.
                 if self.is_top_layer:
-                    self.model._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)
+                    self.layer_alg._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)
 
                 # For DQN, check if the target network should be updated
                 # and update the exploration schedule
                 # For SAC/TD3, the update is done at the same time as the gradient update
                 # see https://github.com/hill-a/stable-baselines/issues/900
-                self.model._on_step()
+                self.layer_alg._on_step()
 
                 self.episode_steps += 1
 
@@ -613,27 +613,27 @@ class MBCHAC(BaseAlgorithm):
 
                 self.actions_since_last_train += 1
                 if self.actions_since_last_train >= self.train_freq and self.train_freq != 0:
-                    self.train_model(self.actions_since_last_train)
+                    self.train_layer(self.actions_since_last_train)
 
                 if 0 < n_steps <= total_steps:
                     break
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()
 
-                if self.is_top_layer: # Reset environments and _last_obs of all submodels.
+                if self.is_top_layer: # Reset environments and _last_obs of all sub_layers.
                     new_obs = self.env.venv.reset_all()
-                    tmp_model = self
+                    tmp_layer = self
                     while True:
-                        tmp_model._last_obs = new_obs
-                        tmp_model._last_obs = self._last_obs
-                        if tmp_model.sub_model is None:
+                        tmp_layer._last_obs = new_obs
+                        tmp_layer._last_obs = self._last_obs
+                        if tmp_layer.sub_layer is None:
                             break
                         else:
-                            tmp_model = self.sub_model
+                            tmp_layer = self.sub_layer
                 self.train_info_list['ep_length'].append(episode_timesteps)
                 total_episodes += 1
                 self._episode_num += 1
-                self.model._episode_num = self._episode_num
+                self.layer_alg._episode_num = self._episode_num
                 episode_rewards.append(episode_reward)
                 total_timesteps.append(episode_timesteps)
 
@@ -664,25 +664,25 @@ class MBCHAC(BaseAlgorithm):
             return False
 
     def set_subgoal_test_mode(self):
-        if self.sub_model is not None:
-            self.sub_model.in_subgoal_test_mode = True
-            self.sub_model.set_subgoal_test_mode()
+        if self.sub_layer is not None:
+            self.sub_layer.in_subgoal_test_mode = True
+            self.sub_layer.set_subgoal_test_mode()
 
     def unset_subgoal_test_mode(self):
-        if self.sub_model is not None:
-            self.sub_model.in_subgoal_test_mode = False
-            self.sub_model.unset_subgoal_test_mode()
+        if self.sub_layer is not None:
+            self.sub_layer.in_subgoal_test_mode = False
+            self.sub_layer.unset_subgoal_test_mode()
 
     def train_step(self):
-        self.sub_model.run_and_maybe_train(n_episodes=1)
+        self.sub_layer.run_and_maybe_train(n_episodes=1)
 
     def test_step(self, eval_env):
-        return self.sub_model.test_episode(eval_env._sub_env)
+        return self.sub_layer.test_episode(eval_env._sub_env)
 
     def reset_eval_info_list(self):
         self.eval_info_list = {}
-        if self.sub_model is not None:
-            self.sub_model.reset_eval_info_list()
+        if self.sub_layer is not None:
+            self.sub_layer.reset_eval_info_list()
 
     def update_venv_buf_obs(self, env):
         for i,e in enumerate(env.venv.envs):
@@ -706,7 +706,7 @@ class MBCHAC(BaseAlgorithm):
             obs = eval_env.venv.buf_obs
             obs = ObsDictWrapper.convert_dict(obs)
             action, _ = self._sample_action(observation=obs,learning_starts=0, deterministic=True)
-            q_mean, q_std = self.maybe_get_model_q_value(action, obs)
+            q_mean, q_std = self.maybe_get_layer_q_value(action, obs)
             # If it is the last high-level action, then set subgoal to end goal.
             # if self.layer != 0 and step_ctr+1 == eval_env.venv.envs[0]._max_episode_steps:
             #     action = [eval_env.venv.envs[0].goal.copy()]
@@ -725,11 +725,11 @@ class MBCHAC(BaseAlgorithm):
                     frame = eval_env.unwrapped.render(mode='rgb_array', width=self.test_render_info['size'][0],
                                                          height=self.test_render_info['size'][1])
                     # cv2.imwrite('tmp_test.png', frame)  ## DEBUG
-                    self.get_top_model().test_video_writer.write(frame)
+                    self.get_top_layer().test_video_writer.write(frame)
                 elif self.render_test == 'display':
                     eval_env.unwrapped.render(mode='human')
-            if self.sub_model is not None:
-                self.sub_model.reset_eval_info_list()
+            if self.sub_layer is not None:
+                self.sub_layer.reset_eval_info_list()
             step_ctr += 1
             if type(info) == list:
                 info = get_concat_dict_from_dict_list(info)
@@ -775,8 +775,8 @@ class MBCHAC(BaseAlgorithm):
             self.eval_info_list[reward_key] = [ep_reward]
         return self.eval_info_list
 
-    def maybe_get_model_q_value(self, action, obs):
-        try: # if we are lucky we obtain get the model's q value like this.
+    def maybe_get_layer_q_value(self, action, obs):
+        try: # if we are lucky we obtain the layer_alg's q value like this.
             if self.device.type != 'cpu':
                 th_obs = th.from_numpy(obs).cuda()
                 th_act = th.from_numpy(action).cuda()
@@ -784,7 +784,7 @@ class MBCHAC(BaseAlgorithm):
                 th_obs = th.from_numpy(obs)
                 th_act = th.from_numpy(action)
             with th.no_grad():
-                q = th.stack(self.model.critic(th_obs, th_act))
+                q = th.stack(self.layer_alg.critic(th_obs, th_act))
                 q_mean = float(th.mean(q))
                 q_std = float(th.std(q))
         except Exception as e: # otherwise just return none.
@@ -811,15 +811,15 @@ class MBCHAC(BaseAlgorithm):
 
     def __getattr__(self, item: str) -> Any:
         """
-        Find attribute from model class if this class does not have it.
+        Find attribute from layer class if this class does not have it.
         """
-        if hasattr(self.model, item):
-            return getattr(self.model, item)
+        if hasattr(self.layer_alg, item):
+            return getattr(self.layer_alg, item)
         else:
             raise AttributeError(f"{self} has no attribute {item}")
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
-        return self.model._get_torch_save_params()
+        return self.layer_alg._get_torch_save_params()
 
     def save(
         self,
@@ -828,22 +828,22 @@ class MBCHAC(BaseAlgorithm):
         include: Optional[Iterable[str]] = None,
     ) -> None:
         """
-        Save all the attributes of the object and the model parameters in a zip-file.
+        Save all the attributes of the object and the layer_alg parameters in a zip-file.
 
         :param path: path to the file where the rl agent should be saved
         :param exclude: name of parameters that should be excluded in addition to the default one
         :param include: name of parameters that might be excluded but should be included anyway
         """
 
-        # add HER parameters to model
-        self.model.n_sampled_goal = self.n_sampled_goal
-        self.model.goal_selection_strategy = self.goal_selection_strategy
-        self.model.layer_class = self.layer_class
-        self.model.max_episode_length = self.max_episode_length
+        # add HER parameters to layer_alg
+        self.layer_alg.n_sampled_goal = self.n_sampled_goal
+        self.layer_alg.goal_selection_strategy = self.goal_selection_strategy
+        self.layer_alg.layer_class = self.layer_class
+        self.layer_alg.max_episode_length = self.max_episode_length
         layer_path = path + f"_lay{self.layer}"
-        self.model.save(layer_path, exclude, include)
-        if self.sub_model is not None:
-            self.sub_model.save()
+        self.layer_alg.save(layer_path, exclude, include)
+        if self.sub_layer is not None:
+            self.sub_layer.save()
 
     @classmethod
     def load(
@@ -854,16 +854,16 @@ class MBCHAC(BaseAlgorithm):
         **kwargs,
     ) -> "BaseAlgorithm":
         """
-        Load the model from a zip-file
+        Load the layer_alg from a zip-file
 
         :param path: path to the file (or a file-like) where to
             load the agent from
-        :param env: the new environment to run the loaded model on
-            (can be None if you only need prediction from a trained model) has priority over any saved environment
+        :param env: the new environment to run the loaded agent on
+            (can be None if you only need prediction from a trained agent) has priority over any saved environment
         :param device: Device on which the code should run.
-        :param kwargs: extra arguments to change the model when loading
+        :param kwargs: extra arguments to change the agent when loading
         """
-        n_layers = len(kwargs['model_classes'].split(","))
+        n_layers = len(kwargs['layer_classes'].split(","))
         for lay in range(n_layers):
             layer_path = path + f"_lay{lay}"
             data, params, pytorch_variables = load_from_zip_file(layer_path, device=device)
@@ -911,7 +911,7 @@ class MBCHAC(BaseAlgorithm):
                 del kwargs[key]
 
         # noinspection PyArgumentList
-        loaded_model = cls(
+        loaded_agent = cls(
             policy=data["policy_class"],
             env=env,
             layer_class=data["layer_class"],
@@ -924,27 +924,27 @@ class MBCHAC(BaseAlgorithm):
         )
 
         # load parameters
-        loaded_model.model.__dict__.update(data)
-        loaded_model.model.__dict__.update(kwargs)
-        loaded_model._setup_model()
+        loaded_agent.layer_alg.__dict__.update(data)
+        loaded_agent.layer_alg.__dict__.update(kwargs)
+        loaded_agent._setup_model()
 
-        loaded_model._total_timesteps = loaded_model.model._total_timesteps
-        loaded_model.num_timesteps = loaded_model.model.num_timesteps
-        loaded_model._episode_num = loaded_model.model._episode_num
+        loaded_agent._total_timesteps = loaded_agent.layer_alg._total_timesteps
+        loaded_agent.num_timesteps = loaded_agent.layer_alg.num_timesteps
+        loaded_agent._episode_num = loaded_agent.layer_alg._episode_num
 
         # put state_dicts back in place
-        loaded_model.model.set_parameters(params, exact_match=True, device=device)
+        loaded_agent.layer_alg.set_parameters(params, exact_match=True, device=device)
 
         # put other pytorch variables back in place
         if pytorch_variables is not None:
             for name in pytorch_variables:
-                recursive_setattr(loaded_model.model, name, pytorch_variables[name])
+                recursive_setattr(loaded_agent.layer_alg, name, pytorch_variables[name])
 
         # Sample gSDE exploration matrix, so it uses the right device
         # see issue #44
-        if loaded_model.model.use_sde:
-            loaded_model.model.policy.reset_noise()  # pytype: disable=attribute-error
-        return loaded_model
+        if loaded_agent.layer_alg.use_sde:
+            loaded_agent.layer_alg.policy.reset_noise()  # pytype: disable=attribute-error
+        return loaded_agent
 
     def load_replay_buffer(
         self, path: Union[str, pathlib.Path, io.BufferedIOBase], truncate_last_trajectory: bool = True
@@ -957,7 +957,7 @@ class MBCHAC(BaseAlgorithm):
             If set to ``True`` we assume that the last trajectory in the replay buffer was finished.
             If it is set to ``False`` we assume that we continue the same trajectory (same episode).
         """
-        self.model.load_replay_buffer(path=path)
+        self.layer_alg.load_replay_buffer(path=path)
 
 
 
@@ -988,10 +988,10 @@ class MBCHAC(BaseAlgorithm):
             self.replay_buffer.full = self.replay_buffer.full or self.replay_buffer.pos == 0
 
     def get_env_steps(self) -> int:
-        if self.sub_model is None:
+        if self.sub_layer is None:
             return self.num_timesteps
         else:
-            return self.sub_model.get_env_steps()
+            return self.sub_layer.get_env_steps()
 
     def _record_logs(self) -> None:
         """
@@ -1017,11 +1017,11 @@ class MBCHAC(BaseAlgorithm):
         if len(self.ep_success_buffer) > 0:
             logger.record(rollout_pf + "/success_rate", safe_mean(self.ep_success_buffer))
             if safe_mean(self.ep_success_buffer) > 0.9: # Start training of higher level layer if the success rate is above 90%. This has only an effect if action replay is disabled.
-                if self.parent_model is not None:
-                    self.parent_model.set_learning_enabled()
+                if self.parent_layer is not None:
+                    self.parent_layer.set_learning_enabled()
 
-        if self.sub_model is not None:
-            self.sub_model._record_logs()
+        if self.sub_layer is not None:
+            self.sub_layer._record_logs()
 
 
         for k,v in self.train_info_list.items():
@@ -1069,38 +1069,38 @@ class MBCHAC(BaseAlgorithm):
         or by adding noise to the deterministic output.
 
         :param observation: An optional observation to base the action prediction upon. If not provided,
-            model._last_obs will be used instead.
+            layer_alg._last_obs will be used instead.
         :param deterministic: Whether the policy selects a determinsitic action or adds random noise to it.
         :param learning_starts: Number of steps before learning for the warm-up phase.
         :return: action to take in the environment
             and scaled action that will be stored in the replay buffer.
             The two differs when the action space is not normalized (bounds are not [-1, 1]).
         """
-        assert isinstance(self.model, OffPolicyAlgorithm), "Error, model ist not an OffPolicyAlgorithm"
+        assert isinstance(self.layer_alg, OffPolicyAlgorithm), "Error, layer_alg ist not an OffPolicyAlgorithm"
         if observation is None:
-            observation = self.model._last_obs
+            observation = self.layer_alg._last_obs
         # Select action randomly or according to policy
-        # if self.model.num_timesteps < learning_starts or self.learning_enabled is False:
+        # if self.layer_alg.num_timesteps < learning_starts or self.learning_enabled is False:
         if self.replay_buffer.size() < learning_starts or self.learning_enabled is False:
-        # if self.model.num_timesteps < learning_starts and (not (self.model.use_sde and self.model.use_sde_at_warmup)):
+        # if self.layer_alg.num_timesteps < learning_starts and (not (self.layer_alg.use_sde and self.layer_alg.use_sde_at_warmup)):
             # Warmup phase
-            unscaled_action = np.array([self.model.action_space.sample()])
+            unscaled_action = np.array([self.layer_alg.action_space.sample()])
         else:
             # Note: when using continuous actions,
             # we assume that the policy uses tanh to scale the action
             # We use non-deterministic action in the case of SAC, for TD3, it does not matter
             try:
-                unscaled_action, _ = self.model.predict(observation, deterministic=deterministic)
+                unscaled_action, _ = self.layer_alg.predict(observation, deterministic=deterministic)
             except Exception as e:
                 print("ohno {}".format(e))
 
         # Rescale the action from [low, high] to [-1, 1]
-        if isinstance(self.model.action_space, gym.spaces.Box):
-            scaled_action = self.model.policy.scale_action(unscaled_action)
+        if isinstance(self.layer_alg.action_space, gym.spaces.Box):
+            scaled_action = self.layer_alg.policy.scale_action(unscaled_action)
 
             # We store the scaled action in the buffer
             buffer_action = scaled_action
-            action = self.model.policy.unscale_action(scaled_action)
+            action = self.layer_alg.policy.unscale_action(scaled_action)
         else:
             # Discrete case, no need to normalize or clip
             buffer_action = unscaled_action
@@ -1122,18 +1122,18 @@ class MBCHAC(BaseAlgorithm):
         return env
     # wrap_env = _wrap_env
 
-    def get_top_model(self):
+    def get_top_layer(self):
         if self.is_top_layer:
             return self
         else:
-            return self.parent_model.get_top_model()
+            return self.parent_layer.get_top_layer()
 
     def set_test_render_info(self, render_info):
         self.test_render_info = render_info
-        if self.sub_model is not None:
-            self.sub_model.set_test_render_info(render_info)
+        if self.sub_layer is not None:
+            self.sub_layer.set_test_render_info(render_info)
 
     def set_train_render_info(self, render_info):
         self.train_render_info = render_info
-        if self.sub_model is not None:
-            self.sub_model.set_train_render_info(render_info)
+        if self.sub_layer is not None:
+            self.sub_layer.set_train_render_info(render_info)
