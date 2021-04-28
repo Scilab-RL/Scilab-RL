@@ -688,6 +688,7 @@ class MBCHAC(BaseAlgorithm):
         for i,e in enumerate(env.venv.envs):
             env._save_obs(i, e.env.unwrapped._get_obs())
 
+
     def test_episode(self, eval_env):
         done = False
         step_ctr = 0
