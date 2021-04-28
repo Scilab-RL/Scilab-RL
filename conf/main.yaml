@@ -1,6 +1,6 @@
 defaults:
   # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg', 'her2', 'mbchac')
-  - algorithm: 'mbchac'
+  - algorithm: 'mbchac' # TODO: Why is algorithm here in defaults, and not specified as an 'ordinary' parameter?
   - override hydra/output: custom
   - override hydra/job_logging: default
 

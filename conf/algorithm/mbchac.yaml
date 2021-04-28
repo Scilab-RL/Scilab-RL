@@ -32,7 +32,7 @@ learning_starts: 100
 
 # The learning rates of the models. From highest to lowest layer.
 learning_rates:
-  - 9e-4
+  - 3e-4
   - 3e-4
 
 # Whether to use action replay
