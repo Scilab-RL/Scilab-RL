@@ -445,7 +445,7 @@ class HHerReplayBuffer(ReplayBuffer):
             # perform action replay only where the action was not successful.
             no_success_idxs = np.where(np.isclose(success, 0.0))
             unscaled_action = transitions['next_achieved_goal'].reshape([transitions['next_achieved_goal'].shape[0], transitions['next_achieved_goal'].shape[2]])
-            scaled_action = self.env.unwrapped.envs[0].unwrapped.model.policy.scale_action(unscaled_action)
+            scaled_action = self.env.unwrapped.envs[0].unwrapped.layer_alg.policy.scale_action(unscaled_action)
             transitions['action'][no_success_idxs] = scaled_action[no_success_idxs]
 
         # concatenate observation with (desired) goal

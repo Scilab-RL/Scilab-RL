@@ -64,7 +64,7 @@ class TrainVideoCallback(BaseCallback):
             if self.render_info is not None:
                 self.render_info['eval_count'] = self.eval_count
             info_list = evaluate_hierarchical_policy(
-                self.top_level_model,
+                self.top_level_layer,
                 self.eval_env,
                 self.render_info,
                 n_eval_episodes=self.n_eval_episodes
@@ -81,8 +81,8 @@ class TrainVideoCallback(BaseCallback):
                     self.eval_histories[new_k] = []
                 self.eval_histories[new_k].append(mean)
 
-            if self.top_level_model is not None:
-                self.top_level_model._dump_logs()
+            if self.top_level_layer is not None:
+                self.top_level_layer._dump_logs()
                 print("Log path: {}".format(self.log_path))
                 if self.early_stop_data_column in self.eval_histories.keys():
                     if self.eval_histories[self.early_stop_data_column][-1] >= self.best_early_stop_val:
