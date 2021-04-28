@@ -1,12 +1,37 @@
 defaults:
-  - hydra/output: custom
-  - hydra/job_logging: default
   # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg', 'her2', 'mbchac')
   - algorithm: 'mbchac'
+  - override hydra/output: custom
+  - override hydra/job_logging: default
 
-# The name of the OpenAI Gym environment that you want to train on. E.g. AntFourRoomsEnv-v0
-#env: 'Ant4Rooms-v1'
-env: 'FetchReam-v1'
+
+# The name of the OpenAI Gym environment that you want to train on. Currently supported envs:
+# 'CartPole-v1',
+# 'MountainCarContinuous-v0',
+# 'HandReach-v0',
+
+# 'FetchPush-v1',
+# 'FetchSlide-v1',
+# 'FetchPickAndPlace-v1',
+# 'FetchReach-v1',
+
+# 'HandManipulateBlock-v0',
+# 'Hook-o1-v1',
+# 'ButtonUnlock-o2-v1',
+# 'ButtonUnlock-o1-v1',
+
+# 'AntReacher-v1',
+# 'Ant4Rooms-v1',
+# 'AntMaze-v1',
+# 'AntPush-v1',
+# 'AntFall-v1',
+
+# 'BlockStackMujocoEnv-gripper_random-o0-v1',
+# 'BlockStackMujocoEnv-gripper_random-o2-v1',
+# 'BlockStackMujocoEnv-gripper_above-o1-v1',
+# 'BlockStackMujocoEnv-gripper_none-o1-v1',
+
+env: 'FetchReach-v1'
 seed: 0
 
 # layer classes for the algorithm
