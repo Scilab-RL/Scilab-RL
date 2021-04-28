@@ -6,10 +6,6 @@ defaults:
 
 
 # The name of the OpenAI Gym environment that you want to train on. Currently supported envs:
-# 'CartPole-v1',
-# 'MountainCarContinuous-v0',
-# 'HandReach-v0',
-
 # 'FetchPush-v1',
 # 'FetchSlide-v1',
 # 'FetchPickAndPlace-v1',

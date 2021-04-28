@@ -33,16 +33,8 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
     `pip install -r requirements.txt`
 
-1. generate a file with all possible environment/algorithm combinations with:
+1. Add the mujoco binary path to the  `LD_LIBRARY_PATH` environment variable. If you first run the script without doing this it will automatically remind you and identify the path for you.  
 
-    `./run_testing.sh -g <comma-separated list of gpu_ids in paremtheses, e.g. '(0,1)'> -p <max processes> -m <min. free GPU memory required to star a new process> -s <time to sleep before executing next command> -t <type of testing <function|performance>>`
-
-    The defaults for these parameters are g=0, p=6, m=2500, t='performance', s=15
-
-    The script will create a file `test_cmds.txt` in the base directory with all currently supported environment-algorithm combinations and useful hyperparameters. It will also execute them and perform two checks:
-
-    1. A function check to determine whether a process crashed
-    1. A performance test to determine whether certain predefined success rates are met. These success rates are defined in `experiment/testing_algos.py` (see Section on Testing below.)
 
 ## Start training manually (hydra debugging)
 
@@ -79,7 +71,16 @@ python train.py env=FetchReach-v1 algorithm=her2 layer_classes=['sacvg']
 
 ## Testing
 
-TBD
+1. generate a file with all possible environment/algorithm combinations with:
+
+    `./run_testing.sh -g <comma-separated list of gpu_ids in paremtheses, e.g. '(0,1)'> -p <max processes> -m <min. free GPU memory required to star a new process> -s <time to sleep before executing next command> -t <type of testing <function|performance>>`
+
+    The defaults for these parameters are g=0, p=6, m=2500, t='performance', s=15
+
+    The script will create a file `test_cmds.txt` in the base directory with all currently supported environment-algorithm combinations and useful hyperparameters. It will also execute them and perform two checks:
+
+    1. A function check to determine whether a process crashed
+    1. A performance test to determine whether certain predefined success rates are met. These success rates are defined in `experiment/testing_algos.py` (see Section on Testing below.)
 
 ## Algorithms
 
