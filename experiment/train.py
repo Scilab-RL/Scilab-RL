@@ -103,7 +103,7 @@ def main(cfg: DictConfig) -> None:
 
     while subdir_exists:
         param_dir = get_subdir_by_params(path_dir_params, ctr)
-        run_dir = os.path.join(os.path.split(original_dir)[0], param_dir)
+        run_dir = os.path.join(original_dir, param_dir)
         subdir_exists = os.path.exists(run_dir)
         ctr += 1
     trial_no = ctr - 1
