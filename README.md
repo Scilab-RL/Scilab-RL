@@ -25,6 +25,9 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
     `source venv/bin/activate`
 
+1. upgrade the version of pip
+    `pip install --upgrade pip`
+
 1. set environment variables and paths with
 
     `source ./set_paths.sh`
