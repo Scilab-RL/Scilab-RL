@@ -1,10 +1,6 @@
 # environments used for testing
 class TestingEnvs:
     env_names = [
-        'CartPole-v1',
-        'MountainCarContinuous-v0',
-        'HandReach-v0',
-
         'FetchPush-v1',
         'FetchSlide-v1',
         'FetchPickAndPlace-v1',
