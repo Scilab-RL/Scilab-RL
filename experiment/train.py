@@ -15,7 +15,7 @@ import time
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
 from stable_baselines3.common import logger
-from util.custom_logger import MatplotlibOutputFormat, FixedHumanOutputFormat
+from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat
 from stable_baselines3.common.env_checker import check_env
 from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make_robustGoalConditionedModel
 from util.custom_eval_callback import CustomEvalCallback
@@ -54,7 +54,6 @@ def train(baseline, train_env, eval_env, cfg):
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])
     baseline.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
-
     train_env.close()
     eval_env.close()
     logger.info("Training finished!")
@@ -143,7 +142,7 @@ def main(cfg: DictConfig) -> None:
 
     logger.configure(folder=run_dir, format_strings=['csv', 'tensorboard'])
     plot_cols = cfg['plot_eval_cols']
-    logger.Logger.CURRENT.output_formats.append(MatplotlibOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=plot_cols))
+    logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=plot_cols))
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
 

@@ -213,25 +213,6 @@ class HHerReplayBuffer(ReplayBuffer):
             else:
                 print("ERROR! nag_t != ag_t+1 not good")
 
-        elif self.goal_selection_strategy == GoalSelectionStrategy.FUTURE3: # same as FUTURE2, but we remove the last transition before.
-            # replay with random state which comes from the same episode and was observed after current transition
-            transitions_indices = np.random.randint(
-                transitions_indices[her_indices], self.episode_lengths[her_episode_indices]
-            )
-            goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
-
-            valid_trans_idx_mask = transitions_indices < (self.episode_lengths[her_episode_indices] - 1)
-            valid_trans_idxs = transitions_indices[valid_trans_idx_mask]
-            debug_goals = self.buffer["next_achieved_goal"][her_episode_indices[valid_trans_idx_mask], valid_trans_idxs]
-            ag_goals = self.buffer["achieved_goal"][her_episode_indices[valid_trans_idx_mask], (valid_trans_idxs + 1)]
-            same = np.isclose(ag_goals, debug_goals)
-            same_all = same.all()
-            if same_all:
-                pass
-                # print("Good")
-            else:
-                assert False, "ERROR! nag_t != ag_t+1 not good"
-
         elif self.goal_selection_strategy == GoalSelectionStrategy.EPISODE:
             # replay with random state which comes from the same episode as current transition
             transitions_indices = np.random.randint(self.episode_lengths[her_episode_indices])
@@ -274,28 +255,10 @@ class HHerReplayBuffer(ReplayBuffer):
             transitions_indices[sample_final_idxs] = replace_trans_idxs
             goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
 
-        elif self.goal_selection_strategy == GoalSelectionStrategy.RNDEND3: # Here we have selected only transitions before the last one, but select the achieved_goal.
-            # replay with random state which comes from the same episode and was observed after current transition
-            # This distribution is such that if the length of an episode is max, then we have a uniform distribution, but the shorter it gets the more we sample from the last sample.
-
-            # First sample future transition indices just like in future.
-            transitions_indices = np.random.randint(
-                transitions_indices[her_indices], self.episode_lengths[her_episode_indices]
-            )
-
-            # Then determine the episodes where to sample from the end.
-            n_final_sample_prob = (self.max_episode_length - self.episode_lengths[her_episode_indices]) / self.max_episode_length
-            rnd_sample = np.random.random_sample(n_final_sample_prob.shape)
-            sample_final_idxs = np.where(rnd_sample < n_final_sample_prob)
-            replace_trans_idxs = self.episode_lengths[her_episode_indices][sample_final_idxs] - 1
-            # Finally update those transition indices where to sample from the end.
-            transitions_indices[sample_final_idxs] = replace_trans_idxs
-            goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
         else:
             raise ValueError(f"Strategy {self.goal_selection_strategy} for sampling goals not supported!")
 
         return goals
-
 
     def _sample_transitions(self,
         batch_size: Optional[int],
