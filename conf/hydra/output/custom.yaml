@@ -1,7 +1,0 @@
-hydra:
-  run:
-    # add git commit hash
-    dir: ${base_logdir}/${git_label:}/${algorithm.name}_${env}_${now:%H-%M-%S}
-  sweep:
-    dir: ${base_logdir}/${git_label:}/${algorithm.name}_${env}_${now:%H-%M-%S}
-    subdir: ${hydra.job.num}

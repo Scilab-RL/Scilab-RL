@@ -33,18 +33,18 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
     `pip install -r requirements.txt`
 
-1. Add the mujoco binary path to the  `LD_LIBRARY_PATH` environment variable. If you first run the script without doing this it will automatically remind you and identify the path for you.  
+1. Add the mujoco binary path to the  `LD_LIBRARY_PATH` environment variable. If you first run the script without doing this it will automatically remind you and identify the path for you.
 
 
 ## Start training manually (hydra debugging)
 
 ```bash
-python3 train.py env=FetchReach-v1 algorithm=mbchac algorithm.render_test=record algorithm.time_scales=[5,-1]
-python train.py env=FetchReach-v1 algorithm=mbchac layer_classes=['sac','ddpg']
+python3 experiment/train.py env=FetchReach-v1 algorithm=mbchac algorithm.render_test=record algorithm.time_scales=[5,-1]
+python experiment/train.py env=FetchReach-v1 algorithm=mbchac layer_classes=['sac','ddpg']
 ```
 
 ```bash
-python train.py env=FetchReach-v1 algorithm=her2 layer_classes=['sacvg']
+python experiment/train.py env=FetchReach-v1 algorithm=her2 layer_classes=['sacvg']
 # also works with ddpg
 ```
 

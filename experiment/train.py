@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path.append(os.getcwd())
 import importlib
 import hydra
 from omegaconf import DictConfig, OmegaConf, open_dict
@@ -10,7 +12,6 @@ import gym
 from util.util import get_subdir_by_params,get_git_label,set_global_seeds,log_dict,get_last_epoch_from_logdir
 # import logger
 import time
-import sys
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
 from stable_baselines3.common import logger
@@ -87,9 +88,9 @@ def launch(cfg, kwargs):
 
 
 # make git_label available in hydra
-OmegaConf.register_resolver("git_label", lambda: get_git_label())
+OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 
-@hydra.main(config_name="main", config_path="conf")
+@hydra.main(config_name="main", config_path="../conf")
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
     original_dir = os.getcwd()
