@@ -1,14 +1,27 @@
-import getpass
-import json
+# import sys,os
+# sys.path.append(os.getcwd())
+# import os
+# curr_dir = os.getcwd()
+# print(curr_dir)
+# import sys
+# print(sys.path)
+# help("modules")
+# os.chdir(curr_dir)
+#
+import ideas_baselines
+
+# print(dir(experiment))
 from experiment.testing_envs import TestingEnvs
 from experiment.testing_algos import TestingAlgos
+import getpass
+import json
 import sys
 """
 This script is used for testing backwards compatibility after adding a new feature.
 If you want to merge your development branch with the overall devel branch, please proceed as described in README.md file
 For each algorithm, please add a few testing environments to the respective get_<alg_name>_params() function and specify the following five values in the performance_params dictionary for one specific hyperparameterization:
 n_runs: number of runs to train
-epochs: numer of epochs to train per run
+epochs: number of epochs to train per run
 performance_measure: the data column in that measures the performance. This is usually test/success_rate, but you can also select other data columns.
 min_performance_value: the value to achieve on the data column for the run to be considered successful.
 min_success_runs: The minimal number of runs to be successful.
