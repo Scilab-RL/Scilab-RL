@@ -2,20 +2,11 @@
 
 import os
 import numpy as np
-from gym import spaces
 from ideas_envs.ant.ant_env import AntEnv
 from ideas_envs.ant.xml_creator import create_xml
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'ant_maze_push_fall.xml')
 MAX_GOAL_DIST = 5.0
-
-
-def get_reward_fn(task):
-    if task in ['Maze', 'Push']:
-        return lambda obs, goal: -np.sum(np.square(obs[:2] - goal[:2])) ** 0.5  # z does not matter
-    if task == 'Fall':
-        return lambda obs, goal: -np.sum(np.square(obs[:3] - goal)) ** 0.5
-    assert False, 'Unknown env'
 
 
 def get_subgoal_bounds(task):
@@ -28,16 +19,11 @@ def get_subgoal_bounds(task):
     assert False, 'Unknown env'
 
 
-def success_fn(last_reward):
-    return last_reward > -MAX_GOAL_DIST
-
-
 class AntMazePushFallEnv(AntEnv):
     def __init__(self, reward_type='sparse', distance_threshold=0.4, task='Maze'):
         xml_path = create_xml(MODEL_XML_PATH, maze_id=task)
         self.task = task
         self.evaluate = False
-        self.reward_fn = get_reward_fn(task)
         self.subgoal_bound = get_subgoal_bounds(task)
 
         super().__init__(xml_path, reward_type, distance_threshold)
@@ -88,13 +74,6 @@ class AntMazePushFallEnv(AntEnv):
         if self.task == 'Fall':
             return np.array([0., 27., 4.5])
         assert False, 'Unknown env'
-
-    def compute_reward(self, achieved_goal, desired_goal, info):
-        reward = self.reward_fn(achieved_goal, desired_goal)
-        self.success = success_fn(reward)
-        if self.reward_type == 'sparse':
-            reward = -1 + int(self.success)
-        return reward
 
     def _render_callback(self):
         site_id = self.sim.model.site_name2id("goal")
