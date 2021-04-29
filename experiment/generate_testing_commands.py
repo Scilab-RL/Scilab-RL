@@ -1,8 +1,10 @@
+import os
+import sys
+sys.path.append(os.getcwd())
 import getpass
 import json
 from experiment.testing_envs import TestingEnvs
 from experiment.testing_algos import TestingAlgos
-import sys
 """
 This script is used for testing backwards compatibility after adding a new feature.
 If you want to merge your development branch with the overall devel branch, please proceed as described in README.md file
