@@ -6,11 +6,13 @@ MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'asset
 
 
 class AntButtonUnlockEnv(AntEnv):
-    def __init__(self, reward_type='sparse', distance_threshold=0.05, n_buttons=1):
+    def __init__(self, reward_type='sparse', distance_threshold=0.06, n_buttons=1):
         self.n_buttons = n_buttons
         self.locked = np.ones(n_buttons - 1)
         self.sample_dist_threshold = 0.3
         self.range = 0.55
+        self.goal = np.zeros(3)
+        self.reset_since_last_goal_sampled = False
         super().__init__(MODEL_XML_PATH, reward_type, distance_threshold)
 
     def _get_obs(self):
@@ -36,8 +38,8 @@ class AntButtonUnlockEnv(AntEnv):
 
         obs = np.concatenate([ant_obs, buttons_pos, self.locked])
 
-        achieved_goal = ant_obs[:2]
-        desired_goal = buttons_pos[:2]
+        achieved_goal = obs[:3]
+        desired_goal = self.goal
 
         return {
             'observation': obs.copy(),
@@ -89,12 +91,17 @@ class AntButtonUnlockEnv(AntEnv):
         self.sim.data.set_joint_qpos('cage:joint', goal_pos)
 
         self.sim.forward()
+        self.reset_since_last_goal_sampled = True
         return True
 
     def _sample_goal(self):
+        if not self.reset_since_last_goal_sampled:
+            self._reset_sim()
+        self.reset_since_last_goal_sampled = False
         obs = self._get_obs()
         if obs is not None:
-            goal = obs['observation'].copy()[3:5]
+            goal = obs['observation'].copy()[3:6]
+            goal[2] = 0.075  # desired z position of ant torso
         return goal
 
     def _render_callback(self):
