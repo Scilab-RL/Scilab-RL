@@ -16,10 +16,11 @@ hydra:
       n_ei_candidates: 24
       multivariate: false
       warn_independent_sampling: true
-    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+#    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+    _target_: util.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
     direction: maximize
     study_name: simple_mnist
-    storage: sqlite:///simple_mnist_hyperopt.db
+    storage: sqlite:///simple_mnist.db
 #    storage: null
 #    storage: mysql://hyperopt_user@localhost/ideas_hrl_hyperopt_database
     n_trials: 1
@@ -36,6 +37,16 @@ hydra:
         low: 8
         high: 256
         step: 8
+#      model.conv1.n_kernels:
+#        type: int
+#        low: 2
+#        high: 12
+#        step: 1
+#      model.conv2.n_kernels:
+#        type: int
+#        low: 2
+#        high: 12
+#        step: 1
 
 model:
   conv1:
@@ -52,11 +63,14 @@ optimizer:
   momentum: 0.9
 
 train:
-  batch_size: 16
-  epoch: 2
+  batch_size: 4
+  epoch: 3
 
 test:
-  batch_size: 16
+  batch_size: 4
 
-mlflow:
-  runname: "testrun"
+hyperopt:
+  parallel_runs: 1
+
+#mlflow:
+#  runname: "testrun"

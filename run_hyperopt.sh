@@ -6,8 +6,10 @@ gpu_ids=(0)
 min_mem_free=2500
 max_active_procs=16
 sleep_time=15
-opt_duration=15
-while getopts ":hd:p:m:g:s:" arg; do
+opt_duration=0
+opt_duration_seconds=$(( opt_duration * 60 ))
+n_runs=1
+while getopts ":hd:p:m:g:s:r:" arg; do
   case $arg in
     p) # Specify max. number of processes.
       echo "p is ${OPTARG}"
@@ -20,8 +22,6 @@ while getopts ":hd:p:m:g:s:" arg; do
     g) # Specify a comma-sparated list of GPU ids to include in the testing, e.g. '0,1', or simply '0' to use GPU 0.
       echo "g is ${OPTARG}"
       IFS=', ' read -r -a gpu_ids <<< "${OPTARG}"
-#
-#      gpu_ids=',' read -r -a array <<< "${OPTARG}"
       ;;
     s) # Specify time to sleep in seconds after each command. This is important to wait for the previous command to create directories and allocate memory before the next process is started.
       echo "s is ${OPTARG}"
@@ -32,8 +32,8 @@ while getopts ":hd:p:m:g:s:" arg; do
       opt_duration=${OPTARG}
       opt_duration_seconds=$(( $opt_duration * 60 ))
       ;;
-    n) # Specify the number of parallel runs for the same experiment. Note that the free resources must be sufficient for all parallel runs.
-      echo "n is ${OPTARG}"
+    r) # Specify the number of parallel runs for the same experiment. Note that the free resources must be sufficient for all parallel runs.
+      echo "r is ${OPTARG}"
       n_runs=${OPTARG}
       ;;
     h | *) # Display help.
@@ -42,6 +42,12 @@ while getopts ":hd:p:m:g:s:" arg; do
       ;;
   esac
 done
+
+if [[ $opt_duration_seconds -eq 0 ]]; then
+  echo "Error, duration (d) must be specified and > 0"
+  exit
+fi
+
 
 echo "Starting hyperopt for $opt_duration minutes"
 echo "Max. number of parallel processes is $max_active_procs"
@@ -57,7 +63,8 @@ logs_dir="hyperopt_logs"
 rm -rf ${logs_dir}
 mkdir ${logs_dir}
 
-cmd="python3 experiment/hyperopt.py --multirun --n_runs ${n_runs}"
+#cmd="python3 experiment/hyperopt.py --multirun --n_runs ${n_runs} --exp_name ${exp_name}"
+cmd="python3 experiment/hyperopt.py --run"
 cmd_ctr=0
 while [ "$SECONDS" -lt "$opt_duration_seconds" ]; do
   cmd_ctr=$(($cmd_ctr+1))

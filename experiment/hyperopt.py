@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 import hydra
 import mlflow
 from omegaconf import DictConfig, ListConfig
+import omegaconf
 from torchvision.datasets import MNIST
 from torchvision import transforms, utils
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -34,12 +35,15 @@ from optuna.visualization import plot_parallel_coordinate
 from optuna.visualization import plot_param_importances
 from optuna.visualization import plot_slice
 from matplotlib.backends.backend_pdf import PdfPages
+import random
 
 
-# PROCS_RUNNING = 0
+
 # MINUTES_TO_RUN = 0.5
 # HOURS_TO_RUN = MINUTES_TO_RUN / 60
+PROCS_RUNNING = 0
 RUNS_PER_PARAM = 3
+MLFLOW_RUNNAME = 'mlflow_run'
 
 
 def log_params_from_omegaconf_dict(params):
@@ -106,9 +110,16 @@ def check_resources_free(free_ram=1000, free_gpu_ram=2000, free_cpus=2):
 
     return cpus_free and gpu_free and ram_free
 
+def set_rnd_seed():
+    rnd_seed = random.randint(0, 100000000)
+    np.random.seed(rnd_seed)
+    random.seed(rnd_seed)
+    torch.manual_seed(rnd_seed)
+    return rnd_seed
+
 
 def do_train(cfg: DictConfig, queue=None) -> float:
-    np.random.seed()
+    seed = set_rnd_seed()
     data_path = hydra.utils.get_original_cwd()
     dataset = MNIST(data_path, download=True, transform=transforms.ToTensor())
     train, val = random_split(dataset, [55000, 5000])
@@ -126,10 +137,11 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
-    mlflow.set_experiment(cfg.mlflow.runname)
+    mlflow.set_experiment(MLFLOW_RUNNAME)
     steps = 0
     test_acc = 0
     with mlflow.start_run():
+        mlflow.log_param("rnd_seed", seed)
         for epoch in range(cfg.train.epoch):
             running_loss = 0.0
 
@@ -170,14 +182,15 @@ def do_train(cfg: DictConfig, queue=None) -> float:
                 mlflow.log_metric("test_acc", float(test_acc), step=steps)
                 mlflow.log_metric("test_loss", float(test_loss), step=steps)
                 print(f"Test accuracy of epoch {epoch}: {test_acc}")
+                mlflow.log_metric("hyperopt_score", float(test_acc), step=steps)
 
     if queue is not None:
         queue.put(test_acc)
     return test_acc
 
 
-def check_cfg_duplicate(cfg, metric='', max_duplicates=1):
-    experiment = mlflow.get_experiment_by_name(cfg.mlflow.runname)
+def check_cfg_duplicate(cfg, metric='', max_duplicates=1, params_to_exclude=['rnd_seed']):
+    experiment = mlflow.get_experiment_by_name(MLFLOW_RUNNAME)
     try:
         runs = mlflow.list_run_infos(experiment.experiment_id)
     except:
@@ -191,7 +204,7 @@ def check_cfg_duplicate(cfg, metric='', max_duplicates=1):
         for k,v in r_info.data.params.items():
             k_items = k.split(".")[1:]
             cfg_item = cfg
-            invalid_param = False
+            invalid_param = k in params_to_exclude
             for k_item in k_items:
                 if k_item in cfg_item.keys():
                     cfg_item = cfg_item[k_item]
@@ -256,13 +269,14 @@ def proc_finished_cb(result=None):
 
 @hydra.main(config_name='config.yaml')
 def main(cfg: DictConfig, *args) -> float:
-    global RUNS_PER_PARAM, PROCS_RUNNING
+    global RUNS_PER_PARAM, PROCS_RUNNING, MLFLOW_RUNNAME
+    # cfg.mlflow.runname = MLFLOW_RUNNAME
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
-    mlflow.set_experiment(cfg.mlflow.runname)
+    mlflow.set_experiment(MLFLOW_RUNNAME)
     # time.sleep(1)
-    is_duplicate, duplicate_score = check_cfg_duplicate(cfg, metric='hyperopt_score', max_duplicates=RUNS_PER_PARAM)
+    is_duplicate, duplicate_score = check_cfg_duplicate(cfg, metric='hyperopt_score', max_duplicates=2*RUNS_PER_PARAM)
     if is_duplicate:
         print("This parameterization has been tried before, will just return the results from last time.")
         return duplicate_score
@@ -280,22 +294,22 @@ def main(cfg: DictConfig, *args) -> float:
     # result = 0
 
     ### Parallel runs with multiprocess.
-    value_queue = mp.Queue()
-    processes = [Process(target=func_to_train, args=(cfg,value_queue)) for x in range(RUNS_PER_PARAM)]
-    for p in processes:
-        p.start()
-
-    result = 0
-    for p in processes:
-        p.join()
-    while not value_queue.empty():
-        result += value_queue.get()
-    result /= RUNS_PER_PARAM
-    proc_finished_cb()
+    # value_queue = mp.Queue()
+    # processes = [Process(target=func_to_train, args=(cfg,value_queue)) for x in range(RUNS_PER_PARAM)]
+    # for p in processes:
+    #     p.start()
+    #
+    # result = 0
+    # for p in processes:
+    #     p.join()
+    # while not value_queue.empty():
+    #     result += value_queue.get()
+    # result /= RUNS_PER_PARAM
+    # proc_finished_cb()
 
     ### SINGLE RUN:
-    # result = func_to_train(cfg)
-    # proc_finished_cb()
+    result = func_to_train(cfg)
+    proc_finished_cb()
 
     ### AVG over consecutive runs:
     # result = 0
@@ -308,17 +322,25 @@ def main(cfg: DictConfig, *args) -> float:
     return result
 
 if __name__ == "__main__":
-    n_runs = 3
+    # print(f"Running hyperopt and using torch device {torch.cuda.current_device()}.")
+    cfg = omegaconf.OmegaConf.load('experiment/config.yaml')
+    study_name = cfg.hydra.sweeper.study_name
+    MLFLOW_RUNNAME = study_name
+    n_runs = cfg.hyperopt.parallel_runs
     RUNS_PER_PARAM = n_runs
+
     main()
-    study = optuna.load_study("simple_mnist", "sqlite:///simple_mnist_hyperopt.db")
+    study = optuna.load_study(study_name, f"sqlite:///{cfg.hydra.sweeper.storage}.db")
+    imgdir = f"hyperopt_logs/{study_name}"
     if not os.path.exists("hyperopt_logs"):
         os.mkdir("hyperopt_logs")
+    if not os.path.exists(imgdir):
+        os.mkdir(imgdir)
     fig = plot_optimization_history(study)
-    fig.write_image("hyperopt_logs/plot_optimization_history.png")
+    fig.write_image(f"{imgdir}/plot_optimization_history.png")
     fig = plot_contour(study)
-    fig.write_image("hyperopt_logs/plot_contour.png")
+    fig.write_image(f"{imgdir}//plot_contour.png")
     fig = plot_param_importances(study)
-    fig.write_image("hyperopt_logs/plot_param_importances.png")
+    fig.write_image(f"{imgdir}//plot_param_importances.png")
     fig = plot_intermediate_values(study)
-    fig.write_image("hyperopt_logs/plot_intermediate_values.png")
+    fig.write_image(f"{imgdir}//plot_intermediate_values.png")
