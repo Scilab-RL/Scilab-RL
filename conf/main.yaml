@@ -9,9 +9,9 @@ defaults:
 hydra:
   run:
     # add git commit hash
-    dir: ${base_logdir}/${git_label:}/${env}
+    dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S}
   sweep:
-    dir: ${base_logdir}/${git_label:}/${env}
+    dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S}
     subdir: ${hydra.job.num}
 
 # The name of the OpenAI Gym environment that you want to train on. Currently supported envs:
