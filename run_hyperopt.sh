@@ -27,10 +27,14 @@ while getopts ":hd:p:m:g:s:" arg; do
       echo "s is ${OPTARG}"
       sleep_time=${OPTARG}
       ;;
-    d) # Specify the duration in minutes wall time for how long you want to optimize.
+    d) # Specify the duration in minutes wall time for how long you want to optimize. After the specified duration, no more new processes will be started, but the still running processes will be finished.
       echo "d is ${OPTARG}"
       opt_duration=${OPTARG}
       opt_duration_seconds=$(( $opt_duration * 60 ))
+      ;;
+    n) # Specify the number of parallel runs for the same experiment. Note that the free resources must be sufficient for all parallel runs.
+      echo "n is ${OPTARG}"
+      n_runs=${OPTARG}
       ;;
     h | *) # Display help.
       usage
@@ -53,7 +57,7 @@ logs_dir="hyperopt_logs"
 rm -rf ${logs_dir}
 mkdir ${logs_dir}
 
-cmd="python3 experiment/hyperopt.py --multirun"
+cmd="python3 experiment/hyperopt.py --multirun --n_runs ${n_runs}"
 cmd_ctr=0
 while [ "$SECONDS" -lt "$opt_duration_seconds" ]; do
   cmd_ctr=$(($cmd_ctr+1))

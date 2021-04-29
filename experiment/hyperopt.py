@@ -36,10 +36,10 @@ from optuna.visualization import plot_slice
 from matplotlib.backends.backend_pdf import PdfPages
 
 
-PROCS_RUNNING = 0
-MINUTES_TO_RUN = 0.5
-HOURS_TO_RUN = MINUTES_TO_RUN / 60
-MAX_RUNS_PER_PARAM = 3
+# PROCS_RUNNING = 0
+# MINUTES_TO_RUN = 0.5
+# HOURS_TO_RUN = MINUTES_TO_RUN / 60
+RUNS_PER_PARAM = 3
 
 
 def log_params_from_omegaconf_dict(params):
@@ -105,6 +105,7 @@ def check_resources_free(free_ram=1000, free_gpu_ram=2000, free_cpus=2):
     ram_free = True
 
     return cpus_free and gpu_free and ram_free
+
 
 def do_train(cfg: DictConfig, queue=None) -> float:
     np.random.seed()
@@ -173,6 +174,7 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     if queue is not None:
         queue.put(test_acc)
     return test_acc
+
 
 def check_cfg_duplicate(cfg, metric='', max_duplicates=1):
     experiment = mlflow.get_experiment_by_name(cfg.mlflow.runname)
@@ -245,95 +247,71 @@ def my_func(cfg: DictConfig, queue=None) -> float:
         queue.put(t_sleep)
     return t_sleep
 
+
 def proc_finished_cb(result=None):
-    global PROCS_RUNNING, MAX_RUNS_PER_PARAM
-    print(f"Proc done with result {result}")
-    PROCS_RUNNING -= MAX_RUNS_PER_PARAM
+    global PROCS_RUNNING, RUNS_PER_PARAM
+    # print(f"Proc done with result {result}")
+    PROCS_RUNNING -= RUNS_PER_PARAM
+
 
 @hydra.main(config_name='config.yaml')
 def main(cfg: DictConfig, *args) -> float:
-    global MAX_RUNS_PER_PARAM, PROCS_RUNNING
+    global RUNS_PER_PARAM, PROCS_RUNNING
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
     mlflow.set_experiment(cfg.mlflow.runname)
     # time.sleep(1)
-    is_duplicate, duplicate_score = check_cfg_duplicate(cfg, metric='hyperopt_score', max_duplicates=MAX_RUNS_PER_PARAM)
+    is_duplicate, duplicate_score = check_cfg_duplicate(cfg, metric='hyperopt_score', max_duplicates=RUNS_PER_PARAM)
     if is_duplicate:
         print("This parameterization has been tried before, will just return the results from last time.")
         return duplicate_score
 
-    PROCS_RUNNING += MAX_RUNS_PER_PARAM
+    PROCS_RUNNING += RUNS_PER_PARAM
 
     func_to_train = do_train
 
     ### Parallel runs with pool, sync and async version. # NOT WORKING
-    # inner_pool = mp.Pool(processes=MAX_RUNS_PER_PARAM)
-    # for _ in range(MAX_RUNS_PER_PARAM):
+    # inner_pool = mp.Pool(processes=RUNS_PER_PARAM)
+    # for _ in range(RUNS_PER_PARAM):
     #     inner_pool.map(func_to_train, cfg) # sync execution
     #     inner_pool.apply_async(func_to_train, cfg, callback=proc_finished_cb) # or async execution
     # # print(res)
     # result = 0
 
     ### Parallel runs with multiprocess.
-    # value_queue = mp.Queue()
-    # processes = [Process(target=func_to_train, args=(cfg,value_queue)) for x in range(MAX_RUNS_PER_PARAM)]
-    # for p in processes:
-    #     p.start()
-    #
-    # result = 0
-    # for p in processes:
-    #     p.join()
-    # while not value_queue.empty():
-    #     result += value_queue.get()
-    # result /= MAX_RUNS_PER_PARAM
-    # proc_finished_cb()
+    value_queue = mp.Queue()
+    processes = [Process(target=func_to_train, args=(cfg,value_queue)) for x in range(RUNS_PER_PARAM)]
+    for p in processes:
+        p.start()
+
+    result = 0
+    for p in processes:
+        p.join()
+    while not value_queue.empty():
+        result += value_queue.get()
+    result /= RUNS_PER_PARAM
+    proc_finished_cb()
 
     ### SINGLE RUN:
-    result = func_to_train(cfg)
-    proc_finished_cb()
+    # result = func_to_train(cfg)
+    # proc_finished_cb()
 
     ### AVG over consecutive runs:
     # result = 0
-    # for _ in range(MAX_RUNS_PER_PARAM):
+    # for _ in range(RUNS_PER_PARAM):
     #     res = func_to_train(cfg)
     #     result += res
-    # result /= MAX_RUNS_PER_PARAM
+    # result /= RUNS_PER_PARAM
     # proc_finished_cb()
 
     return result
 
 if __name__ == "__main__":
-    # score = main()
-    # n_cpus = psutil.cpu_count(logical=True) - 1
-    #
-    # # n_outer_pool_procs = n_cpus // MAX_RUNS_PER_PARAM
-    # n_outer_pool_procs = 1
-    # outer_pool = mp.Pool(n_outer_pool_procs)
-    #
+    n_runs = 3
+    RUNS_PER_PARAM = n_runs
     main()
-
-    # sec_to_run = HOURS_TO_RUN * 60 * 60
-    # start_time = time.time()
-    # while True:
-    #     runtime = time.time() - start_time
-    #     runtime_hours = runtime / 3600
-    #     if runtime >= sec_to_run:
-    #         break
-    #     # while True:
-    #     #     res_free = check_resources_free(free_cpus=MAX_RUNS_PER_PARAM + 1)
-    #     #     if res_free:
-    #     #         break
-    #     #     else:
-    #     #         print("Waiting for free resources")
-    #     # time.sleep(5)
-    #     print(f"Starting next processes. Running for {runtime_hours:.2f} of {HOURS_TO_RUN:.2f} hours now.")
-    #     # outer_pool.apply_async(main, callback=proc_finished_cb)
-    #     # outer_pool.apply(main, range(n_outer_pool_procs))
-    #     main()
-
     study = optuna.load_study("simple_mnist", "sqlite:///simple_mnist_hyperopt.db")
-    # with PdfPages('hyperopt_pdf.pdf') as pdf:
     if not os.path.exists("hyperopt_logs"):
         os.mkdir("hyperopt_logs")
     fig = plot_optimization_history(study)
