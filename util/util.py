@@ -7,6 +7,10 @@ from scipy.interpolate import interp1d
 from stable_baselines3.common import logger
 from omegaconf.listconfig import ListConfig
 
+import sys
+import inspect
+
+
 def check_all_dict_values_equal(this_dict, until_idx=None):
     all_equal = True
     last_vals = None
@@ -180,6 +184,41 @@ def set_global_seeds(i):
     random.seed(myseed)
 
 
+
+
+def get_full_size(obj, seen=None):
+    """Recursively finds size of objects in bytes"""
+    size = sys.getsizeof(obj)
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+    # Important mark as seen *before* entering recursion to gracefully handle
+    # self-referential objects
+    seen.add(obj_id)
+    if hasattr(obj, '__dict__'):
+        for cls in obj.__class__.__mro__:
+            if '__dict__' in cls.__dict__:
+                d = cls.__dict__['__dict__']
+                if inspect.isgetsetdescriptor(d) or inspect.ismemberdescriptor(d):
+                    size += get_full_size(obj.__dict__, seen)
+                break
+    if isinstance(obj, dict):
+        size += sum((get_full_size(v, seen) for v in obj.values()))
+        size += sum((get_full_size(k, seen) for k in obj.keys()))
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+        for i in obj:
+            try:
+                size += get_full_size(i, seen)
+            except Exception as e:
+                print(f" could not determine size of {str(i)} because {e}")
+        # size += sum((get_full_size(i, seen) for i in obj))
+
+    if hasattr(obj, '__slots__'):  # can have __slots__ with __dict__
+        size += sum(get_full_size(getattr(obj, s), seen) for s in obj.__slots__ if hasattr(obj, s))
+
+    return size
 # def import_function(spec):
 #     """Import a function identified by a string like "pkg.module:fn_name".
 #     """

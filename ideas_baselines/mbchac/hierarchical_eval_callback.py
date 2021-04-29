@@ -107,10 +107,11 @@ class HierarchicalEvalCallback(EvalCallback):
                 if self.early_stop_data_column in self.eval_histories.keys():
                     if self.eval_histories[self.early_stop_data_column][-1] >= self.best_early_stop_val:
                         self.best_early_stop_val = self.eval_histories[self.early_stop_data_column][-1]
-                        if self.verbose > 0:
-                            print("New best mean {}: {:.5f}!".format(self.early_stop_data_column, self.best_early_stop_val))
                         if self.log_path is not None:
-                            self.model.save(os.path.join(self.log_path, "best_model"))
+                            self.top_level_layer.save(os.path.join(self.log_path, "best_model"))
+                            print("New best mean {}: {:.5f}!".format(self.early_stop_data_column,
+                                                                     self.best_early_stop_val))
+                            print(f"Saving new best model at {self.log_path}/best_model")
 
                     if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                         mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
