@@ -1,5 +1,3 @@
-# @package _group_
-
 name: 'mbchac'
 exp_path_params:
   - 'time_scales'

@@ -1,9 +1,18 @@
 defaults:
   # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg', 'her2', 'mbchac')
-  - algorithm: 'mbchac' # TODO: Why is algorithm here in defaults, and not specified as an 'ordinary' parameter?
-  - override hydra/output: custom
+  # here we use hydras config group defaults
+  - algorithm: 'mbchac'
   - override hydra/job_logging: default
 
+# TODO: Currently, having a subfolder conf/hydra/output is buggy
+# override default dirname config
+hydra:
+  run:
+    # add git commit hash
+    dir: ${base_logdir}/${git_label:}/${algorithm.name}_${env}_${now:%H-%M-%S}
+  sweep:
+    dir: ${base_logdir}/${git_label:}/${algorithm.name}_${env}_${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
 
 # The name of the OpenAI Gym environment that you want to train on. Currently supported envs:
 # 'FetchPush-v1',

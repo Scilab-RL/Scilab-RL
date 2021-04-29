@@ -53,7 +53,7 @@ def main(args):
         'plot_at_most_every_secs': 120
     }
     write_params_json ()
-    base_cmd = "python3 train.py"
+    base_cmd = "python3 experiment/train.py"
     get_params_functions = {}
     for alg in TestingAlgos.algo_names:
         get_params_functions[alg] = eval("TestingAlgos.get_{}_performance_params".format(alg))

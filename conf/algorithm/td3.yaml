@@ -1,5 +1,3 @@
-# @package _group_
-
 name: 'td3'
 
 exp_path_params:

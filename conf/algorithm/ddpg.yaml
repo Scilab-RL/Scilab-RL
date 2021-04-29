@@ -1,5 +1,3 @@
-# @package _group_
-
 name: 'ddpg'
 
 exp_path_params:
