@@ -18,15 +18,18 @@ class CustomOptunaSweeper(Sweeper):
         direction: Any,
         storage: Optional[str],
         study_name: Optional[str],
-        n_trials: int,
+        max_trials: int,
         n_jobs: int,
         max_duration_minutes: int,
+#        max_repeats_prune: int,
+        min_trials_per_param: int,
+        max_trials_per_param: int,
         search_space: Optional[DictConfig],
     ) -> None:
         from ._impl import CustomOptunaSweeperImpl
 
         self.sweeper = CustomOptunaSweeperImpl(
-            sampler, direction, storage, study_name, n_trials, n_jobs, max_duration_minutes, search_space
+            sampler, direction, storage, study_name, max_trials, n_jobs, max_duration_minutes, min_trials_per_param, max_trials_per_param, search_space
         )
 
     def setup(

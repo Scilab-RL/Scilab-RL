@@ -24,7 +24,6 @@ from multiprocessing import Process, Queue
 import multiprocessing as mp
 import psutil
 import numpy as np
-from util.hyper_param_utils import ParamRepeatPruner
 import optuna
 from mlflow.tracking import MlflowClient
 from optuna.visualization import plot_contour
@@ -109,6 +108,7 @@ def check_resources_free(free_ram=1000, free_gpu_ram=2000, free_cpus=2):
     ram_free = True
 
     return cpus_free and gpu_free and ram_free
+
 
 def set_rnd_seed():
     rnd_seed = random.randint(0, 100000000)
@@ -239,6 +239,7 @@ def check_cfg_duplicate(cfg, metric='', max_duplicates=1, params_to_exclude=['rn
     else:
         return is_duplicate
 
+
 def my_func(cfg: DictConfig, queue=None) -> float:
     np.random.seed()
     print(f"current proc: {mp.current_process()}")
@@ -285,10 +286,10 @@ def main(cfg: DictConfig, *args) -> float:
     print("Current tracking uri: {}".format(tracking_uri))
     mlflow.set_experiment(MLFLOW_RUNNAME)
     # time.sleep(1)
-    is_duplicate, duplicate_score = check_cfg_duplicate(cfg, metric='hyperopt_score', max_duplicates=2*RUNS_PER_PARAM)
-    if is_duplicate:
-        print("This parameterization has been tried before, will just return the results from last time.")
-        return duplicate_score
+    # is_duplicate, duplicate_score = check_cfg_duplicate(cfg, metric='hyperopt_score', max_duplicates=2*RUNS_PER_PARAM)
+    # if is_duplicate:
+    #     print("This parameterization has been tried before, will just return the results from last time.")
+    #     return duplicate_score
 
     PROCS_RUNNING += RUNS_PER_PARAM
 
@@ -339,17 +340,30 @@ if __name__ == "__main__":
     RUNS_PER_PARAM = n_runs
 
     main()
-    study = optuna.load_study(study_name, f"sqlite:///{cfg.hydra.sweeper.storage}.db")
+    study = optuna.load_study(study_name, cfg.hydra.sweeper.storage)
     imgdir = f"hyperopt_logs/{study_name}"
     if not os.path.exists("hyperopt_logs"):
         os.mkdir("hyperopt_logs")
     if not os.path.exists(imgdir):
         os.mkdir(imgdir)
-    fig = plot_optimization_history(study)
-    fig.write_image(f"{imgdir}/plot_optimization_history.png")
-    fig = plot_contour(study)
-    fig.write_image(f"{imgdir}//plot_contour.png")
-    fig = plot_param_importances(study)
-    fig.write_image(f"{imgdir}//plot_param_importances.png")
-    fig = plot_intermediate_values(study)
-    fig.write_image(f"{imgdir}//plot_intermediate_values.png")
+
+    try:
+        fig = plot_optimization_history(study)
+        fig.write_image(f"{imgdir}/plot_optimization_history.png")
+    except:
+        pass
+    try:
+        fig = plot_contour(study)
+        fig.write_image(f"{imgdir}//plot_contour.png")
+    except:
+        pass
+    try:
+        fig = plot_param_importances(study)
+        fig.write_image(f"{imgdir}//plot_param_importances.png")
+    except:
+        pass
+    try:
+        fig = plot_intermediate_values(study)
+        fig.write_image(f"{imgdir}//plot_intermediate_values.png")
+    except:
+        pass
