@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 from .config import SamplerConfig
 
 
-class OptunaSweeper(Sweeper):
+class CustomOptunaSweeper(Sweeper):
     """Class to interface with Optuna"""
 
     def __init__(
@@ -20,12 +20,13 @@ class OptunaSweeper(Sweeper):
         study_name: Optional[str],
         n_trials: int,
         n_jobs: int,
+        max_duration_minutes: int,
         search_space: Optional[DictConfig],
     ) -> None:
-        from ._impl import OptunaSweeperImpl
+        from ._impl import CustomOptunaSweeperImpl
 
-        self.sweeper = OptunaSweeperImpl(
-            sampler, direction, storage, study_name, n_trials, n_jobs, search_space
+        self.sweeper = CustomOptunaSweeperImpl(
+            sampler, direction, storage, study_name, n_trials, n_jobs, max_duration_minutes, search_space
         )
 
     def setup(
