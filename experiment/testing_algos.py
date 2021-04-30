@@ -96,9 +96,6 @@ class TestingAlgos:
         elif env in ['HandReach-v0']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
-        elif env in ['HandManipulateBlock-v0']:
-            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
-                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o0' in env:
             performance_params = {'n_epochs': 15, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
