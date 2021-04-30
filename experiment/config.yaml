@@ -17,7 +17,7 @@ hydra:
       multivariate: false
       warn_independent_sampling: true
 #    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
-    _target_: util.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
+    _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
     study_name: simple_mnist
     storage: sqlite:///simple_mnist.db
@@ -25,6 +25,7 @@ hydra:
 #    storage: mysql://hyperopt_user@localhost/ideas_hrl_hyperopt_database
     n_trials: 1
     n_jobs: 1
+    max_duration_minutes: 61
 
     search_space:
       model.fc1_units:

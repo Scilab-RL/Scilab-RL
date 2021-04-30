@@ -107,7 +107,7 @@ def create_optuna_distribution_from_override(override: Override) -> Any:
     raise NotImplementedError(f"{override} is not supported by Optuna sweeper.")
 
 
-class OptunaSweeperImpl(Sweeper):
+class CustomOptunaSweeperImpl(Sweeper):
     def __init__(
         self,
         sampler: Any,
@@ -116,6 +116,7 @@ class OptunaSweeperImpl(Sweeper):
         study_name: Optional[str],
         n_trials: int,
         n_jobs: int,
+        max_duration_minutes: int,
         search_space: Optional[DictConfig],
     ) -> None:
         self.sampler = sampler
@@ -124,7 +125,9 @@ class OptunaSweeperImpl(Sweeper):
         self.study_name = study_name
         self.n_trials = n_trials
         self.n_jobs = n_jobs
+        self.max_duration_minutes = max_duration_minutes
         self.search_space = {}
+        self.pruners = []
         if search_space:
             assert isinstance(search_space, DictConfig)
             self.search_space = {

@@ -131,7 +131,7 @@ defaults = [{"sampler": "tpe"}]
 
 @dataclass
 class OptunaSweeperConf:
-    _target_: str = "hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper"
+    _target_: str = "hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper"
     defaults: List[Any] = field(default_factory=lambda: defaults)
 
     # Sampling algorithm
@@ -157,6 +157,9 @@ class OptunaSweeperConf:
 
     # Number of parallel workers
     n_jobs: int = 2
+
+    # Max. duration in minutes for hyperopt
+    max_duration_minutes: int = 60
 
     search_space: Dict[str, Any] = field(default_factory=dict)
 

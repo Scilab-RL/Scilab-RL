@@ -123,6 +123,9 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     data_path = hydra.utils.get_original_cwd()
     dataset = MNIST(data_path, download=True, transform=transforms.ToTensor())
     train, val = random_split(dataset, [55000, 5000])
+    small_dataset = torch.utils.data.Subset(dataset, list(range(6000)))
+    train, val = random_split(small_dataset, [5000, 1000])
+
 
     trainloader = DataLoader(train, batch_size=cfg.train.batch_size, shuffle=True)
     testloader = DataLoader(val, batch_size=cfg.test.batch_size, shuffle=False)
@@ -270,6 +273,12 @@ def proc_finished_cb(result=None):
 @hydra.main(config_name='config.yaml')
 def main(cfg: DictConfig, *args) -> float:
     global RUNS_PER_PARAM, PROCS_RUNNING, MLFLOW_RUNNAME
+
+    cuda_available = torch.cuda.is_available()
+    if cuda_available:
+        print("Cuda is available!")
+
+
     # cfg.mlflow.runname = MLFLOW_RUNNAME
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
