@@ -10,7 +10,7 @@ from stable_baselines3.common.type_aliases import RolloutBufferSamples
 from ideas_baselines.common.type_aliases import ReplayBufferSamplesWithTestTrans
 from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
-from ideas_baselines.mbchac.goal_selection_strategy import GoalSelectionStrategy
+from ideas_baselines.hac.goal_selection_strategy import GoalSelectionStrategy
 
 
 class HHerReplayBuffer(ReplayBuffer):

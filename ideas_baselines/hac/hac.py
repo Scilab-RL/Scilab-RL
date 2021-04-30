@@ -14,20 +14,20 @@ from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.policies import BasePolicy
 from stable_baselines3.common.save_util import load_from_zip_file, recursive_setattr
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, RolloutReturn
-from ideas_baselines.mbchac.util import check_for_correct_spaces
+from ideas_baselines.hac.util import check_for_correct_spaces
 # from stable_baselines3.common.utils import check_for_correct_spaces
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
-from ideas_baselines.mbchac.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
-from ideas_baselines.mbchac.hher_replay_buffer import HHerReplayBuffer
-from ideas_baselines.mbchac.hierarchical_env import get_h_envs_from_env
+from ideas_baselines.hac.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
+from ideas_baselines.hac.hher_replay_buffer import HHerReplayBuffer
+from ideas_baselines.hac.hierarchical_env import get_h_envs_from_env
 from stable_baselines3.common import logger
 from stable_baselines3.common.utils import safe_mean
 from stable_baselines3.common.preprocessing import is_image_space
-from ideas_baselines.mbchac.hierarchical_env import HierarchicalVecEnv
+from ideas_baselines.hac.hierarchical_env import HierarchicalVecEnv
 from gym.wrappers import TimeLimit
 import time
-from ideas_baselines.mbchac.util import get_concat_dict_from_dict_list, merge_list_dicts
+from ideas_baselines.hac.util import get_concat_dict_from_dict_list, merge_list_dicts
 from ideas_envs.wrappers.subgoal_viz_wrapper import SubgoalVisualizationWrapper
 import numbers
 from copy import deepcopy
@@ -87,10 +87,11 @@ def compute_time_scales(scales, env):
     return scales
 
 
-class MBCHAC(BaseAlgorithm):
+
+class HAC(BaseAlgorithm):
     """
-    Model-based curious hierarchical actor-critic MBCHAC
-    Code based on Hindsight Experience Replay (HER) code of stable baselines 3 repository
+    Model-based curious hierarchical actor-critic HAC
+    Cobed based on Hindsight Experience Replay (HER) code of stable baselines 3 repository
 
     .. warning::
 
@@ -112,6 +113,7 @@ class MBCHAC(BaseAlgorithm):
     :param learning_rate: learning rate for the optimizer,
         it can be a function of the current progress remaining (from 1 to 0)
     :param max_episode_length: The maximum length of an episode. If not specified,
+        it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
     """
     attrs_to_save = ['epoch_count', 'num_timesteps', '_total_timesteps', '_episode_num',
@@ -178,7 +180,7 @@ class MBCHAC(BaseAlgorithm):
         this_env = layer_envs[0]
         this_env.env.layer_alg = self
         # Build policy, convert env into <ObstDictWrapper> class.
-        super(MBCHAC, self).__init__(policy=BasePolicy, env=this_env, policy_base=BasePolicy, learning_rate=self.learning_rate)
+        super(HAC, self).__init__(policy=BasePolicy, env=this_env, policy_base=BasePolicy, learning_rate=self.learning_rate)
         # we will use the policy from the layer_alg.
         del self.policy
 
@@ -201,7 +203,7 @@ class MBCHAC(BaseAlgorithm):
         next_level_steps = 0
         if len(sub_layer_classes) > 0:
             next_level_steps = int(self.time_scales[1])
-            self.sub_layer = MBCHAC('MlpPolicy', bottom_env, sub_layer_classes[0], sub_layer_classes[1:],
+            self.sub_layer = HAC('MlpPolicy', bottom_env, sub_layer_classes[0], sub_layer_classes[1:],
                                     time_scales=self.time_scales[1:],
                                     n_sampled_goal=n_sampled_goal,
                                     goal_selection_strategy=goal_selection_strategy,
@@ -407,12 +409,12 @@ class MBCHAC(BaseAlgorithm):
 
 
     def init_learn(self, total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps):
-        tb_log_name = "MBCHAC_{}".format(self.layer)
-        layer_total_timesteps = total_timesteps // self.max_steps_per_layer_action
+        tb_log_name = "HAC_{}".format(self.layer)
+        layer_total_timesteps = total_timesteps / self.max_steps_per_layer_action
         layer_total_timesteps, callback = self._setup_learn(
             layer_total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps, tb_log_name
         )
-        self.epoch_count = 0
+        # self.epoch_count = 0
         self.layer_alg.start_time = self.start_time
         self.layer_alg.ep_info_buffer = self.ep_info_buffer
         self.layer_alg.ep_success_buffer = self.ep_success_buffer
@@ -433,7 +435,7 @@ class MBCHAC(BaseAlgorithm):
         eval_env: Optional[GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
-        tb_log_name: str = "MBCHAC",
+        tb_log_name: str = "HAC",
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = False,
     ) -> BaseAlgorithm:
@@ -834,7 +836,7 @@ class MBCHAC(BaseAlgorithm):
         """
         # add HER parameters to model
         layer_data = self.__dict__.copy()
-        exclude_params = MBCHAC.save_attrs_to_exclude
+        exclude_params = HAC.save_attrs_to_exclude
         for k,v in layer_data.items():
             if k in self.layer_alg.__dict__.keys() and k not in exclude_params:
                 try:
@@ -842,10 +844,10 @@ class MBCHAC(BaseAlgorithm):
                     if type(valid) == np.ndarray:
                         valid = valid.all()
                     if not valid:
-                        print(f"Warning, mismatch of parameter {k} in model of MBCHAC ({v}) and MBCHAC itself ({layer_data[k]}).")
+                        print(f"Warning, mismatch of parameter {k} in model of HAC ({v}) and HAC itself ({layer_data[k]}).")
                         exclude_params.append(k)
                 except:
-                    print(f"Warning, cannot compare parameter {k} in model of MBCHAC and MBCHAC itself.")
+                    print(f"Warning, cannot compare parameter {k} in model of HAC and HAC itself.")
                     exclude_params.append(k)
         for param_name in exclude_params:
             layer_data.pop(param_name, None)
