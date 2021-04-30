@@ -1,17 +1,11 @@
-import os
-import copy
+from copy import deepcopy
+from typing import Callable, List
 import numpy as np
-
 import gym
 from stable_baselines3.common import logger
-from gym import error, spaces
-from gym.utils import seeding
-from typing import Any, Callable, List, Optional, Sequence, Union
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.vec_env import DummyVecEnv
-from copy import deepcopy
 from stable_baselines3.common.vec_env.base_vec_env import VecEnvStepReturn
-from ideas_envs.wrappers.subgoal_viz_wrapper import SubgoalVisualizationWrapper
 
 GOAL_MARKER_COLORS = [[1, 0, 0],
                       [0, 1, 0],
@@ -25,19 +19,8 @@ GOAL_MARKER_COLORS = [[1, 0, 0],
                       [0, 0.5, 1]]
 
 GOAL_MARKER_SHAPES = ['sphere', 'cylinder', 'box']
-
 GOAL_MARKER_MIN_ALPHA = 0.1
 GOAL_MARKER_MAX_ALPHA = 0.9
-
-
-from util.custom_evaluation import get_success
-# from ideas_baselines.mbchac.mbchac import MBCHAC
-# try:
-#     import mujoco_py
-# except ImportError as e:
-#     raise error.DependencyNotInstalled("{}. (HINT: you need to install mujoco_py, and also perform the setup instructions here: https://github.com/openai/mujoco-py/.)".format(e))
-
-DEFAULT_SIZE = 500
 
 
 def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
@@ -70,8 +53,6 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
 
         return env_list
 
-    # bottom_env = inject_subgoal_geometry(bottom_env) # TODO: What for is this?
-
     env_list = recursive_get_henvs(bottom_env=bottom_env, level_steps=level_steps,
                                    env_list=[], is_testing_env=is_testing_env, layer_alg=layer_alg)
 
@@ -87,9 +68,6 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
 
     return env_list
 
-def inject_subgoal_geometry(bottom_env):
-    # TBD
-    return bottom_env
 
 class HierarchicalVecEnv(DummyVecEnv):
     """
@@ -101,7 +79,6 @@ class HierarchicalVecEnv(DummyVecEnv):
         self.goal_viz_shape = 'sphere'
         self.goal_viz_size = 0.035
         self.early_done_on_success = early_done_on_success
-
 
     def get_parent_layers(self, env_idx=0):
         current_env = self.envs[env_idx]
@@ -156,11 +133,6 @@ class HierarchicalVecEnv(DummyVecEnv):
         frame = self.envs[env_idx].render(mode=mode, width=width, height=height)
         return frame
 
-    # # The same function as in DummyVecEnv, but it also sets the subgoals to display.
-    # def step_async(self, actions: np.ndarray) -> None:
-    #     self.actions = actions
-
-
     # The same function as in DummyVecEnv, but without resetting the simulation when the episode ends.
     # This function also sets done to true on success
     def step_wait(self) -> VecEnvStepReturn:
@@ -182,6 +154,7 @@ class HierarchicalVecEnv(DummyVecEnv):
             self._save_obs(env_idx, obs)
         return self.buf_obs
 
+
 class HierarchicalHLEnv(gym.GoalEnv):
     def __init__(self, bottom_env, is_testing_env=None, layer_alg=None):
         self.bottom_env = bottom_env
@@ -199,7 +172,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
         n_samples = 5000
         self.action_space.high = [-np.inf] * len(self.action_space.high)
         self.action_space.low = [np.inf] * len(self.action_space.low)
-        for i in range(n_samples):
+        for _ in range(n_samples):
             goal = self._sub_env.env.unwrapped._sample_goal()
             self.action_space.high = np.maximum(goal, self.action_space.high)
             self.action_space.low = np.minimum(goal, self.action_space.low)
@@ -210,7 +183,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
         action_space_range = self.action_space.high - self.action_space.low
         action_space_range = np.maximum(action_space_range, epsilon)
         self.action_space.high = self.action_space.low + action_space_range
-        # self.action_space.low = self.action_space.low - epsilon
         # Reset action space to determine whether the space is bounded.
         self.action_space = gym.spaces.Box(self.action_space.low, self.action_space.high)
         logger.info("Updated action bound guess by random sampling: Action space high: {}, Action space low: {}".format(self.action_space.high, self.action_space.low))
@@ -225,7 +197,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
         self._sub_env.env._elapsed_steps = 0 # Set elapsed steps to 0 but don't reset the whole simulated environment
         self._sub_env.env.unwrapped.goal = subgoal
-        # self._sub_env.display_subgoals(subgoal)  # , size=0.03, shape='cylinder', colors=[0, 0, 0.7, 0.1])
 
         assert self.layer_alg is not None, "Step not possible because no layer_alg defined yet."
         if self.is_testing_env:
@@ -240,7 +211,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
                 else:
                     info['is_subgoal_testing_trans'] = 0
         obs = self._get_obs()
-        # obs['desired_goal'] = subgoal
         reward = self.compute_reward(obs['achieved_goal'], self.goal, info)
 
         self._step_callback()
@@ -259,15 +229,13 @@ class HierarchicalHLEnv(gym.GoalEnv):
 
     def reset(self):
         # Attempt to reset the simulator. Since we randomize initial conditions, it
-        # is possible to get into a state with nself._sub_env._step_callback()umerical issues (e.g. due to penetration or
-        # Gimbel lock) or we may not achieve an initial condition (e.g. an object is within the hand).
+        # is possible to get into a state with self._sub_env._step_callback()numerical issues (e.g. due to penetration
+        # or Gimbal lock) or we may not achieve an initial condition (e.g. an object is within the hand).
         # In this case, we just keep randomizing until we eventually achieve a valid initial
         # configuration.
-        super(HierarchicalHLEnv, self).reset()
+        super().reset()
         obs = self._sub_env.reset()
         self.goal = self._sub_env.goal
-        # if self.is_testing_env: ## DEBUG
-        #     print("setting new testing goal: {}".format(self.goal))
         self.last_obs = obs
         return obs
 
@@ -287,11 +255,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
         obs['desired_goal'] = self.goal
         return obs
 
-    # def _set_action(self, action):
-    #     """Applies the given action to the simulation.
-    #     """
-    #     raise NotImplementedError()
-
     def _is_success(self, achieved_goal, desired_goal):
         """Indicates whether or not the achieved goal successfully achieved the desired goal.
         """
@@ -306,7 +269,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
         """Initial configuration of the environment. Can be used to configure initial state
         and extract information from the simulation.
         """
-        self._sub_env._env_setup()
+        self._sub_env._env_setup(initial_qpos)
 
     def _viewer_setup(self):
         """Initial configuration of the viewer. Can be used to set the camera position,
@@ -318,15 +281,11 @@ class HierarchicalHLEnv(gym.GoalEnv):
         """A custom callback that is called before rendering. Can be used
         to implement custom visualizations.
         """
-        pass
-        # self._sub_env._render_callback()
 
     def _step_callback(self):
         """A custom callback that is called after stepping the simulation. Can be used
         to enforce additional constraints on the simulation state.
         """
-        pass
-        # self._sub_env._step_callback()
 
-    def compute_reward(self, achieved_goal, goal, info):
-        return self._sub_env.env.compute_reward(achieved_goal, goal, info)
+    def compute_reward(self, achieved_goal, desired_goal, info):
+        return self._sub_env.env.compute_reward(achieved_goal, desired_goal, info)
