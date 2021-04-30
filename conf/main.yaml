@@ -1,7 +1,7 @@
 defaults:
-  # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg', 'her2', 'mbchac')
+  # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg', 'her2', 'hac')
   # here we use hydras config group defaults
-  - algorithm: 'mbchac'
+  - algorithm: 'hac'
   - override hydra/job_logging: default
 
 # TODO: Currently, having a subfolder conf/hydra/output is buggy

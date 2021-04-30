@@ -31,7 +31,7 @@ GOAL_MARKER_MAX_ALPHA = 0.9
 
 
 from util.custom_evaluation import get_success
-# from ideas_baselines.mbchac.mbchac import MBCHAC
+# from ideas_baselines.hac.hac import HAC
 # try:
 #     import mujoco_py
 # except ImportError as e:
