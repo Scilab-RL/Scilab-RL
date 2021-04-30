@@ -2,8 +2,10 @@
 import logging
 import sys
 from typing import Any, Dict, List, MutableMapping, MutableSequence, Optional
-
+from optuna.trial import TrialState
 import optuna
+from optuna import pruners
+from hydra_plugins.hydra_custom_optuna_sweeper.param_repeat_pruner import ParamRepeatPruner
 from hydra.core.config_loader import ConfigLoader
 from hydra.core.override_parser.overrides_parser import OverridesParser
 from hydra.core.override_parser.types import (
@@ -114,19 +116,28 @@ class CustomOptunaSweeperImpl(Sweeper):
         direction: Any,
         storage: Optional[str],
         study_name: Optional[str],
-        n_trials: int,
+        max_trials: int,
         n_jobs: int,
         max_duration_minutes: int,
+        # max_repeats_prune: int,
+        min_trials_per_param: int,
+        max_trials_per_param: int,
         search_space: Optional[DictConfig],
     ) -> None:
         self.sampler = sampler
         self.direction = direction
         self.storage = storage
         self.study_name = study_name
-        self.n_trials = n_trials
+        self.max_trials = max_trials
         self.n_jobs = n_jobs
         self.max_duration_minutes = max_duration_minutes
+        # self.max_repeats_prune = max_repeats_prune
+        self.min_trials_per_param = min_trials_per_param
+        self.max_trials_per_param = max_trials_per_param
         self.search_space = {}
+        # self.percentile_pruner = pruners.PercentilePruner(25.0, n_startup_trials=5, n_warmup_steps=30, interval_steps=10)
+        self.param_repeat_pruner = None
+        # base_pruner = pruners.BasePruner
         self.pruners = []
         if search_space:
             assert isinstance(search_space, DictConfig)
@@ -135,6 +146,7 @@ class CustomOptunaSweeperImpl(Sweeper):
                 for x, y in search_space.items()
             }
         self.job_idx: int = 0
+        study = None
 
     def setup(
         self,
@@ -149,6 +161,17 @@ class CustomOptunaSweeperImpl(Sweeper):
             config=config, config_loader=config_loader, task_function=task_function
         )
         self.sweep_dir = config.hydra.sweep.dir
+
+    def run_trial(self, trial, params):
+        laucher_arg = [tuple(f"{name}={val}" for name, val in params.items())]
+        ret = self.launcher.launch(laucher_arg, initial_job_idx=self.job_idx)[0]
+        try:
+            value = float(ret.return_value)
+        except (ValueError, TypeError):
+            raise ValueError(
+                f"Return value must be float-castable. Got '{ret.return_value}'."
+            ).with_traceback(sys.exc_info()[2])
+        return value
 
     def sweep(self, arguments: List[str]) -> None:
         assert self.config is not None
@@ -173,9 +196,7 @@ class CustomOptunaSweeperImpl(Sweeper):
 
         directions: List[str]
         if isinstance(self.direction, MutableSequence):
-            directions = [
-                d.name if isinstance(d, Direction) else d for d in self.direction
-            ]
+            assert False, "Multi objectives optimization not implemented / tested"
         else:
             if isinstance(self.direction, str):
                 directions = [self.direction]
@@ -187,86 +208,63 @@ class CustomOptunaSweeperImpl(Sweeper):
             storage=self.storage,
             sampler=self.sampler,
             directions=directions,
-            load_if_exists=True,
+            load_if_exists=True
         )
+        max_repeats = self.max_trials_per_param - 1
+        self.param_repeat_pruner = ParamRepeatPruner(study, max_runs=max_repeats,
+                                                     should_compare_states=[TrialState.COMPLETE, TrialState.FAIL,
+                                                                            TrialState.PRUNED])
         log.info(f"Study name: {study.study_name}")
         log.info(f"Storage: {self.storage}")
         log.info(f"Sampler: {type(self.sampler).__name__}")
         log.info(f"Directions: {directions}")
 
-        batch_size = self.n_jobs
-        n_trials_to_go = self.n_trials
-
+        n_trials_to_go = self.max_trials
+        # next_params = {}
         while n_trials_to_go > 0:
-            batch_size = min(n_trials_to_go, batch_size)
 
-            trials = [study._ask() for _ in range(batch_size)]
-            overrides = []
-            for trial in trials:
-                for param_name, distribution in search_space.items():
-                    trial._suggest(param_name, distribution)
+            n_trials_to_go -= 1
+            trial = study._ask()
+            for param_name, distribution in search_space.items():
+                trial._suggest(param_name, distribution)
+            params = dict(trial.params)
+            params.update(fixed_params)
+            total_param_runs, repeated_trial_idx = self.param_repeat_pruner.check_params(trial, prune_existing=False)
+            if total_param_runs > self.max_trials_per_param:
+                log.info(
+                    f"Parameters {params} have been tested or pruned {total_param_runs} times in trial {repeated_trial_idx} already, pruning this trial.")
+                state = optuna.trial.TrialState.PRUNED
+                study._tell(trial, state, None)
+                continue
 
-                params = dict(trial.params)
-                params.update(fixed_params)
-                overrides.append(tuple(f"{name}={val}" for name, val in params.items()))
+            try:
+                value = self.run_trial(trial, params)
+                state = optuna.trial.TrialState.COMPLETE
+            except Exception as e:
+                log.info(f"Could not run trial {params}, returning FAIL.")
+                value = None
+                state = optuna.trial.TrialState.FAIL
 
-            returns = self.launcher.launch(overrides, initial_job_idx=self.job_idx)
-            self.job_idx += len(returns)
-            for trial, ret in zip(trials, returns):
-                values: Optional[List[float]] = None
-                state: optuna.trial.TrialState = optuna.trial.TrialState.COMPLETE
-                try:
-                    if len(directions) == 1:
-                        try:
-                            values = [float(ret.return_value)]
-                        except (ValueError, TypeError):
-                            raise ValueError(
-                                f"Return value must be float-castable. Got '{ret.return_value}'."
-                            ).with_traceback(sys.exc_info()[2])
-                    else:
-                        try:
-                            values = [float(v) for v in ret.return_value]
-                        except (ValueError, TypeError):
-                            raise ValueError(
-                                "Return value must be a list or tuple of float-castable values."
-                                f" Got '{ret.return_value}'."
-                            ).with_traceback(sys.exc_info()[2])
-                        if len(values) != len(directions):
-                            raise ValueError(
-                                "The number of the values and the number of the objectives are"
-                                f" mismatched. Expect {len(directions)}, but actually {len(values)}."
-                            )
-                    study._tell(trial, state, values)
-                except Exception as e:
-                    state = optuna.trial.TrialState.FAIL
-                    study._tell(trial, state, values)
-                    raise e
+            study._tell(trial, state, [value])
 
-            n_trials_to_go -= batch_size
+            if total_param_runs < self.min_trials_per_param: # Add repetition of the same trial for next study._ask()
+                study.enqueue_trial(params)
+
+            self.job_idx += 1
 
         results_to_serialize: Dict[str, Any]
-        if len(directions) < 2:
-            best_trial = study.best_trial
-            results_to_serialize = {
-                "name": "optuna",
-                "best_params": best_trial.params,
-                "best_value": best_trial.value,
-            }
-            log.info(f"Best parameters: {best_trial.params}")
-            log.info(f"Best value: {best_trial.value}")
-        else:
-            best_trials = study.best_trials
-            pareto_front = [
-                {"params": t.params, "values": t.values} for t in best_trials
-            ]
-            results_to_serialize = {
-                "name": "optuna",
-                "solutions": pareto_front,
-            }
-            log.info(f"Number of Pareto solutions: {len(best_trials)}")
-            for t in best_trials:
-                log.info(f"    Values: {t.values}, Params: {t.params}")
+        assert len(directions) < 2, "Multi objective optimization is not implemented"
+        best_trial = study.best_trial
+        results_to_serialize = {
+            "name": "optuna",
+            "best_params": best_trial.params,
+            "best_value": best_trial.value,
+        }
+        log.info(f"Best parameters: {best_trial.params}")
+        log.info(f"Best value: {best_trial.value}")
         OmegaConf.save(
             OmegaConf.create(results_to_serialize),
             f"{self.config.hydra.sweep.dir}/optimization_results.yaml",
         )
+        df = study.trials_dataframe()
+        df.to_csv("tmp_trials.csv", index=False)

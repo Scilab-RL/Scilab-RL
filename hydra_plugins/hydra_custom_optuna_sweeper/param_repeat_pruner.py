@@ -11,7 +11,7 @@ class ParamRepeatPruner:
     def __init__(
         self,
         study: optuna.study.Study,
-        repeats_max: int = 0,
+        max_runs: int = 1,
         should_compare_states: List[TrialState] = [TrialState.COMPLETE],
         compare_unfinished: bool = True,
     ):
@@ -19,34 +19,26 @@ class ParamRepeatPruner:
         Args:
             study (optuna.study.Study): Study of the trials.
 
-            repeats_max (int, optional): Instead of prunning all of them (not repeating trials at all, repeats_max=0) you can choose to repeat them up to a certain number of times, useful if your optimization function is not deterministic and gives slightly different results for the same params. Defaults to 0.
+            max_runs (int, optional): Max. number of allowed runs per parameterization. (max_runs = 0 prunes all parameterizations, even if they have never been tested).
 
             should_compare_states (List[TrialState], optional): By default it only skips the trial if the paremeters are equal to existing COMPLETE trials, so it repeats possible existing FAILed and PRUNED trials. If you also want to skip these trials then use [TrialState.COMPLETE,TrialState.FAIL,TrialState.PRUNED] for example. Defaults to [TrialState.COMPLETE].
 
             compare_unfinished (bool, optional): Unfinished trials (e.g. `RUNNING`) are treated like COMPLETE ones, if you don't want this behavior change this to False. Defaults to True.
         """
         self.should_compare_states = should_compare_states
-        self.repeats_max = repeats_max
+        self.max_runs = max_runs
         self.repeats: Dict[int, List[int]] = defaultdict(lambda: [], {})
         self.unfinished_repeats: Dict[int, List[int]] = defaultdict(lambda: [], {})
         self.compare_unfinished = compare_unfinished
         self.study = study
+        self.register_existing_trials()
 
-    @property
-    def study(self) -> Optional[optuna.study.Study]:
-        return self._study
-
-    @study.setter
-    def study(self, study):
-        self._study = study
-        if self.study is not None:
-            self.register_existing_trials()
 
     def register_existing_trials(self):
         """In case of studies with existing trials, it counts existing repeats"""
-        trials = study.trials
+        trials = self.study.trials
         trial_n = len(trials)
-        for trial_idx, trial_past in enumerate(study.trials[1:]):
+        for trial_idx, trial_past in enumerate(trials[1:]):
             self.check_params(trial_past, False, -trial_n + trial_idx)
 
     def prune(self):
@@ -73,6 +65,16 @@ class ParamRepeatPruner:
         prune_existing=True,
         ignore_last_trial: Optional[int] = None,
     ):
+        """
+        Check if parameterization has been executed already. If so, return number of previous executions and a trial id of a previous exeuction.
+        Args:
+            trial:
+            prune_existing:
+            ignore_last_trial:
+
+        Returns:
+
+        """
         if self.study is None:
             return
         trials = self.study.trials
@@ -82,7 +84,7 @@ class ParamRepeatPruner:
 
         self.clean_unfinised_trials()
 
-        self.repeated_idx = -1
+        # self.repeated_idx = -1
         self.repeated_number = -1
         for idx_p, trial_past in enumerate(trials[:ignore_last_trial]):
             should_compare = self.should_compare(trial_past.state)
@@ -93,17 +95,21 @@ class ParamRepeatPruner:
                 if not trial_past.state.is_finished():
                     self.unfinished_repeats[trial_past.number].append(trial.number)
                     continue
-                self.repeated_idx = idx_p
+                # self.repeated_idx = idx_p
                 self.repeated_number = trial_past.number
                 break
 
+        past_param_runs = len(
+            self.repeats[self.repeated_number])
+        now_param_runs = past_param_runs + 1
         if self.repeated_number > -1:
             self.repeats[self.repeated_number].append(trial.number)
-        if len(self.repeats[self.repeated_number]) > self.repeats_max:
+        if now_param_runs > self.max_runs:
             if prune_existing:
                 raise optuna.exceptions.TrialPruned()
+            # return n_param_runs, self.repeated_number
 
-        return self.repeated_number
+        return now_param_runs, self.repeated_number
 
     def get_value_of_repeats(
         self, repeated_number: int, func=lambda value_list: np.mean(value_list)

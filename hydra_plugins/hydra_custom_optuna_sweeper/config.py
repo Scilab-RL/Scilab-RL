@@ -152,14 +152,21 @@ class OptunaSweeperConf:
     # Name of study to persist optimization results
     study_name: Optional[str] = None
 
-    # Total number of function evaluations
-    n_trials: int = 20
+    # Max number of function evaluations. There may be less function evaluations when trials are pruned because the parameterization has already been tested (see max_repeats_prune parameter below).
+    max_trials: int = 20
 
     # Number of parallel workers
-    n_jobs: int = 2
+    n_jobs: int = 1
 
     # Max. duration in minutes for hyperopt
     max_duration_minutes: int = 60
+
+    # After how many repeats of the same parameterization will the trial be pruned? 0 means there can be no repeats.
+#    max_repeats_prune: int = 0
+
+    # Min and max. number of trials per parameterization. min_trials is important for non-deterministic processes, max_trials is to prune parameterizations if they occur too often.
+    min_trials_per_param: int = 1
+    max_trials_per_param: int = 3
 
     search_space: Dict[str, Any] = field(default_factory=dict)
 
