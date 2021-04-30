@@ -142,9 +142,9 @@ def main(cfg: DictConfig) -> None:
     if cfg['seed'] == 0:
         cfg['seed'] = int(time.time())
 
-    logger.configure(folder=run_dir, format_strings=['csv', 'tensorboard'])
+    logger.configure(folder=run_dir, format_strings=[])
     plot_cols = cfg['plot_eval_cols']
-    logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=plot_cols))
+    logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=plot_cols)) # When using this, make sure that we don't have a csv output format already, otherwise there will be conflicts.
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
 
