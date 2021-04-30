@@ -77,6 +77,10 @@ def main(args):
                 if test_mode == 'function':
                     all_kvs['n_epochs'] = 2
                     performance_params['n_runs'] = 1
+                    if 'eval_after_n_steps' in all_kvs:
+                        all_kvs['eval_after_n_steps'] = min(all_kvs['eval_after_n_steps'], 1000)
+                    if 'n_test_rollouts' in all_kvs:
+                        all_kvs['n_test_rollouts'] = min(all_kvs['n_test_rollouts'], 3)
                 else:
                     all_kvs['n_epochs'] = performance_params['n_epochs']
                 all_kvs['early_stop_data_column'] = performance_params['performance_measure']
@@ -85,6 +89,11 @@ def main(args):
                     cmd += " " + "{key}={value}".format(key=k, value=v).replace(" ", "")
 
                 if len(algo_params) > 0:
+                    if test_mode == 'function':
+                        if 'render_test' in algo_params:
+                            algo_params['render_test'] = 'null'
+                        if 'render_train' in algo_params:
+                            algo_params['render_train'] = 'null'
                     for k,v in sorted(algo_params.items()):
                         cmd += " " + "algorithm.{key}={value}".format(key=k, value=v).replace(" ", "")
 
