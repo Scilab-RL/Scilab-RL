@@ -120,7 +120,6 @@ class TestingAlgos:
         elif 'Ant' in env:
             performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
-            ts = ['500', '10,50', '20,25']
             # 'AntReacher-v1',
             # 'Ant4Rooms-v1',
             # 'AntMaze-v1',
