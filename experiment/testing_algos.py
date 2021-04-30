@@ -54,21 +54,22 @@ class TestingAlgos:
                             }
 
         # ts = ['10,10']
-        ts = [[50, -1],[10,10]]
+        # ts = [[50, -1],[10,10]]
+        ts = [[-1], [5, -1]]
         # ts = ['7,7']
         # ar = [1, 0]
-        ar = [0]
-        # sg_test_perc = [0, 0.3]
-        sg_test_perc = [0]
+        ar = [1]
+        sg_test_perc = [0, 0.3]
+        sg_test_perc = [0.3]
         # learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
         # learning_rates = ['3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
         learning_rates = [[3e-4], [3e-4, 3e-4]]
         # learning_rates = ['3e-4']
-        set_fut_ret_zero_if_done = [0, 1]
+        set_fut_ret_zero_if_done = [0]
         # set_fut_ret_zero_if_done = [0]
 
-        n_succ_steps_for_early_ep_done = [0, 1, 2, 3]
-        n_succ_steps_for_early_ep_done = [0, 2]
+        # n_succ_steps_for_early_ep_done = [0, 1, 2, 3]
+        n_succ_steps_for_early_ep_done = [2]
         n_sampled_goal = [4]
         # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
         goal_selection_strategy = ['future']
@@ -77,7 +78,7 @@ class TestingAlgos:
         # goal_selection_strategy = ['future', 'future2']
         # goal_selection_strategy = ['future', 'rndend2']
         # goal_selection_strategy = ['rndend', 'rndend2']
-        hindsight_sampling_done_if_success = [0, 1]
+        # hindsight_sampling_done_if_success = [0, 1]
         hindsight_sampling_done_if_success = [0]
 
         if env in ['FetchReach-v1']:
@@ -117,6 +118,7 @@ class TestingAlgos:
         elif 'Ant' in env:
             performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+            ts = [[-1], [20, 25]]
             # 'AntReacher-v1',
             # 'Ant4Rooms-v1',
             # 'AntMaze-v1',
