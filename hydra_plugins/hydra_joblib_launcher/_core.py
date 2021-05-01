@@ -39,13 +39,16 @@ def execute_job(
         sweep_config.hydra.job.id = "{}_{}".format(sweep_config.hydra.job.name, idx)
         sweep_config.hydra.job.num = idx
     HydraConfig.instance().set_config(sweep_config)
-
-    ret = run_job(
-        config=sweep_config,
-        task_function=task_function,
-        job_dir_key="hydra.sweep.dir",
-        job_subdir_key="hydra.sweep.subdir",
-    )
+    try:
+        ret = run_job(
+            config=sweep_config,
+            task_function=task_function,
+            job_dir_key="hydra.sweep.dir",
+            job_subdir_key="hydra.sweep.subdir",
+        )
+    except Exception as e:
+        log.error(f"Error running job. Exception: {e}")
+        ret = JobReturn(overrides=overrides, return_value=None, cfg=sweep_config)
 
     return ret
 

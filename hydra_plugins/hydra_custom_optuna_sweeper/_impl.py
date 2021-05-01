@@ -401,7 +401,8 @@ class CustomOptunaSweeperImpl(Sweeper):
                 except Exception as e:
                     state = optuna.trial.TrialState.FAIL
                     study._tell(trial, state, values)
-                    raise e
+                    log.error(f"Error, could not execute trial with parameters {trial.params}")
+                    # log.error(f"{e}")
 
             n_trials_to_go -= batch_size
             current_time = time.time()

@@ -21,7 +21,7 @@ class CustomOptunaSweeper(Sweeper):
         max_trials: int,
         n_jobs: int,
         max_duration_minutes: int,
-#        max_repeats_prune: int,
+
         min_trials_per_param: int,
         max_trials_per_param: int,
         search_space: Optional[DictConfig],
