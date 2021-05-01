@@ -1,13 +1,23 @@
+import matplotlib
+matplotlib.use('Agg')
 import os
 import sys
 sys.path.append(os.getcwd())
 import importlib
 import hydra
+import omegaconf
 from omegaconf import DictConfig, OmegaConf, open_dict
+import mlflow
 
-import matplotlib
+import optuna
+from optuna.visualization import plot_contour
+from optuna.visualization import plot_edf
+from optuna.visualization import plot_intermediate_values
+from optuna.visualization import plot_optimization_history
+from optuna.visualization import plot_parallel_coordinate
+from optuna.visualization import plot_param_importances
+from optuna.visualization import plot_slice
 # Force matplotlib to not use any Xwindows backend.
-matplotlib.use('Agg')
 # import sys,os
 # sys.path.append(os.getcwd())
 import gym
@@ -92,8 +102,12 @@ def launch(cfg, kwargs):
 OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 
 @hydra.main(config_name="main", config_path="../conf")
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> float:
     print(OmegaConf.to_yaml(cfg))
+    mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
+    tracking_uri = mlflow.get_tracking_uri()
+    print("Current tracking uri: {}".format(tracking_uri))
+    mlflow.set_experiment(cfg.hydra.sweeper.study_name)
     original_dir = os.getcwd()
     logger.info('Hydra dir', original_dir)
     path_dir_params = {key: cfg.algorithm[key] for key in cfg.algorithm.exp_path_params}
@@ -155,7 +169,33 @@ def main(cfg: DictConfig) -> None:
     ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
     OmegaConf.save(config=cfg, f='params.yaml')
     launch(cfg, kwargs)
-
+    hyperopt_score = 1
+    return hyperopt_score
 
 if __name__ == '__main__':
     main()
+
+    cfg = omegaconf.OmegaConf.load('conf/main.yaml')
+    study_name = cfg.hydra.sweeper.study_name
+    study = optuna.load_study(study_name, cfg.hydra.sweeper.storage)
+    imgdir = f"hyperopt_logs/{study_name}"
+    if not os.path.exists("hyperopt_logs"):
+        os.mkdir("hyperopt_logs")
+    if not os.path.exists(imgdir):
+        os.mkdir(imgdir)
+
+    try:
+        fig = plot_optimization_history(study)
+        fig.write_image(f"{imgdir}/plot_optimization_history.png")
+    except:
+        pass
+    try:
+        fig = plot_contour(study)
+        fig.write_image(f"{imgdir}//plot_contour.png")
+    except:
+        pass
+    try:
+        fig = plot_param_importances(study)
+        fig.write_image(f"{imgdir}//plot_param_importances.png")
+    except:
+        pass
