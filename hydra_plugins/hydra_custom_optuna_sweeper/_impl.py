@@ -4,6 +4,8 @@ import sys
 from typing import Any, Dict, List, MutableMapping, MutableSequence, Optional
 from optuna.trial import TrialState
 import optuna
+import time
+import datetime
 from optuna import pruners
 from hydra_plugins.hydra_custom_optuna_sweeper.param_repeat_pruner import ParamRepeatPruner
 from hydra.core.config_loader import ConfigLoader
@@ -131,6 +133,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         self.max_trials = max_trials
         self.n_jobs = n_jobs
         self.max_duration_minutes = max_duration_minutes
+        self.max_duration_seconds = max_duration_minutes * 60
         # self.max_repeats_prune = max_repeats_prune
         self.min_trials_per_param = min_trials_per_param
         self.max_trials_per_param = max_trials_per_param
@@ -210,8 +213,8 @@ class CustomOptunaSweeperImpl(Sweeper):
             directions=directions,
             load_if_exists=True
         )
-        max_repeats = self.max_trials_per_param - 1
-        self.param_repeat_pruner = ParamRepeatPruner(study, max_runs=max_repeats,
+
+        self.param_repeat_pruner = ParamRepeatPruner(study, max_runs=self.max_trials_per_param,
                                                      should_compare_states=[TrialState.COMPLETE, TrialState.FAIL,
                                                                             TrialState.PRUNED])
         log.info(f"Study name: {study.study_name}")
@@ -220,10 +223,11 @@ class CustomOptunaSweeperImpl(Sweeper):
         log.info(f"Directions: {directions}")
 
         n_trials_to_go = self.max_trials
-        # next_params = {}
-        while n_trials_to_go > 0:
-
-            n_trials_to_go -= 1
+        start_time = time.time()
+        current_time = start_time
+        while n_trials_to_go > 0 and (start_time + self.max_duration_seconds) > current_time:
+            running_duration = (current_time - start_time)
+            log.info(f"Hyperparameter optimization is now running for {str(datetime.timedelta(seconds=running_duration))} of {str(datetime.timedelta(seconds=self.max_duration_seconds))}. Max. {n_trials_to_go} trials left.")
             trial = study._ask()
             for param_name, distribution in search_space.items():
                 trial._suggest(param_name, distribution)
@@ -236,7 +240,6 @@ class CustomOptunaSweeperImpl(Sweeper):
                 state = optuna.trial.TrialState.PRUNED
                 study._tell(trial, state, None)
                 continue
-
             try:
                 value = self.run_trial(trial, params)
                 state = optuna.trial.TrialState.COMPLETE
@@ -251,6 +254,8 @@ class CustomOptunaSweeperImpl(Sweeper):
                 study.enqueue_trial(params)
 
             self.job_idx += 1
+            current_time = time.time()
+            n_trials_to_go -= 1
 
         results_to_serialize: Dict[str, Any]
         assert len(directions) < 2, "Multi objective optimization is not implemented"
