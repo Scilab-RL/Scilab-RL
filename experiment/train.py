@@ -1,228 +1,160 @@
+import os
+import sys
+sys.path.append(os.getcwd())
+import importlib
+import hydra
+from omegaconf import DictConfig, OmegaConf, open_dict
+
 import matplotlib
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
+# import sys,os
+# sys.path.append(os.getcwd())
 import gym
-import click_options as main_linker
 from util.util import get_subdir_by_params,get_git_label,set_global_seeds,log_dict,get_last_epoch_from_logdir
-import click
 # import logger
-import os
 import time
-import json
-import sys
-from queue import deque
-import numpy as np
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
-import importlib
 from stable_baselines3.common import logger
 from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat
-from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
 from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make_robustGoalConditionedModel
-from stable_baselines3.common.bit_flipping_env import BitFlippingEnv
-from stable_baselines3 import DDPG, DQN, SAC, TD3
 from util.custom_eval_callback import CustomEvalCallback
-from ideas_baselines.mbchac.hierarchical_eval_callback import HierarchicalEvalCallback
+from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 # from util.custom_train_callback import CustomTrainCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
-from ideas_baselines import HER2, MBCHAC, SACVG
-import os
 
-ALL_PATH_CONFIG_PARAMS = ['info', 'algorithm']
 
 def check_env_alg_compatibility(model, env):
-    # is_compatible = isinstance(model.action_space, type(env.action_space))
-    # return is_compatible
-    obs = env.reset()
-    action, _states = model.predict(obs, deterministic=True)
-    try:
-        env.step(action)
-        is_compatible = True
-    except Exception as e:
-        logger.info("Environment and algorithm not compatible, probably because of different action spaces. Exception: {}".format(e))
-        logger.info(e)
-        is_compatible = False
-    return is_compatible
+    return isinstance(model.action_space, type(env.action_space)) \
+        and isinstance(model.observation_space, type(env.observation_space['observation']))
 
-def get_model_class_args(model_class_str, all_cmd_kvs):
-    model_click = importlib.import_module('interface.' + model_class_str + '.click_options')
-    model_class_options = model_click.get_click_option.params
-    model_class_args = {o.name: o.default for o in model_class_options}
-    changed_mc_args = {k: type(model_class_args[k])(v) for k, v in all_cmd_kvs.items() if k in model_class_args.keys()}
-    model_class_args.update(changed_mc_args)
-    return model_class_args
-
-def train(model, train_env, eval_env, n_epochs, starting_epoch, **kwargs):
-    # actions_per_episode = np.product([int(steps) for steps in kwargs['action_steps'].split(',')])
-    # train_actions_per_epoch = steps_per_epoch * kwargs['n_train_rollouts']
-    epochs_remaining = n_epochs - starting_epoch
-    total_steps = kwargs['eval_after_n_steps'] * epochs_remaining
-
-    checkpoint_callback = CheckpointCallback(save_freq=kwargs['save_model_freq'], save_path=logger.get_dir())
-    if hasattr(model, 'time_scales'):
+def train(baseline, train_env, eval_env, cfg):
+    total_steps = cfg.eval_after_n_steps * cfg.n_epochs
+    checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir())
+    if hasattr(baseline, 'time_scales'):
         eval_callback = HierarchicalEvalCallback(eval_env,
                                                  log_path=logger.get_dir(),
-                                                 eval_freq=kwargs['eval_after_n_steps'],
-                                                 n_eval_episodes=kwargs['n_test_rollouts'],
-                                                 early_stop_last_n=kwargs['early_stop_last_n'],
-                                                 early_stop_data_column=kwargs['early_stop_data_column'],
-                                                 early_stop_threshold=kwargs['early_stop_threshold'],
-                                                 top_level_model=model)
+                                                 eval_freq=cfg.eval_after_n_steps,
+                                                 n_eval_episodes=cfg.n_test_rollouts,
+                                                 early_stop_last_n=cfg.early_stop_last_n,
+                                                 early_stop_data_column=cfg.early_stop_data_column,
+                                                 early_stop_threshold=cfg.early_stop_threshold,
+                                                 top_level_layer=baseline)
     else:
         eval_callback = CustomEvalCallback(eval_env,
                                            log_path=logger.get_dir(),
-                                           eval_freq=kwargs['eval_after_n_steps'],
-                                           n_eval_episodes=kwargs['n_test_rollouts'],
-                                           early_stop_last_n=kwargs['early_stop_last_n'],
-                                           early_stop_data_column=kwargs['early_stop_data_column'],
-                                           early_stop_threshold=kwargs['early_stop_threshold'])
+                                           eval_freq=cfg.eval_after_n_steps,
+                                           n_eval_episodes=cfg.n_test_rollouts,
+                                           early_stop_last_n=cfg.early_stop_last_n,
+                                           early_stop_data_column=cfg.early_stop_data_column,
+                                           early_stop_threshold=cfg.early_stop_threshold)
 
     # Create the callback list
     callback = CallbackList([checkpoint_callback, eval_callback])
-
-    model.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
-
+    baseline.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
     train_env.close()
     eval_env.close()
     logger.info("Training finished!")
 
-def launch(ctx, starting_epoch, policy_args, env, algorithm,  n_epochs, seed, restore_policy, logdir, **kwargs):
-    set_global_seeds(seed)
+def launch(cfg, kwargs):
+    set_global_seeds(cfg.seed)
+    algo_name = cfg['algorithm'].name
+
+    # remove name as we pass all arguments to the model constructor
+    if 'name' in cfg.algorithm.keys():
+        with open_dict(cfg):
+            del cfg['algorithm']['name']
+
     try:
-        ModelClass = getattr(importlib.import_module('stable_baselines3.' + algorithm), algorithm.upper())
+        BaselineClass = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except:
-        ModelClass = getattr(importlib.import_module('ideas_baselines.' + algorithm), algorithm.upper())
-    train_env = gym.make(env)
-    eval_env = gym.make(env)
-    if restore_policy is not None:
-        model = ModelClass.load(restore_policy, **policy_args, env=train_env)
+        BaselineClass = getattr(importlib.import_module('ideas_baselines.' + algo_name), algo_name.upper())
+    train_env = gym.make(cfg.env)
+    eval_env = gym.make(cfg.env)
+    if cfg.restore_policy is not None:
+        baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, env=train_env, **kwargs)
     else:
-        model = ModelClass('MlpPolicy', train_env, **policy_args)
-    env_alg_compatible = check_env_alg_compatibility(model, train_env)
+        baseline = BaselineClass('MlpPolicy', train_env, **cfg.algorithm, **kwargs)
+    env_alg_compatible = check_env_alg_compatibility(baseline, train_env)
     if not env_alg_compatible:
-        logger.info("Environment {} and algorithm {} are not compatible.".format(train_env, model))
+        logger.info("Environment {} and algorithm {} are not compatible.".format(train_env, baseline))
         sys.exit()
     logger.info("Launching training")
-    train(model, train_env, eval_env, n_epochs, starting_epoch=starting_epoch, **kwargs)
+    train(baseline, train_env, eval_env, cfg)
 
-@click.command(context_settings=dict(
-    ignore_unknown_options=True,
-    allow_extra_args=True,
-))
-@main_linker.click_main
-@click.pass_context
-def main(ctx, **kwargs):
-    config = main_linker.import_creator(kwargs['algorithm'])
-    all_cmd_kvs = {ctx.args[i][2:]: ctx.args[i+1] for i in range(0, len(ctx.args), 2)}
-    policy_args = ctx.forward(main_linker.get_algorithm_click).copy()
-    changed_policy_args = {k: type(policy_args[k])(v) for k,v in all_cmd_kvs.items() if k in policy_args.keys()}
-    policy_args.update(changed_policy_args)
 
+
+# make git_label available in hydra
+OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
+
+@hydra.main(config_name="main", config_path="../conf")
+def main(cfg: DictConfig) -> None:
+    print(OmegaConf.to_yaml(cfg))
+    original_dir = os.getcwd()
+    logger.info('Hydra dir', original_dir)
+    path_dir_params = {key: cfg.algorithm[key] for key in cfg.algorithm.exp_path_params}
+    subdir_exists = True
+
+    ctr = cfg['try_start_idx']
+    max_ctr = cfg['max_try_idx']
+
+    while subdir_exists:
+        param_dir = get_subdir_by_params(path_dir_params, ctr)
+        run_dir = os.path.join(os.path.split(original_dir)[0], param_dir)
+        subdir_exists = os.path.exists(run_dir)
+        ctr += 1
+    trial_no = ctr - 1
+    logger.info('Renamed hydra dir to', run_dir)
+    os.rename(original_dir, run_dir)
+    if trial_no > max_ctr:
+        logger.info("Already collected enough data for this parameterization.")
+        sys.exit()
+    logger.info("Trying this config for {}th time. ".format(trial_no))
+
+
+    if 'exp_path_params' in cfg.algorithm.keys():
+        with open_dict(cfg):
+            del cfg['algorithm']['exp_path_params']
+    kwargs = {}
+    # TODO: function for folder name
+    #  OmegaConf.register_resolver("git_label", lambda: get_git_label())
     # Get default options for model classes
-    if 'model_class' in policy_args.keys():
-        model_class_args = get_model_class_args(policy_args['model_class'], all_cmd_kvs)
-        for k, v in model_class_args.items():
-            if k in policy_args.keys():
-                logger.warn(
-                    "Warning, model class and algorithm have a common parameter {}. This will cause the model class to use the default parameter provided in its constructor.".format(
-                        k))
-            else:
-                policy_args[k] = v
-        kwargs.update(policy_args.copy())
-        # In policy args, exchange the string representing the model class with the actual class object.
-        policy_args['model_class'] = getattr(importlib.import_module('stable_baselines3.' + policy_args['model_class']),
-                                             policy_args['model_class'].upper())
+    class_list = []
+    for class_name in cfg.layer_classes:
+        if class_name in dir(importlib.import_module('ideas_baselines')):
+            class_list.append(getattr(importlib.import_module('ideas_baselines.' + class_name), class_name.upper()))
+        elif class_name in dir(importlib.import_module('stable_baselines3')):
+            class_list.append(getattr(importlib.import_module('stable_baselines3.' + class_name), class_name.upper()))
+        else:
+            raise ValueError(f"class name {class_name} not found")
 
-    if 'model_classes' in policy_args.keys():
-        class_list = []
-        for class_name in policy_args['model_classes'].split(','):
-            model_class_args = get_model_class_args(class_name, all_cmd_kvs)
-            for k, v in model_class_args.items():
-                if k in policy_args.keys():
-                    logger.warn(
-                        "Warning, model class and algorithm have a common parameter {}. This will cause the model class to use the default parameter provided in its constructor.".format(
-                            k))
-                else:
-                    policy_args[k] = v
-            try:
-                class_list.append(getattr(importlib.import_module('stable_baselines3.' + class_name),
-                                          class_name.upper()))
-            except:
-                    class_list.append(getattr(importlib.import_module('ideas_baselines.' + class_name),
-                                              class_name.upper()))
-
-        kwargs.update(policy_args.copy())
-        # In policy args, exchange the string representing the model class with the actual class object.
-        policy_args['model_class'] = class_list[0]
+    if class_list:
+        kwargs['layer_class'] = class_list[0]
         if len(class_list) > 1:
-            policy_args['sub_model_classes'] = class_list[1:]
+            kwargs['sub_layer_classes'] = class_list[1:]
 
-    kwargs['pid'] = os.getpid()
-    logger.info("Starting process id: {}".format(kwargs['pid']))
-    ctr = kwargs['try_start_idx']
-    max_ctr = kwargs['max_try_idx']
-    path_params_names = config.PATH_CONFIG_PARAMS + ALL_PATH_CONFIG_PARAMS
-    path_params = {param:kwargs[param] for param in path_params_names}
-    starting_epoch = 0
-    if kwargs['restore_policy'] is not None:
-        params_file = '/'.join(kwargs['restore_policy'].split("/")[:-1]) + '/params.json'
-        try:
-            with open(params_file, 'r') as f:
-                loaded_params = json.load(f)
-                kwargs['seed'] = loaded_params['seed']
-                kwargs['logdir'] = loaded_params['logdir']
-            starting_epoch = int(get_last_epoch_from_logdir(kwargs['logdir'])) + 1
-            for k,v in loaded_params.items():
-                if k in kwargs.keys() and k != 'pid':
-                    assert kwargs[k] == v, "Error loaded parameter {} = {} does not match configuration: {} = {}".format(k,v,k,kwargs[k])
-        except Exception:
-            logger.warn("Warning, could not determine random seed of loaded model because params.csv is missing.")
+    logger.info("Starting process id: {}".format(os.getpid()))
 
-    git_label = get_git_label()
-    if git_label != '':
-        data_basedir = os.path.join(kwargs['base_logdir'], git_label, kwargs['env'])
-    else:
-        data_basedir = os.path.join(kwargs['base_logdir'], 'experiments', kwargs['env'])
-    logger.info("Data base dir: {} ".format(data_basedir))
-    if 'logdir' not in kwargs.keys():
-        logdir = 'data'
-        subdir_exists = True
-        while subdir_exists:
-            param_subdir = get_subdir_by_params(path_params, ctr)
-            logdir = os.path.join(data_basedir, param_subdir)
-            subdir_exists = os.path.exists(logdir)
-            ctr += 1
-        trial_no = ctr - 1
-        kwargs['logdir'] = logdir
-        if trial_no > max_ctr:
-            logger.info("Already collected enough data for this parameterization.")
-            sys.exit()
-        logger.info("Trying this config for {}th time. ".format(trial_no))
+    if cfg['seed'] == 0:
+        cfg['seed'] = int(time.time())
 
-    if kwargs['seed'] == 0:
-        kwargs['seed'] = int(time.time())
-    log_dict(kwargs, logger)
-
-    logger.configure(folder=kwargs['logdir'],
-                     format_strings=[])
-    plot_cols = kwargs['plot_eval_cols'].split(',')
-    logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(kwargs['logdir'], kwargs['plot_at_most_every_secs'], cols_to_plot=plot_cols))
+    logger.configure(folder=run_dir, format_strings=[])
+    plot_cols = cfg['plot_eval_cols']
+    logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=plot_cols)) # When using this, make sure that we don't have a csv output format already, otherwise there will be conflicts.
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
-    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(kwargs['logdir'], f"log.txt")))
+    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
 
     logdir = logger.get_dir()
-
     logger.info("Data dir: {} ".format(logdir))
 
     # Prepare xmls for subgoal visualizations
     ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
-
-    with open(os.path.join(logdir, 'params.json'), 'w') as f:
-        json.dump(kwargs, f)
-    launch(ctx, starting_epoch, policy_args, **kwargs)
+    OmegaConf.save(config=cfg, f='params.yaml')
+    launch(cfg, kwargs)
 
 
 if __name__ == '__main__':

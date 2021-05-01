@@ -8,10 +8,10 @@ from stable_baselines3.common import base_class
 from stable_baselines3.common.vec_env import VecEnv, DummyVecEnv
 from util.custom_evaluation import get_success
 from collections import OrderedDict
-from ideas_baselines.mbchac.util import merge_list_dicts
+from ideas_baselines.hac.util import merge_list_dicts
 
 def evaluate_hierarchical_policy(
-    model: "base_class.BaseAlgorithm",
+    layer_alg: "base_class.BaseAlgorithm",
     env: Union[gym.Env, VecEnv],
     n_eval_episodes: int = 10,
     maybe_reset_env: bool = True
@@ -20,7 +20,7 @@ def evaluate_hierarchical_policy(
     Runs policy for ``n_eval_episodes`` episodes and returns average reward.
     This is made to work only with one env.
 
-    :param model: The RL agent you want to evaluate.
+    :param layer_alg: The RL agent you want to evaluate.
     :param env: The gym environment. In the case of a ``VecEnv``
         this must contain only one environment.
     :param n_eval_episodes: Number of episode to evaluate the agent
@@ -46,15 +46,15 @@ def evaluate_hierarchical_policy(
             if not isinstance(env, VecEnv) or i == 0:
                 obs = env.reset()
         assert isinstance(env.venv, DummyVecEnv), "Error environment must be a DummyVecEnv"
-        model.reset_eval_info_list()
-        this_info_list = model.test_episode(env)
+        layer_alg.reset_eval_info_list()
+        this_info_list = layer_alg.test_episode(env)
         info_list = merge_list_dicts(this_info_list, info_list)
 
-    if model.is_top_layer:
+    if layer_alg.is_top_layer:
         # For compatibility with HER, add a few redundant extra fields:
-        copy_fields = {'test/success_rate': 'test_{}/ep_success'.format(model.layer),
-                       'test/mean_ep_length': 'test_{}/ep_length'.format(model.layer),
-                       'test/mean_reward': 'test_{}/ep_reward'.format(model.layer)
+        copy_fields = {'test/success_rate': 'test_{}/ep_success'.format(layer_alg.layer),
+                       'test/mean_ep_length': 'test_{}/ep_length'.format(layer_alg.layer),
+                       'test/mean_reward': 'test_{}/ep_reward'.format(layer_alg.layer)
                        }
         for k, v in copy_fields.items():
             try:

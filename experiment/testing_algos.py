@@ -4,8 +4,8 @@ import gym
 class TestingAlgos:
 
     base_algo_names = ['sac', 'ddpg', 'td3']
-    algo_names = ['mbchac', 'her2'] + base_algo_names
-    # algo_names = ['mbchac']
+    algo_names = ['hac', 'her2'] + base_algo_names
+    algo_names = ['hac']
 
     @staticmethod
     def get_her_performance_params(env):
@@ -28,55 +28,57 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
             return []
-        for model in TestingAlgos.base_algo_names:
-            if model in ['ppo']:
+        for algo in TestingAlgos.base_algo_names:
+            if algo in ['ppo']:
                 continue
-            hyper_params = {'model_class': model, 'eval_after_n_steps': 2000}
-            all_params.append((performance_params, hyper_params))
+            hyper_params = {'layer_classes': [algo], 'eval_after_n_steps': 2000}
+            all_params.append((performance_params, hyper_params, {}))
         return all_params
 
     @staticmethod
-    def get_mbchac_performance_params(env):
+    def get_hac_performance_params(env):
         all_params = []
         eval_after_n_steps = 5000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
-        model = 'sacvg'
-        plot_col_names_template = 'train_##/actor_loss,train_##/critic_loss,train_##/ent_coef,train_##/n_updates,test_##/ep_success,test_##/ep_reward,train_##/ent_coef_loss,rollout_##/success_rate,test_##/q_mean,test_##/ep_length,train_##/ep_length,test_##/step_success'
-        other_plot_col_names = 'test/success_rate,test/mean_reward'
+        algo = 'sacvg'
+        plot_col_names_template = [
+            'train_##/actor_loss','train_##/critic_loss','train_##/ent_coef','train_##/n_updates',
+            'test_##/ep_success','test_##/ep_reward','train_##/ent_coef_loss','rollout_##/success_rate','test_##/q_mean',
+            'test_##/ep_length','train_##/ep_length','test_##/step_success'
+        ]
+        other_plot_col_names = ['test/success_rate', 'test/mean_reward']
         hyper_params_all = {'eval_after_n_steps': eval_after_n_steps,
                             'early_stop_last_n': early_stop_last_n,
-                            'render_test' : 'record',
-                            'render_train': 'record',
-                            'render_every_n_eval': 20,
                             'n_test_rollouts': 10,
                             'save_model_freq': 50000
                             }
 
         # ts = ['10,10']
-        ts = ['50']
+        # ts = [[50, -1],[10,10]]
+        ts = [[-1], [5, -1]]
         # ts = ['7,7']
         # ar = [1, 0]
-        ar = [0]
-        # sg_test_perc = [0, 0.3]
-        sg_test_perc = [0]
+        ar = [1]
+        sg_test_perc = [0, 0.3]
+        sg_test_perc = [0.3]
         # learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
         # learning_rates = ['3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
-        learning_rates = ['3e-4', '3e-4,3e-4']
+        learning_rates = [[3e-4], [3e-4, 3e-4]]
         # learning_rates = ['3e-4']
-        set_fut_ret_zero_if_done = [0, 1]
+        set_fut_ret_zero_if_done = [0]
         # set_fut_ret_zero_if_done = [0]
 
-        n_succ_steps_for_early_ep_done = [0, 1, 2, 3]
-        n_succ_steps_for_early_ep_done = [0, 2]
+        # n_succ_steps_for_early_ep_done = [0, 1, 2, 3]
+        n_succ_steps_for_early_ep_done = [2]
         n_sampled_goal = [4]
         # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
-        # goal_selection_strategy = ['future']
+        goal_selection_strategy = ['future']
         # goal_selection_strategy = ['future3']
-        goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
+        # goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
         # goal_selection_strategy = ['future', 'future2']
         # goal_selection_strategy = ['future', 'rndend2']
         # goal_selection_strategy = ['rndend', 'rndend2']
-        hindsight_sampling_done_if_success = [0, 1]
+        # hindsight_sampling_done_if_success = [0, 1]
         hindsight_sampling_done_if_success = [0]
 
         if env in ['FetchReach-v1']:
@@ -93,9 +95,6 @@ class TestingAlgos:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif env in ['HandReach-v0']:
-            performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
-                                  'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
-        elif env in ['HandManipulateBlock-v0']:
             performance_params = {'n_epochs': 1000, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.7, 'performance_measure': 'test/success_rate'}
         elif 'Blocks-o0' in env:
@@ -119,7 +118,7 @@ class TestingAlgos:
         elif 'Ant' in env:
             performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
-            ts = ['500', '10,50', '20,25']
+            ts = [[-1], [20, -1]]
             # 'AntReacher-v1',
             # 'Ant4Rooms-v1',
             # 'AntMaze-v1',
@@ -132,44 +131,85 @@ class TestingAlgos:
 
 
         hyper_params = {}
+        algo_params = {
+            'render_test' : 'record',
+            'render_train': 'record',
+            'render_every_n_eval': 20
+        }
         for frz in set_fut_ret_zero_if_done:
-            hyper_params.update({'set_fut_ret_zero_if_done': frz})
+            algo_params.update({'set_fut_ret_zero_if_done': frz})
             for hsdis in hindsight_sampling_done_if_success:
-                hyper_params.update({'hindsight_sampling_done_if_success': hsdis})
+                algo_params.update({'hindsight_sampling_done_if_success': hsdis})
                 if frz != hsdis: # Setting hindsight goal transitions to done only makes sense if setting future returns to zero on done.
                     continue
                 for nsg in n_sampled_goal:
-                    hyper_params.update({'n_sampled_goal': nsg})
+                    algo_params.update({'n_sampled_goal': nsg})
                     for gss in goal_selection_strategy:
-                        hyper_params.update({'goal_selection_strategy': gss})
+                        algo_params.update({'goal_selection_strategy': gss})
                         for time_scales in ts:
-                            model_classes = [model] * len(time_scales.split(','))
-                            hyper_params.update({'model_classes': ",".join(model_classes), 'time_scales': time_scales})
+                            hyper_params.update({'layer_classes': [algo] * len(time_scales)})
+                            algo_params.update({'time_scales': time_scales})
                             for action_replay in ar:
-                                hyper_params.update({'use_action_replay': str(action_replay)})
+                                algo_params.update({'use_action_replay': action_replay})
                                 for subgoal_test_perc in sg_test_perc:
-                                    hyper_params.update({'subgoal_test_perc': str(subgoal_test_perc)})
+                                    algo_params.update({'subgoal_test_perc': subgoal_test_perc})
                                     for eedos in n_succ_steps_for_early_ep_done:
-                                        hyper_params.update({'ep_early_done_on_succ': str(eedos)})
+                                        algo_params.update({'ep_early_done_on_succ': str(eedos)})
                                         for lrs in learning_rates:
-                                            n_layers = len(time_scales.split(","))
-                                            if n_layers != len(lrs.split(",")):
+                                            n_layers = len(time_scales)
+                                            if len(time_scales) != len(lrs):
                                                 continue
                                             # if gss == 'future' and eedos != 0:
                                             #     continue
                                             # if 'rndend' in gss and eedos == 0:
                                             #     continue
-                                            hyper_params.update({'learning_rates':lrs})
+                                            algo_params.update({'learning_rates':lrs})
                                             plot_col_names = other_plot_col_names
                                             for lay in range(n_layers):
-                                                plot_col_names += "," + plot_col_names_template.replace("##", str(lay))
+                                                for plt_col_template in plot_col_names_template:
+                                                    plot_col_names.append(plt_col_template.replace("##", str(lay)))
                                             hyper_params.update({'plot_eval_cols': plot_col_names})
                                             hyper_params.update(hyper_params_all)
-                                            all_params.append((performance_params.copy(), hyper_params.copy()))
+                                            all_params.append((performance_params.copy(), hyper_params.copy(), algo_params.copy()))
+        return all_params
+
+    @staticmethod
+    def get_her2_performance_params(env):
+        all_params = []
+        eval_after_n_steps = 2000
+        early_stop_last_n = (10000 // eval_after_n_steps) + 1
+        hyper_params = {'eval_after_n_steps': eval_after_n_steps, 'early_stop_last_n': early_stop_last_n}
+        if env in ['FetchReach-v1']:
+            performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
+                                  'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
+            hyper_params = {'eval_after_n_steps': 1000, 'train_freq': 50}
+        elif env in ['FetchPush-v1']:
+            performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.05, 'performance_measure': 'test/success_rate'}
+        elif env in ['FetchSlide-v1']:
+            performance_params = {'n_epochs': 50, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
+        elif env in ['FetchPickAndPlace-v1']:
+            performance_params = {'n_epochs': 25, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
+        elif env in ['HandReach-v0']:
+            performance_params = {'n_epochs': 70, 'n_runs': 4, 'min_success_runs': 2,
+                                  'min_performance_value': 0.1, 'performance_measure': 'test/success_rate'}
+        else:
+            print("Environment {} is not evaluated with HER algorithm.".format(env))
+            return []
+        for algo in TestingAlgos.base_algo_names:
+            if algo in ['ppo']:
+                continue
+            hyper_params_all = {'layer_classes': [algo],
+                                'plot_eval_cols': ['train/actor_loss','train/critic_loss','train/ent_coef','train/learning_rate','train/n_updates','test/success_rate','test/mean_reward','train/ent_coef_loss','rollout/success_rate']}
+            hyper_params.update(hyper_params_all)
+            performance_params['n_epochs'] = (20000 // hyper_params['eval_after_n_steps']) + 1
+            all_params.append((performance_params.copy(), hyper_params.copy(), {}))
         return all_params
 
     # @staticmethod
-    # def get_mbchac_performance_params(env):
+    # def get_hac_performance_params(env):
     #     all_params = []
     #     eval_after_n_steps = 2000
     #     early_stop_last_n = (10000 // eval_after_n_steps) + 1
@@ -205,42 +245,6 @@ class TestingAlgos:
     #
     #     return all_params
 
-
-    @staticmethod
-    def get_her2_performance_params(env):
-        all_params = []
-        eval_after_n_steps = 2000
-        early_stop_last_n = (10000 // eval_after_n_steps) + 1
-        hyper_params = {'eval_after_n_steps': eval_after_n_steps, 'early_stop_last_n': early_stop_last_n}
-        if env in ['FetchReach-v1']:
-            performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
-                                  'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
-            hyper_params = {'eval_after_n_steps': 1000, 'train_freq': 50}
-        elif env in ['FetchPush-v1']:
-            performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
-                                  'min_performance_value': 0.05, 'performance_measure': 'test/success_rate'}
-        elif env in ['FetchSlide-v1']:
-            performance_params = {'n_epochs': 50, 'n_runs': 4, 'min_success_runs': 2,
-                                  'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
-        elif env in ['FetchPickAndPlace-v1']:
-            performance_params = {'n_epochs': 25, 'n_runs': 4, 'min_success_runs': 2,
-                                  'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
-        elif env in ['HandReach-v0']:
-            performance_params = {'n_epochs': 70, 'n_runs': 4, 'min_success_runs': 2,
-                                  'min_performance_value': 0.1, 'performance_measure': 'test/success_rate'}
-        else:
-            print("Environment {} is not evaluated with HER algorithm.".format(env))
-            return []
-        for model in TestingAlgos.base_algo_names:
-            if model in ['ppo']:
-                continue
-            hyper_params_all = {'model_class': model,
-                                'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
-            hyper_params.update(hyper_params_all)
-            performance_params['n_epochs'] = (20000 // hyper_params['eval_after_n_steps']) + 1
-            all_params.append((performance_params.copy(), hyper_params.copy()))
-        return all_params
-
     @staticmethod
     def get_td3_performance_params(env):
         if env in []:
@@ -250,7 +254,7 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with TD3 algorithm.".format(env))
             return []
-        return [(performance_params, hyper_params)]
+        return [(performance_params, hyper_params, {})]
 
     @staticmethod
     def get_ddpg_performance_params(env):
@@ -261,7 +265,7 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with DDPG algorithm.".format(env))
             return []
-        return [(performance_params, hyper_params)]
+        return [(performance_params, hyper_params, {})]
 
     @staticmethod
     def get_sac_performance_params(env):
@@ -272,7 +276,7 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with SAC algorithm.".format(env))
             return []
-        return [(performance_params, hyper_params)]
+        return [(performance_params, hyper_params, {})]
 
     @staticmethod
     def get_dqn_performance_params(env):
@@ -283,7 +287,7 @@ class TestingAlgos:
         else:
             print("Environment {} is not evaluated with DQN algorithm.".format(env))
             return []
-        return [(performance_params, hyper_params)]
+        return [(performance_params, hyper_params, {})]
 
     # @staticmethod
     # def get_her_pytorch_performance_params(env):
@@ -328,7 +332,7 @@ class TestingAlgos:
     #     return all_params
     #
     # @staticmethod
-    # def get_mbchac_performance_params(env):
+    # def get_hac_performance_params(env):
     #     all_params = []
     #     all_h_params = [
     #         # 1 level HER
@@ -338,7 +342,7 @@ class TestingAlgos:
     #         # 2 level CHAC
     #         {'buffer_size': "500,500", 'eta': '0.5,0.5', 'level_types': 'hac,hac', 'dm_hidden_size': 256,
     #          'dm_batch_size': 1024, 'dm_lr': 0.001, "dm_ensemble": 5, 'simulate_level': '0,0'},
-    #         # 2 level MBCHAC
+    #         # 2 level HAC
     #         {'buffer_size': "500,500", 'eta': '0.5,0.5', 'level_types': 'hac,hac', 'dm_hidden_size': 256,
     #          'dm_batch_size': 1024, 'dm_lr': 0.001, "dm_ensemble": 5, 'simulate_level': '1,1'}
     #     ]

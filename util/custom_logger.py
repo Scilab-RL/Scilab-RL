@@ -23,7 +23,7 @@ class MatplotlibCSVOutputFormat(KVWriter):
         self.csv_filename = "progress.csv"
         self.csv_filepath = os.path.join(logpath,self.csv_filename)
         self.sep = ','
-        if os.path.isfile(self.csv_filepath): # If a file is already existing, maybe because we continue training with restore_policy.
+        if os.path.isfile(self.csv_filepath): # If a file is already existing, maybe because we continue training with restore_policy, determine the keys of the first row so we don't write them again.
             file = open(self.csv_filepath, 'r')
             reader = csv.reader(file, delimiter=self.sep, quotechar='|')
             existing_keys = []
@@ -215,7 +215,10 @@ class MatplotlibCSVOutputFormat(KVWriter):
                     xs = range(0, data_info['shortest_data_count'])
                     xs_label = 'epochs'
                 all_data_info[config_str] = data_info
-                line, = plt.plot(xs, median[:min_data_len], label=config_str + '-' + k)
+                try:
+                    line, = plt.plot(xs, median[:min_data_len], label=config_str + '-' + k)
+                except Exception as e:
+                    print(f"ohno {e}")
                 plt.fill_between(xs, lower[:min_data_len],
                                  upper[:min_data_len],
                                  alpha=0.25, color=line.get_color())
