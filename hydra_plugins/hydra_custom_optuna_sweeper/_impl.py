@@ -6,6 +6,7 @@ from optuna.trial import TrialState
 import optuna
 import time
 import datetime
+import os
 from optuna import pruners
 from hydra_plugins.hydra_custom_optuna_sweeper.param_repeat_pruner import ParamRepeatPruner
 from hydra.core.config_loader import ConfigLoader
@@ -151,6 +152,9 @@ class CustomOptunaSweeperImpl(Sweeper):
             }
         self.job_idx: int = 0
         self.jobs_running = 0
+        self.del_to_stop_fname = "delete_me_to_stop_hyperopt"
+        with open(self.del_to_stop_fname, 'w') as f:
+            f.write("Delete this file to stop the hyperparameter optimization after the current batch of jobs.")
         # if self.n_jobs > 1:
         # if True:
         #     self.proc_pool = mp.Pool(processes=self.n_jobs)
@@ -341,7 +345,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         n_trials_to_go = self.max_trials
         start_time = time.time()
         current_time = start_time
-        while n_trials_to_go > 0 and (start_time + self.max_duration_seconds) > current_time:
+        while n_trials_to_go > 0 and (start_time + self.max_duration_seconds) > current_time and os.path.isfile(self.del_to_stop_fname):
             running_duration = (current_time - start_time)
             log.info(f"Hyperparameter optimization is now running for {str(datetime.timedelta(seconds=running_duration))} of {str(datetime.timedelta(seconds=self.max_duration_seconds))}. Max. {n_trials_to_go} trials left.")
             enqueued_param_runs = 0
@@ -424,7 +428,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         )
         df = study.trials_dataframe()
         df.to_csv("tmp_trials.csv", index=False)
-
+        os.remove(self.del_to_stop_fname)
 
 
     def sweep_multiproc_async(self, arguments: List[str]) -> None:

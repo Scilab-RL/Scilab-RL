@@ -65,6 +65,16 @@ hydra:
         low: 2
         high: 12
         step: 1
+      model.conv1.kernel_size:
+        type: int
+        low: 2
+        high: 4
+        step: 1
+      model.conv2.kernel_size:
+        type: int
+        low: 2
+        high: 4
+        step: 1
 
 model:
   conv1:
