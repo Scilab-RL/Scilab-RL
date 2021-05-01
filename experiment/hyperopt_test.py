@@ -37,14 +37,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 import random
 
 
-
-# MINUTES_TO_RUN = 0.5
-# HOURS_TO_RUN = MINUTES_TO_RUN / 60
-# PROCS_RUNNING = 0
-# RUNS_PER_PARAM = 3
-MLFLOW_RUNNAME = 'mlflow_run'
-
-
 def log_params_from_omegaconf_dict(params):
     for param_name, element in params.items():
         _explore_recursive(param_name, element)
@@ -82,7 +74,6 @@ class Net(nn.Module):
         self.fc2 = nn.Linear(cfg.fc1_units, cfg.fc2_units)
         self.fc3 = nn.Linear(cfg.fc2_units, 10)
 
-
     def forward(self, x):
         # Max pooling over a (2, 2) window
         x.to(self.device)
@@ -105,21 +96,6 @@ class Net(nn.Module):
         for s in size:
             num_features *= s
         return num_features
-
-
-# def check_resources_free(free_ram=1000, free_gpu_ram=2000, free_cpus=2):
-#     global PROCS_RUNNING
-#     cpu_used = psutil.cpu_percent()
-#     # print(f"Current cpu used: {cpu_used}%")
-#     # total_cpu = psutil.cpu_count(logical=True) * 100
-#     # cpus_free = (total_cpu - cpu_used) >= (free_cpus * 100)
-#     cpus_free = PROCS_RUNNING < free_cpus
-#
-#     gpu_free = True
-#
-#     ram_free = True
-#
-#     return cpus_free and gpu_free and ram_free
 
 
 def set_rnd_seed():
@@ -154,7 +130,7 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
-    mlflow.set_experiment(MLFLOW_RUNNAME)
+    mlflow.set_experiment(cfg.hydra.sweeper.study_name)
     steps = 0
     test_acc = 0
     with mlflow.start_run():
@@ -208,98 +184,18 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     return test_acc
 
 
-def check_cfg_duplicate(cfg, metric='', max_duplicates=1, params_to_exclude=['rnd_seed']):
-    experiment = mlflow.get_experiment_by_name(MLFLOW_RUNNAME)
-    try:
-        runs = mlflow.list_run_infos(experiment.experiment_id)
-    except:
-        runs = []
-    n_duplicate_vals = 0
-    duplicate_val = 0
-    # n_duplicate_runs = 0
-    for r in runs:
-        r_info = mlflow.get_run(r.run_id)
-        cfg_duplicate = True
-        for k,v in r_info.data.params.items():
-            k_items = k.split(".")[1:]
-            cfg_item = cfg
-            invalid_param = k in params_to_exclude
-            for k_item in k_items:
-                if k_item in cfg_item.keys():
-                    cfg_item = cfg_item[k_item]
-                else:
-                    invalid_param = True
-            if invalid_param:
-                continue
-            this_run_v = str(cfg_item)
-            if this_run_v != v:
-                cfg_duplicate = False
-                break
-        if cfg_duplicate is True:
-            # n_duplicate_runs += 1
-            if metric != '' and metric in r_info.data.metrics.keys():
-                metric_val = r_info.data.metrics[metric]
-                duplicate_val += metric_val
-                n_duplicate_vals += 1
-
-        if n_duplicate_vals > max_duplicates: # One duplicate is fine because the current run is already registered. But no more than one.
-            break
-    is_duplicate = n_duplicate_vals >= max_duplicates
-    if metric != '':
-        if n_duplicate_vals > 0:
-            avg_metric_val = duplicate_val / n_duplicate_vals
-        else:
-            avg_metric_val = None
-            # is_duplicate = False # In this case there are duplicate runs but these are not yet finished so we cannot get their value. If this is the case we just claim that this is not a duplicate and evaluate the run normally.
-        return is_duplicate, avg_metric_val
-    else:
-        return is_duplicate
-
-
-def my_func(cfg: DictConfig, queue=None) -> float:
-    np.random.seed()
-    print(f"current proc: {mp.current_process()}")
-    print(f"fc1: {cfg.model.fc1_units}")
-    print(f"fc2: {cfg.model.fc2_units}")
-    with mlflow.start_run():
-        quotient = cfg.model.fc1_units / cfg.model.fc2_units
-        rndn = np.random.normal()
-        t_sleep = quotient * 4 + quotient * rndn
-        t_sleep /= 10
-        print(f"sleeping for {t_sleep} secs.")
-        n_loops = int(t_sleep * 100000)
-        a = 1
-        for _ in range(n_loops):
-            a *= 1.000001
-        # time.sleep(t_sleep) # time.sleep triggers a KeyboardInterrupt when running in multiprocess mode
-        mlflow.log_param("cfg.model.fc1_units", cfg.model.fc1_units)
-        mlflow.log_param("cfg.model.fc2_units", cfg.model.fc2_units)
-        mlflow.log_metric("t_sleep", float(t_sleep))
-        mlflow.log_metric("hyperopt_score", float(t_sleep))
-    if queue is not None:
-        queue.put(t_sleep)
-    return t_sleep
-
-
-# def proc_finished_cb(result=None):
-#     global PROCS_RUNNING, RUNS_PER_PARAM
-#     # print(f"Proc done with result {result}")
-#     PROCS_RUNNING -= RUNS_PER_PARAM
-
-
 @hydra.main(config_name='config.yaml')
 def main(cfg: DictConfig, *args) -> float:
-    global MLFLOW_RUNNAME
 
     cuda_available = torch.cuda.is_available()
     if cuda_available:
         print("Cuda is available!")
 
-    # cfg.mlflow.runname = MLFLOW_RUNNAME
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
-    mlflow.set_experiment(MLFLOW_RUNNAME)
+    mlflow.set_experiment(cfg.hydra.sweeper.study_name)
+    # mlflow.set_experiment("mlflow-study")
 
     func_to_train = do_train
 
@@ -309,11 +205,10 @@ def main(cfg: DictConfig, *args) -> float:
 
 if __name__ == "__main__":
     print(f"Running hyperopt and using torch device {torch.cuda.current_device()}.")
+    main()
+
     cfg = omegaconf.OmegaConf.load('experiment/config.yaml')
     study_name = cfg.hydra.sweeper.study_name
-    MLFLOW_RUNNAME = study_name
-
-    main()
     study = optuna.load_study(study_name, cfg.hydra.sweeper.storage)
     imgdir = f"hyperopt_logs/{study_name}"
     if not os.path.exists("hyperopt_logs"):
