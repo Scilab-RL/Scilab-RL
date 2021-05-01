@@ -38,7 +38,7 @@ hydra:
 #    storage: null
 #    storage: mysql://hyperopt_user@localhost/ideas_hrl_hyperopt_database
     max_trials: 200
-    n_jobs: 7
+    n_jobs: 6
     max_duration_minutes: 15
     min_trials_per_param: 3
     max_trials_per_param: 5
@@ -55,24 +55,24 @@ hydra:
         low: 8
         high: 256
         step: 8
-#      model.conv1.n_kernels:
-#        type: int
-#        low: 2
-#        high: 12
-#        step: 1
-#      model.conv2.n_kernels:
-#        type: int
-#        low: 2
-#        high: 12
-#        step: 1
+      model.conv1.n_kernels:
+        type: int
+        low: 2
+        high: 12
+        step: 1
+      model.conv2.n_kernels:
+        type: int
+        low: 2
+        high: 12
+        step: 1
 
 model:
   conv1:
     kernel_size: 3
-    n_kernels: 6
+    n_kernels: 7
   conv2:
     kernel_size: 3
-    n_kernels: 16
+    n_kernels: 15
   fc1_units: 64
   fc2_units: 64
 
@@ -82,7 +82,7 @@ optimizer:
 
 train:
   batch_size: 4
-  epoch: 3
+  epoch: 7
 
 test:
   batch_size: 4

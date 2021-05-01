@@ -65,21 +65,33 @@ def _explore_recursive(parent_name, element):
 class Net(nn.Module):
     def __init__(self, cfg):
         super(Net, self).__init__()
+        # self.input_data_size = 28 * 28
         # 1 input image channel, 6 output channels, 3x3 square convolution
         # kernel
+        self.device = 'cuda:0'
         self.conv1 = nn.Conv2d(1, cfg.conv1.n_kernels, cfg.conv1.kernel_size)
+        # conv1_out_dim = self.input_data_size - (cfg.conv1.kernel_size - 1) - 1
+        # pool1_out_dim = conv1_out_dim
         self.conv2 = nn.Conv2d(cfg.conv1.n_kernels, cfg.conv2.n_kernels, cfg.conv2.kernel_size)
         # an affine operation: y = Wx + b
-        self.fc1 = nn.Linear(cfg.conv2.n_kernels * (cfg.conv1.n_kernels-1) * (cfg.conv1.n_kernels-1), cfg.fc1_units)  # 6*6 from image dimension
+        # fc1_in_dim = cfg.conv2.n_kernels * (cfg.conv1.n_kernels) * (cfg.conv1.n_kernels)
+        mp2_out_dim = 28
+        fc1_in_dim = mp2_out_dim * mp2_out_dim * cfg.conv2.n_kernels
+        self.mp2 = nn.AdaptiveMaxPool2d(mp2_out_dim)
+        self.fc1 = nn.Linear(fc1_in_dim, cfg.fc1_units)  # 6*6 from image dimension
         self.fc2 = nn.Linear(cfg.fc1_units, cfg.fc2_units)
         self.fc3 = nn.Linear(cfg.fc2_units, 10)
 
+
     def forward(self, x):
         # Max pooling over a (2, 2) window
+        x.to(self.device)
+        datasize = self.num_flat_features(x)
         x = F.max_pool2d(F.relu(self.conv1(x)), 2)
         # If the size is a square, you can specify with a single number
         x = self.conv2(x)
-        x = F.max_pool2d(F.relu(x), 2)
+        # x = F.max_pool2d(F.relu(x), 2)
+        x = self.mp2(x)
         x = x.view(-1, self.num_flat_features(x))
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
@@ -119,6 +131,8 @@ def set_rnd_seed():
 
 
 def do_train(cfg: DictConfig, queue=None) -> float:
+    device = torch.device("cuda:0")
+    torch.cuda.device(device)
     seed = set_rnd_seed()
     data_path = hydra.utils.get_original_cwd()
     dataset = MNIST(data_path, download=True, transform=transforms.ToTensor())
@@ -131,7 +145,7 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     testloader = DataLoader(val, batch_size=cfg.test.batch_size, shuffle=False)
 
     # load model
-    model = Net(cfg.model)
+    model = Net(cfg.model).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=cfg.optimizer.lr,
                           momentum=cfg.optimizer.momentum)
@@ -155,7 +169,8 @@ def do_train(cfg: DictConfig, queue=None) -> float:
             for i, (x, y) in enumerate(trainloader):
                 steps = epoch * len(trainloader) + i
                 optimizer.zero_grad()
-
+                x = x.to(device)
+                y = y.to(device)
                 outputs = model(x)
                 loss = criterion(outputs, y)
                 loss.backward()
@@ -170,7 +185,8 @@ def do_train(cfg: DictConfig, queue=None) -> float:
             test_acc = 0
             with torch.set_grad_enabled(False):
                 for i, (x, y) in enumerate(testloader):
-
+                    x = x.to(device)
+                    y = y.to(device)
                     outputs = model(x)
                     test_loss += criterion(outputs, y)
 
@@ -292,7 +308,7 @@ def main(cfg: DictConfig, *args) -> float:
     return result
 
 if __name__ == "__main__":
-    # print(f"Running hyperopt and using torch device {torch.cuda.current_device()}.")
+    print(f"Running hyperopt and using torch device {torch.cuda.current_device()}.")
     cfg = omegaconf.OmegaConf.load('experiment/config.yaml')
     study_name = cfg.hydra.sweeper.study_name
     MLFLOW_RUNNAME = study_name
