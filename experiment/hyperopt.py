@@ -40,8 +40,8 @@ import random
 
 # MINUTES_TO_RUN = 0.5
 # HOURS_TO_RUN = MINUTES_TO_RUN / 60
-PROCS_RUNNING = 0
-RUNS_PER_PARAM = 3
+# PROCS_RUNNING = 0
+# RUNS_PER_PARAM = 3
 MLFLOW_RUNNAME = 'mlflow_run'
 
 
@@ -95,19 +95,19 @@ class Net(nn.Module):
         return num_features
 
 
-def check_resources_free(free_ram=1000, free_gpu_ram=2000, free_cpus=2):
-    global PROCS_RUNNING
-    cpu_used = psutil.cpu_percent()
-    # print(f"Current cpu used: {cpu_used}%")
-    # total_cpu = psutil.cpu_count(logical=True) * 100
-    # cpus_free = (total_cpu - cpu_used) >= (free_cpus * 100)
-    cpus_free = PROCS_RUNNING < free_cpus
-
-    gpu_free = True
-
-    ram_free = True
-
-    return cpus_free and gpu_free and ram_free
+# def check_resources_free(free_ram=1000, free_gpu_ram=2000, free_cpus=2):
+#     global PROCS_RUNNING
+#     cpu_used = psutil.cpu_percent()
+#     # print(f"Current cpu used: {cpu_used}%")
+#     # total_cpu = psutil.cpu_count(logical=True) * 100
+#     # cpus_free = (total_cpu - cpu_used) >= (free_cpus * 100)
+#     cpus_free = PROCS_RUNNING < free_cpus
+#
+#     gpu_free = True
+#
+#     ram_free = True
+#
+#     return cpus_free and gpu_free and ram_free
 
 
 def set_rnd_seed():
@@ -265,69 +265,29 @@ def my_func(cfg: DictConfig, queue=None) -> float:
     return t_sleep
 
 
-def proc_finished_cb(result=None):
-    global PROCS_RUNNING, RUNS_PER_PARAM
-    # print(f"Proc done with result {result}")
-    PROCS_RUNNING -= RUNS_PER_PARAM
+# def proc_finished_cb(result=None):
+#     global PROCS_RUNNING, RUNS_PER_PARAM
+#     # print(f"Proc done with result {result}")
+#     PROCS_RUNNING -= RUNS_PER_PARAM
 
 
 @hydra.main(config_name='config.yaml')
 def main(cfg: DictConfig, *args) -> float:
-    global RUNS_PER_PARAM, PROCS_RUNNING, MLFLOW_RUNNAME
+    global MLFLOW_RUNNAME
 
     cuda_available = torch.cuda.is_available()
     if cuda_available:
         print("Cuda is available!")
-
 
     # cfg.mlflow.runname = MLFLOW_RUNNAME
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
     mlflow.set_experiment(MLFLOW_RUNNAME)
-    # time.sleep(1)
-    # is_duplicate, duplicate_score = check_cfg_duplicate(cfg, metric='hyperopt_score', max_duplicates=2*RUNS_PER_PARAM)
-    # if is_duplicate:
-    #     print("This parameterization has been tried before, will just return the results from last time.")
-    #     return duplicate_score
-
-    PROCS_RUNNING += RUNS_PER_PARAM
 
     func_to_train = do_train
 
-    ### Parallel runs with pool, sync and async version. # NOT WORKING
-    # inner_pool = mp.Pool(processes=RUNS_PER_PARAM)
-    # for _ in range(RUNS_PER_PARAM):
-    #     inner_pool.map(func_to_train, cfg) # sync execution
-    #     inner_pool.apply_async(func_to_train, cfg, callback=proc_finished_cb) # or async execution
-    # # print(res)
-    # result = 0
-
-    ### Parallel runs with multiprocess.
-    # value_queue = mp.Queue()
-    # processes = [Process(target=func_to_train, args=(cfg,value_queue)) for x in range(RUNS_PER_PARAM)]
-    # for p in processes:
-    #     p.start()
-    #
-    # result = 0
-    # for p in processes:
-    #     p.join()
-    # while not value_queue.empty():
-    #     result += value_queue.get()
-    # result /= RUNS_PER_PARAM
-    # proc_finished_cb()
-
-    ### SINGLE RUN:
     result = func_to_train(cfg)
-    proc_finished_cb()
-
-    ### AVG over consecutive runs:
-    # result = 0
-    # for _ in range(RUNS_PER_PARAM):
-    #     res = func_to_train(cfg)
-    #     result += res
-    # result /= RUNS_PER_PARAM
-    # proc_finished_cb()
 
     return result
 
@@ -336,8 +296,6 @@ if __name__ == "__main__":
     cfg = omegaconf.OmegaConf.load('experiment/config.yaml')
     study_name = cfg.hydra.sweeper.study_name
     MLFLOW_RUNNAME = study_name
-    n_runs = cfg.hyperopt.parallel_runs
-    RUNS_PER_PARAM = n_runs
 
     main()
     study = optuna.load_study(study_name, cfg.hydra.sweeper.storage)
