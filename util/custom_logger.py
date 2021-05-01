@@ -14,6 +14,44 @@ from stable_baselines3.common.logger import Video, FormatUnsupportedError
 import warnings
 import time
 from cycler import cycler
+import mlflow
+import hydra
+import omegaconf
+from omegaconf import DictConfig, ListConfig
+
+class MLFlowOutputFormat(KVWriter):
+    def __init__(self, cfg):
+        orig_path = hydra.utils.get_original_cwd()
+        mlflow.set_tracking_uri('file://' + orig_path + '/mlruns')
+        tracking_uri = mlflow.get_tracking_uri()
+        print("Current tracking uri: {}".format(tracking_uri))
+        study_name = omegaconf.OmegaConf.load(f'{orig_path}/conf/main.yaml').hydra.sweeper.study_name
+        mlflow.set_experiment(study_name)
+        mlflow.start_run()
+        self.log_params_from_omegaconf_dict(cfg)
+
+    def log_params_from_omegaconf_dict(self, params):
+        for param_name, element in params.items():
+            self._explore_recursive(param_name, element)
+
+    def _explore_recursive(self, parent_name, element):
+        if isinstance(element, DictConfig):
+            for k, v in element.items():
+                if isinstance(v, DictConfig) or isinstance(v, ListConfig):
+                    self._explore_recursive(f'{parent_name}.{k}', v)
+                else:
+                    mlflow.log_param(f'{parent_name}.{k}', v)
+        elif isinstance(element, ListConfig):
+            for i, v in enumerate(element):
+                mlflow.log_param(f'{parent_name}.{i}', v)
+
+    def write(self, key_values: Dict[str, Any], key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
+        for k,v in key_values.items():
+            mlflow.log_metric(k, v, step=step)
+
+    def close(self) -> None:
+        mlflow.end_run()
+
 
 class MatplotlibCSVOutputFormat(KVWriter):
     def __init__(self, logpath, min_secs_wait_for_plot, cols_to_plot=None, plot_parent_dir=True):
@@ -102,7 +140,7 @@ class MatplotlibCSVOutputFormat(KVWriter):
     def close(self):
         self.file.close()
 
-    def plot_aggregate_kvs(self):
+    def get_data_dict(self):
         def config_from_folder(folder_str):
             return "&".join(folder_str.split("&")[:-1])
 
@@ -141,7 +179,11 @@ class MatplotlibCSVOutputFormat(KVWriter):
                                     pass
                                     # print("item is not a float")
             except Exception as e:
-                logger.warn("Warning, could not plot data from {} because the file was not found.".format(self.data_read_dir+"/"+configdir+"/"+self.csv_filename))
+                logger.warn("Warning, could not get data from {} because the file was not found.".format(self.data_read_dir+"/"+configdir+"/"+self.csv_filename))
+        return data_dict
+
+    def plot_aggregate_kvs(self):
+        data_dict = self.get_data_dict()
         self.plot_dict(data_dict)
 
     def tolerant_median(self, data_dict):

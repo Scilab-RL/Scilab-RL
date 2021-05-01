@@ -8,6 +8,13 @@ import time
 import datetime
 import os
 from optuna import pruners
+from optuna.visualization import plot_contour
+from optuna.visualization import plot_edf
+from optuna.visualization import plot_intermediate_values
+from optuna.visualization import plot_optimization_history
+from optuna.visualization import plot_parallel_coordinate
+from optuna.visualization import plot_param_importances
+from optuna.visualization import plot_slice
 from hydra_plugins.hydra_custom_optuna_sweeper.param_repeat_pruner import ParamRepeatPruner
 from hydra.core.config_loader import ConfigLoader
 from hydra.core.override_parser.overrides_parser import OverridesParser
@@ -428,7 +435,31 @@ class CustomOptunaSweeperImpl(Sweeper):
         )
         df = study.trials_dataframe()
         df.to_csv("tmp_trials.csv", index=False)
-        os.remove(self.del_to_stop_fname)
+        try:
+            os.remove(self.del_to_stop_fname)
+        except:
+            pass # Already deleted
+        imgdir = f"hyperopt_logs/{self.study_name}"
+        if not os.path.exists("hyperopt_logs"):
+            os.mkdir("hyperopt_logs")
+        if not os.path.exists(imgdir):
+            os.mkdir(imgdir)
+
+        try:
+            fig = plot_optimization_history(study)
+            fig.write_image(f"{imgdir}/plot_optimization_history.png")
+        except:
+            pass
+        try:
+            fig = plot_contour(study)
+            fig.write_image(f"{imgdir}//plot_contour.png")
+        except:
+            pass
+        try:
+            fig = plot_param_importances(study)
+            fig.write_image(f"{imgdir}//plot_param_importances.png")
+        except:
+            pass
 
 
     def sweep_multiproc_async(self, arguments: List[str]) -> None:

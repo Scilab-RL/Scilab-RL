@@ -194,7 +194,8 @@ def main(cfg: DictConfig, *args) -> float:
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
-    mlflow.set_experiment(cfg.hydra.sweeper.study_name)
+    study_name = omegaconf.OmegaConf.load('experiment/config.yaml').hydra.sweeper.study_name
+    mlflow.set_experiment(study_name)
     # mlflow.set_experiment("mlflow-study")
 
     func_to_train = do_train

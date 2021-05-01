@@ -12,7 +12,7 @@ exp_path_params:
 
 verbose: True
 
-# 'future', 'future2', 'future3', 'future4', 'final', 'episode', 'rndend', 'rndend2', 'rndend3'
+# 'future', 'future2', 'final', 'episode', 'rndend', 'rndend2'
 goal_selection_strategy: 'future'
 
 n_sampled_goal: 4
@@ -50,7 +50,7 @@ hindsight_sampling_done_if_success: 1
 set_fut_ret_zero_if_done: 0
 
 # Whether and how to render the rollout execution during training. \'record\' is for video, \'display\' for direct visualization, \'null\' is for not rendering at all.
-render_train: record
+render_train: null
 
 # Whether and how to render the rollout execution during testing.
 # \'record\' is for video, \'display\' for direct visualization.
