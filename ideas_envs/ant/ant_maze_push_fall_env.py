@@ -2,7 +2,6 @@
 
 import os
 import numpy as np
-from gym import spaces
 from ideas_envs.ant.ant_env import AntEnv
 from ideas_envs.ant.xml_creator import create_xml
 
@@ -10,26 +9,14 @@ MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'asset
 MAX_GOAL_DIST = 5.0
 
 
-def get_reward_fn(task):
-    if task in ['Maze', 'Push']:
-        return lambda obs, goal: -np.sum(np.square(obs[:2] - goal)) ** 0.5
-    if task == 'Fall':
-        return lambda obs, goal: -np.sum(np.square(obs[:3] - goal)) ** 0.5
-    assert False, 'Unknown env'
-
-
 def get_subgoal_bounds(task):
     if task == 'Maze':
-        return np.array([[-3.75, 19.75], [-3.75, 19.75]])
+        return np.array([[-3.75, 19.75], [-3.75, 19.75], [0.5, 0.5]])
     if task == 'Push':
-        return np.array([[-11.75, 11.75], [-3.75, 21.75]])
+        return np.array([[-11.75, 11.75], [-3.75, 21.75], [0.5, 0.5]])
     if task == 'Fall':
         return np.array([[-5.75, 15.75], [-5.75, 29.75], [4.5, 4.5]])
     assert False, 'Unknown env'
-
-
-def success_fn(last_reward):
-    return last_reward > -MAX_GOAL_DIST
 
 
 class AntMazePushFallEnv(AntEnv):
@@ -37,8 +24,6 @@ class AntMazePushFallEnv(AntEnv):
         xml_path = create_xml(MODEL_XML_PATH, maze_id=task)
         self.task = task
         self.evaluate = False
-        self.g_slice = 3 if self.task == 'Fall' else 2
-        self.reward_fn = get_reward_fn(task)
         self.subgoal_bound = get_subgoal_bounds(task)
 
         super().__init__(xml_path, reward_type, distance_threshold)
@@ -54,11 +39,11 @@ class AntMazePushFallEnv(AntEnv):
         super()._set_action(action*30)
 
     def _obs2goal(self, obs):
-        return obs[:self.g_slice].copy()
+        return obs[:3].copy()
 
     def _get_obs(self):
         obs = np.concatenate((self.sim.data.qpos, self.sim.data.qvel))
-        achieved_goal = obs[:self.g_slice]
+        achieved_goal = obs[:3]
         return {
             'observation': obs.copy(),
             'achieved_goal': achieved_goal.copy(),
@@ -78,25 +63,18 @@ class AntMazePushFallEnv(AntEnv):
         if self.task == 'Maze':
             # NOTE: When evaluating, a fixed goal is used (paper HIRO)
             if self.evaluate:
-                return np.array([0., 16.])
-            sampled_goal = self.np_random.uniform((-4, -4), (20, 20))
+                return np.array([0., 16., 0.5])
+            sampled_goal = self.np_random.uniform((-4, -4, 0.5), (20, 20, 0.5))
             # end goal should not be inside wall
             while sampled_goal[0] < 12.25 and sampled_goal[1] < 12.25 and sampled_goal[1] > 3.75:
-                sampled_goal = self.np_random.uniform((-4, -4), (20, 20))
+                sampled_goal = self.np_random.uniform((-4, -4, 0.5), (20, 20, 0.5))
             return sampled_goal
         if self.task == 'Push':
-            return np.array([0., 19.])
+            return np.array([0., 19., 0.5])
         if self.task == 'Fall':
             return np.array([0., 27., 4.5])
         assert False, 'Unknown env'
 
-    def compute_reward(self, achieved_goal, desired_goal, info):
-        reward = self.reward_fn(achieved_goal, desired_goal)
-        self.success = success_fn(reward)
-        if self.reward_type == 'sparse':
-            reward = -1 + int(self.success)
-        return reward
-
     def _render_callback(self):
         site_id = self.sim.model.site_name2id("goal")
-        self.sim.model.site_pos[site_id][:self.g_slice] = self.goal[:self.g_slice].copy()
+        self.sim.model.site_pos[site_id][:3] = self.goal.copy()

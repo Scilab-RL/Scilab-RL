@@ -31,7 +31,7 @@ GOAL_MARKER_MAX_ALPHA = 0.9
 
 
 from util.custom_evaluation import get_success
-# from ideas_baselines.mbchac.mbchac import MBCHAC
+# from ideas_baselines.hac.hac import HAC
 # try:
 #     import mujoco_py
 # except ImportError as e:
@@ -41,40 +41,39 @@ DEFAULT_SIZE = 500
 
 
 def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
-                        level_steps_str: str,
-                        is_testing_env: bool = False, model: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
+                        level_steps: List,
+                        is_testing_env: bool = False, layer_alg: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
 
     def recursive_get_henvs(bottom_env: gym.wrappers.TimeLimit,
-                        level_steps_str: str, env_list: List[gym.GoalEnv] = [],
-                        is_testing_env: bool = False, model: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
+                        level_steps: List[int], env_list: List[gym.GoalEnv] = [],
+                        is_testing_env: bool = False, layer_alg: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
 
-        if level_steps_str == '':
+        if not level_steps:
             return env_list
-        level_steps = [int(s) for s in level_steps_str.split(",")]
-        if len(level_steps) > 1: # If this is not bottom environment
-            env = HierarchicalHLEnv(bottom_env, is_testing_env=is_testing_env, model=model)
+        if len(level_steps) > 1:
+            env = HierarchicalHLEnv(bottom_env, is_testing_env=is_testing_env, layer_alg=layer_alg)
             env = gym.wrappers.TimeLimit(env, max_episode_steps=level_steps[0])
         else:
             env = bottom_env
             env.unwrapped.spec.max_episode_steps = level_steps[0]
             env._max_episode_steps = level_steps[0]
-            if model is not None:
-                env.env.model = model
+            if layer_alg is not None:
+                env.env.layer_alg = layer_alg
 
         env_list.append(env)
-        next_level_steps_str = ",".join([str(s) for s in level_steps[1:]])
-        if model is not None and model.sub_model is not None:
-            next_level_model = model.sub_model
+        next_level_steps = level_steps[1:]
+        if layer_alg is not None and layer_alg.sub_layer is not None:
+            next_level_layer_alg = layer_alg.sub_layer
         else:
-            next_level_model = None
-        env_list = recursive_get_henvs(bottom_env, next_level_steps_str, env_list, is_testing_env, next_level_model)
+            next_level_layer_alg = None
+        env_list = recursive_get_henvs(bottom_env, next_level_steps, env_list, is_testing_env, next_level_layer_alg)
 
         return env_list
 
     # bottom_env = inject_subgoal_geometry(bottom_env) # TODO: What for is this?
 
-    env_list = recursive_get_henvs(bottom_env=bottom_env, level_steps_str=level_steps_str,
-                                   env_list=[], is_testing_env=is_testing_env, model=model)
+    env_list = recursive_get_henvs(bottom_env=bottom_env, level_steps=level_steps,
+                                   env_list=[], is_testing_env=is_testing_env, layer_alg=layer_alg)
 
     # iterate through reversed list to set sub_envs and parent_envs correctly; necessary for recursive action_space determination.
     for level, e in enumerate(reversed(env_list)):
@@ -184,7 +183,7 @@ class HierarchicalVecEnv(DummyVecEnv):
         return self.buf_obs
 
 class HierarchicalHLEnv(gym.GoalEnv):
-    def __init__(self, bottom_env, is_testing_env=None, model=None):
+    def __init__(self, bottom_env, is_testing_env=None, layer_alg=None):
         self.bottom_env = bottom_env
         self.action_space = bottom_env.observation_space.spaces['desired_goal']
         if np.inf in self.action_space.high or -np.inf in self.action_space.low:
@@ -193,7 +192,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self.observation_space = bottom_env.env.observation_space
         self._sub_env = None
         self._parent_env = None
-        self.model = model
+        self.layer_alg = layer_alg
         self.is_testing_env = is_testing_env
 
     def update_action_bound_guess(self):
@@ -201,7 +200,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self.action_space.high = [-np.inf] * len(self.action_space.high)
         self.action_space.low = [np.inf] * len(self.action_space.low)
         for i in range(n_samples):
-            self._sub_env.env.unwrapped._reset_sim() # This is necessary for some environments where the goal depends on the environment setup.
             goal = self._sub_env.env.unwrapped._sample_goal()
             self.action_space.high = np.maximum(goal, self.action_space.high)
             self.action_space.low = np.minimum(goal, self.action_space.low)
@@ -229,15 +227,15 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self._sub_env.env.unwrapped.goal = subgoal
         # self._sub_env.display_subgoals(subgoal)  # , size=0.03, shape='cylinder', colors=[0, 0, 0.7, 0.1])
 
-        assert self.model is not None, "Step not possible because no model defined yet."
+        assert self.layer_alg is not None, "Step not possible because no layer_alg defined yet."
         if self.is_testing_env:
             info = self.test_step()
         else:
             info = {}
             self.train_step()
         if not self.is_testing_env:
-            if self.model.sub_model is not None:
-                if self.model.sub_model.in_subgoal_test_mode:
+            if self.layer_alg.sub_layer is not None:
+                if self.layer_alg.sub_layer.in_subgoal_test_mode:
                     info['is_subgoal_testing_trans'] = 1
                 else:
                     info['is_subgoal_testing_trans'] = 0
@@ -253,10 +251,10 @@ class HierarchicalHLEnv(gym.GoalEnv):
         return obs, reward, done, info
 
     def train_step(self):
-        self.model.train_step()
+        self.layer_alg.train_step()
 
     def test_step(self):
-        info_list = self.model.test_step(self)
+        info_list = self.layer_alg.test_step(self)
         return info_list
 
     def reset(self):

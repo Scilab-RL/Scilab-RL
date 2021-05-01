@@ -5,6 +5,7 @@ import random
 import csv
 from scipy.interpolate import interp1d
 from stable_baselines3.common import logger
+from omegaconf.listconfig import ListConfig
 
 import sys
 import inspect
@@ -109,6 +110,8 @@ def get_subdir_by_params(path_params, ctr=0):
     for p,v in sorted(path_params.items()):
         if str(v) == '':
             continue
+        if isinstance(v, ListConfig):
+            v = ','.join(str(_v) for _v in v)
         this_key_str = "".join([s[:3] for s in p.split("_")])
         chars_to_split = [",", ":", "[", "]"]
         this_v_str = shorten_split_elem(str(v), chars_to_split)

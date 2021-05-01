@@ -19,7 +19,7 @@ def get_success(info_list):
 
 
 def evaluate_policy(
-    model: "base_class.BaseAlgorithm",
+    agent: "base_class.BaseAlgorithm",
     env: Union[gym.Env, VecEnv],
     n_eval_episodes: int = 10,
     deterministic: bool = True,
@@ -32,7 +32,7 @@ def evaluate_policy(
     Runs policy for ``n_eval_episodes`` episodes and returns average reward.
     This is made to work only with one env.
 
-    :param model: The RL agent you want to evaluate.
+    :param agent: The RL agent you want to evaluate.
     :param env: The gym environment. In the case of a ``VecEnv``
         this must contain only one environment.
     :param n_eval_episodes: Number of episode to evaluate the agent
@@ -74,7 +74,7 @@ def evaluate_policy(
                                                            height=render_info['size'][1])
                 video_writer.write(frame)
 
-            action, state = model.predict(obs, state=state, deterministic=deterministic)
+            action, state = agent.predict(obs, state=state, deterministic=deterministic)
             obs, reward, done, _info = env.step(action)
             this_episode_success = get_success(_info)
             if not episode_success or episode_success == np.nan:

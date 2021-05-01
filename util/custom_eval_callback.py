@@ -20,7 +20,7 @@ class CustomEvalCallback(EvalCallback):
 
     :param eval_env: The environment used for initialization
     :param callback_on_new_best: Callback to trigger
-        when there is a new best model according to the ``mean_reward``
+        when there is a new best agent according to the ``mean_reward``
     :param n_eval_episodes: The number of episodes to test the agent
     :param eval_freq: Evaluate the agent every eval_freq call of the callback.
     :param log_path: Path to a folder where the evaluations (``evaluations.npz``)
@@ -44,7 +44,7 @@ class CustomEvalCallback(EvalCallback):
         early_stop_data_column: str = 'test/success_rate',
         early_stop_threshold: float = 1.0,
         early_stop_last_n: int = 5,
-        model: OffPolicyAlgorithm = None
+        agent: OffPolicyAlgorithm = None
     ):
         super(EvalCallback, self).__init__(verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
@@ -61,7 +61,7 @@ class CustomEvalCallback(EvalCallback):
         self.early_stop_data_column = early_stop_data_column
         self.early_stop_threshold = early_stop_threshold
         self.early_stop_last_n = early_stop_last_n
-        self.model = model
+        self.agent = agent
 
         eval_env = BaseAlgorithm._wrap_env(eval_env)
         # Convert to VecEnv for consistency
@@ -73,7 +73,7 @@ class CustomEvalCallback(EvalCallback):
 
         self.eval_env = eval_env
         self.log_path = log_path
-        self.best_model_save_path = None
+        self.best_agent_save_path = None
         self.evaluations_results = []
         self.evaluations_timesteps = []
         self.evaluations_length = []
@@ -96,7 +96,7 @@ class CustomEvalCallback(EvalCallback):
             if self.render_info is not None:
                 self.render_info['eval_count'] = self.eval_count
             episode_rewards, episode_lengths, episode_successes = evaluate_policy(
-                self.model,
+                self.agent,
                 self.eval_env,
                 n_eval_episodes=self.n_eval_episodes,
                 deterministic=self.deterministic,
@@ -122,8 +122,8 @@ class CustomEvalCallback(EvalCallback):
             # if mean_reward > self.best_mean_reward:
             #     if self.verbose > 0:
             #         print("New best mean reward!")
-            #     if self.best_model_save_path is not None:
-            #         self.model.save(os.path.join(self.best_model_save_path, "best_model"))
+            #     if self.best_agent_save_path is not None:
+            #         self.agent.save(os.path.join(self.best_agent_save_path, "best_agent"))
             #     self.best_mean_reward = mean_reward
             #     # Trigger callback if needed
             #     if self.callback is not None:
@@ -132,36 +132,36 @@ class CustomEvalCallback(EvalCallback):
                 if self.verbose > 0:
                     print("New best mean success rate!")
                 if self.log_path is not None:
-                    self.model.save(os.path.join(self.log_path, "best_model"))
+                    self.agent.save(os.path.join(self.log_path, "best_agent"))
                 self.best_mean_success = mean_success
-            if self.model is not None:
-                self.model._dump_logs()
+            if self.agent is not None:
+                self.agent._dump_logs()
             if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                 mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
                 if mean_val >= self.early_stop_threshold:
                     logger.info("Early stop threshold for {} met: Average over last {} evaluations is {} and threshold is {}. Stopping training.".format(self.early_stop_data_column, self.early_stop_last_n, mean_val, self.early_stop_threshold))
                     if self.log_path is not None:
-                        self.model.save(os.path.join(self.log_path, "early_stop_model"))
+                        self.agent.save(os.path.join(self.log_path, "early_stop_agent"))
                     return False
             self.eval_count += 1
         return True
 
-    # def dump_model_logs(self):
+    # def dump_agent_logs(self):
     #     """
     #     Write log.
     #     """
-    #     # logger.record("time/episodes", self.model._episode_num, exclude="tensorboard")
-    #     # if len(self.model.ep_info_buffer) > 0 and len(self.model.ep_info_buffer[0]) > 0:
-        #     logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.model.ep_info_buffer]))
-        #     logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.model.ep_info_buffer]))
+    #     # logger.record("time/episodes", self.agent._episode_num, exclude="tensorboard")
+    #     # if len(self.agent.ep_info_buffer) > 0 and len(self.agent.ep_info_buffer[0]) > 0:
+        #     logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.agent.ep_info_buffer]))
+        #     logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.agent.ep_info_buffer]))
         # logger.record("time/fps", fps)
-        # logger.record("time/time_elapsed", int(time.time() - self.model.start_time), exclude="tensorboard")
-        # logger.record("time/total timesteps", self.model.num_timesteps, exclude="tensorboard")
-        # if self.model.use_sde:
-        #     logger.record("train/std", (self.model.actor.get_std()).mean().item())
+        # logger.record("time/time_elapsed", int(time.time() - self.agent.start_time), exclude="tensorboard")
+        # logger.record("time/total timesteps", self.agent.num_timesteps, exclude="tensorboard")
+        # if self.agent.use_sde:
+        #     logger.record("train/std", (self.agent.actor.get_std()).mean().item())
         #
-        # if len(self.model.ep_success_buffer) > 0:
-        #     logger.record("rollout/success rate", safe_mean(self.model.ep_success_buffer))
+        # if len(self.agent.ep_success_buffer) > 0:
+        #     logger.record("rollout/success rate", safe_mean(self.agent.ep_success_buffer))
         # Pass the number of timesteps for tensorboard
-        # logger.dump(step=self.model.num_timesteps)
+        # logger.dump(step=self.agent.num_timesteps)
 

@@ -10,7 +10,7 @@ from stable_baselines3.common.type_aliases import RolloutBufferSamples
 from ideas_baselines.common.type_aliases import ReplayBufferSamplesWithTestTrans
 from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
-from ideas_baselines.mbchac.goal_selection_strategy import GoalSelectionStrategy
+from ideas_baselines.hac.goal_selection_strategy import GoalSelectionStrategy
 
 
 class HHerReplayBuffer(ReplayBuffer):
@@ -408,7 +408,7 @@ class HHerReplayBuffer(ReplayBuffer):
             # perform action replay only where the action was not successful.
             no_success_idxs = np.where(np.isclose(success, 0.0))
             unscaled_action = transitions['next_achieved_goal'].reshape([transitions['next_achieved_goal'].shape[0], transitions['next_achieved_goal'].shape[2]])
-            scaled_action = self.env.unwrapped.envs[0].unwrapped.model.policy.scale_action(unscaled_action)
+            scaled_action = self.env.unwrapped.envs[0].unwrapped.layer_alg.policy.scale_action(unscaled_action)
             transitions['action'][no_success_idxs] = scaled_action[no_success_idxs]
 
         # concatenate observation with (desired) goal
