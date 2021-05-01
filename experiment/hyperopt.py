@@ -362,8 +362,8 @@ if __name__ == "__main__":
         fig.write_image(f"{imgdir}//plot_param_importances.png")
     except:
         pass
-    try:
-        fig = plot_intermediate_values(study)
-        fig.write_image(f"{imgdir}//plot_intermediate_values.png")
-    except:
-        pass
+    # try:
+    #     fig = plot_intermediate_values(study)
+    #     fig.write_image(f"{imgdir}//plot_intermediate_values.png")
+    # except:
+    #     pass
