@@ -8,15 +8,10 @@ import hydra
 import omegaconf
 from omegaconf import DictConfig, OmegaConf, open_dict
 import mlflow
-
+import csv
 import optuna
-from optuna.visualization import plot_contour
-from optuna.visualization import plot_edf
-from optuna.visualization import plot_intermediate_values
-from optuna.visualization import plot_optimization_history
-from optuna.visualization import plot_parallel_coordinate
-from optuna.visualization import plot_param_importances
-from optuna.visualization import plot_slice
+import numpy as np
+
 # Force matplotlib to not use any Xwindows backend.
 # import sys,os
 # sys.path.append(os.getcwd())
@@ -27,7 +22,7 @@ import time
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
 from stable_baselines3.common import logger
-from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat
+from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat, MLFlowOutputFormat
 from stable_baselines3.common.env_checker import check_env
 from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make_robustGoalConditionedModel
 from util.custom_eval_callback import CustomEvalCallback
@@ -104,10 +99,6 @@ OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 @hydra.main(config_name="main", config_path="../conf")
 def main(cfg: DictConfig) -> float:
     print(OmegaConf.to_yaml(cfg))
-    mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
-    tracking_uri = mlflow.get_tracking_uri()
-    print("Current tracking uri: {}".format(tracking_uri))
-    mlflow.set_experiment(cfg.hydra.sweeper.study_name)
     original_dir = os.getcwd()
     logger.info('Hydra dir', original_dir)
     path_dir_params = {key: cfg.algorithm[key] for key in cfg.algorithm.exp_path_params}
@@ -161,6 +152,7 @@ def main(cfg: DictConfig) -> float:
     logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=plot_cols)) # When using this, make sure that we don't have a csv output format already, otherwise there will be conflicts.
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
+    logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat(cfg))
 
     logdir = logger.get_dir()
     logger.info("Data dir: {} ".format(logdir))
@@ -169,33 +161,40 @@ def main(cfg: DictConfig) -> float:
     ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
     OmegaConf.save(config=cfg, f='params.yaml')
     launch(cfg, kwargs)
-    hyperopt_score = 1
+
+    hyperopt_score = get_hyperopt_score(run_dir, cfg)
     return hyperopt_score
+
+def get_hyperopt_score(logdir, cfg):
+
+    try:
+        with open(os.path.join(logdir, 'progress.csv')) as csvfile:
+            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            data_idx = 0
+            steps_idx = 0
+            data_vals = []
+            for line, row in enumerate(reader):
+                if line == 0:
+                    keys = row.copy()
+                    data_idx = keys.index(cfg.early_stop_data_column)
+                    steps_idx = keys.index("time/total timesteps")
+                else:
+                    data_val = float(row[data_idx])
+                    data_vals.append(data_val)
+                    steps = float(row[steps_idx])
+                    if len(data_vals) > cfg.early_stop_last_n:
+                        if np.mean(data_vals[-cfg.early_stop_last_n:]) >= cfg.early_stop_threshold:
+                            break
+            avg_last_n = min(len(data_vals), cfg.early_stop_last_n)
+            score = np.mean(data_vals[-avg_last_n:]) / steps
+    except Exception as e:
+        print(f"Could not determine hyperopt score: {e}")
+        score = None
+    try:
+        mlflow.log_param("hyperopt_score", score)
+    except:
+        pass
+    return score
 
 if __name__ == '__main__':
     main()
-
-    cfg = omegaconf.OmegaConf.load('conf/main.yaml')
-    study_name = cfg.hydra.sweeper.study_name
-    study = optuna.load_study(study_name, cfg.hydra.sweeper.storage)
-    imgdir = f"hyperopt_logs/{study_name}"
-    if not os.path.exists("hyperopt_logs"):
-        os.mkdir("hyperopt_logs")
-    if not os.path.exists(imgdir):
-        os.mkdir(imgdir)
-
-    try:
-        fig = plot_optimization_history(study)
-        fig.write_image(f"{imgdir}/plot_optimization_history.png")
-    except:
-        pass
-    try:
-        fig = plot_contour(study)
-        fig.write_image(f"{imgdir}//plot_contour.png")
-    except:
-        pass
-    try:
-        fig = plot_param_importances(study)
-        fig.write_image(f"{imgdir}//plot_param_importances.png")
-    except:
-        pass
