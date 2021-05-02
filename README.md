@@ -92,3 +92,6 @@ TBD
 
 ## Limitations
 Currently, only off-policy algorithms are supported: DQN, DDPG, TD3 and SAC. PPO is not supported
+
+## Hyperparameter optimization and management
+We have a sophisticated pipeline for this. Please look at the Wiki for details [here](https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/wikis/Hyperparameter-Optimization-with-MLFlow,-Hydra,-Optuna-and-comet.ml).
