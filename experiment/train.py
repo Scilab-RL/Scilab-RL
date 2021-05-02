@@ -97,7 +97,7 @@ def launch(cfg, kwargs):
 OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 
 @hydra.main(config_name="main", config_path="../conf")
-def main(cfg: DictConfig) -> float:
+def main(cfg: DictConfig) -> (float, int):
     print(OmegaConf.to_yaml(cfg))
     original_dir = os.getcwd()
     logger.info('Hydra dir', original_dir)
@@ -162,39 +162,39 @@ def main(cfg: DictConfig) -> float:
     OmegaConf.save(config=cfg, f='params.yaml')
     launch(cfg, kwargs)
 
-    hyperopt_score = get_hyperopt_score(run_dir, cfg)
-    return hyperopt_score
+    last_avg_hyperopt_score, n_epochs = get_last_avg_hyperopt_score_epochs(run_dir, cfg)
+    return last_avg_hyperopt_score, n_epochs
 
-def get_hyperopt_score(logdir, cfg):
+def get_last_avg_hyperopt_score_epochs(logdir, cfg):
 
     try:
         with open(os.path.join(logdir, 'progress.csv')) as csvfile:
             reader = csv.reader(csvfile, delimiter=',', quotechar='|')
             data_idx = 0
-            steps_idx = 0
             data_vals = []
             for line, row in enumerate(reader):
                 if line == 0:
                     keys = row.copy()
-                    data_idx = keys.index(cfg.early_stop_data_column)
-                    steps_idx = keys.index("time/total timesteps")
+                    data_idx = keys.index('hyperopt_score')
+                    epochs_idx = keys.index("epoch")
                 else:
                     data_val = float(row[data_idx])
                     data_vals.append(data_val)
-                    steps = float(row[steps_idx])
+                    n_epochs = int(row[epochs_idx])
                     if len(data_vals) > cfg.early_stop_last_n:
                         if np.mean(data_vals[-cfg.early_stop_last_n:]) >= cfg.early_stop_threshold:
                             break
             avg_last_n = min(len(data_vals), cfg.early_stop_last_n)
-            score = np.mean(data_vals[-avg_last_n:]) / steps
+            score = np.mean(data_vals[-avg_last_n:])
     except Exception as e:
         print(f"Could not determine hyperopt score: {e}")
         score = None
+        n_epochs = None
     try:
-        mlflow.log_param("hyperopt_score", score)
+        mlflow.log_metric("hyperopt_score", score)
     except:
         pass
-    return score
+    return score, n_epochs
 
 if __name__ == '__main__':
     main()

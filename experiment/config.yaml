@@ -19,7 +19,9 @@ hydra:
       multivariate: false
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
-    direction: maximize
+    direction: maximize # maximize accuracy / n_epochs
+#      - maximize
+#      - minimize
     study_name: simple_mnist
     storage: sqlite:///simple_mnist.db
     max_trials: 200
@@ -74,9 +76,11 @@ optimizer:
   lr: 0.001
   momentum: 0.9
 
+n_epochs: 7
+
 train:
   batch_size: 4
-  epoch: 7
+
 
 test:
   batch_size: 4

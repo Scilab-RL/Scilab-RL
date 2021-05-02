@@ -106,7 +106,22 @@ def set_rnd_seed():
     return rnd_seed
 
 
-def do_train(cfg: DictConfig, queue=None) -> float:
+
+@hydra.main(config_name='config.yaml', config_path='./')
+def main(cfg: DictConfig, *args) -> (float, int):
+
+    cuda_available = torch.cuda.is_available()
+    if cuda_available:
+        print("Cuda is available!")
+
+    mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
+    tracking_uri = mlflow.get_tracking_uri()
+    print("Current tracking uri: {}".format(tracking_uri))
+    study_dir = f"{hydra.utils.get_original_cwd()}"
+    study_name = omegaconf.OmegaConf.load(f'{study_dir}/experiment/config.yaml').hydra.sweeper.study_name
+    mlflow.set_experiment(study_name)
+    # mlflow.set_experiment("mlflow-study")
+
     device = torch.device("cuda:0")
     torch.cuda.device(device)
     seed = set_rnd_seed()
@@ -115,7 +130,6 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     # train, val = random_split(dataset, [55000, 5000])
     small_dataset = torch.utils.data.Subset(dataset, list(range(6000)))
     train, val = random_split(small_dataset, [5000, 1000])
-
 
     trainloader = DataLoader(train, batch_size=cfg.train.batch_size, shuffle=True)
     testloader = DataLoader(val, batch_size=cfg.test.batch_size, shuffle=False)
@@ -130,19 +144,19 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
-    steps = 0
     test_acc = 0
+    n_epochs = 0
+    early_stop_acc = 0.7
     with mlflow.start_run():
         mlflow.log_param("rnd_seed", seed)
-        for epoch in range(cfg.train.epoch):
+        for epoch in range(cfg.n_epochs):
             running_loss = 0.0
-
+            n_epochs += 1
             # log param
             log_params_from_omegaconf_dict(cfg)
             mlflow.log_param("cfg.model.fc1_units", cfg.model.fc1_units)
             mlflow.log_param("cfg.model.fc2_units", cfg.model.fc2_units)
             for i, (x, y) in enumerate(trainloader):
-                steps = epoch * len(trainloader) + i
                 optimizer.zero_grad()
                 x = x.to(device)
                 y = y.to(device)
@@ -153,8 +167,9 @@ def do_train(cfg: DictConfig, queue=None) -> float:
 
                 running_loss += loss.item()
                 # log metric
-                mlflow.log_metric("train_loss", loss.item(), step=steps)
-                mlflow.log_metric("steps", steps, step=steps)
+
+            avg_epoch_loss = running_loss / len(trainloader)
+            mlflow.log_metric("train_loss", avg_epoch_loss)
 
             test_loss = 0
             test_acc = 0
@@ -173,36 +188,19 @@ def do_train(cfg: DictConfig, queue=None) -> float:
 
                 test_acc /= len(testloader)
                 test_loss /= len(testloader)
-                mlflow.log_metric("test_acc", float(test_acc), step=steps)
-                mlflow.log_metric("test_loss", float(test_loss), step=steps)
+                mlflow.log_metric("test_acc", float(test_acc), step=epoch)
+                mlflow.log_metric("test_loss", float(test_loss), step=epoch)
                 print(f"Test accuracy of epoch {epoch}: {test_acc}")
-                mlflow.log_metric("hyperopt_score", float(test_acc), step=steps)
-
-    if queue is not None:
-        queue.put(test_acc)
-    return test_acc
-
-
-@hydra.main(config_name='config.yaml', config_path='./')
-def main(cfg: DictConfig, *args) -> float:
-
-    cuda_available = torch.cuda.is_available()
-    if cuda_available:
-        print("Cuda is available!")
-
-    mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
-    tracking_uri = mlflow.get_tracking_uri()
-    print("Current tracking uri: {}".format(tracking_uri))
-    study_dir = f"{hydra.utils.get_original_cwd()}"
-    study_name = omegaconf.OmegaConf.load(f'{study_dir}/experiment/config.yaml').hydra.sweeper.study_name
-    mlflow.set_experiment(study_name)
-    # mlflow.set_experiment("mlflow-study")
-
-    func_to_train = do_train
-
-    result = func_to_train(cfg)
-
-    return result
+                mlflow.log_metric("hyperopt_score", float(test_acc/n_epochs), step=epoch)
+                # if trial is not None:
+                #     trial.report(test_acc, steps=epoch)
+                #     if trial.should_prune():
+                #         raise optuna.TrialPruned()
+            if test_acc >= early_stop_acc:
+                print(f"Accuracy is now {test_acc}, early stopping.")
+                break
+    hyperopt_score = test_acc / n_epochs
+    return hyperopt_score, n_epochs
 
 if __name__ == "__main__":
     print(f"Running hyperopt and using torch device {torch.cuda.current_device()}.")
