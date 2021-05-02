@@ -1053,17 +1053,22 @@ class HAC(BaseAlgorithm):
         if self.sub_layer is not None:
             self.sub_layer._record_logs()
 
-
         for k,v in self.train_info_list.items():
             logger.record(train_pf + f"/{k}", safe_mean(v))
             logger.record(train_pf + f"/{k}_std", np.std(v))
         self.reset_train_info_list()
 
-        logger.record("epoch", self.epoch_count)
-
         self.epoch_count += 1
         # self.model.epoch_count = self.epoch_count
         if self.is_top_layer:
+            logger.record("epoch", self.epoch_count)
+            try:
+                succ_rate = logger.Logger.CURRENT.name_to_value['test/success_rate']
+            except Exception as e:
+                print("Error getting test success rate")
+                succ_rate = 0
+            hyperopt_score = float(succ_rate/self.epoch_count)
+            logger.record("hyperopt_score", hyperopt_score, exclude="tensorboard")
             if self.epoch_count % self.render_every_n_eval == 0:
                 if self.train_render_info is not None:
                     self.start_train_video_writer(self.get_env_steps())

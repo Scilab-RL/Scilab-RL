@@ -130,26 +130,23 @@ class CustomOptunaSweeperImpl(Sweeper):
         max_trials: int,
         n_jobs: int,
         max_duration_minutes: int,
-        # max_repeats_prune: int,
         min_trials_per_param: int,
         max_trials_per_param: int,
         search_space: Optional[DictConfig],
     ) -> None:
         self.sampler = sampler
         self.direction = direction
+        # assert (len(self.direction) == 1), "Multi opbjective optimization is not supported."
         self.storage = storage
         self.study_name = study_name
         self.max_trials = max_trials
         self.n_jobs = n_jobs
         self.max_duration_minutes = max_duration_minutes
         self.max_duration_seconds = max_duration_minutes * 60
-        # self.max_repeats_prune = max_repeats_prune
         self.min_trials_per_param = min_trials_per_param
         self.max_trials_per_param = max_trials_per_param
         self.search_space = {}
-        # self.percentile_pruner = pruners.PercentilePruner(25.0, n_startup_trials=5, n_warmup_steps=30, interval_steps=10)
         self.param_repeat_pruner = None
-        # base_pruner = pruners.BasePruner
         self.pruners = []
         if search_space:
             assert isinstance(search_space, DictConfig)
@@ -162,9 +159,9 @@ class CustomOptunaSweeperImpl(Sweeper):
         self.del_to_stop_fname = "delete_me_to_stop_hyperopt"
         with open(self.del_to_stop_fname, 'w') as f:
             f.write("Delete this file to stop the hyperparameter optimization after the current batch of jobs.")
-        # if self.n_jobs > 1:
-        # if True:
-        #     self.proc_pool = mp.Pool(processes=self.n_jobs)
+
+        self.metric_to_check_for_early_stop = 'time/total timesteps'
+
 
     def setup(
         self,
@@ -180,128 +177,15 @@ class CustomOptunaSweeperImpl(Sweeper):
         )
         self.sweep_dir = config.hydra.sweep.dir
 
-    def run_trial(self, trial, params):
-        launcher_arg = [tuple(f"{name}={val}" for name, val in params.items())]
-        ret = self.launcher.launch(launcher_arg, initial_job_idx=self.job_idx)[0]
-        try:
-            value = float(ret.return_value)
-        except (ValueError, TypeError):
-            raise ValueError(
-                f"Return value must be float-castable. Got '{ret.return_value}'."
-            ).with_traceback(sys.exc_info()[2])
-        return value
 
-    # def cb_async_trial(self, arg):
-    #     print(arg)
-    #     self.jobs_running -= 1
-    #     return True
-    #
-    # def start_trial_async(self, trial, params):
-    #     self.jobs_running += 1
-    #     launcher_arg = [tuple(f"{name}={val}" for name, val in params.items())]
-    #     ret = self.launcher.launch(launcher_arg, initial_job_idx=self.job_idx)[0]
-    #     # ret = self.proc_pool.apply_async(self.launcher.launch, (launcher_arg), {'initial_job_idx': self.job_idx}, callback=self.cb_async_trial)
-    #     # ret = ret.get()
-    #     # ret = self.proc_pool.apply(self.launcher.launch, (launcher_arg), {'initial_job_idx': self.job_idx})
-    #     return True
-    #
-    # def sweep_single_proc(self, arguments: List[str]) -> None:
-    #     assert self.config is not None
-    #     assert self.launcher is not None
-    #     assert self.job_idx is not None
-    #
-    #     parser = OverridesParser.create()
-    #     parsed = parser.parse_overrides(arguments)
-    #
-    #     search_space = dict(self.search_space)
-    #     fixed_params = dict()
-    #     for override in parsed:
-    #         value = create_optuna_distribution_from_override(override)
-    #         if isinstance(value, BaseDistribution):
-    #             search_space[override.get_key_element()] = value
-    #         else:
-    #             fixed_params[override.get_key_element()] = value
-    #     # Remove fixed parameters from Optuna search space.
-    #     for param_name in fixed_params:
-    #         if param_name in search_space:
-    #             del search_space[param_name]
-    #
-    #     directions: List[str]
-    #     if isinstance(self.direction, MutableSequence):
-    #         assert False, "Multi objectives optimization not implemented / tested"
-    #     else:
-    #         if isinstance(self.direction, str):
-    #             directions = [self.direction]
-    #         else:
-    #             directions = [self.direction.name]
-    #
-    #     study = optuna.create_study(
-    #         study_name=self.study_name,
-    #         storage=self.storage,
-    #         sampler=self.sampler,
-    #         directions=directions,
-    #         load_if_exists=True
-    #     )
-    #
-    #     self.param_repeat_pruner = ParamRepeatPruner(study, max_runs=self.max_trials_per_param,
-    #                                                  should_compare_states=[TrialState.COMPLETE, TrialState.FAIL,
-    #                                                                         TrialState.PRUNED])
-    #     log.info(f"Study name: {study.study_name}")
-    #     log.info(f"Storage: {self.storage}")
-    #     log.info(f"Sampler: {type(self.sampler).__name__}")
-    #     log.info(f"Directions: {directions}")
-    #
-    #     n_trials_to_go = self.max_trials
-    #     start_time = time.time()
-    #     current_time = start_time
-    #     while n_trials_to_go > 0 and (start_time + self.max_duration_seconds) > current_time:
-    #         running_duration = (current_time - start_time)
-    #         log.info(f"Hyperparameter optimization is now running for {str(datetime.timedelta(seconds=running_duration))} of {str(datetime.timedelta(seconds=self.max_duration_seconds))}. Max. {n_trials_to_go} trials left.")
-    #         trial = study._ask()
-    #         for param_name, distribution in search_space.items():
-    #             trial._suggest(param_name, distribution)
-    #         params = dict(trial.params)
-    #         params.update(fixed_params)
-    #         total_param_runs, repeated_trial_idx = self.param_repeat_pruner.check_params(trial, prune_existing=False)
-    #         if total_param_runs > self.max_trials_per_param:
-    #             log.info(
-    #                 f"Parameters {params} have been tested or pruned {total_param_runs} times in trial {repeated_trial_idx} already, pruning this trial.")
-    #             state = optuna.trial.TrialState.PRUNED
-    #             study._tell(trial, state, None)
+    # @staticmethod
+    # def get_study_min_epochs_complete(study):
+    #     min_epochs = None
+    #     for trial in study.trials:
+    #         if trial.state != TrialState.COMPLETE:
     #             continue
-    #         try:
-    #             value = self.run_trial(trial, params)
-    #             state = optuna.trial.TrialState.COMPLETE
-    #         except Exception as e:
-    #             log.info(f"Could not run trial {params}, returning FAIL.")
-    #             value = None
-    #             state = optuna.trial.TrialState.FAIL
-    #
-    #         study._tell(trial, state, [value])
-    #
-    #         if total_param_runs < self.min_trials_per_param: # Add repetition of the same trial for next study._ask()
-    #             study.enqueue_trial(params)
-    #
-    #         self.job_idx += 1
-    #         current_time = time.time()
-    #         n_trials_to_go -= 1
-    #
-    #     results_to_serialize: Dict[str, Any]
-    #     assert len(directions) < 2, "Multi objective optimization is not implemented"
-    #     best_trial = study.best_trial
-    #     results_to_serialize = {
-    #         "name": "optuna",
-    #         "best_params": best_trial.params,
-    #         "best_value": best_trial.value,
-    #     }
-    #     log.info(f"Best parameters: {best_trial.params}")
-    #     log.info(f"Best value: {best_trial.value}")
-    #     OmegaConf.save(
-    #         OmegaConf.create(results_to_serialize),
-    #         f"{self.config.hydra.sweep.dir}/optimization_results.yaml",
-    #     )
-    #     df = study.trials_dataframe()
-    #     df.to_csv("tmp_trials.csv", index=False)
+    #         print(trial)
+    #     return min_epochs
 
     def sweep(self, arguments: List[str]) -> None:
         assert self.config is not None
@@ -326,7 +210,9 @@ class CustomOptunaSweeperImpl(Sweeper):
 
         directions: List[str]
         if isinstance(self.direction, MutableSequence):
-            assert False, "Multi objectives optimization not implemented / tested"
+            directions = [
+                d.name if isinstance(d, Direction) else d for d in self.direction
+            ]
         else:
             if isinstance(self.direction, str):
                 directions = [self.direction]
@@ -359,12 +245,17 @@ class CustomOptunaSweeperImpl(Sweeper):
             batch_size = min(n_trials_to_go, self.n_jobs)
             overrides = []
             trials = []
+            if 'max_n_epochs' in study.user_attrs.keys(): # Read max_n_epochs for early stopping by limiting the number of epochs.
+                max_n_epochs = study.user_attrs['max_n_epochs']
+                if max_n_epochs != None:
+                    fixed_params['n_epochs'] = max_n_epochs
             while len(overrides) < batch_size:
                 trial = study._ask()
                 for param_name, distribution in search_space.items():
                     trial._suggest(param_name, distribution)
                 params = dict(trial.params)
                 params.update(fixed_params)
+
                 total_param_runs, repeated_trial_idx = self.param_repeat_pruner.check_params(trial, prune_existing=False)
                 total_and_enqueued_param_runs = total_param_runs + enqueued_param_runs
                 if total_and_enqueued_param_runs > self.max_trials_per_param:
@@ -390,7 +281,13 @@ class CustomOptunaSweeperImpl(Sweeper):
                 try:
                     if len(directions) == 1:
                         try:
-                            values = [float(ret.return_value)]
+                            values = [float(ret.return_value[0])]
+                            if len(ret.return_value) > 1:
+                                n_epochs = int(ret.return_value[1])
+                                new_max_epochs = int(n_epochs * 1.5)
+                                if 'max_n_epochs' in study.user_attrs.keys():
+                                    new_max_epochs = min(study.user_attrs['max_n_epochs'], new_max_epochs)
+                                study.set_user_attr("max_n_epochs", new_max_epochs)
                         except (ValueError, TypeError):
                             raise ValueError(
                                 f"Return value must be float-castable. Got '{ret.return_value}'."
@@ -413,7 +310,7 @@ class CustomOptunaSweeperImpl(Sweeper):
                     state = optuna.trial.TrialState.FAIL
                     study._tell(trial, state, values)
                     log.error(f"Error, could not execute trial with parameters {trial.params}")
-                    # log.error(f"{e}")
+
 
             self.plot_study_summary(study)
             n_trials_to_go -= batch_size
@@ -467,116 +364,3 @@ class CustomOptunaSweeperImpl(Sweeper):
         except:
             pass
 
-
-    # def sweep_multiproc_async(self, arguments: List[str]) -> None:
-    #     assert self.config is not None
-    #     assert self.launcher is not None
-    #     assert self.job_idx is not None
-    #
-    #     parser = OverridesParser.create()
-    #     parsed = parser.parse_overrides(arguments)
-    #
-    #     search_space = dict(self.search_space)
-    #     fixed_params = dict()
-    #     for override in parsed:
-    #         value = create_optuna_distribution_from_override(override)
-    #         if isinstance(value, BaseDistribution):
-    #             search_space[override.get_key_element()] = value
-    #         else:
-    #             fixed_params[override.get_key_element()] = value
-    #     # Remove fixed parameters from Optuna search space.
-    #     for param_name in fixed_params:
-    #         if param_name in search_space:
-    #             del search_space[param_name]
-    #
-    #     directions: List[str]
-    #     if isinstance(self.direction, MutableSequence):
-    #         assert False, "Multi objectives optimization not implemented / tested"
-    #     else:
-    #         if isinstance(self.direction, str):
-    #             directions = [self.direction]
-    #         else:
-    #             directions = [self.direction.name]
-    #
-    #     study = optuna.create_study(
-    #         study_name=self.study_name,
-    #         storage=self.storage,
-    #         sampler=self.sampler,
-    #         directions=directions,
-    #         load_if_exists=True
-    #     )
-    #
-    #     self.param_repeat_pruner = ParamRepeatPruner(study, max_runs=self.max_trials_per_param,
-    #                                                  should_compare_states=[TrialState.COMPLETE, TrialState.FAIL,
-    #                                                                         TrialState.PRUNED])
-    #     log.info(f"Study name: {study.study_name}")
-    #     log.info(f"Storage: {self.storage}")
-    #     log.info(f"Sampler: {type(self.sampler).__name__}")
-    #     log.info(f"Directions: {directions}")
-    #
-    #     n_trials_to_go = self.max_trials
-    #     start_time = time.time()
-    #     current_time = start_time
-    #     self.jobs_running = 0
-    #     while n_trials_to_go > 0 and (start_time + self.max_duration_seconds) > current_time:
-    #         running_duration = (current_time - start_time)
-    #         log.info(f"Hyperparameter optimization is now running for {str(datetime.timedelta(seconds=running_duration))} of {str(datetime.timedelta(seconds=self.max_duration_seconds))}. Max. {n_trials_to_go} trials left.")
-    #         trial = study._ask()
-    #         for param_name, distribution in search_space.items():
-    #             trial._suggest(param_name, distribution)
-    #         params = dict(trial.params)
-    #         params.update(fixed_params)
-    #         total_param_runs, repeated_trial_idx = self.param_repeat_pruner.check_params(trial, prune_existing=False)
-    #         if total_param_runs > self.max_trials_per_param:
-    #             log.info(
-    #                 f"Parameters {params} have been tested or pruned {total_param_runs} times in trial {repeated_trial_idx} already, pruning this trial.")
-    #             state = optuna.trial.TrialState.PRUNED
-    #             study._tell(trial, state, None)
-    #             continue
-    #         # if self.n_jobs == 1:
-    #         if False:
-    #             try:
-    #                 self.run_trial(trial,params)
-    #                 value = self.run_trial(trial, params)
-    #                 state = optuna.trial.TrialState.COMPLETE
-    #             except Exception as e:
-    #                 log.info(f"Could not start trial {params}, returning FAIL.")
-    #                 value = None
-    #                 state = optuna.trial.TrialState.FAIL
-    #
-    #             study._tell(trial, state, [value])
-    #         else:
-    #             while self.jobs_running >= self.n_jobs:
-    #                 time.sleep(10)
-    #             try:
-    #                 self.start_trial_async(trial, params) # will tell the study automatically if it has started.
-    #             except Exception as e:
-    #                 log.info(f"Could not start trial {params}, returning FAIL. \n{e}")
-    #                 value = None
-    #                 state = optuna.trial.TrialState.FAIL
-    #                 study._tell(trial, state, [value])
-    #
-    #
-    #         if total_param_runs < self.min_trials_per_param: # Add repetition of the same trial for next study._ask()
-    #             study.enqueue_trial(params)
-    #
-    #         self.job_idx += 1
-    #         current_time = time.time()
-    #         n_trials_to_go -= 1
-    #
-    #     results_to_serialize: Dict[str, Any]
-    #     assert len(directions) < 2, "Multi objective optimization is not implemented"
-    #     best_trial = study.best_trial
-    #     results_to_serialize = {
-    #         "name": "optuna",
-    #         "best_params": best_trial.params,
-    #         "best_value": best_trial.value,
-    #     }
-    #     log.info(f"Best parameters: {best_trial.params}")
-    #     log.info(f"Best value: {best_trial.value}")
-    #     OmegaConf.save(
-    #         OmegaConf.create(results_to_serialize),
-    #         f"{self.config.hydra.sweep.dir}/optimization_results.yaml",
-    #     )
-    #     df = study.trials_dataframe()
-    #     df.to_csv("tmp_trials.csv", index=False)
