@@ -175,40 +175,40 @@ ConfigStore.instance().store(
     group="hydra/sweeper",
     name="optuna",
     node=OptunaSweeperConf,
-    provider="optuna_sweeper",
+    provider="custom_optuna_sweeper",
 )
 
 ConfigStore.instance().store(
     group="hydra/sweeper/sampler",
     name="tpe",
     node=TPESamplerConfig,
-    provider="optuna_sweeper",
+    provider="custom_optuna_sweeper",
 )
 
 ConfigStore.instance().store(
     group="hydra/sweeper/sampler",
     name="random",
     node=RandomSamplerConfig,
-    provider="optuna_sweeper",
+    provider="custom_optuna_sweeper",
 )
 
 ConfigStore.instance().store(
     group="hydra/sweeper/sampler",
     name="cmaes",
     node=CmaEsSamplerConfig,
-    provider="optuna_sweeper",
+    provider="custom_optuna_sweeper",
 )
 
 ConfigStore.instance().store(
     group="hydra/sweeper/sampler",
     name="nsgaii",
     node=NSGAIISamplerConfig,
-    provider="optuna_sweeper",
+    provider="custom_optuna_sweeper",
 )
 
 ConfigStore.instance().store(
     group="hydra/sweeper/sampler",
     name="motpe",
     node=MOTPESamplerConfig,
-    provider="optuna_sweeper",
+    provider="custom_optuna_sweeper",
 )

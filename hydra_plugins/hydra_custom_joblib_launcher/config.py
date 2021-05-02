@@ -7,7 +7,7 @@ from hydra.core.config_store import ConfigStore
 
 @dataclass
 class JobLibLauncherConf:
-    _target_: str = "hydra_plugins.hydra_joblib_launcher.joblib_launcher.JoblibLauncher"
+    _target_: str = "hydra_plugins.hydra_custom_joblib_launcher.joblib_launcher.JoblibLauncher"
 
     # maximum number of concurrently running jobs. if -1, all CPUs are used
     n_jobs: int = -1
@@ -45,7 +45,7 @@ class JobLibLauncherConf:
 
 ConfigStore.instance().store(
     group="hydra/launcher",
-    name="joblib",
+    name="custom_joblib",
     node=JobLibLauncherConf,
-    provider="joblib_launcher",
+    provider="custom_joblib_launcher",
 )
