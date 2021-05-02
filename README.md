@@ -71,6 +71,7 @@ python experiment/train.py env=FetchReach-v1 algorithm=her2 layer_classes=['sac'
 * The folder `ideas_envs` should contain new environments (but we may also choose to put environments in a completely different repository).
 * The folder `interface` contains for each algorithm, both stable-baselines3 algorithms and the algorithms here, a file `config.py` and `click_options.py`. The click options file determines the kwargs passed on to the model (HAC, SAC, TD3, etc). These are specifyable as command-line options. The file `config.py` is right now just for determining the parameters to be used for generating a path name for the log directory.
 * The folder `util` contains some misc utilities.
+* The folder `hydra_plugins` contains some customized plugins for our hyperparameter management system.
 
 ## Testing
 
@@ -94,4 +95,15 @@ TBD
 Currently, only off-policy algorithms are supported: DQN, DDPG, TD3 and SAC. PPO is not supported
 
 ## Hyperparameter optimization and management
-We have a sophisticated pipeline for this. Please look at the Wiki for details [here](https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/wikis/Hyperparameter-Optimization-with-MLFlow,-Hydra,-Optuna-and-comet.ml).
+The framework has a sophisticated hyperparameter optimization management. It builds on 
+* hydra to manage the command-line parameters and configuration options. 
+* mlflow to collect studies and log data of alle runs
+* optuna as a framework to perform the hyperparameter optimization algorithm (e.g. TPE)
+* comet.ml to visualize the data.
+
+
+To start the hyperparameter optimization start `experiment/train.py --multirun`. The `--multirun` flag starts the hyperparameter optimization mode. 
+
+To set up the search space for the hyperparameter optimization look at the `search_space` section of the `conf/main.yaml` file
+
+To upload the results to comet.ml, execute `comet_for_mlflow --api-key $COMET_API_KEY --rest-api-key $COMET_REST_API_KEY` in the root directory of this repository.
