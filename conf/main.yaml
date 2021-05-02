@@ -19,6 +19,7 @@ hydra:
 
   launcher:
     _target_: hydra_plugins.hydra_custom_joblib_launcher.joblib_launcher.JoblibLauncher
+  # sweeper, sampler and search_space is for hyperparameter optimization. Optimization can be started with --multirun as commandline parameter when executing train.py
   sweeper:
     sampler:
       _target_: optuna.samplers.TPESampler
@@ -33,8 +34,8 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: optimize_hac
-    storage: sqlite:///optimize_hac.db
+    study_name: optimize_hac_2_layer
+    storage: sqlite:///optimize_hac_2_layer.db
     max_trials: 200
     n_jobs: 6
     max_duration_minutes: 100000
@@ -49,7 +50,7 @@ hydra:
         step: 1
 
 
-      algorithm.subgoal_test_percentage:
+      algorithm.subgoal_test_perc:
         type: float
         low: 0.0
         high: 0.7
