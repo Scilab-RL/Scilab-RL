@@ -1,5 +1,6 @@
 import matplotlib
 matplotlib.use('Agg')
+import comet_ml
 import os
 import sys
 sys.path.append(os.getcwd())
@@ -98,6 +99,11 @@ OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 
 @hydra.main(config_name="main", config_path="../conf")
 def main(cfg: DictConfig) -> (float, int):
+    # Imports required for the joblib multiprocessing feature when hyperopting.
+    import ideas_envs.register_envs
+    import ideas_envs.wrappers.utils
+
+
     print(OmegaConf.to_yaml(cfg))
     original_dir = os.getcwd()
     logger.info('Hydra dir', original_dir)
