@@ -102,6 +102,14 @@ def main(cfg: DictConfig) -> (float, int):
     original_dir = os.getcwd()
     logger.info('Hydra dir', original_dir)
     path_dir_params = {key: cfg.algorithm[key] for key in cfg.algorithm.exp_path_params}
+
+    # mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
+    # tracking_uri = mlflow.get_tracking_uri()
+    # print("Current tracking uri: {}".format(tracking_uri))
+    # study_dir = f"{hydra.utils.get_original_cwd()}"
+    # study_name = omegaconf.OmegaConf.load(f'{study_dir}/conf/main.yaml').hydra.sweeper.study_name
+    # mlflow.set_experiment(study_name)
+    # mlflow.start_run()
     subdir_exists = True
 
     ctr = cfg['try_start_idx']
@@ -163,6 +171,10 @@ def main(cfg: DictConfig) -> (float, int):
     launch(cfg, kwargs)
 
     last_avg_hyperopt_score, n_epochs = get_last_avg_hyperopt_score_epochs(run_dir, cfg)
+    try:
+        mlflow.end_run()
+    except:
+        print("mlflow run has been ended already")
     return last_avg_hyperopt_score, n_epochs
 
 def get_last_avg_hyperopt_score_epochs(logdir, cfg):

@@ -1,11 +1,11 @@
 defaults:
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
-  - override hydra/launcher: joblib # For multiprocessing with n_jobs > 1
+  - override hydra/launcher: custom_joblib # For multiprocessing with n_jobs > 1
 
 hydra:
   launcher:
-    _target_: hydra_plugins.hydra_joblib_launcher.joblib_launcher.JoblibLauncher
+    _target_: hydra_plugins.hydra_custom_joblib_launcher.joblib_launcher.JoblibLauncher
   sweeper:
     sampler:
       _target_: optuna.samplers.TPESampler

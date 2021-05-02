@@ -5,7 +5,7 @@ defaults:
   - override hydra/job_logging: default
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
-  - override hydra/launcher: joblib # For multiprocessing with n_jobs > 1
+  - override hydra/launcher: custom_joblib # For multiprocessing with n_jobs > 1
 
 # TODO: Currently, having a subfolder conf/hydra/output is buggy
 # override default dirname config
@@ -18,7 +18,7 @@ hydra:
     subdir: ${hydra.job.num}
 
   launcher:
-    _target_: hydra_plugins.hydra_joblib_launcher.joblib_launcher.JoblibLauncher
+    _target_: hydra_plugins.hydra_custom_joblib_launcher.joblib_launcher.JoblibLauncher
   sweeper:
     sampler:
       _target_: optuna.samplers.TPESampler
@@ -47,6 +47,13 @@ hydra:
         low: 1
         high: 8
         step: 1
+
+
+      algorithm.subgoal_test_percentage:
+        type: float
+        low: 0.0
+        high: 0.7
+        step: 0.1
 
       algorithm.goal_selection_strategy:
         type: categorical
@@ -102,13 +109,13 @@ hydra:
 # 'BlockStackMujocoEnv-gripper_above-o1-v1',
 # 'BlockStackMujocoEnv-gripper_none-o1-v1',
 
-env: 'FetchReach-v1'
+env: 'ButtonUnlock-o1-v1'
 seed: 0
 
 # layer classes for the algorithm
 layer_classes:
   - sacvg
-#  - sacvg
+  - sacvg
 
 # the path to where logs and policy pickles should go.
 base_logdir: 'data'
@@ -121,7 +128,7 @@ eval_after_n_steps: 2000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
 #n_epochs: 30
-n_epochs: 70
+n_epochs: 80
 
 # The number of testing rollouts.
 n_test_rollouts: 10

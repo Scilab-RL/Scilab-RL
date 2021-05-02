@@ -1,12 +1,12 @@
 name: 'hac'
 exp_path_params:
-  - 'time_scales'
+#  - 'time_scales'
   - 'use_action_replay'
   - 'subgoal_test_perc'
   - 'ep_early_done_on_succ'
   - 'goal_selection_strategy'
   - 'n_sampled_goal'
-  - 'learning_rates'
+#  - 'learning_rates'
   - 'hindsight_sampling_done_if_success'
   - 'set_fut_ret_zero_if_done'
 
@@ -31,7 +31,7 @@ learning_starts: 100
 # The learning rates of the layers. From highest to lowest layer.
 learning_rates:
   - 3e-4
-#  - 3e-4
+  - 3e-4
 
 # Whether to use action replay
 use_action_replay: 1
@@ -65,8 +65,8 @@ render_every_n_eval: 15
 # in the list to indicates the layer where the time scale is determined from the
 # environment's predefined steps.
 time_scales:
-  - -1
-#  - 10
+  - 7
+  - 7
 
 # The percentage of subgoals to test.
 subgoal_test_perc: 0.3

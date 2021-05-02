@@ -341,26 +341,20 @@ class CustomOptunaSweeperImpl(Sweeper):
 
     def plot_study_summary(self, study):
 
-        imgdir = f"hyperopt_logs/{self.study_name}"
-        if not os.path.exists("hyperopt_logs"):
-            os.mkdir("hyperopt_logs")
-        if not os.path.exists(imgdir):
-            os.mkdir(imgdir)
-
         try:
             fig = plot_optimization_history(study)
-            fig.write_image(f"{imgdir}/plot_optimization_history.png")
+            fig.write_image(f"{self.sweep_dir}/hyperopt_history.png")
         except:
             pass
         try:
             fig = plot_contour(study)
-            fig.update_layout(width=2048, height=2048)
-            fig.write_image(f"{imgdir}//plot_contour.png")
+            fig.update_layout(width=3072, height=2048)
+            fig.write_image(f"{self.sweep_dir}/hyperopt_contour.png")
         except:
             pass
         try:
             fig = plot_param_importances(study)
-            fig.write_image(f"{imgdir}//plot_param_importances.png")
+            fig.write_image(f"{self.sweep_dir}/hyperopt_param_importances.png")
         except:
             pass
 

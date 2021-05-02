@@ -120,7 +120,7 @@ def main(cfg: DictConfig, *args) -> (float, int):
     study_dir = f"{hydra.utils.get_original_cwd()}"
     study_name = omegaconf.OmegaConf.load(f'{study_dir}/experiment/config.yaml').hydra.sweeper.study_name
     mlflow.set_experiment(study_name)
-    # mlflow.set_experiment("mlflow-study")
+
 
     device = torch.device("cuda:0")
     torch.cuda.device(device)
@@ -140,10 +140,6 @@ def main(cfg: DictConfig, *args) -> (float, int):
     optimizer = optim.SGD(model.parameters(), lr=cfg.optimizer.lr,
                           momentum=cfg.optimizer.momentum)
 
-    # start new run
-    mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
-    tracking_uri = mlflow.get_tracking_uri()
-    print("Current tracking uri: {}".format(tracking_uri))
     test_acc = 0
     n_epochs = 0
     early_stop_acc = 0.7
