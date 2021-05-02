@@ -457,6 +457,7 @@ class CustomOptunaSweeperImpl(Sweeper):
             pass
         try:
             fig = plot_contour(study)
+            fig.update_layout(width=2048, height=2048)
             fig.write_image(f"{imgdir}//plot_contour.png")
         except:
             pass
