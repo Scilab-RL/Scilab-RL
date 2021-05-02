@@ -1,23 +1,11 @@
-#defaults:
-#  - override hydra/sweeper: optuna
-#  - override hydra/sweeper/sampler: tpe
-#  - override hydra/launcher: joblib # For multiprocessing with n_jobs > 1
+defaults:
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: tpe
+  - override hydra/launcher: joblib # For multiprocessing with n_jobs > 1
 
 hydra:
   launcher:
     _target_: hydra_plugins.hydra_joblib_launcher.joblib_launcher.JoblibLauncher
-#    _target_: hydra_plugins.hydra_async_parallel_launcher.async_parallel_launcher.AsyncParallelLauncher
-#    n_jobs: 1
-#    backend: null
-#    prefer: processes
-#    require: null
-#    verbose: 0
-#    timeout: null
-#    pre_dispatch: 2*n_jobs
-#    batch_size: auto
-#    temp_folder: null
-#    max_nbytes: null
-#    mmap_mode: r
   sweeper:
     sampler:
       _target_: optuna.samplers.TPESampler
@@ -30,7 +18,6 @@ hydra:
       n_ei_candidates: 24
       multivariate: false
       warn_independent_sampling: true
-#    _target_: hydra_plugins.hydra_optuna_sweeper.optuna_sweeper.OptunaSweeper
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
     study_name: simple_mnist
@@ -93,9 +80,3 @@ train:
 
 test:
   batch_size: 4
-
-#hyperopt:
-#  parallel_runs: 1
-
-#mlflow:
-#  runname: "testrun"

@@ -112,7 +112,7 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     seed = set_rnd_seed()
     data_path = hydra.utils.get_original_cwd()
     dataset = MNIST(data_path, download=True, transform=transforms.ToTensor())
-    train, val = random_split(dataset, [55000, 5000])
+    # train, val = random_split(dataset, [55000, 5000])
     small_dataset = torch.utils.data.Subset(dataset, list(range(6000)))
     train, val = random_split(small_dataset, [5000, 1000])
 
@@ -130,7 +130,6 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
-    mlflow.set_experiment(cfg.hydra.sweeper.study_name)
     steps = 0
     test_acc = 0
     with mlflow.start_run():
@@ -184,7 +183,7 @@ def do_train(cfg: DictConfig, queue=None) -> float:
     return test_acc
 
 
-@hydra.main(config_name='config.yaml')
+@hydra.main(config_name='config.yaml', config_path='./')
 def main(cfg: DictConfig, *args) -> float:
 
     cuda_available = torch.cuda.is_available()
@@ -194,7 +193,8 @@ def main(cfg: DictConfig, *args) -> float:
     mlflow.set_tracking_uri('file://' + hydra.utils.get_original_cwd() + '/mlruns')
     tracking_uri = mlflow.get_tracking_uri()
     print("Current tracking uri: {}".format(tracking_uri))
-    study_name = omegaconf.OmegaConf.load('experiment/config.yaml').hydra.sweeper.study_name
+    study_dir = f"{hydra.utils.get_original_cwd()}"
+    study_name = omegaconf.OmegaConf.load(f'{study_dir}/experiment/config.yaml').hydra.sweeper.study_name
     mlflow.set_experiment(study_name)
     # mlflow.set_experiment("mlflow-study")
 
