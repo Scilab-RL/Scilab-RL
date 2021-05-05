@@ -286,8 +286,9 @@ class CustomOptunaSweeperImpl(Sweeper):
                                 n_epochs = int(ret.return_value[1])
                                 new_max_epochs = int(n_epochs * 1.5)
                                 if 'max_n_epochs' in study.user_attrs.keys():
-                                    new_max_epochs = min(study.user_attrs['max_n_epochs'], new_max_epochs)
-                                study.set_user_attr("max_n_epochs", new_max_epochs)
+                                    if new_max_epochs <= study.user_attrs['max_n_epochs']:
+                                        log.info(f"This trial had only {n_epochs} epochs. New upper limit for max. epochs is now {new_max_epochs}. ")
+                                        study.set_user_attr("max_n_epochs", new_max_epochs)
                         except (ValueError, TypeError):
                             raise ValueError(
                                 f"Return value must be float-castable. Got '{ret.return_value}'."
@@ -333,10 +334,10 @@ class CustomOptunaSweeperImpl(Sweeper):
         )
         df = study.trials_dataframe()
         df.to_csv("tmp_trials.csv", index=False)
-        try:
-            os.remove(self.del_to_stop_fname)
-        except:
-            pass # Already deleted
+        # try:
+        #     os.remove(self.del_to_stop_fname)
+        # except:
+        #     pass # Already deleted
 
 
     def plot_study_summary(self, study):

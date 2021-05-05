@@ -24,7 +24,7 @@ class MLFlowOutputFormat(KVWriter):
         orig_path = hydra.utils.get_original_cwd()
         mlflow.set_tracking_uri('file://' + orig_path + '/mlruns')
         tracking_uri = mlflow.get_tracking_uri()
-        print("Current tracking uri: {}".format(tracking_uri))
+        logger.info("Current tracking uri: {}".format(tracking_uri))
         study_name = omegaconf.OmegaConf.load(f'{orig_path}/conf/main.yaml').hydra.sweeper.study_name
         mlflow.set_experiment(study_name)
         mlflow.start_run()
@@ -91,7 +91,7 @@ class MatplotlibCSVOutputFormat(KVWriter):
             plotlockfile.write(str(time.time()))
             plotlockfile.close()
         except:
-            print("Error, could not write plotlock file")
+            logger.info("Error, could not write plotlock file")
 
     def check_plot_frequency(self):
         last_plot_time = 0
@@ -177,7 +177,7 @@ class MatplotlibCSVOutputFormat(KVWriter):
                                 except:
                                     data_dict[config_str][keys[idx]][config_ctr_str].append(np.nan)
                                     pass
-                                    # print("item is not a float")
+                                    # logger.info("item is not a float")
             except Exception as e:
                 logger.warn("Warning, could not get data from {} because the file was not found.".format(self.data_read_dir+"/"+configdir+"/"+self.csv_filename))
         return data_dict
@@ -192,7 +192,7 @@ class MatplotlibCSVOutputFormat(KVWriter):
         for k in keys:
             arr_lens.append(len(data_dict[k]))
         if len(arr_lens) == 0:
-            print()
+            logger.info()
             pass
         assert len(arr_lens) > 0, "Error, no data for plotting."
         shortest_key_data_count = min(arr_lens)
@@ -228,7 +228,7 @@ class MatplotlibCSVOutputFormat(KVWriter):
         for config_str in all_data_dict.keys():
             data = all_data_dict[config_str]
             if 'time/total timesteps' not in data.keys():
-                print("WARNING!!! No timesteps in data for config {} for plotting.".format(config_str))
+                logger.info("WARNING!!! No timesteps in data for config {} for plotting.".format(config_str))
                 continue
             reduced_data[config_str] = {}
             timesteps = data['time/total timesteps'].copy()
@@ -260,7 +260,7 @@ class MatplotlibCSVOutputFormat(KVWriter):
                 try:
                     line, = plt.plot(xs, median[:min_data_len], label=config_str + '-' + k)
                 except Exception as e:
-                    print(f"ohno {e}")
+                    logger.info(f"ohno {e}")
                 plt.fill_between(xs, lower[:min_data_len],
                                  upper[:min_data_len],
                                  alpha=0.25, color=line.get_color())

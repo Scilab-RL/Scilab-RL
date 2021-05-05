@@ -5,7 +5,7 @@ defaults:
   - override hydra/job_logging: default
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
-  - override hydra/launcher: custom_joblib # For multiprocessing with n_jobs > 1
+#  - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1
 
 # TODO: Currently, having a subfolder conf/hydra/output is buggy
 # override default dirname config
@@ -14,11 +14,12 @@ hydra:
     # add git commit hash
     dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S}
   sweep:
-    dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S}
+    dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S} # This way, all trials within one hyperopt run are stored in a subfolder determined by the current time.
+#    dir: ${base_logdir}/${git_label:}/${env} # This way, all trials within multiple hyperopt runs are stored in the same parent folder, without using the time subfolder.
     subdir: ${hydra.job.num}
 
-  launcher:
-    _target_: hydra_plugins.hydra_custom_joblib_launcher.joblib_launcher.JoblibLauncher
+#  launcher: # Note that the joblib launcher does not work with comet_ml, hence multiprocessing within python does not work with comet_ml.
+#    _target_: hydra_plugins.hydra_custom_joblib_launcher.joblib_launcher.JoblibLauncher
   # sweeper, sampler and search_space is for hyperparameter optimization. Optimization can be started with --multirun as commandline parameter when executing train.py
   sweeper:
     sampler:
@@ -34,11 +35,10 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: optimize_hac_2_layer
-    storage: sqlite:///optimize_hac_2_layer.db
-    max_trials: 200
-    n_jobs: 6
-    max_duration_minutes: 100000
+    study_name: optimize_hac_2_layer_debug1
+    storage: sqlite:///optimize_hac_2_layer_debug1.db
+    n_jobs: 1
+    max_duration_minutes: 10000
     min_trials_per_param: 3
     max_trials_per_param: 5
 
@@ -48,7 +48,6 @@ hydra:
         low: 1
         high: 8
         step: 1
-
 
       algorithm.subgoal_test_perc:
         type: float
@@ -110,13 +109,14 @@ hydra:
 # 'BlockStackMujocoEnv-gripper_above-o1-v1',
 # 'BlockStackMujocoEnv-gripper_none-o1-v1',
 
-env: 'ButtonUnlock-o1-v1'
+#env: 'ButtonUnlock-o1-v1'
+env: 'FetchReach-v1'
 seed: 0
 
 # layer classes for the algorithm
 layer_classes:
   - sacvg
-  - sacvg
+#  - sacvg
 
 # the path to where logs and policy pickles should go.
 base_logdir: 'data'
@@ -129,7 +129,7 @@ eval_after_n_steps: 2000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
 #n_epochs: 30
-n_epochs: 80
+n_epochs: 8
 
 # The number of testing rollouts.
 n_test_rollouts: 10

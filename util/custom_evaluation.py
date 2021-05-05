@@ -1,5 +1,5 @@
 from typing import Callable, List, Optional, Tuple, Union, Dict
-
+from stable_baselines3.common import logger
 import gym
 import numpy as np
 import cv2
@@ -53,7 +53,7 @@ def evaluate_policy(
             video_writer = cv2.VideoWriter(render_info['path'] + '/eval_{}.avi'.format(render_info['eval_count']),
                                             cv2.VideoWriter_fourcc('F', 'M', 'P', '4'), render_info['fps'], render_info['size'])
         except:
-            print("Error creating video writer")
+            logger.info("Error creating video writer")
 
     if isinstance(env, VecEnv):
         assert env.num_envs == 1, "You must pass only one environment when using this function"
