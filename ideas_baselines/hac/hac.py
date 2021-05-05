@@ -83,7 +83,7 @@ def compute_time_scales(scales, env):
             defined_steps = np.product([int(step) for step in scales[:i]])
             defined_after_steps = np.product([int(step) for step in scales[i+1:]])
             defined_steps *= defined_after_steps
-            scales[i] = int(max_steps / defined_steps) + 1
+            scales[i] = int(max_steps / defined_steps)
     return scales
 
 
@@ -367,7 +367,7 @@ class HAC(BaseAlgorithm):
     def train_layer(self, n_gradient_steps: int):
         # if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0 and self.learning_enabled is True:
         if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > self.learning_starts and self.learning_enabled is True:
-            logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
+            # logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
             # assign temporary logger to avoid generating duplicate keys for the different layers.
             real_logger = logger.Logger.CURRENT
             logger.Logger.CURRENT = self.tmp_train_logger
@@ -385,7 +385,7 @@ class HAC(BaseAlgorithm):
             self.tmp_train_logger.dump()
             self.actions_since_last_train = 0
         else:
-            logger.info("Did not yet train layer {} because I have not yet enough experience collected.".format(self.layer))
+            pass  # logger.info("Did not yet train layer {} because I have not yet enough experience collected.".format(self.layer))
 
     def run_and_maybe_train(self, n_episodes: int):
         rollout = self.collect_rollouts(
@@ -540,11 +540,6 @@ class HAC(BaseAlgorithm):
                     elif self.render_train == 'display':
                         self.env.unwrapped.render(mode='human')
 
-                self.num_timesteps += 1
-                self.layer_alg.num_timesteps = self.num_timesteps
-                episode_timesteps += 1
-                total_steps += 1
-
                 episode_reward += reward
 
                 # Retrieve reward and episode length if using Monitor wrapper
@@ -603,8 +598,6 @@ class HAC(BaseAlgorithm):
                 # see https://github.com/hill-a/stable-baselines/issues/900
                 self.layer_alg._on_step()
 
-                self.episode_steps += 1
-
                 # Only perform on_steps rollout in lowest layer
                 if self.is_bottom_layer:
                     # Only stop training if return value is False, not when it is None.
@@ -622,8 +615,15 @@ class HAC(BaseAlgorithm):
                 self._n_updates = self.layer_alg._n_updates
                 self._last_dones = self.layer_alg._last_dones
 
-                if 0 < n_steps <= total_steps:
+                if 0 < n_steps < total_steps:
                     break
+
+                self.episode_steps += 1
+                self.num_timesteps += 1
+                self.layer_alg.num_timesteps = self.num_timesteps
+                episode_timesteps += 1 # TODO: Why is there episode_timesteps and self.episode_steps? Is this redundant?
+                total_steps += 1
+
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()
 
@@ -638,6 +638,7 @@ class HAC(BaseAlgorithm):
                         else:
                             tmp_layer = self.sub_layer
                 self.train_info_list['ep_length'].append(episode_timesteps)
+                assert episode_timesteps == self.episode_steps, "DEBUG TEST: If this assertion never triggers, episode_timesteps can be removed and replaced by self.episode_steps to avoid redundancy."
                 total_episodes += 1
                 self._episode_num += 1
                 self.layer_alg._episode_num = self._episode_num
@@ -849,7 +850,7 @@ class HAC(BaseAlgorithm):
                         logger.info(f"Warning, mismatch of parameter {k} in model of HAC ({v}) and HAC itself ({layer_data[k]}).")
                         exclude_params.append(k)
                 except:
-                    print(f"Warning, cannot compare parameter {k} in model of HAC and HAC itself.")
+                    logger.info(f"Warning, cannot compare parameter {k} in model of HAC and HAC itself.")
                     exclude_params.append(k)
         for param_name in exclude_params:
             layer_data.pop(param_name, None)
@@ -1008,7 +1009,7 @@ class HAC(BaseAlgorithm):
             try:
                 succ_rate = logger.Logger.CURRENT.name_to_value['test/success_rate']
             except Exception as e:
-                print("Error getting test success rate")
+                logger.info("Error getting test success rate")
                 succ_rate = 0
             hyperopt_score = float(succ_rate/self.epoch_count)
             logger.record("hyperopt_score", hyperopt_score, exclude="tensorboard")
@@ -1074,7 +1075,7 @@ class HAC(BaseAlgorithm):
             try:
                 unscaled_action, _ = self.layer_alg.predict(observation, deterministic=deterministic)
             except Exception as e:
-                print("ohno {}".format(e))
+                logger.info("ohno {}".format(e))
 
         # Rescale the action from [low, high] to [-1, 1]
         if isinstance(self.layer_alg.action_space, gym.spaces.Box):
