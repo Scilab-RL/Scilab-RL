@@ -4,11 +4,14 @@ usage() { echo "$0 usage:" && grep " .)\ #" $0; exit 0; }
 
 gpu_ids=(0)
 min_mem_free=2500
-max_active_procs=16
+max_active_procs=6
 sleep_time=15
 opt_duration=0
 opt_duration_seconds=$(( opt_duration * 60 ))
 n_runs=1
+del_to_stop_filename="delete_me_to_stop_hyperopt"
+touch ${del_to_stop_filename}
+
 while getopts ":hd:p:m:g:s:r:" arg; do
   case $arg in
     p) # Specify max. number of processes.
@@ -64,14 +67,17 @@ rm -rf ${logs_dir}
 mkdir ${logs_dir}
 
 #cmd="python3 experiment/hyperopt.py --multirun --n_runs ${n_runs} --exp_name ${exp_name}"
-cmd="python3 experiment/hyperopt.py --run"
+cmd="python3 experiment/train.py --multirun"
 cmd_ctr=0
 while [ "$SECONDS" -lt "$opt_duration_seconds" ]; do
+  if [[ ! -f ${del_to_stop_filename} ]]; then
+    break
+  fi
   cmd_ctr=$(($cmd_ctr+1))
   seconds_remaining=$(($opt_duration_seconds - $SECONDS))
   minutes_remaining=$((seconds_remaining / 60))
   hours_remaining=$((minutes_remaining / 60))
-  echo "Running next parameterization, $minutes_remaining minutes or $hours_remaining hours left."
+  echo "Running next parameterization, $minutes_remaining minutes left."
 
   n_active_procs=$(pgrep -c -P$$)
   echo "Currently, there are ${n_active_procs} active processes."
@@ -101,6 +107,7 @@ while [ "$SECONDS" -lt "$opt_duration_seconds" ]; do
   #    ${cmd}
   $cmd 1> ${logs_dir}/${cmd_ctr}.log 2> ${logs_dir}/${cmd_ctr}_err.log || true & # Execute in background
   sleep $sleep_time
+
 done
 echo "All commands have been started. Waiting for last processes to finish."
 while pgrep -c -P$$ > "0"

@@ -450,8 +450,11 @@ class HAC(BaseAlgorithm):
             self.start_train_video_writer(self.get_env_steps())
         if self.is_top_layer and self.test_render_info is not None:
             self.start_test_video_writer(self.get_env_steps())
+
+        ### THIS IS THE MAIN TRAINING LOOP OVER EPOCHS
         while self.num_timesteps < total_timesteps and continue_training:
             continue_training = self.run_and_maybe_train(n_episodes=1)
+
         callback.on_training_end()
         return self    # callback: Optional[Callable] = None,
 
@@ -579,7 +582,6 @@ class HAC(BaseAlgorithm):
                     finished_early = success # If there is only one step to determined early stop, check if this episode is successful now.
 
                 done = np.logical_or(done, finished_early) # The episode is done if it is finshed early or if it is done via timeout
-
                 self.replay_buffer.add(self._last_original_obs, next_obs, buffer_action, reward_, done, infos)
 
                 self._last_obs = new_obs
@@ -705,7 +707,7 @@ class HAC(BaseAlgorithm):
             eval_env.venv.reset_all()
 
         while not done:
-            # print("Level {} step {}".format(self.layer, step_ctr)) ## DEBUG
+            # logger.info("Level {} step {}".format(self.layer, step_ctr)) ## DEBUG
             self.update_venv_buf_obs(eval_env)
             obs = eval_env.venv.buf_obs
             obs = ObsDictWrapper.convert_dict(obs)
@@ -715,15 +717,15 @@ class HAC(BaseAlgorithm):
             # if self.layer != 0 and step_ctr+1 == eval_env.venv.envs[0]._max_episode_steps:
             #     action = [eval_env.venv.envs[0].goal.copy()]
             # if self.layer == 1: ## DEBUG
-            #     print("Setting new subgoal {} for observation {}".format(action, obs))
+            #     logger.info("Setting new subgoal {} for observation {}".format(action, obs))
             # else:
-            #     print("Executing low-level action {} for observation {}".format(action, obs))
+            #     logger.info("Executing low-level action {} for observation {}".format(action, obs))
             new_obs, reward, done, info = eval_env.step(action)
             info.append({'q_mean': q_mean, 'q_std': q_std})
             # if self.layer == 0: ## DEBUG
-            #     print(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
-            #     print(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
-            #     print(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
+            #     logger.info(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
+            #     logger.info(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
+            #     logger.info(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
             if self.is_bottom_layer and self.test_render_info != 'none' and self.epoch_count % self.render_every_n_eval == 0:
                 if self.render_test == 'record':
                     frame = eval_env.unwrapped.render(mode='rgb_array', width=self.test_render_info['size'][0],
@@ -741,7 +743,7 @@ class HAC(BaseAlgorithm):
                 last_succ.append(info['is_success'].copy())
                 info['step_success'] = info['is_success'].copy()
                 del info['is_success']
-                # print("Success in layer {}: {}".format(self.layer, info['step_success'])) ## DEBUG:
+                # logger.info("Success in layer {}: {}".format(self.layer, info['step_success'])) ## DEBUG:
                 if self.ep_early_done_on_succ > 0 and len(last_succ) >= self.ep_early_done_on_succ:
                     last_succ_steps = last_succ[-self.ep_early_done_on_succ:]
                     finished = np.all(last_succ_steps)
@@ -770,7 +772,7 @@ class HAC(BaseAlgorithm):
         if success_key not in self.eval_info_list.keys():
             if 'step_success' in info.keys():
                 self.eval_info_list[success_key] = last_succ[-1].copy()
-                # print("Episode success in layer {}: {}".format(self.layer, last_succ)) ## DEBUG
+                # logger.info("Episode success in layer {}: {}".format(self.layer, last_succ)) ## DEBUG
         if reward_key not in self.eval_info_list.keys():
             self.eval_info_list[reward_key] = [ep_reward]
         return self.eval_info_list
@@ -834,7 +836,7 @@ class HAC(BaseAlgorithm):
         :param exclude: name of parameters that should be excluded in addition to the default one
         :param include: name of parameters that might be excluded but should be included anyway
         """
-        # add HER parameters to model
+        # add HAC parameters to model
         layer_data = self.__dict__.copy()
         exclude_params = HAC.save_attrs_to_exclude
         for k,v in layer_data.items():
@@ -844,7 +846,7 @@ class HAC(BaseAlgorithm):
                     if type(valid) == np.ndarray:
                         valid = valid.all()
                     if not valid:
-                        print(f"Warning, mismatch of parameter {k} in model of HAC ({v}) and HAC itself ({layer_data[k]}).")
+                        logger.info(f"Warning, mismatch of parameter {k} in model of HAC ({v}) and HAC itself ({layer_data[k]}).")
                         exclude_params.append(k)
                 except:
                     print(f"Warning, cannot compare parameter {k} in model of HAC and HAC itself.")
@@ -883,23 +885,11 @@ class HAC(BaseAlgorithm):
         for lay in reversed(range(n_layers)):
             layer_path = path + f"_lay{lay}"
             data, params, pytorch_variables = load_from_zip_file(layer_path, device=device)
-            # for k,v in data.items():
-            #     print(f"Size of {k}:\t  {sys.getsizeof(v)}")
-            p_size = sys.getsizeof(params)
-            pt_size = sys.getsizeof(pytorch_variables)
-            d_size = sys.getsizeof(data)
-                # print(v)
+
             # Remove stored device information and replace with ours
             if "policy_kwargs" in data:
                 if "device" in data["policy_kwargs"]:
                     del data["policy_kwargs"]["device"]
-
-            # if "policy_kwargs" in kwargs and kwargs["policy_kwargs"] != data["policy_kwargs"]:
-            #     raise ValueError(
-            #         f"The specified policy kwargs do not equal the stored policy kwargs."
-            #         f"Stored kwargs: {data['policy_kwargs']}, specified kwargs: {kwargs['policy_kwargs']}"
-            #     )
-            # check if observation space and action space are part of the saved parameters
 
             if "observation_space" not in data or "action_space" not in data:
                 raise KeyError("The observation_space and action_space were not given, can't verify new environments")
@@ -909,53 +899,6 @@ class HAC(BaseAlgorithm):
             del data['layer_data']
             layer_model.layer_alg.__dict__.update(data)
 
-            # # check if given env is valid
-            # if "env" in data:
-            #     env = data["env"]
-            #     del data['env']
-            # elif env is not None:
-            #     # Wrap first if needed just to compare the spaces
-            #     wrapped_env = cls._wrap_env(env, data["verbose"])
-            #     # Check if given env is valid
-            #     check_for_correct_spaces(wrapped_env, data["observation_space"], data["action_space"])
-            # else:
-            #     raise KeyError("No environment given")
-
-        # # if "use_sde" in data and data["use_sde"]:
-        # #     kwargs["use_sde"] = True
-        #
-        # # Keys that cannot be changed
-        # for key in {"model_class", "max_episode_length"}:
-        #     if key in kwargs:
-        #         del kwargs[key]
-        #
-        # # data.update(kwargs)
-        # # Keys that can be changed
-        # for key in {"n_sampled_goal", "goal_selection_strategy"}:
-        #     if key in kwargs:
-        #         data[key] = kwargs[key]  # pytype: disable=unsupported-operands
-        #         del kwargs[key]
-        #
-        # # noinspection PyArgumentList
-        # loaded_model = cls(
-        #     policy=data["policy_class"],
-        #     env=env,
-        #     model_class=data["model_class"],
-        #     # n_sampled_goal=data["n_sampled_goal"],
-        #     goal_selection_strategy=data["goal_selection_strategy"],
-        #     max_episode_length=data["max_episode_length"],
-        #     # policy_kwargs=data["policy_kwargs"],
-        #     _init_setup_model=False,  # pytype: disable=not-instantiable,wrong-keyword-args
-        #     **kwargs,
-        # )
-
-        # load parameters
-
-            # layer_model.model.__dict__.update(kwargs)
-            # layer_model._total_timesteps = layer_model.model._total_timesteps
-            # layer_model.num_timesteps = layer_model.model.num_timesteps
-            # layer_model.epoch_count = layer_model.model.epoch_count
-            # layer_model._episode_num = layer_model.model._episode_num
 
             # put state_dicts back in place
             layer_model.layer_alg.set_parameters(params, exact_match=True, device=device)
@@ -1059,7 +1002,7 @@ class HAC(BaseAlgorithm):
         self.reset_train_info_list()
 
         self.epoch_count += 1
-        # self.model.epoch_count = self.epoch_count
+
         if self.is_top_layer:
             logger.record("epoch", self.epoch_count)
             try:

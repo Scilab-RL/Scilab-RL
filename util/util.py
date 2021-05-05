@@ -212,7 +212,7 @@ def get_full_size(obj, seen=None):
             try:
                 size += get_full_size(i, seen)
             except Exception as e:
-                print(f" could not determine size of {str(i)} because {e}")
+                logger.info(f" could not determine size of {str(i)} because {e}")
         # size += sum((get_full_size(i, seen) for i in obj))
 
     if hasattr(obj, '__slots__'):  # can have __slots__ with __dict__
@@ -235,7 +235,7 @@ def get_full_size(obj, seen=None):
 #     try:
 #         grad_list = [tf.reshape(grad, [U.numel(v)]) for (v, grad) in zip(var_list, grads)]
 #     except Exception as e:
-#         print(e)
+#         logger.info(e)
 #     grad_list = [tf.reshape(grad, [U.numel(v)]) for (v, grad) in zip(var_list, grads)]
 #     return tf.concat(grad_list, 0)
 #
@@ -308,7 +308,7 @@ def get_full_size(obj, seen=None):
 #
 #         args += sys.argv
 #         ret = subprocess.check_call(args, env=env)
-#         print(ret)
+#         logger.info(ret)
 #         return "parent"
 #     else:
 #         install_mpi_excepthook()

@@ -108,8 +108,8 @@ class CustomEvalCallback(EvalCallback):
             mean_success, std_success = np.mean(episode_successes), np.std(episode_successes)
 
             if self.verbose > 0:
-                print(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
-                print(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
+                logger.info(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
+                logger.info(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
 
             logger.record("test/mean_reward", float(mean_reward))
             logger.record("test/std_reward", float(std_reward))
@@ -121,7 +121,7 @@ class CustomEvalCallback(EvalCallback):
 
             # if mean_reward > self.best_mean_reward:
             #     if self.verbose > 0:
-            #         print("New best mean reward!")
+            #         logger.info("New best mean reward!")
             #     if self.best_agent_save_path is not None:
             #         self.agent.save(os.path.join(self.best_agent_save_path, "best_agent"))
             #     self.best_mean_reward = mean_reward
@@ -130,7 +130,7 @@ class CustomEvalCallback(EvalCallback):
             #         return self._on_event()
             if mean_success > self.best_mean_success:
                 if self.verbose > 0:
-                    print("New best mean success rate!")
+                    logger.info("New best mean success rate!")
                 if self.log_path is not None:
                     self.agent.save(os.path.join(self.log_path, "best_agent"))
                 self.best_mean_success = mean_success
