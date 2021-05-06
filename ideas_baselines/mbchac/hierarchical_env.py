@@ -26,49 +26,34 @@ GOAL_MARKER_MAX_ALPHA = 0.9
 def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
                         level_steps: List,
                         is_testing_env: bool = False, layer_alg: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
-
-    def recursive_get_henvs(bottom_env: gym.wrappers.TimeLimit,
-                        level_steps: List[int], env_list: List[gym.GoalEnv] = [],
-                        is_testing_env: bool = False, layer_alg: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
-
-        if not level_steps:
-            return env_list
-        if len(level_steps) > 1:
-            env = HierarchicalHLEnv(bottom_env, is_testing_env=is_testing_env, layer_alg=layer_alg)
-            env = gym.wrappers.TimeLimit(env, max_episode_steps=level_steps[0])
-        else:
-            env = bottom_env
-            env.unwrapped.spec.max_episode_steps = level_steps[0]
-            env._max_episode_steps = level_steps[0]
-            if layer_alg is not None:
-                env.env.layer_alg = layer_alg
-
-        env_list.append(env)
-        next_level_steps = level_steps[1:]
-        if layer_alg is not None and layer_alg.sub_layer is not None:
-            next_level_layer_alg = layer_alg.sub_layer
-        else:
-            next_level_layer_alg = None
-        env_list = recursive_get_henvs(bottom_env, next_level_steps, env_list, is_testing_env, next_level_layer_alg)
-
-        return env_list
+    # reverse the level_steps list so that it is sorted from lowest to highest layer
+    level_steps = level_steps.copy()  # don't modify original
+    level_steps.reverse()
 
     # The bottom_env has a list that stores the goals of all layers. This is necessary for the subgoal visualization.
     bottom_env.goal_list = [[0, 0, 0]] * len(level_steps)
+    env_list = [bottom_env]
+    # set the maximum steps for the bottom_env
+    bottom_env.unwrapped.spec.max_episode_steps = level_steps[0]
+    bottom_env._max_episode_steps = level_steps[0]
+    level_steps = level_steps[1:]
+    # find the lowest layer of the algorithm and assign it to the bottom_env
+    if layer_alg is not None:
+        while layer_alg.sub_layer is not None:
+            layer_alg = layer_alg.sub_layer
+        bottom_env.env.layer_alg = layer_alg
 
-    env_list = recursive_get_henvs(bottom_env=bottom_env, level_steps=level_steps,
-                                   env_list=[], is_testing_env=is_testing_env, layer_alg=layer_alg)
 
-    # iterate through reversed list to set sub_envs correctly; necessary for recursive action_space determination.
-    # TODO can't this be done while creating the envs?
-    for level, _ in enumerate(reversed(env_list)):
-        j = len(env_list) - level - 1
-        if level > 0:
-            env_list[j].set_sub_env(env_list[j+1])
-            # re-set action space also for TimeLimit Wrapper class
-            env_list[j].action_space = env_list[j].env.action_space
-        env_list[j].is_top_level_env = j == 0
-        env_list[j].level = level
+    for lvl_steps in level_steps:
+        if layer_alg is not None:
+            layer_alg = layer_alg.parent_layer
+        env = HierarchicalHLEnv(bottom_env, is_testing_env=is_testing_env, layer_alg=layer_alg)
+        env.set_sub_env(env_list[-1])
+        env = gym.wrappers.TimeLimit(env, max_episode_steps=lvl_steps)
+        env_list.append(env)
+
+    # the env_list should be sorted from highest to lowest env, so we need to reverse it.
+    env_list.reverse()
 
     return env_list
 
@@ -131,7 +116,7 @@ class HierarchicalVecEnv(DummyVecEnv):
                 self.buf_infos[env_idx]["terminal_observation"] = obs
                 self.envs[env_idx]._elapsed_steps = 0
             self._save_obs(env_idx, obs)
-        return (self._obs_from_buf(), np.copy(self.buf_rews), np.copy(self.buf_dones), deepcopy(self.buf_infos))
+        return self._obs_from_buf(), np.copy(self.buf_rews), np.copy(self.buf_dones), deepcopy(self.buf_infos)
 
     def reset_all(self):
         for env_idx in range(self.num_envs):
@@ -145,7 +130,8 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self.bottom_env = bottom_env
         self.action_space = bottom_env.observation_space.spaces['desired_goal']
         if np.inf in self.action_space.high or -np.inf in self.action_space.low:
-            logger.warn("Warning, subgoal space of hierarchical environment not defined. I will guess the subgoal bounds based on drawing goal samples when the sub env is set.")
+            logger.warn("Warning, subgoal space of hierarchical environment not defined. "
+                        "I will guess the subgoal bounds based on drawing goal samples when the sub env is set.")
 
         self.observation_space = bottom_env.env.observation_space
         self._sub_env = None
@@ -169,7 +155,8 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self.action_space.high = self.action_space.low + action_space_range
         # Reset action space to determine whether the space is bounded.
         self.action_space = gym.spaces.Box(self.action_space.low, self.action_space.high)
-        logger.info("Updated action bound guess by random sampling: Action space high: {}, Action space low: {}".format(self.action_space.high, self.action_space.low))
+        logger.info("Updated action bound guess by random sampling: Action space high: {}, "
+                    "Action space low: {}".format(self.action_space.high, self.action_space.low))
 
     def set_sub_env(self, env):
         self._sub_env = env
