@@ -53,11 +53,15 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
 
         return env_list
 
+    # The bottom_env has a list that stores the goals of all layers. This is necessary for the subgoal visualization.
+    bottom_env.goal_list = [[0, 0, 0]] * len(level_steps)
+
     env_list = recursive_get_henvs(bottom_env=bottom_env, level_steps=level_steps,
                                    env_list=[], is_testing_env=is_testing_env, layer_alg=layer_alg)
 
-    # iterate through reversed list to set sub_envs and parent_envs correctly; necessary for recursive action_space determination.
-    for level, e in enumerate(reversed(env_list)):
+    # iterate through reversed list to set sub_envs correctly; necessary for recursive action_space determination.
+    # TODO can't this be done while creating the envs?
+    for level, _ in enumerate(reversed(env_list)):
         j = len(env_list) - level - 1
         if level > 0:
             env_list[j].set_sub_env(env_list[j+1])
@@ -80,41 +84,22 @@ class HierarchicalVecEnv(DummyVecEnv):
         self.goal_viz_size = 0.035
         self.early_done_on_success = early_done_on_success
 
-    def get_parent_layers(self, env_idx=0):
-        current_env = self.envs[env_idx]
-        n_layers = 1
-        while True:
-            if hasattr(current_env, '_parent_env') and current_env._parent_env is not None:
-                current_env = current_env._parent_env
-            else:
-                break
-            n_layers += 1
-        return n_layers
-
     def prepare_goal_viz(self, env_idx):
-        current_goal_viz_env = self.envs[env_idx]
+        # get the list of (sub)goals to display
+        goal_list = self.envs[env_idx].goal_list
+        # create a list of sites that represent the (sub)goals
         goals_to_viz = {}
-        n_layers = self.get_parent_layers()
-        alphas = np.arange(GOAL_MARKER_MIN_ALPHA, GOAL_MARKER_MAX_ALPHA, GOAL_MARKER_MAX_ALPHA / n_layers)
-        layer = 0
-        while True:
-            layer_goals_to_render = current_goal_viz_env.unwrapped.goal
-            if hasattr(self.envs[env_idx], 'layer_goal_to_3d'):
-                layer_goals_to_render = self.envs[env_idx].layer_goal_to_3d(layer_goals_to_render.copy())
-            if len(layer_goals_to_render) % 3 == 0:
-                n_goals = len(layer_goals_to_render) // 3
-                colors = GOAL_MARKER_COLORS[:n_goals]
-                for i in range(int(len(layer_goals_to_render) / 3)):
-                    shape_idx = layer % len(GOAL_MARKER_SHAPES)
-                    goal_marker_shape = GOAL_MARKER_SHAPES[shape_idx]
-                    color_and_alpha = colors[i] + [alphas[layer]]
-                    goals_to_viz['subgoal_{}{}'.format(goal_marker_shape, i)] = (
-                        layer_goals_to_render[i * 3: (i + 1) * 3], self.goal_viz_size, color_and_alpha)
-            layer += 1
-            if hasattr(current_goal_viz_env, '_parent_env') and current_goal_viz_env._parent_env is not None:
-                current_goal_viz_env = current_goal_viz_env._parent_env
-            else:
-                break
+        alphas = np.arange(GOAL_MARKER_MIN_ALPHA, GOAL_MARKER_MAX_ALPHA, GOAL_MARKER_MAX_ALPHA / len(goal_list))
+        for layer_idx, layer_goals_to_render in enumerate(goal_list):
+            n_goals = len(layer_goals_to_render) // 3
+            colors = GOAL_MARKER_COLORS[:n_goals]
+            for i in range(n_goals):
+                shape_idx = layer_idx % len(GOAL_MARKER_SHAPES)
+                goal_marker_shape = GOAL_MARKER_SHAPES[shape_idx]
+                color_and_alpha = colors[i] + [alphas[layer_idx]]
+                goals_to_viz['subgoal_{}{}'.format(goal_marker_shape, i)] = (
+                    layer_goals_to_render[i * 3: (i + 1) * 3], self.goal_viz_size, color_and_alpha)
+        # set the sites' attributes in the simulation
         viz_env = self.envs[env_idx].unwrapped
         for name in goals_to_viz:
             try:
@@ -164,7 +149,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
 
         self.observation_space = bottom_env.env.observation_space
         self._sub_env = None
-        self._parent_env = None
         self.layer_alg = layer_alg
         self.is_testing_env = is_testing_env
 
@@ -191,12 +175,15 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self._sub_env = env
         if np.inf in self.action_space.high or -np.inf in self.action_space.low:
             self.update_action_bound_guess()
-        self._sub_env._parent_env = self
 
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
         self._sub_env.env._elapsed_steps = 0 # Set elapsed steps to 0 but don't reset the whole simulated environment
         self._sub_env.env.unwrapped.goal = subgoal
+        # store the goals in the bottom_env, so that they can be displayed
+        current_layer = self.layer_alg.layer
+        self.bottom_env.goal_list[current_layer] = self.goal
+        self.bottom_env.goal_list[current_layer-1] = subgoal
 
         assert self.layer_alg is not None, "Step not possible because no layer_alg defined yet."
         if self.is_testing_env:
