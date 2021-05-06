@@ -18,7 +18,7 @@ GOAL_MARKER_COLORS = [[1, 0, 0],
                       [0.5, 1, 0.5],
                       [0, 0.5, 1]]
 
-GOAL_MARKER_SHAPES = ['sphere', 'cylinder', 'box']
+GOAL_MARKER_SHAPES = ['sphere', 'box', 'cylinder']
 GOAL_MARKER_MIN_ALPHA = 0.1
 GOAL_MARKER_MAX_ALPHA = 0.9
 
