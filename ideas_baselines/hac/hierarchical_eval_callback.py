@@ -6,18 +6,19 @@ import numpy as np
 import os
 import warnings
 from util.custom_evaluation import evaluate_policy
-from ideas_baselines.mbchac.hiearchical_evaluation import evaluate_hierarchical_policy
+from ideas_baselines.hac.hiearchical_evaluation import evaluate_hierarchical_policy
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common import logger
 from collections import deque
 import time
+from ideas_baselines.hac.hac import HAC
 from stable_baselines3.common.utils import safe_mean
-from ideas_baselines.mbchac.hierarchical_env import get_h_envs_from_env
+from ideas_baselines.hac.hierarchical_env import get_h_envs_from_env
 import matplotlib.pyplot as plt
 import cv2
 
-class TrainVideoCallback(BaseCallback):
+class HierarchicalEvalCallback(EvalCallback):
     """
     Callback for evaluating an agent.
 
@@ -37,36 +38,55 @@ class TrainVideoCallback(BaseCallback):
 
     def __init__(
         self,
-        env: Union[gym.Env, VecEnv],
+        eval_env: Union[gym.Env, VecEnv],
+        n_eval_episodes: int = 5,
+        eval_freq: int = 10000,
         log_path: str = None,
-        render: str = 'record',
-        model = None
+        deterministic: bool = True,
+        verbose: int = 1,
+        early_stop_data_column: str = 'test/success_rate',
+        early_stop_threshold: float = 1.0,
+        early_stop_last_n: int = 5,
+        top_level_layer = None
     ):
-        super(TrainVideoCallback, self).__init__(
-            training_env=env,
-            model=model)
+        super(EvalCallback, self).__init__(verbose=verbose)
+        self.n_eval_episodes = n_eval_episodes
+        self.eval_freq = eval_freq
+        self.best_early_stop_val = -np.inf
+        self.deterministic = deterministic
+        self.eval_histories = {}
+        self.early_stop_data_column = early_stop_data_column
+        self.early_stop_threshold = early_stop_threshold
+        self.early_stop_last_n = early_stop_last_n
+        self.top_level_layer = top_level_layer
 
-        self.render = render
+        layer_envs = get_h_envs_from_env(eval_env, top_level_layer.time_scales, is_testing_env=True, layer_alg=top_level_layer)
+        for idx, eval_env in enumerate(layer_envs):
+            # Convert to VecEnv for consistency
+            eval_env = top_level_layer._wrap_env(eval_env)
+            if isinstance(eval_env, VecEnv):
+                assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
+            layer_envs[idx] = eval_env
+
+        self.eval_env = layer_envs[0]
+        self.eval_env_layers = layer_envs
+        self.log_path = log_path
+        self.best_model_save_path = None
+        self.evaluations_results = []
+        self.evaluations_timesteps = []
+        self.evaluations_length = []
         self.vid_size = 1024, 768
         self.vid_fps = 25
         self.eval_count = 0
-        if self.render == 'record':
-            self.render_info = {'size': self.vid_size, 'fps': self.vid_fps, 'eval_count': self.eval_count,
-                                'path': self.log_path}
-        else:
-            self.render_info = None
 
     def _on_step(self, log_prefix='') -> bool:
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
 
-            if self.render_info is not None:
-                self.render_info['eval_count'] = self.eval_count
             info_list = evaluate_hierarchical_policy(
                 self.top_level_layer,
                 self.eval_env,
-                self.render_info,
                 n_eval_episodes=self.n_eval_episodes
             )
             for k,v in info_list.items():
@@ -87,10 +107,11 @@ class TrainVideoCallback(BaseCallback):
                 if self.early_stop_data_column in self.eval_histories.keys():
                     if self.eval_histories[self.early_stop_data_column][-1] >= self.best_early_stop_val:
                         self.best_early_stop_val = self.eval_histories[self.early_stop_data_column][-1]
-                        if self.verbose > 0:
-                            print("New best mean {}: {:.5f}!".format(self.early_stop_data_column, self.best_early_stop_val))
                         if self.log_path is not None:
-                            self.model.save(os.path.join(self.log_path, "best_model"))
+                            self.top_level_layer.save(os.path.join(self.log_path, "best_model"))
+                            print("New best mean {}: {:.5f}!".format(self.early_stop_data_column,
+                                                                     self.best_early_stop_val))
+                            print(f"Saving new best model at {self.log_path}/best_model")
 
                     if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                         mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
@@ -105,7 +126,5 @@ class TrainVideoCallback(BaseCallback):
                 else:
                     logger.warn("Warning, early stop data column {} not in eval history keys {}. This should only happen once during initialization.".format(self.early_stop_data_column, self.eval_histories.keys()))
             self.eval_count += 1
-        return True
-
 
 
