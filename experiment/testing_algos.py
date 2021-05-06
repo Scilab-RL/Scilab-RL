@@ -4,8 +4,8 @@ import gym
 class TestingAlgos:
 
     base_algo_names = ['sac', 'ddpg', 'td3']
-    algo_names = ['mbchac', 'her2'] + base_algo_names
-    algo_names = ['mbchac']
+    algo_names = ['hac', 'her2'] + base_algo_names
+    algo_names = ['hac']
 
     @staticmethod
     def get_her_performance_params(env):
@@ -36,7 +36,7 @@ class TestingAlgos:
         return all_params
 
     @staticmethod
-    def get_mbchac_performance_params(env):
+    def get_hac_performance_params(env):
         all_params = []
         eval_after_n_steps = 5000
         early_stop_last_n = (10000 // eval_after_n_steps) + 1
@@ -209,7 +209,7 @@ class TestingAlgos:
         return all_params
 
     # @staticmethod
-    # def get_mbchac_performance_params(env):
+    # def get_hac_performance_params(env):
     #     all_params = []
     #     eval_after_n_steps = 2000
     #     early_stop_last_n = (10000 // eval_after_n_steps) + 1
@@ -332,7 +332,7 @@ class TestingAlgos:
     #     return all_params
     #
     # @staticmethod
-    # def get_mbchac_performance_params(env):
+    # def get_hac_performance_params(env):
     #     all_params = []
     #     all_h_params = [
     #         # 1 level HER
@@ -342,7 +342,7 @@ class TestingAlgos:
     #         # 2 level CHAC
     #         {'buffer_size': "500,500", 'eta': '0.5,0.5', 'level_types': 'hac,hac', 'dm_hidden_size': 256,
     #          'dm_batch_size': 1024, 'dm_lr': 0.001, "dm_ensemble": 5, 'simulate_level': '0,0'},
-    #         # 2 level MBCHAC
+    #         # 2 level HAC
     #         {'buffer_size': "500,500", 'eta': '0.5,0.5', 'level_types': 'hac,hac', 'dm_hidden_size': 256,
     #          'dm_batch_size': 1024, 'dm_lr': 0.001, "dm_ensemble": 5, 'simulate_level': '1,1'}
     #     ]

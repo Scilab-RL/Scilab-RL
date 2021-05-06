@@ -1,18 +1,18 @@
-name: 'mbchac'
+name: 'hac'
 exp_path_params:
-  - 'time_scales'
+#  - 'time_scales'
   - 'use_action_replay'
   - 'subgoal_test_perc'
   - 'ep_early_done_on_succ'
   - 'goal_selection_strategy'
   - 'n_sampled_goal'
-  - 'learning_rates'
+#  - 'learning_rates'
   - 'hindsight_sampling_done_if_success'
   - 'set_fut_ret_zero_if_done'
 
 verbose: True
 
-# 'future', 'future2', 'future3', 'future4', 'final', 'episode', 'rndend', 'rndend2', 'rndend3'
+# 'future', 'future2', 'final', 'episode', 'rndend', 'rndend2'
 goal_selection_strategy: 'future'
 
 n_sampled_goal: 4
@@ -43,6 +43,7 @@ ep_early_done_on_succ: 2
 # Whether to consider an episode as done *in hindsight* during goal replay
 # if the hindsight goal has been achieved. This is important e.g. in SAC,
 # where the discounted expected return is set to 0 of an episode is done.
+# Only relevant if set_fut_ret_zero_if_done = 1.
 hindsight_sampling_done_if_success: 1
 
 # Whether to set the future expected return to 0 if an episode is
@@ -50,7 +51,7 @@ hindsight_sampling_done_if_success: 1
 set_fut_ret_zero_if_done: 0
 
 # Whether and how to render the rollout execution during training. \'record\' is for video, \'display\' for direct visualization, \'null\' is for not rendering at all.
-render_train: record
+render_train: null
 
 # Whether and how to render the rollout execution during testing.
 # \'record\' is for video, \'display\' for direct visualization.
@@ -64,8 +65,8 @@ render_every_n_eval: 15
 # in the list to indicates the layer where the time scale is determined from the
 # environment's predefined steps.
 time_scales:
-  - 5
-  - -1
+  - 7
+  - 7
 
 # The percentage of subgoals to test.
 subgoal_test_perc: 0.3
