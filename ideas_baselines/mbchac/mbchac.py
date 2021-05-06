@@ -28,7 +28,6 @@ from ideas_baselines.mbchac.hierarchical_env import HierarchicalVecEnv
 from gym.wrappers import TimeLimit
 import time
 from ideas_baselines.mbchac.util import get_concat_dict_from_dict_list, merge_list_dicts
-from ideas_envs.wrappers.subgoal_viz_wrapper import SubgoalVisualizationWrapper
 import numbers
 from copy import deepcopy
 from stable_baselines3.common.logger import HumanOutputFormat
