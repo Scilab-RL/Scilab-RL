@@ -26,6 +26,18 @@ GOAL_MARKER_MAX_ALPHA = 0.9
 def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
                         level_steps: List,
                         is_testing_env: bool = False, layer_alg: OffPolicyAlgorithm = None) -> List[gym.wrappers.TimeLimit]:
+    """
+    Creates HierarchicalHLEnvs on top of the bottom_env.
+    :param bottom_env: The original simulation environment wrapped in a TimeLimit wrapper
+    :param level_steps: A list that contains the steps that each layer should perform before a
+                        next higher-level step is performed. From highest to lowest layer.
+                        e.g. [5, 11]: The lowest layer performs 11 steps before the highest layer performs one.
+                        after 5 steps of the highest layer, the episode is done.
+    :param is_testing_env: True if the bottom_env is the env intended for testing
+    :param layer_alg: The highest layer of the algorithm. Every environment-layer receives a reference to the
+                      corresponding algorithm-layer.
+    :return: A list that contains the hierarchy of environments, from highest to lowest.
+    """
     # reverse the level_steps list so that it is sorted from lowest to highest layer
     level_steps = level_steps.copy()  # don't modify original
     level_steps.reverse()
@@ -60,7 +72,9 @@ def get_h_envs_from_env(bottom_env: gym.wrappers.TimeLimit,
 
 class HierarchicalVecEnv(DummyVecEnv):
     """
-    This class has the same functionality as DummyVecEnv, but it does not reset the simulator when a low-level episode ends.
+    This class has the same functionality as DummyVecEnv, but it does not reset the simulator when a low-level
+    episode ends. Every HierarchicalHLEnv gets wrapped into a HierarchicalVecEnv.
+    It also handles the (sub)goal visualization.
     """
 
     def __init__(self, env_fns: List[Callable[[], gym.Env]], early_done_on_success: bool):
@@ -126,6 +140,13 @@ class HierarchicalVecEnv(DummyVecEnv):
 
 
 class HierarchicalHLEnv(gym.GoalEnv):
+    """
+    A HierarchicalHLEnv functions as a hierarchical abstraction of lower-level goal-conditioned environments.
+    An action taken in a HierarchicalHLEnv is the goal of its _sub_env.
+    Example structure:
+    <HierarchicalHLEnv>
+        self._sub_env = <TimeLimit<BlocksEnv<Blocks-o3-gripper_random-v1>>>
+    """
     def __init__(self, bottom_env, is_testing_env=None, layer_alg=None):
         self.bottom_env = bottom_env
         self.action_space = bottom_env.observation_space.spaces['desired_goal']
