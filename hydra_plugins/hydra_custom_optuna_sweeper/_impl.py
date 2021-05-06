@@ -187,6 +187,13 @@ class CustomOptunaSweeperImpl(Sweeper):
     #         print(trial)
     #     return min_epochs
 
+    @staticmethod
+    def try_upload_to_cometml():
+        try:
+            os.system("comet_for_mlflow --upload --yes")
+        except Exception as e:
+            log.info(f"Upload to comet.ml not possible: {e}")
+
     def sweep(self, arguments: List[str]) -> None:
         assert self.config is not None
         assert self.launcher is not None
@@ -289,6 +296,9 @@ class CustomOptunaSweeperImpl(Sweeper):
                                     if new_max_epochs <= study.user_attrs['max_n_epochs']:
                                         log.info(f"This trial had only {n_epochs} epochs. New upper limit for max. epochs is now {new_max_epochs}. ")
                                         study.set_user_attr("max_n_epochs", new_max_epochs)
+                                else:
+                                    study.set_user_attr("max_n_epochs", new_max_epochs)
+
                         except (ValueError, TypeError):
                             raise ValueError(
                                 f"Return value must be float-castable. Got '{ret.return_value}'."
@@ -317,6 +327,7 @@ class CustomOptunaSweeperImpl(Sweeper):
             n_trials_to_go -= batch_size
             current_time = time.time()
 
+            self.try_upload_to_cometml() #Run upload to cometml if possible.
 
         results_to_serialize: Dict[str, Any]
         assert len(directions) < 2, "Multi objective optimization is not implemented"

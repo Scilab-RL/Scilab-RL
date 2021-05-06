@@ -128,7 +128,7 @@ The `--host` tells the server to allow connections from all machines.
   Note that this import monkey-patches several other modules, including mlflow, which is why it has to be at the top of the `train.py` file. 
   Also, there are some conflicts with the joblib multiprocessing library if using the standard `_DEFAULT_START_METHOD` of joblib/loky because the standard multiprocessing re-loads all modules and overwrites the monkey-patched ones. 
   Therefore, there is an overwrite just below the comet_ml import, telling joblib/loky to use `loky_init_main`.
-  To upload the results to comet.ml, you need to specify your API key that you obatain when you register with comet.ml. 
+  To upload the results to comet.ml, you need to specify your API key that you obtain when you register with comet.ml. 
   There are several options to do this. 
   The recommended option is to create a config file `~/.comet.config` (in your home folder, note the `.` in the file name). 
   The config file should have the following content:
@@ -136,10 +136,9 @@ The `--host` tells the server to allow connections from all machines.
 [comet]
    api_key=<your API key>
 ```
-
-
+  
 To start the hyperparameter optimization start `experiment/train.py --multirun`. The `--multirun` flag starts the hyperparameter optimization mode. 
-
+A problem with the comet.ml integration is that if a script raises an Error and stops, all parallel processes will be blocked and the error will not be output. Therefore, if you spot that all processes of the hyperopt are idle you should re-start the process without comet.ml (just remove the import in `train.py`) and try to reproduce and find the error by observing the console output.  
 
 
 

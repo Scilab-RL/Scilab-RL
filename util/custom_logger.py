@@ -10,8 +10,8 @@ import csv
 import numpy as np
 from util.util import print_dict, check_all_dict_values_equal, interpolate_data
 from typing import Any, Dict, List, Optional, Sequence, TextIO, Tuple, Union
-from stable_baselines3.common.logger import Video, FormatUnsupportedError
-import warnings
+from stable_baselines3.common.logger import Video, FormatUnsupportedError, SeqWriter
+# import warningsmlflow.st
 import time
 from cycler import cycler
 import mlflow
@@ -19,12 +19,13 @@ import hydra
 import omegaconf
 from omegaconf import DictConfig, ListConfig
 
+
 class MLFlowOutputFormat(KVWriter):
     def __init__(self, cfg):
         orig_path = hydra.utils.get_original_cwd()
         mlflow.set_tracking_uri('file://' + orig_path + '/mlruns')
-        tracking_uri = mlflow.get_tracking_uri()
-        logger.info("Current tracking uri: {}".format(tracking_uri))
+        self.tracking_uri = mlflow.get_tracking_uri()
+        logger.info("Current tracking uri: {}".format(self.tracking_uri))
         study_name = omegaconf.OmegaConf.load(f'{orig_path}/conf/main.yaml').hydra.sweeper.study_name
         mlflow.set_experiment(study_name)
         mlflow.start_run()
@@ -46,8 +47,14 @@ class MLFlowOutputFormat(KVWriter):
                 mlflow.log_param(f'{parent_name}.{i}', v)
 
     def write(self, key_values: Dict[str, Any], key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
-        for k,v in key_values.items():
+        kvs = key_values.copy()
+        for k,v in kvs.items():
             mlflow.log_metric(k, v, step=step)
+
+    # def write_sequence(self, sequence: List) -> None:
+    #     sequence = list(sequence)
+    #     for i, elem in enumerate(sequence):
+    #         mlflow.log_text(elem, f"log.txt")
 
     def close(self) -> None:
         mlflow.end_run()
@@ -107,9 +114,9 @@ class MatplotlibCSVOutputFormat(KVWriter):
         else:
             return False
 
-
-    def write(self, kvs, name_to_excluded, step):
+    def write(self, key_values: Dict[str, Any], key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
         # Add our current row to the history
+        kvs = key_values.copy()
         extra_keys = kvs.keys() - self.keys
         if extra_keys:
             self.keys.extend(extra_keys)
@@ -134,7 +141,10 @@ class MatplotlibCSVOutputFormat(KVWriter):
         self.file.write('\n')
         self.file.flush()
         if self.check_plot_frequency():
-            self.plot_aggregate_kvs()
+            try:
+                self.plot_aggregate_kvs()
+            except Exception as e:
+                logger.info(f"Matplotlib plotting failed: {e}")
             self.set_plot_lock_file()
 
     def close(self):
@@ -260,7 +270,7 @@ class MatplotlibCSVOutputFormat(KVWriter):
                 try:
                     line, = plt.plot(xs, median[:min_data_len], label=config_str + '-' + k)
                 except Exception as e:
-                    logger.info(f"ohno {e}")
+                    logger.info(f"This is a matplotlib error that we need to fix at some point... {e}")
                 plt.fill_between(xs, lower[:min_data_len],
                                  upper[:min_data_len],
                                  alpha=0.25, color=line.get_color())
@@ -277,20 +287,6 @@ class MatplotlibCSVOutputFormat(KVWriter):
             plt.close(fig)
             with open(plot_log_filename, 'w') as logfile:
                 logfile.write(print_dict(all_data_info))
-
-
-class SeqWriter(object):
-    """
-    sequence writer
-    """
-
-    def write_sequence(self, sequence: List) -> None:
-        """
-        write_sequence an array to file
-
-        :param sequence:
-        """
-        raise NotImplementedError
 
 
 class FixedHumanOutputFormat(KVWriter, SeqWriter):
@@ -385,3 +381,9 @@ class FixedHumanOutputFormat(KVWriter, SeqWriter):
         """
         if self.own_file:
             self.file.close()
+
+
+# def mlflow_log_text(self, run_id, text, artifact_file):
+#     with self._log_artifact_helper(run_id, artifact_file) as tmp_path:
+#         with open(tmp_path, "a") as f: ## Here is the change: map "w" to "a"
+#             f.write(text)

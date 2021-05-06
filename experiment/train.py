@@ -1,13 +1,7 @@
-import comet_ml
-# comet_ml.init(auto_output_logging='none')
-import joblib
+# import comet_ml # Direct comet.ml upload not supported in multiprocessing mode. See README.md and issue https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/issues/26
 import joblib.externals.loky.backend.context as jl_ctx
 jl_ctx._DEFAULT_START_METHOD = 'loky_init_main' # This is required because by default, the loky multiprocessing backend of joblib re-imports all modules when calling main(). Since comet_ml monkey-patches several libraries, the changes to these libraries get lost. When setting the start_method to loky_init_main the modules are not re-imported and the monkey-path-changes don't get lost.
 import mlflow
-import torch
-
-from io import StringIO
-import sys
 
 import matplotlib
 matplotlib.use('Agg')
@@ -16,11 +10,8 @@ import sys
 sys.path.append(os.getcwd())
 import importlib
 import hydra
-import omegaconf
 from omegaconf import DictConfig, OmegaConf, open_dict
-# import mlflow
 import csv
-import optuna
 import numpy as np
 
 # Force matplotlib to not use any Xwindows backend.
@@ -28,20 +19,14 @@ import numpy as np
 # sys.path.append(os.getcwd())
 import gym
 from util.util import get_subdir_by_params,get_git_label,set_global_seeds,log_dict,get_last_epoch_from_logdir
-# import logger
 import time
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
 from stable_baselines3.common import logger
 from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat, MLFlowOutputFormat
-from stable_baselines3.common.env_checker import check_env
-from util.compat_wrappers import make_robustGoalConditionedHierarchicalEnv, make_robustGoalConditionedModel
 from util.custom_eval_callback import CustomEvalCallback
 from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
-# from util.custom_train_callback import CustomTrainCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
-from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
 
 
 def check_env_alg_compatibility(model, env):
@@ -137,8 +122,8 @@ OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 @hydra.main(config_name="main", config_path="../conf")
 def main(cfg: DictConfig) -> (float, int):
     # Imports required for the joblib multiprocessing feature when hyperopting.
-    import ideas_envs.register_envs
-    import ideas_envs.wrappers.utils
+    # import ideas_envs.register_envs
+    # import ideas_envs.wrappers.utils
 
     original_dir = os.getcwd()
     path_dir_params = {key: cfg.algorithm[key] for key in cfg.algorithm.exp_path_params}
@@ -157,8 +142,17 @@ def main(cfg: DictConfig) -> (float, int):
     print('Renamed hydra dir to', run_dir)
     os.rename(original_dir, run_dir)
 
-    # Output will only be logged appropriately after configuring the logger in the following line:
-    logger.configure(folder=run_dir, format_strings=['stdout', 'log', 'csv'])
+    # Output will only be logged appropriately after configuring the logger in the following lines:
+    logger.configure(folder=run_dir, format_strings=[])
+    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
+    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
+    try:
+        logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=cfg['plot_eval_cols'])) # When using this, make sure that we don't have a csv output format already, otherwise there will be conflicts.
+    except Exception as e:
+        logger.info(f"Unable to setup Matplotlib CSV logger: {e}")
+    logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat(cfg))
+    # End configure logger
+
     logger.info('Hydra dir', original_dir)
     logger.info(f"Starting training with the following configuration:")
     logger.info(OmegaConf.to_yaml(cfg))
@@ -193,11 +187,6 @@ def main(cfg: DictConfig) -> (float, int):
     if cfg['seed'] == 0:
         cfg['seed'] = int(time.time())
 
-    plot_cols = cfg['plot_eval_cols']
-    logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=plot_cols)) # When using this, make sure that we don't have a csv output format already, otherwise there will be conflicts.
-    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
-    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
-    logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat(cfg))
 
     logdir = logger.get_dir()
     logger.info("Data dir: {} ".format(logdir))

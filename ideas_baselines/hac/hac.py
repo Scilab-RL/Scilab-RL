@@ -429,7 +429,7 @@ class HAC(BaseAlgorithm):
 
     def learn(
         self,
-        total_timesteps: int,
+        total_env_timesteps: int,
         callback: MaybeCallback = None,
         log_interval: int = None,
         eval_env: Optional[GymEnv] = None,
@@ -440,7 +440,7 @@ class HAC(BaseAlgorithm):
         reset_num_timesteps: bool = False,
     ) -> BaseAlgorithm:
 
-        total_timesteps, callback = self.init_learn(total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
+        total_layer_actions, callback = self.init_learn(total_env_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
         if self.is_top_layer:
             self.env.reset()
         callback.on_training_start(locals(), globals())
@@ -451,9 +451,10 @@ class HAC(BaseAlgorithm):
         if self.is_top_layer and self.test_render_info is not None:
             self.start_test_video_writer(self.get_env_steps())
 
-        ### THIS IS THE MAIN TRAINING LOOP OVER EPOCHS
-        while self.num_timesteps < total_timesteps and continue_training:
+        ### THIS IS THE MAIN TRAINING LOOP
+        while self.get_env_steps() < total_env_timesteps and continue_training:
             continue_training = self.run_and_maybe_train(n_episodes=1)
+            # logger.info(f"Performed {self.get_env_steps()} / {total_env_timesteps} action steps. Continue another training round: {continue_training}")
 
         callback.on_training_end()
         return self    # callback: Optional[Callable] = None,
@@ -773,6 +774,8 @@ class HAC(BaseAlgorithm):
         if success_key not in self.eval_info_list.keys():
             if 'step_success' in info.keys():
                 self.eval_info_list[success_key] = last_succ[-1].copy()
+            else:
+                assert False, "Error, step_success key not in info values."
                 # logger.info("Episode success in layer {}: {}".format(self.layer, last_succ)) ## DEBUG
         if reward_key not in self.eval_info_list.keys():
             self.eval_info_list[reward_key] = [ep_reward]
@@ -900,7 +903,6 @@ class HAC(BaseAlgorithm):
             del data['layer_data']
             layer_model.layer_alg.__dict__.update(data)
 
-
             # put state_dicts back in place
             layer_model.layer_alg.set_parameters(params, exact_match=True, device=device)
 
@@ -929,8 +931,6 @@ class HAC(BaseAlgorithm):
             If it is set to ``False`` we assume that we continue the same trajectory (same episode).
         """
         self.layer_alg.load_replay_buffer(path=path)
-
-
 
         # set environment
         self.replay_buffer.set_env(self.env)
@@ -1033,9 +1033,9 @@ class HAC(BaseAlgorithm):
         # # For compatibility with HER, add a few redundant extra fields:
         # copy_fields = {'time/total timesteps': 'time_{}/total timesteps'.format(top_layer)
         #                }
-        copy_fields = {}
-        for k,v in copy_fields.items():
-            logger.record(k, logger.Logger.CURRENT.name_to_value[v])
+        # copy_fields = {}
+        # for k,v in copy_fields.items():
+        #     logger.record(k, logger.Logger.CURRENT.name_to_value[v])
         logger.info("Writing log data to {}".format(logger.get_dir()))
         logger.dump(step=self.num_timesteps)
 
