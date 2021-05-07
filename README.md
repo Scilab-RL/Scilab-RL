@@ -95,15 +95,51 @@ TBD
 Currently, only off-policy algorithms are supported: DQN, DDPG, TD3 and SAC. PPO is not supported
 
 ## Hyperparameter optimization and management
-The framework has a sophisticated hyperparameter optimization management. It builds on 
-* hydra to manage the command-line parameters and configuration options. 
-* mlflow to collect studies and log data of alle runs
-* optuna as a framework to perform the hyperparameter optimization algorithm (e.g. TPE)
-* comet.ml to visualize the data.
+The framework has a sophisticated hyperparameter management and optimization pipeline. It builds on the following four tools: 
+### Hydra
+Hydra manages the command-line parameters and configuration options. 
+The command line parameters are set in the `conf/main.yaml` file. 
+All algorithm-specific parameters are set in the `conf/algorithm/<alg_name>/yaml` file.  
 
+### Optuna
+Optuna is a framework to perform the hyperparameter optimization algorithm (e.g. TPE). 
+Optuna integrates flawlessly with hydra. 
+To set up the search space for the hyperparameter optimization look at the `search_space` section of the `conf/main.yaml` file.
+The default optuna launcher for hyperopting is the joblib launcher which spawns several loky processes. 
+A disadvantage of this approach is that the logging to stdout is disabled. 
+However, you will be able to read all console outputs produced by `logger.info()` in the log folder.
+The hyperparameter search is implemented via a customized sweeper plugin located in the `hydra_plugins` subfolder. 
+By default, the sweeper uses the TPE optimizer.
+You can control the behavior of the sweeper in the `hydra/sweeper` section of `conf/main.yaml`.
+The sweeper automatically learns when to early stop trials by remembering past trials.
+It sets the max. number of epochs for a new trial to 1.5 times the number of epochs of the so-far fastest trial (when terminated by early stopping).
+The sweeper stops after the set number of trials or the specified duration, as specified in the config file. 
+For convenience, the sweeper also creates a file `delete_me_to_stop_hyperopt`, which you just need to delete to soft-stop the hyperopting after the current batch of jobs.  
 
+### Mlflow
+Mlflow collects studies and logs data of all runs. 
+The information about all runs is stored in a subfolder called `mlruns`. 
+You can watch the mlflow runs by executing `mlflow ui --host 0.0.0.0` in the root folder of this project, which will call a web server that you can access via port 5000 (by default). 
+The `--host` tells the server to allow connections from all machines.
+
+### Comet.ml 
+  Comet.ml is a cloud-based framework for logging and visualizing all data, including GPU usage, memory usage, and even the Python code and console output. You can obtain a free academic license on the website. 
+  Comet.ml seamlessly integrates with mlflow, just by having the `import comet_ml` at the top of the `experiment/train.py`. 
+  Note that this import monkey-patches several other modules, including mlflow, which is why it has to be at the top of the `train.py` file. 
+  Also, there are some conflicts with the joblib multiprocessing library if using the standard `_DEFAULT_START_METHOD` of joblib/loky because the standard multiprocessing re-loads all modules and overwrites the monkey-patched ones. 
+  Therefore, there is an overwrite just below the comet_ml import, telling joblib/loky to use `loky_init_main`.
+  To upload the results to comet.ml, you need to specify your API key that you obtain when you register with comet.ml. 
+  There are several options to do this. 
+  The recommended option is to create a config file `~/.comet.config` (in your home folder, note the `.` in the file name). 
+  The config file should have the following content:
+```
+[comet]
+   api_key=<your API key>
+```
+  
 To start the hyperparameter optimization start `experiment/train.py --multirun`. The `--multirun` flag starts the hyperparameter optimization mode. 
+A problem with the comet.ml integration is that if a script raises an Error and stops, all parallel processes will be blocked and the error will not be output. Therefore, if you spot that all processes of the hyperopt are idle you should re-start the process without comet.ml (just remove the import in `train.py`) and try to reproduce and find the error by observing the console output.  
 
-To set up the search space for the hyperparameter optimization look at the `search_space` section of the `conf/main.yaml` file
 
-To upload the results to comet.ml, execute `comet_for_mlflow --api-key $COMET_API_KEY --rest-api-key $COMET_REST_API_KEY` in the root directory of this repository.
+
+  
