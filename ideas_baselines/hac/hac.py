@@ -429,7 +429,7 @@ class HAC(BaseAlgorithm):
 
     def learn(
         self,
-        total_env_timesteps: int,
+        total_timesteps: int,
         callback: MaybeCallback = None,
         log_interval: int = None,
         eval_env: Optional[GymEnv] = None,
@@ -440,6 +440,7 @@ class HAC(BaseAlgorithm):
         reset_num_timesteps: bool = False,
     ) -> BaseAlgorithm:
 
+        total_env_timesteps = total_timesteps
         total_layer_actions, callback = self.init_learn(total_env_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps)
         if self.is_top_layer:
             self.env.reset()

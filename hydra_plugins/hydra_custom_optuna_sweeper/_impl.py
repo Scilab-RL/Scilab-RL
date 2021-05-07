@@ -242,6 +242,9 @@ class CustomOptunaSweeperImpl(Sweeper):
         log.info(f"Sampler: {type(self.sampler).__name__}")
         log.info(f"Directions: {directions}")
 
+        if 'max_n_epochs' not in study.user_attrs.keys():
+            study.set_user_attr("max_n_epochs", self.config.n_epochs)
+
         n_trials_to_go = self.max_trials
         start_time = time.time()
         current_time = start_time
@@ -252,10 +255,9 @@ class CustomOptunaSweeperImpl(Sweeper):
             batch_size = min(n_trials_to_go, self.n_jobs)
             overrides = []
             trials = []
-            if 'max_n_epochs' in study.user_attrs.keys(): # Read max_n_epochs for early stopping by limiting the number of epochs.
-                max_n_epochs = study.user_attrs['max_n_epochs']
-                if max_n_epochs != None:
-                    fixed_params['n_epochs'] = max_n_epochs
+            max_n_epochs = study.user_attrs['max_n_epochs']
+            if max_n_epochs != None:
+                fixed_params['n_epochs'] = max_n_epochs
             while len(overrides) < batch_size:
                 trial = study._ask()
                 for param_name, distribution in search_space.items():
@@ -292,11 +294,8 @@ class CustomOptunaSweeperImpl(Sweeper):
                             if len(ret.return_value) > 1:
                                 n_epochs = int(ret.return_value[1])
                                 new_max_epochs = int(n_epochs * 1.5)
-                                if 'max_n_epochs' in study.user_attrs.keys():
-                                    if new_max_epochs <= study.user_attrs['max_n_epochs']:
-                                        log.info(f"This trial had only {n_epochs} epochs. New upper limit for max. epochs is now {new_max_epochs}. ")
-                                        study.set_user_attr("max_n_epochs", new_max_epochs)
-                                else:
+                                if new_max_epochs <= study.user_attrs['max_n_epochs']:
+                                    log.info(f"This trial had only {n_epochs} epochs. New upper limit for max. epochs is now {new_max_epochs}. ")
                                     study.set_user_attr("max_n_epochs", new_max_epochs)
 
                         except (ValueError, TypeError):
