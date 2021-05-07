@@ -83,19 +83,19 @@ class TrainVideoCallback(BaseCallback):
 
             if self.top_level_layer is not None:
                 self.top_level_layer._dump_logs()
-                print("Log path: {}".format(self.log_path))
+                logger.info("Log path: {}".format(self.log_path))
                 if self.early_stop_data_column in self.eval_histories.keys():
                     if self.eval_histories[self.early_stop_data_column][-1] >= self.best_early_stop_val:
                         self.best_early_stop_val = self.eval_histories[self.early_stop_data_column][-1]
                         if self.verbose > 0:
-                            print("New best mean {}: {:.5f}!".format(self.early_stop_data_column, self.best_early_stop_val))
+                            logger.info("New best mean {}: {:.5f}!".format(self.early_stop_data_column, self.best_early_stop_val))
                         if self.log_path is not None:
                             self.model.save(os.path.join(self.log_path, "best_model"))
 
                     if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                         mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
                         if mean_val >= self.early_stop_threshold:
-                            print(
+                            logger.info(
                                 "Early stop threshold for {} met: Average over last {} evaluations is {:5f} and threshold is {}. Stopping training.".format(
                                     self.early_stop_data_column, self.early_stop_last_n, mean_val,
                                     self.early_stop_threshold))

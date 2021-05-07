@@ -209,9 +209,9 @@ class HHerReplayBuffer(ReplayBuffer):
             same_all = same.all()
             if same_all:
                 pass
-                # print("Good")
+                # logger.info("Good")
             else:
-                print("ERROR! nag_t != ag_t+1 not good")
+                logger.info("ERROR! nag_t != ag_t+1 not good")
 
         elif self.goal_selection_strategy == GoalSelectionStrategy.EPISODE:
             # replay with random state which comes from the same episode as current transition
@@ -443,7 +443,7 @@ class HHerReplayBuffer(ReplayBuffer):
         try:
             self.buffer["observation"][self.pos][self.current_idx] = obs["observation"]
         except Exception as e:
-            print("ohno {}".format(e))
+            logger.info("ohno {}".format(e))
         self.buffer["achieved_goal"][self.pos][self.current_idx] = obs["achieved_goal"]
         self.buffer["desired_goal"][self.pos][self.current_idx] = obs["desired_goal"]
         self.buffer["action"][self.pos][self.current_idx] = action

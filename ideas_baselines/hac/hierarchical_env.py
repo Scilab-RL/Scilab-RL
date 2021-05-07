@@ -176,8 +176,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self.action_space.high = self.action_space.low + action_space_range
         # Reset action space to determine whether the space is bounded.
         self.action_space = gym.spaces.Box(self.action_space.low, self.action_space.high)
-        logger.info("Updated action bound guess by random sampling: Action space high: {}, "
-                    "Action space low: {}".format(self.action_space.high, self.action_space.low))
 
     def set_sub_env(self, env):
         self._sub_env = env
