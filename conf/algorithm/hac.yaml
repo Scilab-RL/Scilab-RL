@@ -46,7 +46,7 @@ ep_early_done_on_succ: 1
 # if the hindsight goal has been achieved. This is important e.g. in SAC,
 # where the discounted expected return is set to 0 of an episode is done.
 # Only relevant if set_fut_ret_zero_if_done = 1.
-hindsight_sampling_done_if_success: 1
+hindsight_sampling_done_if_success: 0
 
 # Whether to set the future expected return to 0 if an episode is
 # done when computing the TD q value.

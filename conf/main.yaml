@@ -64,10 +64,10 @@ max_try_idx: 399
 try_start_idx: 100
 
 # The n last epochs over which to average for determining early stopping condition.
-early_stop_last_n: 4
+early_stop_last_n: 3
 
 # The early stopping threshold.
-early_stop_threshold: 0.9
+early_stop_threshold: 0.5
 
 # The data column on which early stopping is based.
 early_stop_data_column: 'test/success_rate'
@@ -135,20 +135,20 @@ hydra:
 
       algorithm.learning_rates.0:
         type: float
-        low: 0.001
-        high: 0.01
+        low: 0.0005
+        high: 0.005
         log: true
 #
       algorithm.learning_rates.1:
         type: float
-        low: 0.001
-        high: 0.01
+        low: 0.0005
+        high: 0.005
         log: true
 
       algorithm.time_scales.0:
         type: int
         low: 10
-        high: 30
+        high: 40
         step: 10
 #
       algorithm.time_scales.1:
@@ -166,7 +166,7 @@ hydra:
       algorithm.subgoal_test_perc:
         type: float
         low: 0.0
-        high: 0.7
+        high: 0.3
         step: 0.1
 
       algorithm.goal_selection_strategy:
@@ -177,26 +177,26 @@ hydra:
           - rndend
 #          - rndend2
 
-      algorithm.use_action_replay:
-        type: categorical
-        choices:
-          - 1
-          - 0
+#      algorithm.use_action_replay:
+#        type: categorical
+#        choices:
+#          - 1
+#          - 0
 
       algorithm.ep_early_done_on_succ:
         type: int
-        low: 1
-        high: 3
+        low: 0
+        high: 1
         step: 1
 
-      algorithm.hindsight_sampling_done_if_success:
-        type: categorical
-        choices:
-          - 1
-          - 0
+#      algorithm.hindsight_sampling_done_if_success:
+#        type: categorical
+#        choices:
+#          - 1
+#          - 0
 
-      algorithm.set_fut_ret_zero_if_done:
-        type: categorical
-        choices:
-          - 1
-          - 0
+#      algorithm.set_fut_ret_zero_if_done:
+#        type: categorical
+#        choices:
+#          - 1
+#          - 0
