@@ -9,7 +9,8 @@ defaults:
 
 
 # The name of the OpenAI Gym environment that you want to train on.
-env: 'ButtonUnlock-o1-v1'
+env: 'AntReacher-v1'
+#env: 'ButtonUnlock-o1-v1'
 #env: 'FetchReach-v1'
 # Currently supported envs:
 # 'FetchPush-v1',
@@ -48,7 +49,7 @@ base_logdir: 'data'
 restore_policy: null
 
 # The number of training steps after which to evaluate the policy.
-eval_after_n_steps: 2000
+eval_after_n_steps: 5000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
 n_epochs: 80
@@ -87,10 +88,10 @@ plot_eval_cols:
 
 
 # Number of seconds to wait for next plot with MatplotlibOutputFormat.
-plot_at_most_every_secs: 60
+plot_at_most_every_secs: 360
 
 # The number of steps after which to save the model.
-save_model_freq: 5000
+save_model_freq: 50000
 
 
 # TODO: Currently, having a subfolder conf/hydra/output is buggy
@@ -122,8 +123,8 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: optimize_hac_2_layer_debug1
-    storage: sqlite:///optimize_hac_2_layer_debug1.db
+    study_name: optimize_hac_2_layer_ant_reacher
+    storage: sqlite:///optimize_hac_2_layer_ant_reacher.db
     n_jobs: 6
     max_trials: 9999
     max_duration_minutes: 10000
@@ -134,15 +135,27 @@ hydra:
 
       algorithm.learning_rates.0:
         type: float
-        low: 6e-4
-        high: 3e-2
+        low: 0.001
+        high: 0.01
         log: true
 #
       algorithm.learning_rates.1:
         type: float
-        low: 6e-4
-        high: 3e-2
+        low: 0.001
+        high: 0.01
         log: true
+
+      algorithm.time_scales.0:
+        type: int
+        low: 10
+        high: 30
+        step: 10
+#
+      algorithm.time_scales.1:
+        type: int
+        low: 10
+        high: 30
+        step: 10
 #
       algorithm.n_sampled_goal:
         type: int
@@ -160,9 +173,9 @@ hydra:
         type: categorical
         choices:
           - future
-          - future2
+#          - future2
           - rndend
-          - rndend2
+#          - rndend2
 
       algorithm.use_action_replay:
         type: categorical
@@ -172,8 +185,8 @@ hydra:
 
       algorithm.ep_early_done_on_succ:
         type: int
-        low: 0
-        high: 2
+        low: 1
+        high: 3
         step: 1
 
       algorithm.hindsight_sampling_done_if_success:

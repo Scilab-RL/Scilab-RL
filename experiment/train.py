@@ -1,6 +1,6 @@
 # import comet_ml # Direct comet.ml upload not supported in multiprocessing mode. See README.md and issue https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/issues/26
 import joblib.externals.loky.backend.context as jl_ctx
-jl_ctx._DEFAULT_START_METHOD = 'loky_init_main' # This is required because by default, the loky multiprocessing backend of joblib re-imports all modules when calling main(). Since comet_ml monkey-patches several libraries, the changes to these libraries get lost. When setting the start_method to loky_init_main the modules are not re-imported and the monkey-path-changes don't get lost.
+jl_ctx._DEFAULT_START_METHOD = 'loky_init_main' # This is required for multiprocessing with joblib because by default, the loky multiprocessing backend of joblib re-imports all modules when calling main(). Since comet_ml monkey-patches several libraries, the changes to these libraries get lost. When setting the start_method to loky_init_main the modules are not re-imported and the monkey-path-changes don't get lost.
 import mlflow
 
 import matplotlib
