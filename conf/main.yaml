@@ -52,7 +52,7 @@ restore_policy: null
 eval_after_n_steps: 5000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 80
+n_epochs: 30
 
 # The number of testing rollouts.
 n_test_rollouts: 10
@@ -67,7 +67,7 @@ try_start_idx: 100
 early_stop_last_n: 3
 
 # The early stopping threshold.
-early_stop_threshold: 0.5
+early_stop_threshold: 0.9
 
 # The data column on which early stopping is based.
 early_stop_data_column: 'test/success_rate'
@@ -86,13 +86,11 @@ plot_eval_cols:
  - 'test/mean_reward'
  - 'test_0/ep_length'
 
-
 # Number of seconds to wait for next plot with MatplotlibOutputFormat.
 plot_at_most_every_secs: 360
 
 # The number of steps after which to save the model.
 save_model_freq: 50000
-
 
 # TODO: Currently, having a subfolder conf/hydra/output is buggy
 # override default dirname config
@@ -132,49 +130,48 @@ hydra:
     max_trials_per_param: 5
 
     search_space:
-
       algorithm.learning_rates.0:
         type: float
-        low: 0.0005
-        high: 0.005
-        log: true
-#
-      algorithm.learning_rates.1:
-        type: float
-        low: 0.0005
+        low: 0.0015
         high: 0.005
         log: true
 
-      algorithm.time_scales.0:
-        type: int
-        low: 10
-        high: 40
-        step: 10
-#
-      algorithm.time_scales.1:
-        type: int
-        low: 10
-        high: 30
-        step: 10
-#
+      algorithm.learning_rates.1:
+        type: float
+        low: 0.0002
+        high: 0.0007
+        log: true
+
+#      algorithm.time_scales.0:
+#        type: int
+#        low: 15
+#        high: 25
+#        step: 10
+
+#      algorithm.time_scales.1:
+#        type: int
+#        low: 15
+#        high: 25
+#        step: 10
+
       algorithm.n_sampled_goal:
         type: int
-        low: 1
-        high: 8
-        step: 1
-#
+        low: 6
+        high: 10
+        step: 2
+
       algorithm.subgoal_test_perc:
         type: float
         low: 0.0
-        high: 0.3
-        step: 0.1
+        high: 0.6
+        step: 0.2
 
-      algorithm.goal_selection_strategy:
-        type: categorical
-        choices:
-          - future
+#      algorithm.goal_selection_strategy:
+#        type: categorical
+#        choices:
+#          - future
 #          - future2
-          - rndend
+#          - rndend
 #          - rndend2
 
 #      algorithm.use_action_replay:
@@ -183,11 +180,11 @@ hydra:
 #          - 1
 #          - 0
 
-      algorithm.ep_early_done_on_succ:
-        type: int
-        low: 0
-        high: 1
-        step: 1
+#      algorithm.ep_early_done_on_succ:
+#        type: int
+#        low: 0
+#        high: 1
+#        step: 1
 
 #      algorithm.hindsight_sampling_done_if_success:
 #        type: categorical
