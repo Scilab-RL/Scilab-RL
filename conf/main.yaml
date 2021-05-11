@@ -50,10 +50,10 @@ base_logdir: 'data'
 restore_policy: null
 
 # The number of training steps after which to evaluate the policy.
-eval_after_n_steps: 500
+eval_after_n_steps: 5000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 4
+n_epochs: 100
 
 # The number of testing rollouts.
 n_test_rollouts: 10
@@ -68,7 +68,7 @@ try_start_idx: 100
 early_stop_last_n: 3
 
 # The early stopping threshold.
-early_stop_threshold: 0.9
+early_stop_threshold: 0.7
 
 # The data column on which early stopping is based.
 early_stop_data_column: 'test/success_rate'
