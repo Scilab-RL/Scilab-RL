@@ -21,7 +21,7 @@ from omegaconf import DictConfig, ListConfig
 
 
 class MLFlowOutputFormat(KVWriter):
-    def __init__(self, cfg):
+    def __init__(self, cfg, logdir=None):
         orig_path = hydra.utils.get_original_cwd()
         mlflow.set_tracking_uri('file://' + orig_path + '/mlruns')
         self.tracking_uri = mlflow.get_tracking_uri()
@@ -30,6 +30,8 @@ class MLFlowOutputFormat(KVWriter):
         mlflow.set_experiment(study_name)
         mlflow.start_run()
         self.log_params_from_omegaconf_dict(cfg)
+        if logdir is not None:
+            mlflow.log_param(f'log_dir', logdir)
 
     def log_params_from_omegaconf_dict(self, params):
         for param_name, element in params.items():
