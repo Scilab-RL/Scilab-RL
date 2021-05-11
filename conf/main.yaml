@@ -9,7 +9,7 @@ defaults:
 
 
 # The name of the OpenAI Gym environment that you want to train on.
-env: 'Blocks-o1-gripper_random-v1'
+env: 'Blocks-o1-gripper_above-v1'
 #env: 'AntReacher-v1'
 #env: 'ButtonUnlock-o1-v1'
 #env: 'FetchReach-v1'
@@ -53,7 +53,7 @@ restore_policy: null
 eval_after_n_steps: 5000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 150
+n_epochs: 4
 
 # The number of testing rollouts.
 n_test_rollouts: 10
@@ -122,8 +122,8 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: optimize_hac_2_layer_stackblocks_o1_rnd
-    storage: sqlite:///optimize_hac_2_layer_stackblocks_o1_rnd.db
+    study_name: optimize_hac_2_layer_stackblocks_o1_above
+    storage: sqlite:///optimize_hac_2_layer_stackblocks_o1_above.db
     n_jobs: 16
     max_trials: 9999
     max_duration_minutes: 10000
