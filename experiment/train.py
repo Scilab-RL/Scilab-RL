@@ -22,6 +22,7 @@ from util.util import get_subdir_by_params,get_git_label,set_global_seeds,log_di
 import time
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
+import rlbench.gym
 from stable_baselines3.common import logger
 from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat, MLFlowOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
