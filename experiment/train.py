@@ -1,6 +1,6 @@
 # import comet_ml # Direct comet.ml upload not supported in multiprocessing mode. See README.md and issue https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/issues/26
 import joblib.externals.loky.backend.context as jl_ctx
-jl_ctx._DEFAULT_START_METHOD = 'loky_init_main' # This is required because by default, the loky multiprocessing backend of joblib re-imports all modules when calling main(). Since comet_ml monkey-patches several libraries, the changes to these libraries get lost. When setting the start_method to loky_init_main the modules are not re-imported and the monkey-path-changes don't get lost.
+jl_ctx._DEFAULT_START_METHOD = 'loky_init_main' # This is required for multiprocessing with joblib because by default, the loky multiprocessing backend of joblib re-imports all modules when calling main(). Since comet_ml monkey-patches several libraries, the changes to these libraries get lost. When setting the start_method to loky_init_main the modules are not re-imported and the monkey-path-changes don't get lost.
 import mlflow
 
 import matplotlib
@@ -124,23 +124,34 @@ def main(cfg: DictConfig) -> (float, int):
     # Imports required for the joblib multiprocessing feature when hyperopting.
     # import ideas_envs.register_envs
     # import ideas_envs.wrappers.utils
-
-    original_dir = os.getcwd()
-    path_dir_params = {key: cfg.algorithm[key] for key in cfg.algorithm.exp_path_params}
-    subdir_exists = True
-
     ctr = cfg['try_start_idx']
     max_ctr = cfg['max_try_idx']
     run_dir = 'tmp_logdir'
+    original_dir = os.getcwd()
 
-    while subdir_exists:
-        param_dir = get_subdir_by_params(path_dir_params, ctr)
-        run_dir = os.path.join(os.path.split(original_dir)[0], param_dir)
-        subdir_exists = os.path.exists(run_dir)
-        ctr += 1
-    trial_no = ctr - 1
-    print('Renamed hydra dir to', run_dir)
-    os.rename(original_dir, run_dir)
+    if cfg.restore_policy is not None:
+        run_dir = os.path.split(cfg.restore_policy)[:-1][0]
+        run_dir = run_dir + "_restored"
+        trial_no = None
+    else:
+        path_dir_params = {key: cfg.algorithm[key] for key in cfg.algorithm.exp_path_params}
+        subdir_exists = True
+        while subdir_exists:
+            param_dir = get_subdir_by_params(path_dir_params, ctr)
+            run_dir = os.path.join(os.path.split(original_dir)[0], param_dir)
+            subdir_exists = os.path.exists(run_dir)
+            ctr += 1
+        trial_no = ctr - 1
+
+    # print('Renamed hydra dir to', run_dir)
+    # os.rename(original_dir, run_dir)
+
+    # print('Renamed hydra dir to', run_dir)
+    # os.rename(original_dir, run_dir)
+    try:
+        os.rename(original_dir, run_dir)
+    except Exception as e:
+        print(f"Creating logdir did not work, but continuing any ways: {e}")
 
     # Output will only be logged appropriately after configuring the logger in the following lines:
     logger.configure(folder=run_dir, format_strings=[])
@@ -150,16 +161,18 @@ def main(cfg: DictConfig) -> (float, int):
         logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=cfg['plot_eval_cols'])) # When using this, make sure that we don't have a csv output format already, otherwise there will be conflicts.
     except Exception as e:
         logger.info(f"Unable to setup Matplotlib CSV logger: {e}")
-    logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat(cfg))
-    # End configure logger
-
-    logger.info('Hydra dir', original_dir)
+    logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat(cfg, logdir=run_dir))
+    # logger.info('Hydra dir', original_dir)
     logger.info(f"Starting training with the following configuration:")
     logger.info(OmegaConf.to_yaml(cfg))
-    if trial_no > max_ctr:
-        logger.info("Already collected enough data for this parameterization.")
-        sys.exit()
-    logger.info("Trying this config for {}th time. ".format(trial_no))
+    # End configure logger
+
+    #
+    if trial_no is not None:
+        if trial_no > max_ctr:
+            logger.info("Already collected enough data for this parameterization.")
+            sys.exit()
+        logger.info("Trying this config for {}th time. ".format(trial_no))
 
     if 'exp_path_params' in cfg.algorithm.keys():
         with open_dict(cfg):

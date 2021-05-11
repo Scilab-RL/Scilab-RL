@@ -265,7 +265,12 @@ class HHerReplayBuffer(ReplayBuffer):
         maybe_vec_env: Optional[VecNormalize],
     ) -> Union[ReplayBufferSamplesWithTestTrans, Tuple[np.ndarray, ...]]:
 
-        n_ga_trans = int(batch_size * (1 - self.test_trans_sampling_fraction))
+        # Make sure that testing transitions exist in replay buffer.
+        tt_sample_frac = self.test_trans_sampling_fraction
+        if len(np.argwhere(self.buffer['is_subgoal_testing_trans'] == 1)) == 0:
+            tt_sample_frac = 0
+
+        n_ga_trans = int(batch_size * (1 - tt_sample_frac))
         n_test_trans = batch_size - n_ga_trans
 
         replay_trans = self.sample_goal_action_replay_transitions(batch_size=n_ga_trans, maybe_vec_env=maybe_vec_env)

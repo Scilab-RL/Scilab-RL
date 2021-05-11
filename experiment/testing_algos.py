@@ -53,32 +53,14 @@ class TestingAlgos:
                             'save_model_freq': 50000
                             }
 
-        # ts = ['10,10']
-        # ts = [[50, -1],[10,10]]
-        ts = [[-1], [5, -1]]
-        # ts = ['7,7']
-        # ar = [1, 0]
+        ts = [[20, 20]]
         ar = [1]
-        sg_test_perc = [0, 0.3]
-        sg_test_perc = [0.3]
-        # learning_rates = ['3e-4','3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
-        # learning_rates = ['3e-4,3e-4', '3e-3,3e-4', '9e-4,3e-4']
-        learning_rates = [[3e-4], [3e-4, 3e-4]]
-        # learning_rates = ['3e-4']
+        sg_test_perc = [0.0]
+        learning_rates = [[0.0035, 0.0004]]
         set_fut_ret_zero_if_done = [0]
-        # set_fut_ret_zero_if_done = [0]
-
-        # n_succ_steps_for_early_ep_done = [0, 1, 2, 3]
-        n_succ_steps_for_early_ep_done = [2]
-        n_sampled_goal = [4]
-        # goal_selection_strategy = ['future', 'future2', 'future3', 'rndend', 'rndend2', 'rndend3']
-        goal_selection_strategy = ['future']
-        # goal_selection_strategy = ['future3']
-        # goal_selection_strategy = ['future', 'rndend', 'future2', 'rndend2']
-        # goal_selection_strategy = ['future', 'future2']
-        # goal_selection_strategy = ['future', 'rndend2']
-        # goal_selection_strategy = ['rndend', 'rndend2']
-        # hindsight_sampling_done_if_success = [0, 1]
+        n_succ_steps_for_early_ep_done = [1]
+        n_sampled_goal = [10]
+        goal_selection_strategy = ['rndend']
         hindsight_sampling_done_if_success = [0]
 
         if env in ['FetchReach-v1']:
@@ -106,24 +88,50 @@ class TestingAlgos:
         elif 'Blocks-o' in env:
             performance_params = {'n_epochs': 100, 'n_runs': 3, 'min_success_runs': 3,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
-        elif 'ButtonUnlock-o' in env:
-            performance_params = {'n_epochs': 150, 'n_runs': 3, 'min_success_runs': 1,
-                                  'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
+        elif 'ButtonUnlock-o1' in env:
+            performance_params = {'n_epochs': 60, 'n_runs': 3, 'min_success_runs': 2,
+                                  'min_performance_value': 0.90, 'performance_measure': 'test/success_rate'}
+            ts = [[-1, 7]]
+            ar = [1]
+            sg_test_perc = [0.1]
+            learning_rates = [[0.0035, 0.0004]]
+            set_fut_ret_zero_if_done = [0]
+            n_succ_steps_for_early_ep_done = [1]
+            n_sampled_goal = [7]
+            goal_selection_strategy = ['rndend']
+            hindsight_sampling_done_if_success = [1]
         elif 'ButtonUnlock-o2' in env:
             performance_params = {'n_epochs': 250, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.97, 'performance_measure': 'test/success_rate'}
         elif 'Hook-o' in env:
             performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
                                   'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
+        elif 'AntReacher' in env or 'Ant4Rooms' in env:
+            # 2 layer:
+            performance_params = {'n_epochs': 100, 'n_runs': 3, 'min_success_runs': 2,
+                                  'min_performance_value': 0.8, 'performance_measure': 'test/success_rate'}
+            ts = [[20, 20]]
+            ar = [1]
+            sg_test_perc = [0.0]
+            learning_rates = [[0.0035, 0.0004]]
+            set_fut_ret_zero_if_done = [0]
+            n_succ_steps_for_early_ep_done = [1]
+            n_sampled_goal = [10]
+            goal_selection_strategy = ['rndend']
+            hindsight_sampling_done_if_success = [1]
+
         elif 'Ant' in env:
-            performance_params = {'n_epochs': 200, 'n_runs': 3, 'min_success_runs': 1,
-                                  'min_performance_value': 0.9, 'performance_measure': 'test/success_rate'}
-            ts = [[-1], [20, -1]]
-            # 'AntReacher-v1',
-            # 'Ant4Rooms-v1',
-            # 'AntMaze-v1',
-            # 'AntPush-v1',
-            # 'AntFall-v1',
+            performance_params = {'n_epochs': 100, 'n_runs': 3, 'min_success_runs': 2,
+                                  'min_performance_value': 0.8, 'performance_measure': 'test/success_rate'}
+            ts = [[20, 20]]
+            ar = [1]
+            sg_test_perc = [0.0]
+            learning_rates = [[0.0035, 0.0004]]
+            set_fut_ret_zero_if_done = [0]
+            n_succ_steps_for_early_ep_done = [1]
+            n_sampled_goal = [10]
+            goal_selection_strategy = ['rndend']
+            hindsight_sampling_done_if_success = [1]
 
         else:
             print("Environment {} is not evaluated with HER algorithm.".format(env))
