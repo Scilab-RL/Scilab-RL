@@ -10,8 +10,8 @@ defaults:
 
 # The name of the OpenAI Gym environment that you want to train on.
 #env: 'AntReacher-v1'
-env: 'ButtonUnlock-o1-v1'
-#env: 'FetchReach-v1'
+#env: 'ButtonUnlock-o1-v1'
+env: 'FetchReach-v1'
 # Currently supported envs:
 # 'FetchPush-v1',
 # 'FetchSlide-v1',
