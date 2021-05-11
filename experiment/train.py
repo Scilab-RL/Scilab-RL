@@ -14,15 +14,16 @@ from omegaconf import DictConfig, OmegaConf, open_dict
 import csv
 import numpy as np
 
-# Force matplotlib to not use any Xwindows backend.
-# import sys,os
-# sys.path.append(os.getcwd())
+# importing gym also imports cv2, which changes the QT_QPA_PLATFORM_PLUGIN_PATH.
+# So we have to save it and set it again after importing gym.
+QT_QPA_PLATFORM_PLUGIN_PATH = os.environ['QT_QPA_PLATFORM_PLUGIN_PATH']
 import gym
+os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = QT_QPA_PLATFORM_PLUGIN_PATH
 from util.util import get_subdir_by_params,get_git_label,set_global_seeds,log_dict,get_last_epoch_from_logdir
 import time
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
-import rlbench.gym
+#import rlbench.gym
 from stable_baselines3.common import logger
 from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat, MLFlowOutputFormat
 from util.custom_eval_callback import CustomEvalCallback

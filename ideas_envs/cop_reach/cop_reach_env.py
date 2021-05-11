@@ -1,9 +1,8 @@
-from pyrep.pyrep import PyRep
+from pyrep import PyRep
 from pyrep.robots.arms.arm import Arm
 from pyrep.objects.shape import Shape
 from pyrep.const import PrimitiveShape, ObjectType
 from pyrep.errors import IKError
-from pyrep.backend import sim
 import numpy as np
 from os.path import dirname, join, abspath
 import gym
@@ -39,9 +38,9 @@ class ReacherEnvMaker:
 
 class ReacherEnv(gym.GoalEnv):
     """
-    Environment with Reacher tasks that uses CoppeliaSim and the Franka Emika Panda robot.
+    Environment with Reacher tasks that uses CoppeliaSim and the ManipulatorPro robotic arm.
     Args:
-        render: If render=0, CoppeliaSim will run in headless mode.
+        render: If render=0, CoppeliaSim will run in headless mode. TODO right now, we always render. Add an option!
         ik: whether to use inverse kinematics. If not, the actuators will be controlled directly.
             Note, that also the observation changes, when ik is set.
             !!!The IK can not always be computed. In that case, the action is not carried out!!!
@@ -51,6 +50,7 @@ class ReacherEnv(gym.GoalEnv):
         render = bool(render)
         self.ik = bool(ik)
         self.reward_type = reward_type
+        self.seed()
 
         # PyRep initialization
         self.pr = PyRep()
@@ -75,11 +75,9 @@ class ReacherEnv(gym.GoalEnv):
 
         # define goal
         self.goal = self._sample_goal()
-        self.goal_hierarchy = {}  # for herhrl
 
         self.distance_threshold = 0.05
         self.step_ctr = 0
-        self.sim = self.pr
 
         # set action space
         if self.ik:
@@ -103,7 +101,7 @@ class ReacherEnv(gym.GoalEnv):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def render(self, mode='human'):
+    def render(self, mode='human', **kwargs):
         pass
 
     def _get_obs(self):
@@ -122,7 +120,7 @@ class ReacherEnv(gym.GoalEnv):
 
     def _sample_goal(self):
         # Get a random position within a cuboid and set the target position
-        pos = list(np.random.uniform(POS_MIN, POS_MAX))
+        pos = list(self.np_random.uniform(POS_MIN, POS_MAX))
         self.target.set_position(pos)
         return pos
 
@@ -162,7 +160,7 @@ class ReacherEnv(gym.GoalEnv):
         ax, ay, az = achieved_goal
         tx, ty, tz = desired_goal
         dist = np.sqrt((ax - tx) ** 2 + (ay - ty) ** 2 + (az - tz) ** 2)
-        return dist < self.distance_threshold
+        return int(dist < self.distance_threshold)
 
     def _set_action(self, action):
         self.step_ctr += 1
@@ -174,7 +172,8 @@ class ReacherEnv(gym.GoalEnv):
                 new_joint_angles = self.agent.solve_ik(pos, quaternion=quat)
                 self.agent.set_joint_target_positions(new_joint_angles)
             except IKError:
-                pass#print('Attempting to reach out of reach')
+                pass  # sometimes the inverse kinematics cannot be computed.
+                # In that case, the action is not carried out.
         else:
             self.agent.set_joint_target_velocities(action)
 
@@ -188,19 +187,6 @@ class ReacherEnv(gym.GoalEnv):
 
         r = self.compute_reward(obs['achieved_goal'], obs['desired_goal'], {})
         return obs, r, done, info
-
-    def get_scale_and_offset_for_normalized_subgoal(self):  # for herhrl
-        # let a = {-1, ..., 1}
-        # then: offset + a * scale = all possible target positions
-        scale = (np.array(POS_MAX) - np.array(POS_MIN)) / 2
-        offset = (np.array(POS_MAX) + np.array(POS_MIN)) / 2
-        return scale, offset
-
-    def add_graph_values(self, axis_name, val, x, reset=False):  # for herhrl
-        pass  # not implemented yet
-
-    def _step_callback(self):
-        pass  # not needed here
 
     def _obs2goal(self, obs):
         if len(obs.shape) == 1:
