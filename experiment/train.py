@@ -170,12 +170,12 @@ def main(cfg: DictConfig) -> (float, int):
     launch(cfg, kwargs)
     logger.info("Finishing main training function.")
 
-    avg_early_stop_metric_value, n_epochs = get_hyperopt_score(cfg, mlflow_run)
-    mlflow.log_metric("avg_early_stop_metric_value", avg_early_stop_metric_value)
+    hyperopt_score, n_epochs = get_hyperopt_score(cfg, mlflow_run)
+    mlflow.log_metric("hyperopt_score", hyperopt_score)
 
     mlflow.end_run()
 
-    return avg_early_stop_metric_value, n_epochs
+    return hyperopt_score, n_epochs
 
 
 
