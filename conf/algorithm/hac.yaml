@@ -15,9 +15,9 @@ exp_path_params:
 verbose: True
 
 # 'future', 'future2', 'final', 'episode', 'rndend', 'rndend2'
-goal_selection_strategy: 'future'
+goal_selection_strategy: 'rndend'
 
-n_sampled_goal: 4
+n_sampled_goal: 7
 
 # number of steps in each layer after which to train.
 # 0 sets the training frequency to once per episode.
@@ -32,15 +32,15 @@ learning_starts: 100
 
 # The learning rates of the layers. From highest to lowest layer.
 learning_rates:
-  - 3e-4
-  - 3e-4
+    - 0.0015
+    - 0.003
 
 # Whether to use action replay
 use_action_replay: 1
 
 # Number of successive successful steps to stop an episode early when
 # the (sub-)goal has been achieved. 0 disables early stopping.
-ep_early_done_on_succ: 2
+ep_early_done_on_succ: 1
 
 # Whether to consider an episode as done *in hindsight* during goal replay
 # if the hindsight goal has been achieved. This is important e.g. in SAC,
@@ -52,11 +52,12 @@ hindsight_sampling_done_if_success: 1
 # done when computing the TD q value.
 set_fut_ret_zero_if_done: 0
 
-# Whether and how to render the rollout execution during training. \'record\' is for video, \'display\' for direct visualization, \'null\' is for not rendering at all.
+# Whether and how to render the rollout execution during training.
+# \'record\' is for video, \'display\' for direct visualization, \'null\' is for not rendering at all.
 render_train: null
 
 # Whether and how to render the rollout execution during testing.
-# \'record\' is for video, \'display\' for direct visualization.
+# \'record\' is for video, \'display\' for direct visualization, \'null\' for not rendering at all.
 render_test: null
 
 # The number of evaluations (epochs) after which to render the simluation.
@@ -71,4 +72,5 @@ time_scales:
   - 7
 
 # The percentage of subgoals to test.
-subgoal_test_perc: 0.3
+subgoal_test_perc: 0.1
+

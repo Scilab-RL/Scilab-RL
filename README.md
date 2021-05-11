@@ -95,7 +95,11 @@ TBD
 Currently, only off-policy algorithms are supported: DQN, DDPG, TD3 and SAC. PPO is not supported
 
 ## Hyperparameter optimization and management
-The framework has a sophisticated hyperparameter management and optimization pipeline. It builds on the following four tools: 
+The framework has a sophisticated hyperparameter management and optimization pipeline. 
+To start the hyperparameter optimization start `experiment/train.py --multirun`. The `--multirun` flag starts the hyperparameter optimization mode. 
+[comment]: <> (A problem with the comet.ml integration is that if a script raises an Error and stops, all parallel processes will be blocked and the error will not be output. Therefore, if you spot that all processes of the hyperopt are idle you should re-start the process without comet.ml &#40;just remove the import in `train.py`&#41; and try to reproduce and find the error by observing the console output.  )
+The hyperparameter management and optimization builds on the following four tools: 
+
 ### Hydra
 Hydra manages the command-line parameters and configuration options. 
 The command line parameters are set in the `conf/main.yaml` file. 
@@ -124,11 +128,14 @@ The `--host` tells the server to allow connections from all machines.
 
 ### Comet.ml 
   Comet.ml is a cloud-based framework for logging and visualizing all data, including GPU usage, memory usage, and even the Python code and console output. You can obtain a free academic license on the website. 
-  Comet.ml seamlessly integrates with mlflow, just by having the `import comet_ml` at the top of the `experiment/train.py`. 
-  Note that this import monkey-patches several other modules, including mlflow, which is why it has to be at the top of the `train.py` file. 
-  Also, there are some conflicts with the joblib multiprocessing library if using the standard `_DEFAULT_START_METHOD` of joblib/loky because the standard multiprocessing re-loads all modules and overwrites the monkey-patched ones. 
-  Therefore, there is an overwrite just below the comet_ml import, telling joblib/loky to use `loky_init_main`.
-  To upload the results to comet.ml, you need to specify your API key that you obtain when you register with comet.ml. 
+  Comet.ml is supposed to seamlessly integrate with mlflow, just by having the `import comet_ml` at the top of the `experiment/train.py`. In theory, this should enable auto logging of all sorts of information, but this is not working in multiprocessing mode (see issue https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/issues/26).
+  As a workaround, the sweeper now calls the `mlflow_to_cometml` script which uploads all data to cometml after each batch of jobs, i.e., we use the live logging functionality and the logging of CPU usage, GPU usage, etc. 
+  
+Note that the comet.ml import monkey-patches several other modules, including mlflow, which is why it has to be at the top of the `train.py` file. 
+  Some conflicts with the joblib multiprocessing library occur when using the standard `_DEFAULT_START_METHOD` of joblib/loky because the standard multiprocessing re-loads all modules and overwrites the monkey-patched ones. 
+  Therefore, there is an overwrite just below the comet_ml import, telling joblib/loky to use `loky_init_main`, as this seems not to overwrite the monkey-patched modules.
+  
+To upload the results to comet.ml in either way, using the import or the `mlflow_to_cometml` script, you need to specify your API key that you obtain when you register with comet.ml. 
   There are several options to do this. 
   The recommended option is to create a config file `~/.comet.config` (in your home folder, note the `.` in the file name). 
   The config file should have the following content:
@@ -137,8 +144,6 @@ The `--host` tells the server to allow connections from all machines.
    api_key=<your API key>
 ```
   
-To start the hyperparameter optimization start `experiment/train.py --multirun`. The `--multirun` flag starts the hyperparameter optimization mode. 
-A problem with the comet.ml integration is that if a script raises an Error and stops, all parallel processes will be blocked and the error will not be output. Therefore, if you spot that all processes of the hyperopt are idle you should re-start the process without comet.ml (just remove the import in `train.py`) and try to reproduce and find the error by observing the console output.  
 
 
 

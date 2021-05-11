@@ -9,6 +9,7 @@ defaults:
 
 
 # The name of the OpenAI Gym environment that you want to train on.
+#env: 'AntReacher-v1'
 env: 'ButtonUnlock-o1-v1'
 #env: 'FetchReach-v1'
 # Currently supported envs:
@@ -48,10 +49,10 @@ base_logdir: 'data'
 restore_policy: null
 
 # The number of training steps after which to evaluate the policy.
-eval_after_n_steps: 2000
+eval_after_n_steps: 5000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 80
+n_epochs: 60
 
 # The number of testing rollouts.
 n_test_rollouts: 10
@@ -63,7 +64,7 @@ max_try_idx: 399
 try_start_idx: 100
 
 # The n last epochs over which to average for determining early stopping condition.
-early_stop_last_n: 4
+early_stop_last_n: 3
 
 # The early stopping threshold.
 early_stop_threshold: 0.9
@@ -85,13 +86,11 @@ plot_eval_cols:
  - 'test/mean_reward'
  - 'test_0/ep_length'
 
-
 # Number of seconds to wait for next plot with MatplotlibOutputFormat.
-plot_at_most_every_secs: 60
+plot_at_most_every_secs: 360
 
 # The number of steps after which to save the model.
-save_model_freq: 5000
-
+save_model_freq: 50000
 
 # TODO: Currently, having a subfolder conf/hydra/output is buggy
 # override default dirname config
@@ -122,8 +121,8 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: optimize_hac_2_layer_debug1
-    storage: sqlite:///optimize_hac_2_layer_debug1.db
+    study_name: optimize_hac_2_layer_ant_reacher
+    storage: sqlite:///optimize_hac_2_layer_ant_reacher.db
     n_jobs: 6
     max_trials: 9999
     max_duration_minutes: 10000
@@ -131,59 +130,70 @@ hydra:
     max_trials_per_param: 5
 
     search_space:
-
       algorithm.learning_rates.0:
         type: float
-        low: 6e-4
-        high: 3e-2
+        low: 0.0015
+        high: 0.005
         log: true
-#
+
       algorithm.learning_rates.1:
         type: float
-        low: 6e-4
-        high: 3e-2
+        low: 0.0002
+        high: 0.0007
         log: true
-#
+
+#      algorithm.time_scales.0:
+#        type: int
+#        low: 15
+#        high: 25
+#        step: 10
+
+#      algorithm.time_scales.1:
+#        type: int
+#        low: 15
+#        high: 25
+#        step: 10
+
       algorithm.n_sampled_goal:
         type: int
-        low: 1
-        high: 8
-        step: 1
-#
+        low: 6
+        high: 10
+        step: 2
+
       algorithm.subgoal_test_perc:
         type: float
         low: 0.0
-        high: 0.7
-        step: 0.1
+        high: 0.6
+        step: 0.2
 
-      algorithm.goal_selection_strategy:
-        type: categorical
-        choices:
-          - future
-          - future2
-          - rndend
-          - rndend2
+#      algorithm.goal_selection_strategy:
+#        type: categorical
+#        choices:
+#          - future
+#          - future2
+#          - rndend
+#          - rndend2
 
-      algorithm.use_action_replay:
-        type: categorical
-        choices:
-          - 1
-          - 0
+#      algorithm.use_action_replay:
+#        type: categorical
+#        choices:
+#          - 1
+#          - 0
 
-      algorithm.ep_early_done_on_succ:
-        type: int
-        low: 0
-        high: 2
-        step: 1
+#      algorithm.ep_early_done_on_succ:
+#        type: int
+#        low: 0
+#        high: 1
+#        step: 1
 
-      algorithm.hindsight_sampling_done_if_success:
-        type: categorical
-        choices:
-          - 1
-          - 0
+#      algorithm.hindsight_sampling_done_if_success:
+#        type: categorical
+#        choices:
+#          - 1
+#          - 0
 
-      algorithm.set_fut_ret_zero_if_done:
-        type: categorical
-        choices:
-          - 1
-          - 0
+#      algorithm.set_fut_ret_zero_if_done:
+#        type: categorical
+#        choices:
+#          - 1
+#          - 0
