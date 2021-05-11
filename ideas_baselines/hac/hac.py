@@ -116,14 +116,15 @@ class HAC(BaseAlgorithm):
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
     """
-    attrs_to_save = ['epoch_count', 'num_timesteps', '_total_timesteps', '_episode_num',
-                     'actions_since_last_train', 'learning_enabled']
+
+
     save_attrs_to_exclude = ['layer_alg', 'train_video_writer', 'test_video_writer', 'sub_layer', 'parent_layer', 'env',
                              'episode_storage', 'device', 'train_callback', 'tmp_train_logger', 'policy_class',
                              'policy_kwargs', 'lr_schedule',
                              'gradient_steps', 'train_freq', # These two are not required because they are overwritten in the train() function of the model any ways.
                              '_episode_storage', 'eval_info_list', 'sub_layer_classes', 'goal_selection_strategy', 'layer_class', 'action_space', 'observation_space', # These require more than 1MB to save
-                             'episode_steps'
+                             'episode_steps',
+                             'render_train', 'render_test', 'render_every_n_eval', 'train_render_info', 'test_render_info' # Overwrite rendering variables.
                              ]
     def __init__(
         self,

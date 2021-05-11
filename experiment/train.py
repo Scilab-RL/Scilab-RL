@@ -130,7 +130,6 @@ def main(cfg: DictConfig) -> (float, int):
     original_dir = os.getcwd()
 
     if cfg.restore_policy is not None:
-
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
         run_dir = run_dir + "_restored"
         trial_no = None
