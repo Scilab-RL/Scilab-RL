@@ -69,8 +69,8 @@ alg_overrides:
 
   # The learning rates of the layers. From highest to lowest layer.
   learning_rates:
-    - 0.0035
-    - 0.0004
+    - 0.0018
+    - 0.003
 
   # Whether to use action replay
   use_action_replay: 1

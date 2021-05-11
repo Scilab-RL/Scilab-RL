@@ -1037,13 +1037,6 @@ class HAC(BaseAlgorithm):
 
     def _dump_logs(self) -> None:
         self._record_logs()
-        top_layer = self.layer
-        # # For compatibility with HER, add a few redundant extra fields:
-        # copy_fields = {'time/total timesteps': 'time_{}/total timesteps'.format(top_layer)
-        #                }
-        # copy_fields = {}
-        # for k,v in copy_fields.items():
-        #     logger.record(k, logger.Logger.CURRENT.name_to_value[v])
         logger.info("Writing log data to {}".format(logger.get_dir()))
         logger.dump(step=self.num_timesteps)
 
@@ -1053,7 +1046,7 @@ class HAC(BaseAlgorithm):
         """
         This function is copied from OffPolicyAlgorithm class, but takes as additional input a "deterministic"
         parameter to determine whether or not add action noise, instead of the action_noise argument which
-        is more or less unused, as far as I can tell.
+        is unused for SAC and only used for TD3.
         Sample an action according to the exploration policy.
         This is either done by sampling the probability distribution of the policy,
         or sampling a random action (from a uniform distribution over the action space)
@@ -1071,7 +1064,6 @@ class HAC(BaseAlgorithm):
         if observation is None:
             observation = self.layer_alg._last_obs
         # Select action randomly or according to policy
-        # if self.layer_alg.num_timesteps < learning_starts or self.learning_enabled is False:
         if self.replay_buffer.size() < learning_starts or self.learning_enabled is False:
         # if self.layer_alg.num_timesteps < learning_starts and (not (self.layer_alg.use_sde and self.layer_alg.use_sde_at_warmup)):
             # Warmup phase
