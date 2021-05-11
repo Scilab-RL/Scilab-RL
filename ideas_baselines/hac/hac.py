@@ -114,13 +114,15 @@ class HAC(BaseAlgorithm):
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
     """
-    attrs_to_save = ['epoch_count', 'num_timesteps', '_total_timesteps', '_episode_num',
-                     'actions_since_last_train', 'learning_enabled']
+
+
     save_attrs_to_exclude = ['layer_alg', 'train_video_writer', 'test_video_writer', 'sub_layer', 'parent_layer', 'env',
                              'episode_storage', 'device', 'train_callback', 'tmp_train_logger', 'policy_class',
                              'policy_kwargs', 'lr_schedule',
                              'gradient_steps', 'train_freq', # These two are not required because they are overwritten in the train() function of the model any ways.
-                             '_episode_storage', 'eval_info_list', 'sub_layer_classes', 'goal_selection_strategy', 'layer_class', 'action_space', 'observation_space' # These require more than 1MB to save
+                             '_episode_storage', 'eval_info_list', 'sub_layer_classes', 'goal_selection_strategy', 'layer_class', 'action_space', 'observation_space', # These require more than 1MB to save
+                             'episode_steps',
+                             'render_train', 'render_test', 'render_every_n_eval', 'train_render_info', 'test_render_info' # Overwrite rendering variables.
                              ]
     def __init__(
         self,
@@ -364,6 +366,7 @@ class HAC(BaseAlgorithm):
 
     def train_layer(self, n_gradient_steps: int):
         # if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0 and self.learning_enabled is True:
+        rb_size = self.replay_buffer.size()
         if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > self.learning_starts and self.learning_enabled is True:
             # logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
             # assign temporary logger to avoid generating duplicate keys for the different layers.
@@ -884,7 +887,7 @@ class HAC(BaseAlgorithm):
         """
         parent_loaded_model = cls('MlpPolicy', env, **policy_args)
         layer_model = parent_loaded_model
-        n_layers = len(policy_args['layer_classes'].split(","))
+        n_layers = len(policy_args['time_scales'])
         for lay in reversed(range(n_layers)):
             layer_path = path + f"_lay{lay}"
             data, params, pytorch_variables = load_from_zip_file(layer_path, device=device)
@@ -898,7 +901,11 @@ class HAC(BaseAlgorithm):
                 raise KeyError("The observation_space and action_space were not given, can't verify new environments")
 
             layer_model._setup_model()
-            layer_model.__dict__.update(data['layer_data'].copy())
+            ld_copy = data['layer_data']
+            for k in HAC.save_attrs_to_exclude:
+                if k in ld_copy.keys():
+                    del ld_copy[k]
+            layer_model.__dict__.update(ld_copy)
             del data['layer_data']
             layer_model.layer_alg.__dict__.update(data)
 
