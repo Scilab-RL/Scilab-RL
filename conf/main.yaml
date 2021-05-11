@@ -9,8 +9,8 @@ defaults:
 
 
 # The name of the OpenAI Gym environment that you want to train on.
-env: 'AntReacher-v1'
-#env: 'ButtonUnlock-o1-v1'
+#env: 'AntReacher-v1'
+env: 'ButtonUnlock-o1-v1'
 #env: 'FetchReach-v1'
 # Currently supported envs:
 # 'FetchPush-v1',
@@ -52,7 +52,7 @@ restore_policy: null
 eval_after_n_steps: 5000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 30
+n_epochs: 60
 
 # The number of testing rollouts.
 n_test_rollouts: 10
