@@ -28,12 +28,11 @@ from ideas_baselines.hac.hierarchical_env import HierarchicalVecEnv
 from gym.wrappers import TimeLimit
 import time
 from ideas_baselines.hac.util import get_concat_dict_from_dict_list, merge_list_dicts
-from ideas_envs.wrappers.subgoal_viz_wrapper import SubgoalVisualizationWrapper
-import numbers
 from copy import deepcopy
 from stable_baselines3.common.logger import HumanOutputFormat
 import sys
 from stable_baselines3.common.vec_env import VecVideoRecorder
+import numbers
 import cv2
 try:
     from stable_baselines3.common.env_util import is_wrapped # stable-baselines v.3
