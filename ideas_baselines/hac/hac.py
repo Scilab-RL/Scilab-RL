@@ -1019,8 +1019,8 @@ class HAC(BaseAlgorithm):
             except Exception as e:
                 logger.info("Error getting test success rate")
                 succ_rate = 0
-            hyperopt_score = float(succ_rate/self.epoch_count)
-            logger.record("hyperopt_score", hyperopt_score, exclude="tensorboard")
+            succ_learn_rate = float(succ_rate/self.epoch_count)
+            logger.record("success learn rate", succ_learn_rate, exclude="tensorboard")
             if self.epoch_count % self.render_every_n_eval == 0:
                 if self.train_render_info is not None:
                     self.start_train_video_writer(self.get_env_steps())

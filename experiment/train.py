@@ -13,10 +13,6 @@ import hydra
 from omegaconf import DictConfig, OmegaConf, open_dict
 import csv
 import numpy as np
-
-# Force matplotlib to not use any Xwindows backend.
-# import sys,os
-# sys.path.append(os.getcwd())
 import gym
 from util.util import get_subdir_by_params,get_git_label,set_global_seeds,log_dict,get_last_epoch_from_logdir
 import time
@@ -27,7 +23,7 @@ from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
-
+from util.mlflow_util import setup_mlflow, get_avg_metric_val_epochs
 
 def check_env_alg_compatibility(model, env):
     return isinstance(model.action_space, type(env.action_space)) \
@@ -87,43 +83,11 @@ def launch(cfg, kwargs):
     logger.info("Launching training")
     train(baseline, train_env, eval_env, cfg)
 
-def get_last_avg_hyperopt_score_epochs(logdir, cfg):
-
-    try:
-        with open(os.path.join(logdir, 'progress.csv')) as csvfile:
-            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-            data_idx = 0
-            data_vals = []
-            for line, row in enumerate(reader):
-                if line == 0:
-                    keys = row.copy()
-                    data_idx = keys.index('hyperopt_score')
-                    epochs_idx = keys.index("epoch")
-                else:
-                    data_val = float(row[data_idx])
-                    data_vals.append(data_val)
-                    n_epochs = int(row[epochs_idx])
-
-            avg_last_n = min(len(data_vals), cfg.early_stop_last_n)
-            score = np.mean(data_vals[-avg_last_n:])
-    except Exception as e:
-        logger.info(f"Could not determine hyperopt score: {e}")
-        score = None
-        n_epochs = None
-    try:
-        mlflow.log_metric("hyperopt_score", score)
-    except:
-        pass
-    return score, n_epochs
-
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 
 @hydra.main(config_name="main", config_path="../conf")
 def main(cfg: DictConfig) -> (float, int):
-    # Imports required for the joblib multiprocessing feature when hyperopting.
-    # import ideas_envs.register_envs
-    # import ideas_envs.wrappers.utils
     ctr = cfg['try_start_idx']
     max_ctr = cfg['max_try_idx']
     run_dir = 'tmp_logdir'
@@ -143,11 +107,8 @@ def main(cfg: DictConfig) -> (float, int):
             ctr += 1
         trial_no = ctr - 1
 
-    # print('Renamed hydra dir to', run_dir)
-    # os.rename(original_dir, run_dir)
-
-    # print('Renamed hydra dir to', run_dir)
-    # os.rename(original_dir, run_dir)
+    setup_mlflow(cfg, run_dir)
+    mlflow_run = mlflow.active_run()
     try:
         os.rename(original_dir, run_dir)
     except Exception as e:
@@ -161,8 +122,7 @@ def main(cfg: DictConfig) -> (float, int):
         logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=cfg['plot_eval_cols'])) # When using this, make sure that we don't have a csv output format already, otherwise there will be conflicts.
     except Exception as e:
         logger.info(f"Unable to setup Matplotlib CSV logger: {e}")
-    logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat(cfg, logdir=run_dir))
-    # logger.info('Hydra dir', original_dir)
+    logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat())
     logger.info(f"Starting training with the following configuration:")
     logger.info(OmegaConf.to_yaml(cfg))
     # End configure logger
@@ -208,16 +168,14 @@ def main(cfg: DictConfig) -> (float, int):
     ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
     OmegaConf.save(config=cfg, f='params.yaml')
     launch(cfg, kwargs)
-
-    last_avg_hyperopt_score, n_epochs = get_last_avg_hyperopt_score_epochs(run_dir, cfg)
     logger.info("Finishing main training function.")
 
-    try:
-        mlflow.end_run()
-    except:
-        logger.info("Mlflow run has been ended already.")
+    avg_early_stop_metric_value, n_epochs = get_avg_metric_val_epochs(cfg.early_stop_data_column, mlflow_run)
+    mlflow.log_metric("avg_early_stop_metric_value", avg_early_stop_metric_value)
 
-    return last_avg_hyperopt_score, n_epochs
+    mlflow.end_run()
+
+    return avg_early_stop_metric_value, n_epochs
 
 
 
