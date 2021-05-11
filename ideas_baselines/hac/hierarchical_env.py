@@ -113,7 +113,7 @@ class HierarchicalVecEnv(DummyVecEnv):
 
     def render(self, mode='rgb_array', width=1024, height=768):
         env_idx = 0
-        #self.prepare_goal_viz(env_idx)
+        #self.prepare_goal_viz(env_idx) TODO make compatible with Coppelia Environments
         frame = self.envs[env_idx].render(mode=mode, width=width, height=height)
         return frame
 
