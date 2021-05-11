@@ -50,7 +50,7 @@ def main(args):
     whoami = getpass.getuser()
     default_opts_values = {
         'n_test_rollouts': n_test_rollouts,
-        'base_logdir': "/data/" + whoami + "/baselines/" + test_mode,
+        'base_logdir': "data/testing/" + test_mode,
         'try_start_idx': 100,
         'plot_at_most_every_secs': 120
     }
