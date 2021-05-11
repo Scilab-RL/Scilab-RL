@@ -32,6 +32,7 @@ from copy import deepcopy
 from stable_baselines3.common.logger import HumanOutputFormat
 import sys
 from stable_baselines3.common.vec_env import VecVideoRecorder
+import numbers
 import cv2
 try:
     from stable_baselines3.common.env_util import is_wrapped # stable-baselines v.3
