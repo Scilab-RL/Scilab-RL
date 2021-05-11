@@ -57,12 +57,12 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
         object_pos, object_rot, object_velp, object_velr = (np.empty(self.n_objects * 3) for _ in range(4))
         for i in range(self.n_objects):
             # position
-            object_pos[i * 3:(i + 1) * 3] = self.sim.data.get_geom_xpos('object0')
+            object_pos[i * 3:(i + 1) * 3] = self.sim.data.get_geom_xpos('object{}'.format(i))
             # rotation
-            object_rot[i * 3:(i + 1) * 3] = rotations.mat2euler(self.sim.data.get_geom_xmat('object0'))
+            object_rot[i * 3:(i + 1) * 3] = rotations.mat2euler(self.sim.data.get_geom_xmat('object{}'.format(i)))
             # velocities
-            object_velp[i * 3:(i + 1) * 3] = self.sim.data.get_geom_xvelp('object0') * dt
-            object_velr[i * 3:(i + 1) * 3] = self.sim.data.get_geom_xvelr('object0') * dt
+            object_velp[i * 3:(i + 1) * 3] = self.sim.data.get_geom_xvelp('object{}'.format(i)) * dt
+            object_velr[i * 3:(i + 1) * 3] = self.sim.data.get_geom_xvelr('object{}'.format(i)) * dt
 
         obs = np.concatenate([grip_pos, object_pos, gripper_state, object_rot,
                               grip_velp, object_velp, object_velr, gripper_vel])
