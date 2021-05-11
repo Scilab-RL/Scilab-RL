@@ -9,7 +9,8 @@ defaults:
 
 
 # The name of the OpenAI Gym environment that you want to train on.
-env: 'AntReacher-v1'
+env: 'BlockStackMujocoEnv-gripper_random-o1-v1'
+#env: 'AntReacher-v1'
 #env: 'ButtonUnlock-o1-v1'
 #env: 'FetchReach-v1'
 # Currently supported envs:
@@ -52,7 +53,7 @@ restore_policy: null
 eval_after_n_steps: 5000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 30
+n_epochs: 150
 
 # The number of testing rollouts.
 n_test_rollouts: 10
@@ -121,8 +122,8 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: optimize_hac_2_layer_ant_reacher
-    storage: sqlite:///optimize_hac_2_layer_ant_reacher.db
+    study_name: optimize_hac_2_layer_stackblocks_o1_rnd
+    storage: sqlite:///optimize_hac_2_layer_stackblocks_o1_rnd.db
     n_jobs: 6
     max_trials: 9999
     max_duration_minutes: 10000
@@ -132,27 +133,27 @@ hydra:
     search_space:
       algorithm.learning_rates.0:
         type: float
-        low: 0.0015
+        low: 0.0005
         high: 0.005
         log: true
 
       algorithm.learning_rates.1:
         type: float
-        low: 0.0002
-        high: 0.0007
+        low: 0.0005
+        high: 0.005
         log: true
 
-#      algorithm.time_scales.0:
-#        type: int
-#        low: 15
-#        high: 25
-#        step: 10
+      algorithm.time_scales.0:
+        type: int
+        low: 4
+        high: 10
+        step: 1
 
-#      algorithm.time_scales.1:
-#        type: int
-#        low: 15
-#        high: 25
-#        step: 10
+      algorithm.time_scales.1:
+        type: int
+        low: 4
+        high: 10
+        step: 1
 
       algorithm.n_sampled_goal:
         type: int
@@ -166,13 +167,13 @@ hydra:
         high: 0.6
         step: 0.2
 
-#      algorithm.goal_selection_strategy:
-#        type: categorical
-#        choices:
-#          - future
-#          - future2
-#          - rndend
-#          - rndend2
+      algorithm.goal_selection_strategy:
+        type: categorical
+        choices:
+          - future
+          - future2
+          - rndend
+          - rndend2
 
 #      algorithm.use_action_replay:
 #        type: categorical
@@ -180,11 +181,11 @@ hydra:
 #          - 1
 #          - 0
 
-#      algorithm.ep_early_done_on_succ:
-#        type: int
-#        low: 0
-#        high: 1
-#        step: 1
+      algorithm.ep_early_done_on_succ:
+        type: int
+        low: 0
+        high: 2
+        step: 1
 
 #      algorithm.hindsight_sampling_done_if_success:
 #        type: categorical
