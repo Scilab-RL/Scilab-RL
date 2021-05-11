@@ -19,8 +19,9 @@ class TestingEnvs:
         'AntFall-v0',
 
         'BlockStackMujocoEnv-gripper_random-o0-v1',
-        'BlockStackMujocoEnv-gripper_random-o2-v1',
         'BlockStackMujocoEnv-gripper_above-o1-v1',
+        'BlockStackMujocoEnv-gripper_random-o1-v1',
+        'BlockStackMujocoEnv-gripper_above-o2-v1',
         'BlockStackMujocoEnv-gripper_none-o1-v1',
     ]
 
