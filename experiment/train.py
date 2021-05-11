@@ -23,7 +23,7 @@ from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
-from util.mlflow_util import setup_mlflow, get_avg_metric_val_epochs
+from util.mlflow_util import setup_mlflow, get_hyperopt_score
 
 def check_env_alg_compatibility(model, env):
     return isinstance(model.action_space, type(env.action_space)) \
@@ -170,7 +170,7 @@ def main(cfg: DictConfig) -> (float, int):
     launch(cfg, kwargs)
     logger.info("Finishing main training function.")
 
-    avg_early_stop_metric_value, n_epochs = get_avg_metric_val_epochs(cfg.early_stop_data_column, mlflow_run)
+    avg_early_stop_metric_value, n_epochs = get_hyperopt_score(cfg, mlflow_run)
     mlflow.log_metric("avg_early_stop_metric_value", avg_early_stop_metric_value)
 
     mlflow.end_run()
