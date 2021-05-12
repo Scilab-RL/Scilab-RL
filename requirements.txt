@@ -13,3 +13,4 @@ optuna==2.7.0
 stable-baselines3==0.10.0
 torch==1.8.1
 tqdm==4.60.0
+comet_for_mlflow==0.1.2
