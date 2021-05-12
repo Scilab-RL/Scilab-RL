@@ -5,7 +5,7 @@ defaults:
   - override hydra/job_logging: default
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
-#  - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time.
+  - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time.
 
 
 # The name of the OpenAI Gym environment that you want to train on.
