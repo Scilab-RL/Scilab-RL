@@ -255,7 +255,7 @@ class CustomOptunaSweeperImpl(Sweeper):
             batch_size = min(n_trials_to_go, self.n_jobs)
             overrides = []
             trials = []
-            max_n_epochs = study.user_attrs['max_n_epochs']
+            max_n_epochs = min(study.user_attrs['max_n_epochs'], self.config.n_epochs)
             if max_n_epochs != None:
                 fixed_params['n_epochs'] = max_n_epochs
             while len(overrides) < batch_size:
