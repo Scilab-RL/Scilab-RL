@@ -118,10 +118,10 @@ def main(cfg: DictConfig) -> (float, int):
     logger.configure(folder=run_dir, format_strings=[])
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
-    try:
-        logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=cfg['plot_eval_cols'])) # When using this, make sure that we don't have a csv output format already, otherwise there will be conflicts.
-    except Exception as e:
-        logger.info(f"Unable to setup Matplotlib CSV logger: {e}")
+    # try:
+    #     logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=cfg['plot_eval_cols'])) # When using this, make sure that we don't have a csv output format already, otherwise there will be conflicts.
+    # except Exception as e:
+    #     logger.info(f"Unable to setup Matplotlib CSV logger: {e}")
     logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat())
     logger.info(f"Starting training with the following configuration:")
     logger.info(OmegaConf.to_yaml(cfg))
