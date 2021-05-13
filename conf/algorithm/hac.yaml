@@ -17,7 +17,7 @@ verbose: True
 # 'future', 'future2', 'final', 'episode', 'rndend', 'rndend2'
 goal_selection_strategy: 'rndend'
 
-n_sampled_goal: 7
+n_sampled_goal: 6
 
 # number of steps in each layer after which to train.
 # 0 sets the training frequency to once per episode.
@@ -32,7 +32,7 @@ learning_starts: 100
 
 # The learning rates of the layers. From highest to lowest layer.
 learning_rates:
-    - 0.0015
+    - 0.0018
     - 0.003
 
 # Whether to use action replay
@@ -46,7 +46,7 @@ ep_early_done_on_succ: 1
 # if the hindsight goal has been achieved. This is important e.g. in SAC,
 # where the discounted expected return is set to 0 of an episode is done.
 # Only relevant if set_fut_ret_zero_if_done = 1.
-hindsight_sampling_done_if_success: 1
+hindsight_sampling_done_if_success: 0
 
 # Whether to set the future expected return to 0 if an episode is
 # done when computing the TD q value.
@@ -62,15 +62,13 @@ render_test: null
 
 # The number of evaluations (epochs) after which to render the simluation.
 # This has only an effect if \'render_train\' or \'render_test\' is not set to \'none\'.
-render_every_n_eval: 15
+render_every_n_eval: 2
 
-# Steps per level from highest to lowest, separated by comma. There must be one -1
-# in the list to indicates the layer where the time scale is determined from the
-# environment's predefined steps.
+# Steps per level from highest to lowest, separated by comma. -1 indicates that a layer's timescale is determined
+# from the environment's predefined steps and the other time scales.
 time_scales:
-  - -1
   - 7
+  - -1
 
 # The percentage of subgoals to test.
-subgoal_test_perc: 0.1
-
+subgoal_test_perc: 0.2
