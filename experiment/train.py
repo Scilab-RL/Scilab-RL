@@ -169,11 +169,16 @@ def main(cfg: DictConfig) -> (float, int):
     OmegaConf.save(config=cfg, f='params.yaml')
     launch(cfg, kwargs)
     logger.info("Finishing main training function.")
-
     logger.info(f"MLflow run: {mlflow_run}.")
     hyperopt_score, n_epochs = get_hyperopt_score(cfg, mlflow_run)
     mlflow.log_metric("hyperopt_score", hyperopt_score)
     logger.info(f"Hyperopt score: {hyperopt_score}, epochs: {n_epochs}.")
+    try:
+        with open(os.path.join(run_dir, 'train.log'), 'r') as logfile:
+            log_text = logfile.read()
+            mlflow.log_text(log_text, 'train.log')
+    except Exception as e:
+        logger.info('Could not open logfile and log it in mlflow.')
     mlflow.end_run()
 
     return hyperopt_score, n_epochs
