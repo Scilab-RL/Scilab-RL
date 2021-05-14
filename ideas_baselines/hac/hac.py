@@ -116,7 +116,6 @@ class HAC(BaseAlgorithm):
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
     """
 
-
     save_attrs_to_exclude = ['layer_alg', 'train_video_writer', 'test_video_writer', 'sub_layer', 'parent_layer', 'env',
                              'episode_storage', 'device', 'train_callback', 'tmp_train_logger', 'policy_class',
                              'policy_kwargs', 'lr_schedule',
@@ -151,6 +150,7 @@ class HAC(BaseAlgorithm):
         *args,
         **kwargs,
     ):
+
         self.epoch_count = 0
         self.ep_early_done_on_succ = ep_early_done_on_succ
         self.gradient_steps = n_train_batches
@@ -204,7 +204,7 @@ class HAC(BaseAlgorithm):
         next_level_steps = 0
         if len(sub_layer_classes) > 0:
             next_level_steps = int(self.time_scales[1])
-            self.sub_layer = HAC('MlpPolicy', bottom_env, sub_layer_classes[0], sub_layer_classes[1:],
+            self.sub_layer = HAC(policy, bottom_env, sub_layer_classes[0], sub_layer_classes[1:],
                                     time_scales=self.time_scales[1:],
                                     n_sampled_goal=n_sampled_goal,
                                     goal_selection_strategy=goal_selection_strategy,
@@ -221,7 +221,10 @@ class HAC(BaseAlgorithm):
             self.sub_layer.parent_layer = self
         else:
             self.sub_layer = None
-
+        if 'opti_normalized_critic' in layer_args:
+            if layer_args['opti_normalized_critic'] == 1:
+                layer_args.update({'lower_q_limit': -self.time_scales[0]})
+            del layer_args['opti_normalized_critic']
         self.layer_alg = layer_class(
             policy=policy,
             env=self.env,
@@ -346,7 +349,7 @@ class HAC(BaseAlgorithm):
 
     def _setup_model(self) -> None:
         self.layer_alg._setup_model()
-        # assign episode storage to replay buffer when using online HER sampling
+        # assign custom episode storage to replay buffer when using online HER sampling
         self.layer_alg.replay_buffer = self._episode_storage
 
     def predict(
@@ -886,7 +889,7 @@ class HAC(BaseAlgorithm):
         :param device: Device on which the code should run.
         :param kwargs: extra arguments to change the agent when loading
         """
-        parent_loaded_model = cls('MlpPolicy', env, **policy_args)
+        parent_loaded_model = cls("MlpOptiCriticPolicy", env, **policy_args)
         layer_model = parent_loaded_model
         n_layers = len(policy_args['time_scales'])
         for lay in reversed(range(n_layers)):
