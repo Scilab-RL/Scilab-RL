@@ -75,7 +75,7 @@ def launch(cfg, kwargs):
     if cfg.restore_policy is not None:
         baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, env=train_env, **kwargs)
     else:
-        baseline = BaselineClass('MlpPolicy', train_env, **cfg.algorithm, **kwargs)
+        baseline = BaselineClass('MlpOptiCriticPolicy', train_env, **cfg.algorithm, **kwargs)
     env_alg_compatible = check_env_alg_compatibility(baseline, train_env)
     if not env_alg_compatible:
         logger.info("Environment {} and algorithm {} are not compatible.".format(train_env, baseline))
@@ -97,22 +97,27 @@ def main(cfg: DictConfig) -> (float, int):
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
         run_dir = run_dir + "_restored"
         trial_no = None
+        os.rename(original_dir, run_dir)
     else:
         path_dir_params = {key: cfg.algorithm[key] for key in cfg.algorithm.exp_path_params}
-        subdir_exists = True
-        while subdir_exists:
-            param_dir = get_subdir_by_params(path_dir_params, ctr)
-            run_dir = os.path.join(os.path.split(original_dir)[0], param_dir)
-            subdir_exists = os.path.exists(run_dir)
-            ctr += 1
+        dir_created = False
+        while not dir_created:
+            subdir_exists = True
+            while subdir_exists:
+                param_dir = get_subdir_by_params(path_dir_params, ctr)
+                run_dir = os.path.join(os.path.split(original_dir)[0], param_dir)
+                subdir_exists = os.path.exists(run_dir)
+                ctr += 1
+            try:
+                os.rename(original_dir, run_dir)
+                dir_created = True
+            except Exception as e:
+                print(f"Creating logdir did not work, trying again: {e}")
+                time.sleep(1)
         trial_no = ctr - 1
-
     setup_mlflow(cfg, run_dir)
     mlflow_run = mlflow.active_run()
-    try:
-        os.rename(original_dir, run_dir)
-    except Exception as e:
-        print(f"Creating logdir did not work, but continuing any ways: {e}")
+
 
     # Output will only be logged appropriately after configuring the logger in the following lines:
     logger.configure(folder=run_dir, format_strings=[])
@@ -125,6 +130,7 @@ def main(cfg: DictConfig) -> (float, int):
     logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat())
     logger.info(f"Starting training with the following configuration:")
     logger.info(OmegaConf.to_yaml(cfg))
+    logger.info(f"Log directory: {run_dir}")
     # End configure logger
 
     #

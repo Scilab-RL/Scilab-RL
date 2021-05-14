@@ -3,14 +3,15 @@ name: 'hac'
 # These parameters will be used to determine the log path. Each parameter name will be split by the `_` delimiter and the individual components of this split will be trundated to 2 or 3 characters. For example, the `time_scales` parameter will result in a substring `tisca=n1,n2`, where n` and n2 are the values.
 exp_path_params:
   - 'time_scales'
-  - 'use_action_replay'
+#  - 'use_action_replay'
   - 'subgoal_test_perc'
-  - 'ep_early_done_on_succ'
+#  - 'ep_early_done_on_succ'
   - 'goal_selection_strategy'
   - 'n_sampled_goal'
   - 'learning_rates'
-  - 'hindsight_sampling_done_if_success'
-  - 'set_fut_ret_zero_if_done'
+#  - 'hindsight_sampling_done_if_success'
+#  - 'set_fut_ret_zero_if_done'
+  - 'opti_normalized_critic'
 
 verbose: True
 
@@ -52,6 +53,9 @@ hindsight_sampling_done_if_success: 0
 # done when computing the TD q value.
 set_fut_ret_zero_if_done: 0
 
+# Whether to do an optimistic initialization of the critic with q values normalized to number of steps.
+opti_normalized_critic: 0
+
 # Whether and how to render the rollout execution during training.
 # \'record\' is for video, \'display\' for direct visualization, \'null\' is for not rendering at all.
 render_train: null
@@ -71,4 +75,4 @@ time_scales:
   - -1
 
 # The percentage of subgoals to test.
-subgoal_test_perc: 0.2
+subgoal_test_perc: 0.1

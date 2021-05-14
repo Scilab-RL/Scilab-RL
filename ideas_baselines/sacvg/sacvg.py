@@ -11,12 +11,48 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
 from stable_baselines3.common.utils import polyak_update
 from stable_baselines3.sac.policies import SACPolicy
 from stable_baselines3.sac.sac import SAC
+from ideas_baselines.sacvg.continuous_optimistic_critic import ContinuousOptimisticCritic
+from stable_baselines3.common.policies import BasePolicy
+from stable_baselines3.common.torch_layers import (
+    BaseFeaturesExtractor,
+    FlattenExtractor,
+    NatureCNN,
+    create_mlp,
+    get_actor_critic_arch,
+)
+from stable_baselines3.common.policies import register_policy
+import gym
+from stable_baselines3.common.preprocessing import get_action_dim
 
+class SACOptiCriticPolicy(SACPolicy):
+    def __init__(self,
+                 observation_space: gym.spaces.Space,
+                 action_space: gym.spaces.Space,
+                 lr_schedule: Callable,
+                 **kwargs):
+        if 'lower_q_limit' in kwargs:
+            self.lower_q_limit = kwargs['lower_q_limit']
+            del kwargs['lower_q_limit']
+        else:
+            self.lower_q_limit = None
+
+        super().__init__(observation_space, action_space, lr_schedule, **kwargs)
+
+    def make_critic(self, features_extractor: Optional[BaseFeaturesExtractor] = None) -> ContinuousOptimisticCritic:
+        critic_kwargs = self._update_features_extractor(self.critic_kwargs, features_extractor)
+        if self.lower_q_limit is not None:
+            critic_kwargs['lower_q_limit'] = self.lower_q_limit
+        return ContinuousOptimisticCritic(**critic_kwargs).to(self.device)
+
+
+
+register_policy("MlpOptiCriticPolicy", SACOptiCriticPolicy)
 
 class SACVG(SAC):
     """
-    Soft Actor-Critic (SAC)
+    Soft Actor-Critic vis Variable Gamma (SACVG)
     Same as stable baselines version but uses a gamma that depends on whether a transition was a testing transition.
+    Also, SACVG features an optimistic critic initialization.
 
     Note: we use double q target and not value target as discussed
     in https://github.com/hill-a/stable-baselines/issues/270
@@ -73,9 +109,99 @@ class SACVG(SAC):
 
         # self.hindsight_sampling_done_if_success = hindsight_sampling_done_if_success
         self.set_fut_ret_zero_if_done = set_fut_ret_zero_if_done
+        if 'lower_q_limit' in kwargs:
+            self.lower_q_limit = kwargs['lower_q_limit']
+            del kwargs['lower_q_limit']
+        else:
+            self.lower_q_limit = None
+
         super(SACVG, self).__init__(
             **kwargs
         )
+        if self.lower_q_limit is not None:
+            self.policy_kwargs.update({'lower_q_limit': self.lower_q_limit})
+
+    # def __init__(
+    #     self,
+    #     policy: Union[str, Type[SACPolicy]],
+    #     env: Union[GymEnv, str],
+    #     learning_rate: Union[float, Callable] = 3e-4,
+    #     buffer_size: int = int(1e6),
+    #     learning_starts: int = 100,
+    #     batch_size: int = 256,
+    #     tau: float = 0.005,
+    #     gamma: float = 0.99,
+    #     train_freq: int = 1,
+    #     gradient_steps: int = 1,
+    #     n_episodes_rollout: int = -1,
+    #     action_noise: Optional[ActionNoise] = None,
+    #     optimize_memory_usage: bool = False,
+    #     ent_coef: Union[str, float] = "auto",
+    #     target_update_interval: int = 1,
+    #     target_entropy: Union[str, float] = "auto",
+    #     use_sde: bool = False,
+    #     sde_sample_freq: int = -1,
+    #     use_sde_at_warmup: bool = False,
+    #     tensorboard_log: Optional[str] = None,
+    #     create_eval_env: bool = False,
+    #     policy_kwargs: Dict[str, Any] = None,
+    #     verbose: int = 0,
+    #     seed: Optional[int] = None,
+    #     device: Union[th.device, str] = "auto",
+    #     _init_setup_model: bool = True,
+    # ):
+    #
+    #     super(SAC, self).__init__(
+    #         policy,
+    #         env,
+    #         SACOptiCriticPolicy, # Use SACOptiCriticPolicy, not SACPolicy
+    #         learning_rate,
+    #         buffer_size,
+    #         learning_starts,
+    #         batch_size,
+    #         tau,
+    #         gamma,
+    #         train_freq,
+    #         gradient_steps,
+    #         n_episodes_rollout,
+    #         action_noise,
+    #         policy_kwargs=policy_kwargs,
+    #         tensorboard_log=tensorboard_log,
+    #         verbose=verbose,
+    #         device=device,
+    #         create_eval_env=create_eval_env,
+    #         seed=seed,
+    #         use_sde=use_sde,
+    #         sde_sample_freq=sde_sample_freq,
+    #         use_sde_at_warmup=use_sde_at_warmup,
+    #         optimize_memory_usage=optimize_memory_usage,
+    #     )
+    #
+    #     self.target_entropy = target_entropy
+    #     self.log_ent_coef = None  # type: Optional[th.Tensor]
+    #     # Entropy coefficient / Entropy temperature
+    #     # Inverse of the reward scale
+    #     self.ent_coef = ent_coef
+    #     self.target_update_interval = target_update_interval
+    #     self.ent_coef_optimizer = None
+    #
+    #     if _init_setup_model:
+    #         self._setup_model()
+
+    # def _setup_model(self) -> None:
+    #     # Setup model as before
+    #     super()._setup_model()
+    #     # But overwrite critic with optimisitcally initialized critic
+    #     self.policy = self.policy_class(
+    #         self.observation_space,
+    #         self.action_space,
+    #         self.lr_schedule,
+    #         **self.policy_kwargs  # pytype:disable=not-instantiable
+    #     )
+    #     self.policy = self.policy.to(self.device)
+
+        # self.policy.critic = # TBD
+
 
     def train(self, gradient_steps: int, batch_size: int = 64) -> None:
         # Update optimizers learning rate
