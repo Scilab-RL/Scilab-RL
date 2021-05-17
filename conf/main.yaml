@@ -131,11 +131,11 @@ hydra:
 
     search_space:
 
-#      algorithm.opti_normalized_critic:
-#        type: categorical
-#        choices:
+      algorithm.opti_normalized_critic:
+        type: categorical
+        choices:
 #          - 0
-#          - 1
+          - 1
 
       algorithm.learning_rates.0:
         type: float
