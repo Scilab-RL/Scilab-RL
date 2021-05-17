@@ -190,7 +190,7 @@ class CustomOptunaSweeperImpl(Sweeper):
     @staticmethod
     def try_upload_to_cometml():
         try:
-            os.system("comet_for_mlflow --upload --yes")
+            os.system("COMET_OFFLINE_DIRECTORY=comet_offline_tmp comet_for_mlflow --upload --yes")
         except Exception as e:
             log.info(f"Upload to comet.ml not possible: {e}")
 
