@@ -54,7 +54,7 @@ hindsight_sampling_done_if_success: 0
 set_fut_ret_zero_if_done: 0
 
 # Whether to do an optimistic initialization of the critic with q values normalized to number of steps.
-opti_normalized_critic: 0
+opti_normalized_critic: 1
 
 # Whether and how to render the rollout execution during training.
 # \'record\' is for video, \'display\' for direct visualization, \'null\' is for not rendering at all.
