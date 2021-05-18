@@ -301,21 +301,25 @@ class CustomOptunaSweeperImpl(Sweeper):
                                     study.set_user_attr("max_n_epochs", new_max_epochs)
 
                         except (ValueError, TypeError):
+                            err = f"Return value must be float-castable. Got '{ret.return_value}'."
+                            log.error(err)
                             raise ValueError(
-                                f"Return value must be float-castable. Got '{ret.return_value}'."
+                                err
                             ).with_traceback(sys.exc_info()[2])
                     else:
                         try:
                             values = [float(v) for v in ret.return_value]
                         except (ValueError, TypeError):
+                            err = f"Return value must be a list or tuple of float-castable values. Got '{ret.return_value}'."
+                            log.error(err)
                             raise ValueError(
-                                "Return value must be a list or tuple of float-castable values."
-                                f" Got '{ret.return_value}'."
+                                err
                             ).with_traceback(sys.exc_info()[2])
                         if len(values) != len(directions):
+                            err = f"The number of the values and the number of the objectives are mismatched. Expect {len(directions)}, but actually {len(values)}."
+                            log.error(err)
                             raise ValueError(
-                                "The number of the values and the number of the objectives are"
-                                f" mismatched. Expect {len(directions)}, but actually {len(values)}."
+                                err
                             )
                     study._tell(trial, state, values)
                 except Exception as e:
