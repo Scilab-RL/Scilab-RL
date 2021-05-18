@@ -26,6 +26,7 @@ from stable_baselines3.common.utils import safe_mean
 from stable_baselines3.common.preprocessing import is_image_space
 from ideas_baselines.hac.hierarchical_env import HierarchicalVecEnv
 from gym.wrappers import TimeLimit
+from stable_baselines3.common.monitor import Monitor
 import time
 from ideas_baselines.hac.util import get_concat_dict_from_dict_list, merge_list_dicts
 from copy import deepcopy
@@ -1098,7 +1099,8 @@ class HAC(BaseAlgorithm):
         return action, buffer_action
 
     #@staticmethod
-    def _wrap_env(self, env: GymEnv, verbose: int = 0) -> HierarchicalVecEnv:
+    def _wrap_env(self, env: GymEnv, verbose: int = 0, monitor_wrapper: bool = False) -> HierarchicalVecEnv:
+        # TODO: consider also monitor wrapper as in stable_baselines v 1.0
         if not isinstance(env, ObsDictWrapper):
             if not isinstance(env, HierarchicalVecEnv):
                 env = HierarchicalVecEnv([lambda: env], self.ep_early_done_on_succ)
