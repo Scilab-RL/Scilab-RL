@@ -31,7 +31,10 @@ def check_env_alg_compatibility(model, env):
 
 def train(baseline, train_env, eval_env, cfg):
     total_steps = cfg.eval_after_n_steps * cfg.n_epochs
-    checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir())
+    callback = []
+    if cfg.save_model_freq > 0:
+        checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir())
+        callback.append(checkpoint_callback)
     if hasattr(baseline, 'time_scales'):
         eval_callback = HierarchicalEvalCallback(eval_env,
                                                  log_path=logger.get_dir(),
@@ -51,7 +54,7 @@ def train(baseline, train_env, eval_env, cfg):
                                            early_stop_threshold=cfg.early_stop_threshold)
 
     # Create the callback list
-    callback = CallbackList([checkpoint_callback, eval_callback])
+    callback.append(eval_callback)
     baseline.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
     train_env.close()
     eval_env.close()
