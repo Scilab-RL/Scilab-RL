@@ -9,8 +9,8 @@ defaults:
 
 
 # The name of the OpenAI Gym environment that you want to train on.
-#env: 'AntReacher-v1'
-env: 'ButtonUnlock-o1-v1'
+env: 'AntReacher-v1'
+#env: 'ButtonUnlock-o1-v1'
 #env: 'FetchReach-v1'
 # Currently supported envs:
 # 'FetchPush-v1',
@@ -52,7 +52,7 @@ restore_policy: null
 eval_after_n_steps: 2000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 60
+n_epochs: 75
 
 # The number of testing rollouts.
 n_test_rollouts: 10
@@ -121,8 +121,8 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: hac_2_layer_button_o1_opti_critic
-    storage: sqlite:///hac_2_layer_button_o1_opti_critic.db
+    study_name: hac_2_layer_and_reacher_opti_critic
+    storage: sqlite:///hac_2_layer_and_reacher_opti_critic.db
     n_jobs: 9
     max_trials: 9999
     max_duration_minutes: 10000
@@ -131,16 +131,16 @@ hydra:
 
     search_space:
 
-      algorithm.opti_normalized_critic:
-        type: categorical
-        choices:
+#      algorithm.opti_normalized_critic:
+#        type: categorical
+#        choices:
 #          - 0
-          - 1
+#          - 1
 
       algorithm.learning_rates.0:
         type: float
         low: 0.0005
-        high: 0.005
+        high: 0.007
         log: true
 
       algorithm.learning_rates.1:
@@ -149,21 +149,21 @@ hydra:
         high: 0.007
         log: true
 
-      algorithm.time_scales.0:
-        type: int
-        low: 5
-        high: 10
-        step: 1
-
-      algorithm.time_scales.1:
-        type: int
-        low: 5
-        high: 10
-        step: 1
+#      algorithm.time_scales.0:
+#        type: int
+#        low: 5
+#        high: 10
+#        step: 1
+#
+#      algorithm.time_scales.1:
+#        type: int
+#        low: 5
+#        high: 10
+#        step: 1
 
       algorithm.n_sampled_goal:
         type: int
-        low: 6
+        low: 2
         high: 10
         step: 2
 
