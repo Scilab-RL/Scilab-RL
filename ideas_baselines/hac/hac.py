@@ -1098,7 +1098,6 @@ class HAC(BaseAlgorithm):
             action = buffer_action
         return action, buffer_action
 
-    #@staticmethod
     def _wrap_env(self, env: GymEnv, verbose: int = 0, monitor_wrapper: bool = False) -> HierarchicalVecEnv:
         # TODO: consider also monitor wrapper as in stable_baselines v 1.0
         if not isinstance(env, ObsDictWrapper):
@@ -1112,7 +1111,6 @@ class HAC(BaseAlgorithm):
                 env = ObsDictWrapper(env)
 
         return env
-    # wrap_env = _wrap_env
 
     def get_top_layer(self):
         if self.is_top_layer:
