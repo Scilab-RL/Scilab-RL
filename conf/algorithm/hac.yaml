@@ -71,8 +71,8 @@ render_every_n_eval: 2
 # Steps per level from highest to lowest, separated by comma. -1 indicates that a layer's timescale is determined
 # from the environment's predefined steps and the other time scales.
 time_scales:
-  - 7
-  - -1
+  - 20
+  - 20
 
 # The percentage of subgoals to test.
 subgoal_test_perc: 0.1
