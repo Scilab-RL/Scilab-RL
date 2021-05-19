@@ -10,6 +10,6 @@ mlflow==1.17.0
 mujoco-py==2.0.2.13
 opencv-python==4.5.2.52
 optuna==2.7.0
-stable-baselines3
+stable-baselines3==1.0
 torch==1.8.1
 tqdm==4.60.0
