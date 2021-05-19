@@ -117,8 +117,8 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: hyperopt_study_hac_2_layer
-    storage: sqlite:///hyperopt_study_hac_2_layer.db
+    study_name: ant_maze_hac_2_layer
+    storage: sqlite:///ant_maze_hac_2_layer.db
     n_jobs: 3
     max_trials: 9999
     max_duration_minutes: 10000
@@ -129,27 +129,28 @@ hydra:
 
       algorithm.learning_rates.0:
         type: float
-        low: 0.0005
-        high: 0.007
+        low: 0.0015
+        high: 0.005
         log: true
 
       algorithm.learning_rates.1:
         type: float
-        low: 0.0005
-        high: 0.007
+        low: 0.0002
+        high: 0.005
         log: true
 
-#      algorithm.time_scales.0:
-#        type: int
-#        low: 5
-#        high: 10
-#        step: 1
-#
-#      algorithm.time_scales.1:
-#        type: int
-#        low: 5
-#        high: 10
-#        step: 1
+
+      algorithm.time_scales.0:
+        type: int
+        low: 5
+        high: 25
+        step: 5
+
+      algorithm.time_scales.1:
+        type: int
+        low: 5
+        high: 25
+        step: 5
 
       algorithm.n_sampled_goal:
         type: int
