@@ -18,10 +18,11 @@ class TestingEnvs:
         'AntPush-v0',
         'AntFall-v0',
 
-        'BlockStackMujocoEnv-gripper_random-o0-v1',
-        'BlockStackMujocoEnv-gripper_random-o2-v1',
-        'BlockStackMujocoEnv-gripper_above-o1-v1',
-        'BlockStackMujocoEnv-gripper_none-o1-v1',
+        'Blocks-o0-gripper_random-v1',
+        'Blocks-o1-gripper_above-v1',
+        'Blocks-o1-gripper_random-v1',
+        'Blocks-o2-gripper_above-v1',
+        'Blocks-o1-gripper_none-v1',
     ]
 
 
