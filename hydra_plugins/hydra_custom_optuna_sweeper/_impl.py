@@ -192,7 +192,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         try:
             os.makedirs('data', exist_ok=True)
             os.makedirs('data/comet_offline_tmp', exist_ok=True)
-            os.system("COMET_OFFLINE_DIRECTORY=data/comet_offline_tmp comet_for_mlflow --upload --yes")
+            os.system("COMET_OFFLINE_DIRECTORY=data/comet_offline_tmp comet_for_mlflow --upload --yes --output-dir data/comet_offline_tmp")
         except Exception as e:
             log.info(f"Upload to comet.ml not possible: {e}")
 
