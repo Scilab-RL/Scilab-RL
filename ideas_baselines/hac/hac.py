@@ -222,10 +222,7 @@ class HAC(BaseAlgorithm):
             self.sub_layer.parent_layer = self
         else:
             self.sub_layer = None
-        if 'opti_normalized_critic' in layer_args:
-            if layer_args['opti_normalized_critic'] == 1:
-                layer_args.update({'lower_q_limit': -self.time_scales[0]})
-            del layer_args['opti_normalized_critic']
+
         self.layer_alg = layer_class(
             policy=policy,
             env=self.env,
@@ -890,7 +887,7 @@ class HAC(BaseAlgorithm):
         :param device: Device on which the code should run.
         :param kwargs: extra arguments to change the agent when loading
         """
-        parent_loaded_model = cls("MlpOptiCriticPolicy", env, **policy_args)
+        parent_loaded_model = cls("MlpPolicy", env, **policy_args)
         layer_model = parent_loaded_model
         n_layers = len(policy_args['time_scales'])
         for lay in reversed(range(n_layers)):
