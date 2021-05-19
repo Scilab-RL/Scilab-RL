@@ -190,7 +190,9 @@ class CustomOptunaSweeperImpl(Sweeper):
     @staticmethod
     def try_upload_to_cometml():
         try:
-            os.system("comet_for_mlflow --upload --yes")
+            os.makedirs('data', exist_ok=True)
+            os.makedirs('data/comet_offline_tmp', exist_ok=True)
+            os.system("COMET_OFFLINE_DIRECTORY=data/comet_offline_tmp comet_for_mlflow --upload --yes")
         except Exception as e:
             log.info(f"Upload to comet.ml not possible: {e}")
 
@@ -255,7 +257,7 @@ class CustomOptunaSweeperImpl(Sweeper):
             batch_size = min(n_trials_to_go, self.n_jobs)
             overrides = []
             trials = []
-            max_n_epochs = study.user_attrs['max_n_epochs']
+            max_n_epochs = min(study.user_attrs['max_n_epochs'], self.config.n_epochs)
             if max_n_epochs != None:
                 fixed_params['n_epochs'] = max_n_epochs
             while len(overrides) < batch_size:
@@ -299,27 +301,36 @@ class CustomOptunaSweeperImpl(Sweeper):
                                     study.set_user_attr("max_n_epochs", new_max_epochs)
 
                         except (ValueError, TypeError):
+                            err = f"Return value must be float-castable. Got '{ret.return_value}'."
+                            log.error(err)
                             raise ValueError(
-                                f"Return value must be float-castable. Got '{ret.return_value}'."
+                                err
                             ).with_traceback(sys.exc_info()[2])
                     else:
                         try:
                             values = [float(v) for v in ret.return_value]
                         except (ValueError, TypeError):
+                            err = f"Return value must be a list or tuple of float-castable values. Got '{ret.return_value}'."
+                            log.error(err)
                             raise ValueError(
-                                "Return value must be a list or tuple of float-castable values."
-                                f" Got '{ret.return_value}'."
+                                err
                             ).with_traceback(sys.exc_info()[2])
                         if len(values) != len(directions):
+                            err = f"The number of the values and the number of the objectives are mismatched. Expect {len(directions)}, but actually {len(values)}."
+                            log.error(err)
                             raise ValueError(
-                                "The number of the values and the number of the objectives are"
-                                f" mismatched. Expect {len(directions)}, but actually {len(values)}."
+                                err
                             )
                     study._tell(trial, state, values)
                 except Exception as e:
                     state = optuna.trial.TrialState.FAIL
                     study._tell(trial, state, values)
                     log.error(f"Error, could not execute trial with parameters {trial.params}")
+                    log.error("For debugging this error, we recommend to disable the joblib multiprocessing launcher "
+                              "and use the standard single processing launcher. This will point you to where the error "
+                              "occurred. You can disable the joblib launcher "
+                              "and enable the single processing launcher by commenting out the respective override "
+                              "line in conf/main.yaml ")
 
 
             self.plot_study_summary(study)
