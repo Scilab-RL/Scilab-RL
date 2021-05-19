@@ -77,7 +77,10 @@ def launch(cfg, kwargs):
     except:
         BaselineClass = getattr(importlib.import_module('ideas_baselines.' + algo_name), algo_name.upper())
     if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is a rl_bench env
-        train_env = eval_env = RLBenchWrapper(gym.make(cfg.env, render_mode="human")) # TODO make render dependent of cfg
+        render_mode = None
+        if cfg.algorithm.render_train == "display":
+            render_mode = "human"
+        train_env = eval_env = RLBenchWrapper(gym.make(cfg.env, render_mode=render_mode))
     else:
         train_env = gym.make(cfg.env)
         eval_env = gym.make(cfg.env)
