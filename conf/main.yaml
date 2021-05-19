@@ -5,14 +5,14 @@ defaults:
   - override hydra/job_logging: default
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
-  - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time. The standard launcher is much better for debugging.
+#  - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time. The standard launcher is much better for debugging.
 
 
 # The name of the OpenAI Gym environment that you want to train on.
 #env: 'AntReacher-v1'
 #env: 'ButtonUnlock-o1-v1'
 #env: 'FetchReach-v1'
-env: 'AntMaze-v1'
+env: 'AntMaze-v0'
 # Currently supported envs:
 # 'FetchPush-v1',
 # 'FetchSlide-v1',
@@ -26,9 +26,9 @@ env: 'AntMaze-v1'
 
 # 'AntReacher-v1',
 # 'Ant4Rooms-v1',
-# 'AntMaze-v1',
-# 'AntPush-v1',
-# 'AntFall-v1',
+# 'AntMaze-v0',
+# 'AntPush-v0',
+# 'AntFall-v0',
 
 # 'BlockStackMujocoEnv-gripper_random-o0-v1',
 # 'BlockStackMujocoEnv-gripper_random-o2-v1',
@@ -119,7 +119,7 @@ hydra:
     direction: maximize
     study_name: ant_maze_hac_2_layer
     storage: sqlite:///ant_maze_hac_2_layer.db
-    n_jobs: 3
+    n_jobs: 1
     max_trials: 9999
     max_duration_minutes: 10000
     min_trials_per_param: 3
