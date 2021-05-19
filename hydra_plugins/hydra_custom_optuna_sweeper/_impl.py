@@ -326,7 +326,11 @@ class CustomOptunaSweeperImpl(Sweeper):
                     state = optuna.trial.TrialState.FAIL
                     study._tell(trial, state, values)
                     log.error(f"Error, could not execute trial with parameters {trial.params}")
-                    log.error("For debugging this error, we recommend to disable the joblib multiprocessing launcher and use the standard single processing launcher. You can disable the joblib launcher and enable the single processing launcher by commenting out the respective override line in conf/main.yaml ")
+                    log.error("For debugging this error, we recommend to disable the joblib multiprocessing launcher "
+                              "and use the standard single processing launcher. This will point you to where the error "
+                              "occurred. You can disable the joblib launcher "
+                              "and enable the single processing launcher by commenting out the respective override "
+                              "line in conf/main.yaml ")
 
 
             self.plot_study_summary(study)

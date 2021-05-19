@@ -103,8 +103,6 @@ hydra:
 #    dir: ${base_logdir}/${git_label:}/${env} # This way, all trials within multiple hyperopt runs are stored in the same parent folder, without using the time subfolder.
     subdir: ${hydra.job.num}
 
-#  launcher: # Note that the joblib launcher does not work with comet_ml, hence multiprocessing within python does not work with comet_ml.
-#    _target_: hydra_plugins.hydra_custom_joblib_launcher.joblib_launcher.JoblibLauncher
 
   # sweeper, sampler and search_space is for hyperparameter optimization. Optimization can be started with --multirun as commandline parameter when executing train.py
   sweeper:
@@ -121,21 +119,15 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: hac_2_layer_and_reacher_opti_critic
-    storage: sqlite:///hac_2_layer_and_reacher_opti_critic.db
-    n_jobs: 9
+    study_name: hyperopt_study_hac_2_layer
+    storage: sqlite:///hyperopt_study_hac_2_layer.db
+    n_jobs: 3
     max_trials: 9999
     max_duration_minutes: 10000
     min_trials_per_param: 3
     max_trials_per_param: 9
 
     search_space:
-
-#      algorithm.opti_normalized_critic:
-#        type: categorical
-#        choices:
-#          - 0
-#          - 1
 
       algorithm.learning_rates.0:
         type: float

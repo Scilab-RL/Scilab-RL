@@ -11,7 +11,6 @@ exp_path_params:
   - 'learning_rates'
 #  - 'hindsight_sampling_done_if_success'
 #  - 'set_fut_ret_zero_if_done'
-  - 'opti_normalized_critic'
 
 verbose: True
 
@@ -52,9 +51,6 @@ hindsight_sampling_done_if_success: 0
 # Whether to set the future expected return to 0 if an episode is
 # done when computing the TD q value.
 set_fut_ret_zero_if_done: 0
-
-# Whether to do an optimistic initialization of the critic with q values normalized to number of steps.
-opti_normalized_critic: 1
 
 # Whether and how to render the rollout execution during training.
 # \'record\' is for video, \'display\' for direct visualization, \'null\' is for not rendering at all.
