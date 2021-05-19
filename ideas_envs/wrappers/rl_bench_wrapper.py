@@ -1,10 +1,10 @@
-import numpy as np
 from itertools import chain
+import numpy as np
 from gym.core import Wrapper
 import gym.spaces as spaces
 from gym.wrappers import TimeLimit
 import rlbench.gym  # unused, but do not remove. It registers the RL Bench environments.
-from rlbench.backend.conditions import *
+from rlbench.backend.conditions import DetectedCondition
 
 
 class RLBenchWrapper(Wrapper):
@@ -71,8 +71,8 @@ class RLBenchWrapper(Wrapper):
         _, goal = self._get_goals()
         return goal
 
-    def _guess_goal_space(self, goal_space):
-        n_samples = 1000
+    def _guess_goal_space(self, goal_space):  # TODO proposition: always set the goal space = space above the table
+        n_samples = 10# FIXME 00
         goal_space.high = -goal_space.high
         goal_space.low = -goal_space.low
         for _ in range(n_samples):
@@ -98,8 +98,8 @@ class RLBenchWrapper(Wrapper):
         self.goal = achieved_goal
         return achieved_goal, desired_goal
 
-    def render(self, mode, **kwargs):
-        self.env.unwrapped.render()
+    def render(self, **kwargs):
+        pass  # CoppeliaSim environments are not explicitly rendered
 
     def compute_reward(self, achieved_goal, desired_goal, info):
         # The reward/success computation in an RLBench environment uses different types of conditions to determine the
