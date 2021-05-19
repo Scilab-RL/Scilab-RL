@@ -51,8 +51,7 @@ def main(args):
     default_opts_values = {
         'n_test_rollouts': n_test_rollouts,
         'base_logdir': "data/testing/" + test_mode,
-        'try_start_idx': 100,
-        'plot_at_most_every_secs': 120
+        'try_start_idx': 100
     }
     write_params_json ()
     base_cmd = "python3 experiment/train.py"
