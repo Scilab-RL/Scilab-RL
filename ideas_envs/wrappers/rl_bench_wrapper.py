@@ -4,7 +4,7 @@ from gym.core import Wrapper
 import gym.spaces as spaces
 from gym.wrappers import TimeLimit
 import rlbench.gym  # unused, but do not remove. It registers the RL Bench environments.
-from rlbench.backend.conditions import DetectedCondition
+from rlbench.backend.conditions import DetectedCondition, NothingGrasped
 
 
 class RLBenchWrapper(Wrapper):
@@ -91,6 +91,8 @@ class RLBenchWrapper(Wrapper):
             if isinstance(cond, DetectedCondition):
                 desired_goal.append(cond._detector.get_position())
                 achieved_goal.append(cond._obj.get_position())
+            elif isinstance(cond, NothingGrasped):
+                pass  # ignore NothingGrasped
             else:
                 raise NotImplementedError("Converting this condition-type to a goal is not supported yet.")
         achieved_goal = np.array(list(chain.from_iterable(achieved_goal)))
