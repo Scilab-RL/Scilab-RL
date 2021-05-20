@@ -26,6 +26,7 @@ from stable_baselines3.common.utils import safe_mean
 from stable_baselines3.common.preprocessing import is_image_space
 from ideas_baselines.hac.hierarchical_env import HierarchicalVecEnv
 from gym.wrappers import TimeLimit
+from stable_baselines3.common.monitor import Monitor
 import time
 from ideas_baselines.hac.util import get_concat_dict_from_dict_list, merge_list_dicts
 from copy import deepcopy
@@ -116,7 +117,6 @@ class HAC(BaseAlgorithm):
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
     """
 
-
     save_attrs_to_exclude = ['layer_alg', 'train_video_writer', 'test_video_writer', 'sub_layer', 'parent_layer', 'env',
                              'episode_storage', 'device', 'train_callback', 'tmp_train_logger', 'policy_class',
                              'policy_kwargs', 'lr_schedule',
@@ -151,6 +151,7 @@ class HAC(BaseAlgorithm):
         *args,
         **kwargs,
     ):
+
         self.epoch_count = 0
         self.ep_early_done_on_succ = ep_early_done_on_succ
         self.gradient_steps = n_train_batches
@@ -204,7 +205,7 @@ class HAC(BaseAlgorithm):
         next_level_steps = 0
         if len(sub_layer_classes) > 0:
             next_level_steps = int(self.time_scales[1])
-            self.sub_layer = HAC('MlpPolicy', bottom_env, sub_layer_classes[0], sub_layer_classes[1:],
+            self.sub_layer = HAC(policy, bottom_env, sub_layer_classes[0], sub_layer_classes[1:],
                                     time_scales=self.time_scales[1:],
                                     n_sampled_goal=n_sampled_goal,
                                     goal_selection_strategy=goal_selection_strategy,
@@ -346,7 +347,7 @@ class HAC(BaseAlgorithm):
 
     def _setup_model(self) -> None:
         self.layer_alg._setup_model()
-        # assign episode storage to replay buffer when using online HER sampling
+        # assign custom episode storage to replay buffer when using online HER sampling
         self.layer_alg.replay_buffer = self._episode_storage
 
     def predict(
@@ -886,7 +887,7 @@ class HAC(BaseAlgorithm):
         :param device: Device on which the code should run.
         :param kwargs: extra arguments to change the agent when loading
         """
-        parent_loaded_model = cls('MlpPolicy', env, **policy_args)
+        parent_loaded_model = cls("MlpPolicy", env, **policy_args)
         layer_model = parent_loaded_model
         n_layers = len(policy_args['time_scales'])
         for lay in reversed(range(n_layers)):
@@ -1018,8 +1019,8 @@ class HAC(BaseAlgorithm):
             except Exception as e:
                 logger.info("Error getting test success rate")
                 succ_rate = 0
-            hyperopt_score = float(succ_rate/self.epoch_count)
-            logger.record("hyperopt_score", hyperopt_score, exclude="tensorboard")
+            succ_learn_rate = float(succ_rate/self.epoch_count)
+            logger.record("success learn rate", succ_learn_rate, exclude="tensorboard")
             if self.epoch_count % self.render_every_n_eval == 0:
                 if self.train_render_info is not None:
                     self.start_train_video_writer(self.get_env_steps())
@@ -1036,13 +1037,6 @@ class HAC(BaseAlgorithm):
 
     def _dump_logs(self) -> None:
         self._record_logs()
-        top_layer = self.layer
-        # # For compatibility with HER, add a few redundant extra fields:
-        # copy_fields = {'time/total timesteps': 'time_{}/total timesteps'.format(top_layer)
-        #                }
-        # copy_fields = {}
-        # for k,v in copy_fields.items():
-        #     logger.record(k, logger.Logger.CURRENT.name_to_value[v])
         logger.info("Writing log data to {}".format(logger.get_dir()))
         logger.dump(step=self.num_timesteps)
 
@@ -1052,7 +1046,7 @@ class HAC(BaseAlgorithm):
         """
         This function is copied from OffPolicyAlgorithm class, but takes as additional input a "deterministic"
         parameter to determine whether or not add action noise, instead of the action_noise argument which
-        is more or less unused, as far as I can tell.
+        is unused for SAC and only used for TD3.
         Sample an action according to the exploration policy.
         This is either done by sampling the probability distribution of the policy,
         or sampling a random action (from a uniform distribution over the action space)
@@ -1070,7 +1064,6 @@ class HAC(BaseAlgorithm):
         if observation is None:
             observation = self.layer_alg._last_obs
         # Select action randomly or according to policy
-        # if self.layer_alg.num_timesteps < learning_starts or self.learning_enabled is False:
         if self.replay_buffer.size() < learning_starts or self.learning_enabled is False:
         # if self.layer_alg.num_timesteps < learning_starts and (not (self.layer_alg.use_sde and self.layer_alg.use_sde_at_warmup)):
             # Warmup phase
@@ -1097,8 +1090,8 @@ class HAC(BaseAlgorithm):
             action = buffer_action
         return action, buffer_action
 
-    #@staticmethod
-    def _wrap_env(self, env: GymEnv, verbose: int = 0) -> HierarchicalVecEnv:
+    def _wrap_env(self, env: GymEnv, verbose: int = 0, monitor_wrapper: bool = False) -> HierarchicalVecEnv:
+        # TODO: consider also monitor wrapper as in stable_baselines v 1.0
         if not isinstance(env, ObsDictWrapper):
             if not isinstance(env, HierarchicalVecEnv):
                 env = HierarchicalVecEnv([lambda: env], self.ep_early_done_on_succ)
@@ -1110,7 +1103,6 @@ class HAC(BaseAlgorithm):
                 env = ObsDictWrapper(env)
 
         return env
-    # wrap_env = _wrap_env
 
     def get_top_layer(self):
         if self.is_top_layer:
