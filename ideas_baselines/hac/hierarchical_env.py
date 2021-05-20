@@ -100,6 +100,9 @@ class HierarchicalVecEnv(DummyVecEnv):
                     layer_goals_to_render[i * 3: (i + 1) * 3], self.goal_viz_size, color_and_alpha)
         # set the sites' attributes in the simulation
         viz_env = self.envs[env_idx].unwrapped
+        if hasattr(viz_env, 'display_subgoals'):
+            viz_env.display_subgoals(goals_to_viz)
+            return
         for name in goals_to_viz:
             try:
                 site_id = viz_env.sim.model.site_name2id(name)
@@ -113,7 +116,7 @@ class HierarchicalVecEnv(DummyVecEnv):
 
     def render(self, mode='rgb_array', width=1024, height=768):
         env_idx = 0
-        #self.prepare_goal_viz(env_idx) TODO make compatible with Coppelia Environments
+        self.prepare_goal_viz(env_idx)
         frame = self.envs[env_idx].render(mode=mode, width=width, height=height)
         return frame
 

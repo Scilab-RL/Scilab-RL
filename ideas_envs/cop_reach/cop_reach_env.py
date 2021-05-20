@@ -203,18 +203,32 @@ class ReacherEnv(gym.GoalEnv):
         else:
             return goals
 
-    def display_subgoals(self, subgoal):
-        self.visualize({'subgoal': {'pos': subgoal[0], 'col': [.9, .5, .0]}})
+    def display_subgoals(self, subgoals):
+        # receives the subgoals in a dict of the form
+        # 'subgoal_SHAPEX' : (position_array[x, y, z], float size, rgba[r, g, b, a])
+        # where X is the number of the subgoal.
+        # we ignore the provided size and shape for now TODO don't
+        to_visualize = {}
+        for k in subgoals:
+            to_visualize[k] = {'pos': subgoals[k][0], 'col': subgoals[k][2][:3], 'shape': k[8:-1]}
+        self.visualize(to_visualize)
 
     def visualize(self, names_pos_col={}):
         """
-        Takes a dictionary with names, positions and colors that is structured as follows:
-        {'name': {'pos': [0.8, -0.1, 1.1], 'col': [.0, .9, .0]}, 'name2': {'pos': [1.0, 0.1, 1.3], 'col': [.0, .0, .9]}}
-        Then cubes with the name are created in the specified color and moved to the position.
+        Takes a dictionary with names, positions, shapes and colors that is structured as follows:
+        {'name': {'pos': [0.8, -0.1, 1.1], 'col': [.0, .9, .0], 'shape': 'sphere'},
+        'name2': {'pos': [1.0, 0.1, 1.3], 'col': [.0, .0, .9], 'shape': 'box'}}
+        Then PrimitiveShapes with the name are created in the specified shape and color and moved to the position.
         """
         for name in names_pos_col:
+            if names_pos_col[name]['shape'] == 'box':
+                shape = PrimitiveShape.CUBOID
+            elif names_pos_col[name]['shape'] == 'sphere':
+                shape = PrimitiveShape.SPHERE
+            elif names_pos_col[name]['shape'] == 'cylinder':
+                shape = PrimitiveShape.CYLINDER
             if name not in self.vis:
-                self.vis[name] = Shape.create(PrimitiveShape.SPHERE, [0.04]*3, mass=0, respondable=False, static=True,
+                self.vis[name] = Shape.create(shape, [0.04]*3, mass=0, respondable=False, static=True,
                                               position=names_pos_col[name]['pos'], color=names_pos_col[name]['col'])
             else:
                 self.vis[name].set_position(names_pos_col[name]['pos'])
