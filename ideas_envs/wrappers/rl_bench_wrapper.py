@@ -5,6 +5,8 @@ import gym.spaces as spaces
 from gym.wrappers import TimeLimit
 import rlbench.gym  # unused, but do not remove. It registers the RL Bench environments.
 from rlbench.backend.conditions import DetectedCondition, NothingGrasped
+from pyrep.objects.shape import Shape
+from pyrep.const import PrimitiveShape
 
 
 class RLBenchWrapper(Wrapper):
@@ -27,6 +29,7 @@ class RLBenchWrapper(Wrapper):
         ))
         obs_space.spaces['desired_goal'] = self._guess_goal_space(obs_space.spaces['desired_goal'])
         self.observation_space = obs_space
+        self.vis = {}
 
         cond = self.env.unwrapped.task._task._success_conditions[0]
         if isinstance(cond, DetectedCondition):
@@ -97,7 +100,7 @@ class RLBenchWrapper(Wrapper):
                 raise NotImplementedError("Converting this condition-type to a goal is not supported yet.")
         achieved_goal = np.array(list(chain.from_iterable(achieved_goal)))
         desired_goal = np.array(list(chain.from_iterable(desired_goal)))
-        self.goal = achieved_goal
+        self.goal = desired_goal
         return achieved_goal, desired_goal
 
     def render(self, **kwargs):
@@ -122,6 +125,36 @@ class RLBenchWrapper(Wrapper):
 
     def _is_success(self, achieved_goal, desired_goal):
         return self.compute_reward(achieved_goal, desired_goal, []) == 0
+
+    def display_subgoals(self, subgoals):
+        # receives the subgoals in a dict of the form
+        # 'subgoal_SHAPEX' : (position_array[x, y, z], float size, rgba[r, g, b, a])
+        # where SHAPE is the visualization-shape and X is the number of the subgoal.
+        to_visualize = {}
+        for k in subgoals:
+            to_visualize[k] = {'pos': subgoals[k][0], 'col': subgoals[k][2][:3], 'shape': k[8:-1]}
+        self.visualize(to_visualize)
+
+    def visualize(self, names_pos_col={}):
+        """
+        Takes a dictionary with names, positions, shapes and colors that is structured as follows:
+        {'name': {'pos': [0.8, -0.1, 1.1], 'col': [.0, .9, .0], 'shape': 'sphere'},
+        'name2': {'pos': [1.0, 0.1, 1.3], 'col': [.0, .0, .9], 'shape': 'box'}}
+        Then PrimitiveShapes with the name are created in the specified shape and color and moved to the position.
+        """
+        for name in names_pos_col:
+            if names_pos_col[name]['shape'] == 'box':
+                shape = PrimitiveShape.CUBOID
+            elif names_pos_col[name]['shape'] == 'sphere':
+                shape = PrimitiveShape.SPHERE
+            elif names_pos_col[name]['shape'] == 'cylinder':
+                shape = PrimitiveShape.CYLINDER
+            if name not in self.vis:
+                self.vis[name] = Shape.create(shape, [0.04]*3, mass=0, respondable=False, static=True,
+                                              position=names_pos_col[name]['pos'], color=names_pos_col[name]['col'])
+            else:
+                self.vis[name].set_position(names_pos_col[name]['pos'])
+                self.vis[name].set_color(names_pos_col[name]['col'])
 
     @property
     def unwrapped(self):

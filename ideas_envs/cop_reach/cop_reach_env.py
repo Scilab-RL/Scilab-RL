@@ -206,8 +206,7 @@ class ReacherEnv(gym.GoalEnv):
     def display_subgoals(self, subgoals):
         # receives the subgoals in a dict of the form
         # 'subgoal_SHAPEX' : (position_array[x, y, z], float size, rgba[r, g, b, a])
-        # where X is the number of the subgoal.
-        # we ignore the provided size and shape for now TODO don't
+        # where SHAPE is the visualization-shape and X is the number of the subgoal.
         to_visualize = {}
         for k in subgoals:
             to_visualize[k] = {'pos': subgoals[k][0], 'col': subgoals[k][2][:3], 'shape': k[8:-1]}
