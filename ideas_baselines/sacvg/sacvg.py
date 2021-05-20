@@ -1,22 +1,16 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
-
 import numpy as np
 import torch as th
 from torch.nn import functional as F
 
 from stable_baselines3.common import logger
-from stable_baselines3.common.noise import ActionNoise
-from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
-from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
 from stable_baselines3.common.utils import polyak_update
-from stable_baselines3.sac.policies import SACPolicy
 from stable_baselines3.sac.sac import SAC
-
 
 class SACVG(SAC):
     """
-    Soft Actor-Critic (SAC)
+    Soft Actor-Critic vis Variable Gamma (SACVG)
     Same as stable baselines version but uses a gamma that depends on whether a transition was a testing transition.
+    Also, SACVG features an optimistic critic initialization.
 
     Note: we use double q target and not value target as discussed
     in https://github.com/hill-a/stable-baselines/issues/270
@@ -71,8 +65,8 @@ class SACVG(SAC):
         set_fut_ret_zero_if_done: int = 1,
         **kwargs):
 
-        # self.hindsight_sampling_done_if_success = hindsight_sampling_done_if_success
         self.set_fut_ret_zero_if_done = set_fut_ret_zero_if_done
+
         super(SACVG, self).__init__(
             **kwargs
         )
