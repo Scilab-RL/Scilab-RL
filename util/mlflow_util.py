@@ -24,17 +24,14 @@ def get_hyperopt_score(cfg, current_run):
 
     return hyperopt_score, epochs
 
-def setup_mlflow(cfg, logdir=None):
+def setup_mlflow():
     orig_path = hydra.utils.get_original_cwd()
     mlflow.set_tracking_uri('file://' + orig_path + '/mlruns')
-    tracking_uri = mlflow.get_tracking_uri()
-    logger.info("Current tracking uri: {}".format(tracking_uri))
+    # tracking_uri = mlflow.get_tracking_uri()
+    # logger.info("Current tracking uri: {}".format(tracking_uri))
     study_name = omegaconf.OmegaConf.load(f'{orig_path}/conf/main.yaml').hydra.sweeper.study_name
     mlflow.set_experiment(study_name)
-    mlflow.start_run()
-    log_params_from_omegaconf_dict(cfg)
-    if logdir is not None:
-        mlflow.log_param(f'log_dir', logdir)
+
 
 
 def log_params_from_omegaconf_dict(params):
