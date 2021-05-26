@@ -3,7 +3,7 @@ import gym
 
 class TestingAlgos:
 
-    base_algo_names = ['sac', 'ddpg', 'td3']
+    base_algo_names = ['sac', 'ddpg', 'td3', 'dqn']
     algo_names = ['hac', 'her2'] + base_algo_names
     algo_names = ['hac']
 
@@ -167,10 +167,6 @@ class TestingAlgos:
                                             n_layers = len(time_scales)
                                             if len(time_scales) != len(lrs):
                                                 continue
-                                            # if gss == 'future' and eedos != 0:
-                                            #     continue
-                                            # if 'rndend' in gss and eedos == 0:
-                                            #     continue
                                             algo_params.update({'learning_rates':lrs})
                                             plot_col_names = other_plot_col_names
                                             for lay in range(n_layers):
@@ -215,43 +211,6 @@ class TestingAlgos:
             performance_params['n_epochs'] = (20000 // hyper_params['eval_after_n_steps']) + 1
             all_params.append((performance_params.copy(), hyper_params.copy(), {}))
         return all_params
-
-    # @staticmethod
-    # def get_hac_performance_params(env):
-    #     all_params = []
-    #     eval_after_n_steps = 2000
-    #     early_stop_last_n = (10000 // eval_after_n_steps) + 1
-    #     model = 'sac'
-    #     hyper_params_all = {'eval_after_n_steps': 2000,
-    #                         'early_stop_last_n': early_stop_last_n,
-    #                         'plot_eval_cols': 'train/actor_loss,train/critic_loss,train/ent_coef,train/learning_rate,train/n_updates,test/success_rate,test/mean_reward,train/ent_coef_loss,rollout/success_rate'}
-    #
-    #     if env in ['FetchReach-v1']:
-    #         performance_params = {'n_epochs': 20, 'n_runs': 7, 'min_success_runs': 4,
-    #                               'min_performance_value': 0.95, 'performance_measure': 'test/success_rate'}
-    #     elif env in ['FetchPush-v1']:
-    #         performance_params = {'n_epochs': 10, 'n_runs': 4, 'min_success_runs': 2,
-    #                               'min_performance_value': 0.05, 'performance_measure': 'test/success_rate'}
-    #     elif env in ['FetchSlide-v1']:
-    #         performance_params = {'n_epochs': 50, 'n_runs': 4, 'min_success_runs': 2,
-    #                               'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
-    #     elif env in ['FetchPickAndPlace-v1']:
-    #         performance_params = {'n_epochs': 25, 'n_runs': 4, 'min_success_runs': 2,
-    #                               'min_performance_value': 0.03, 'performance_measure': 'test/success_rate'}
-    #     elif env in ['HandReach-v0']:
-    #         performance_params = {'n_epochs': 70, 'n_runs': 4, 'min_success_runs': 2,
-    #                               'min_performance_value': 0.1, 'performance_measure': 'test/success_rate'}
-    #     else:
-    #         print("Environment {} is not evaluated with HER algorithm.".format(env))
-    #         return []
-    #
-    #     for time_scales in ['_', '5,_', '2,5,_']:
-    #         model_classes = [model] * len(time_scales.split(','))
-    #         hyper_params = {'model_classes': ",".join(model_classes), 'time_scales': time_scales}
-    #         hyper_params.update(hyper_params_all)
-    #         all_params.append((performance_params.copy(), hyper_params.copy()))
-    #
-    #     return all_params
 
     @staticmethod
     def get_td3_performance_params(env):
@@ -339,111 +298,7 @@ class TestingAlgos:
     #
     #     return all_params
     #
-    # @staticmethod
-    # def get_hac_performance_params(env):
-    #     all_params = []
-    #     all_h_params = [
-    #         # 1 level HER
-    #         {'buffer_size': "500", 'eta': '0.0', 'time_scales': '500', 'level_types': 'her', 'simulate_level': '0'},
-    #         # 2 level HAC
-    #         {'buffer_size': "500,500", 'eta': '0.0,0.0', 'level_types': 'hac,hac', 'simulate_level': '0,0'},
-    #         # 2 level CHAC
-    #         {'buffer_size': "500,500", 'eta': '0.5,0.5', 'level_types': 'hac,hac', 'dm_hidden_size': 256,
-    #          'dm_batch_size': 1024, 'dm_lr': 0.001, "dm_ensemble": 5, 'simulate_level': '0,0'},
-    #         # 2 level HAC
-    #         {'buffer_size': "500,500", 'eta': '0.5,0.5', 'level_types': 'hac,hac', 'dm_hidden_size': 256,
-    #          'dm_batch_size': 1024, 'dm_lr': 0.001, "dm_ensemble": 5, 'simulate_level': '1,1'}
-    #     ]
-    #     hyper_params = []
-    #     if env == 'CausalDependenciesMujocoEnv-o0-v0':
-    #         performance_params = [
-    #             {'epochs': 4, 'min_performance_value': 0.9},
-    #             {'epochs': 4, 'min_performance_value': 0.8},
-    #             {'epochs': 4, 'min_performance_value': 0.8},
-    #             {'epochs': 4, 'min_performance_value': 0.9, 'haltime': 500}
-    #         ]
-    #         hyper_params = [
-    #             {'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1, 'halftime': 500},
-    #         ]
-    #     elif env == 'CausalDependenciesMujocoEnv-o1-v0':
-    #         performance_params = [
-    #             {'epochs': 25, 'min_performance_value': 0.1},
-    #             {'epochs': 40, 'min_performance_value': 0.2},
-    #             {'epochs': 25, 'min_performance_value': 0.2},
-    #             {'epochs': 40, 'min_performance_value': 0.25},
-    #         ]
-    #         hyper_params = [
-    #             {'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1, 'halftime': 3000}
-    #         ]
-    #     elif env == 'BlockStackMujocoEnv-gripper_random-o0-v1':
-    #         performance_params = [
-    #             {'epochs': 4, 'min_performance_value': 0.9},
-    #             {'epochs': 4, 'min_performance_value': 0.3},
-    #             {'epochs': 4, 'min_performance_value': 0.3},
-    #             {'epochs': 4, 'min_performance_value': 0.3},
-    #         ]
-    #         hyper_params = [
-    #             {'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1, 'halftime': 500}
-    #         ]
-    #     elif env in ['AntReacherEnv-v0', 'AntCausalDepEnv-o0-v0']:
-    #         performance_params = [
-    #             {'epochs': 20, 'min_performance_value': 0.4},
-    #             {'epochs': 20, 'min_performance_value': 0.75},
-    #             {'epochs': 20, 'min_performance_value': 0.7},
-    #             {'epochs': 20, 'min_performance_value': 0.7},
-    #         ]
-    #         hyper_params = [
-    #             {'atomic_noise': 0.2, 'subgoal_noise': 0.2},
-    #             {'time_scales': '23,23', 'atomic_noise': 0.2, 'subgoal_noise': 0.2},
-    #             {'time_scales': '23,23', 'atomic_noise': 0.2, 'subgoal_noise': 0.2},
-    #             {'time_scales': '23,23', 'atomic_noise': 0.2, 'subgoal_noise': 0.2, 'halftime': 2000}
-    #         ]
-    #     elif env in ['AntFourRooms-v0']:
-    #         performance_params = [
-    #             {'epochs': 20, 'min_performance_value': 0.2},
-    #             {'epochs': 20, 'min_performance_value': 0.25},
-    #             {'epochs': 20, 'min_performance_value': 0.3},
-    #             {'epochs': 20, 'min_performance_value': 0.35},
-    #         ]
-    #         hyper_params = [
-    #             {'atomic_noise': 0.2, 'subgoal_noise': 0.2},
-    #             {'time_scales': '27,27', 'atomic_noise': 0.2, 'subgoal_noise': 0.2},
-    #             {'time_scales': '27,27', 'atomic_noise': 0.2, 'subgoal_noise': 0.2},
-    #             {'time_scales': '27,27', 'atomic_noise': 0.2, 'subgoal_noise': 0.2, 'halftime': 2000}
-    #         ]
-    #     elif 'CopReacherEnv' in env:
-    #         performance_params = [
-    #             {'epochs': 10, 'min_performance_value': 0.9},
-    #             {'epochs': 10, 'min_performance_value': 0.9},
-    #             {'epochs': 10, 'min_performance_value': 0.95},
-    #             {'epochs': 10, 'min_performance_value': 0.95},
-    #         ]
-    #         hyper_params = [
-    #             {'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1},
-    #             {'time_scales': '15,15', 'atomic_noise': 0.2, 'subgoal_noise': 0.1, 'halftime': 500}
-    #         ]
-    #     else:
-    #         print("Environment {} is not evaluated with CHAC algorithm.".format(env))
-    #         performance_params = None
-    #
-    #     if performance_params is not None:
-    #         for perf_pa, hyper_pa, all_h_p in zip(performance_params, hyper_params, all_h_params):
-    #             hyper_pa.update(all_h_p)
-    #             perf_pa.update({'performance_measure': 'test/success_rate', 'n_runs': 3, 'min_success_runs': 2})
-    #             all_params.append((perf_pa.copy(), hyper_pa.copy()))
-    #
-    #     return all_params
+
     #
     # @staticmethod
     # def get_hiro_performance_params(env):

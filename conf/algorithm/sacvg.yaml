@@ -2,8 +2,8 @@ name: 'sacvg'
 
 exp_path_params:
   - 'set_fut_ret_zero_if_done'
+  - 'opti_clipped_critic'
 
 verbose: True
-# Whether to set the future expected return to 0 if an episode is
-# done when computing the TD q value.
-set_fut_ret_zero_if_done: 0
+
+
