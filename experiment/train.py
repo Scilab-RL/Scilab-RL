@@ -53,7 +53,6 @@ def train(baseline, train_env, eval_env, cfg):
                                            early_stop_last_n=cfg.early_stop_last_n,
                                            early_stop_data_column=cfg.early_stop_data_column,
                                            early_stop_threshold=cfg.early_stop_threshold)
-
     # Create the callback list
     callback.append(eval_callback)
     baseline.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
@@ -83,14 +82,10 @@ def convert_alg_cfg(cfg):
 
     return alg_dict
 
-
-
 def launch(cfg, kwargs):
     set_global_seeds(cfg.seed)
     algo_name = cfg['algorithm'].name
-
     alg_kwargs = convert_alg_cfg(cfg)
-
     try:
         BaselineClass = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except:
@@ -170,24 +165,8 @@ def main(cfg: DictConfig) -> (float, int):
         if 'exp_path_params' in cfg.algorithm.keys():
             with open_dict(cfg):
                 del cfg['algorithm']['exp_path_params']
-        kwargs = {}
         # TODO: function for folder name
         #  OmegaConf.register_resolver("git_label", lambda: get_git_label())
-
-        # # Get default options for model classes
-        # class_list = []
-        # for class_name in cfg.layer_classes:
-        #     if class_name in dir(importlib.import_module('ideas_baselines')):
-        #         class_list.append(getattr(importlib.import_module('ideas_baselines.' + class_name), class_name.upper()))
-        #     elif class_name in dir(importlib.import_module('stable_baselines3')):
-        #         class_list.append(getattr(importlib.import_module('stable_baselines3.' + class_name), class_name.upper()))
-        #     else:
-        #         raise ValueError(f"class name {class_name} not found")
-        #
-        # if class_list:
-        #     kwargs['layer_class'] = class_list[0]
-        #     if len(class_list) > 1:
-        #         kwargs['sub_layer_classes'] = class_list[1:]
 
         logger.info("Starting process id: {}".format(os.getpid()))
 
@@ -201,6 +180,7 @@ def main(cfg: DictConfig) -> (float, int):
         ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
         OmegaConf.save(config=cfg, f='params.yaml')
 
+        kwargs = {}
         launch(cfg, kwargs)
 
         logger.info("Finishing main training function.")

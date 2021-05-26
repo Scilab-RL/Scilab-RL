@@ -110,8 +110,8 @@ alg_overrides:
 
 hydra:
   sweeper:
-    study_name: hac_2_layer_ButtonUnlock-o1-v1
-    storage: sqlite:///hac_2_layer_ButtonUnlock-o1-v1.db
+    study_name: hac_2_layer_AntMaze-v0
+    storage: sqlite:///hac_2_layer_AntMaze-v0.db
 
     search_space:
       algorithm.learning_rates.0:
