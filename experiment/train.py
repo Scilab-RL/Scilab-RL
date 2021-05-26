@@ -151,20 +151,21 @@ def main(cfg: DictConfig) -> (float, int):
         kwargs = {}
         # TODO: function for folder name
         #  OmegaConf.register_resolver("git_label", lambda: get_git_label())
-        # Get default options for model classes
-        class_list = []
-        for class_name in cfg.layer_classes:
-            if class_name in dir(importlib.import_module('ideas_baselines')):
-                class_list.append(getattr(importlib.import_module('ideas_baselines.' + class_name), class_name.upper()))
-            elif class_name in dir(importlib.import_module('stable_baselines3')):
-                class_list.append(getattr(importlib.import_module('stable_baselines3.' + class_name), class_name.upper()))
-            else:
-                raise ValueError(f"class name {class_name} not found")
 
-        if class_list:
-            kwargs['layer_class'] = class_list[0]
-            if len(class_list) > 1:
-                kwargs['sub_layer_classes'] = class_list[1:]
+        # # Get default options for model classes
+        # class_list = []
+        # for class_name in cfg.layer_classes:
+        #     if class_name in dir(importlib.import_module('ideas_baselines')):
+        #         class_list.append(getattr(importlib.import_module('ideas_baselines.' + class_name), class_name.upper()))
+        #     elif class_name in dir(importlib.import_module('stable_baselines3')):
+        #         class_list.append(getattr(importlib.import_module('stable_baselines3.' + class_name), class_name.upper()))
+        #     else:
+        #         raise ValueError(f"class name {class_name} not found")
+        #
+        # if class_list:
+        #     kwargs['layer_class'] = class_list[0]
+        #     if len(class_list) > 1:
+        #         kwargs['sub_layer_classes'] = class_list[1:]
 
         logger.info("Starting process id: {}".format(os.getpid()))
 
@@ -177,7 +178,9 @@ def main(cfg: DictConfig) -> (float, int):
         # Prepare xmls for subgoal visualizations
         ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
         OmegaConf.save(config=cfg, f='params.yaml')
+
         launch(cfg, kwargs)
+
         logger.info("Finishing main training function.")
         logger.info(f"MLflow run: {mlflow_run}.")
         hyperopt_score, n_epochs = get_hyperopt_score(cfg, mlflow_run)

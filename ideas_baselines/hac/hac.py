@@ -27,6 +27,7 @@ from stable_baselines3.common.preprocessing import is_image_space
 from ideas_baselines.hac.hierarchical_env import HierarchicalVecEnv
 from gym.wrappers import TimeLimit
 from stable_baselines3.common.monitor import Monitor
+import importlib
 import time
 from ideas_baselines.hac.util import get_concat_dict_from_dict_list, merge_list_dicts
 from copy import deepcopy
@@ -129,9 +130,8 @@ class HAC(BaseAlgorithm):
         self,
         policy: Union[str, Type[BasePolicy]],
         env: Union[GymEnv, str],
-        layer_class: Type[OffPolicyAlgorithm],
-        sub_layer_classes: List[Type[OffPolicyAlgorithm]] = [],
-        time_scales: int = 1,
+        layer_classes: List[str],
+        time_scales: int = -1,
         learning_rates: str = '3e-4',
         n_sampled_goal: int = 4,
         goal_selection_strategy: Union[GoalSelectionStrategy, str] = "future",
@@ -147,7 +147,6 @@ class HAC(BaseAlgorithm):
         use_action_replay: bool = True,
         ep_early_done_on_succ: bool = True,
         hindsight_sampling_done_if_success: int = 1,
-        set_fut_ret_zero_if_done: int = 1, # FIXME: should be in kwargs
         *args,
         **kwargs,
     ):
@@ -160,14 +159,24 @@ class HAC(BaseAlgorithm):
         self.is_top_layer = is_top_layer
         self.time_scales = time_scales
         self.train_freq = train_freq
+        self.layer_classes = layer_classes
+
+        # # Get default options for model classes
+        class_name = layer_classes[0]
+        if class_name in dir(importlib.import_module('ideas_baselines')):
+            self.layer_class = getattr(importlib.import_module('ideas_baselines.' + class_name), class_name.upper())
+        elif class_name in dir(importlib.import_module('stable_baselines3')):
+            self.layer_class = getattr(importlib.import_module('stable_baselines3.' + class_name), class_name.upper())
+        else:
+            raise ValueError(f"class name {class_name} not found")
+
         self.is_bottom_layer = len(time_scales) == 1
         self.parent_layer = None
         self.hindsight_sampling_done_if_success = hindsight_sampling_done_if_success
         self.reset_train_info_list()
-        assert len(time_scales) == (
-                    len(sub_layer_classes) + 1), "Error, number of time scales is not equal to number of layers."
+        assert len(time_scales) == (len(layer_classes)), "Error, number of time scales is not equal to number of layers."
         assert time_scales.count(
-            "_") <= 1, "Error, only one wildcard character \'_\' allowed in time_scales argument {}".format(time_scales)
+            "-1") <= 1, "Error, only one wildcard  \'-1\' allowed in time_scales argument {}".format(time_scales)
         if self.is_top_layer == 1:  # Determine time_scales. Only do this once at top layer.
             self.time_scales = compute_time_scales(time_scales, env)
             # Build hierarchical layer_envs from env, depending on steps and action space.
@@ -193,19 +202,13 @@ class HAC(BaseAlgorithm):
             del kwargs["_init_setup_model"]
 
         # layer algorithm initialization
-        self.layer_class = layer_class
         layer_args = kwargs.copy()
-        if 'sub_layer_classes' in layer_args:
-            del layer_args['sub_layer_classes']
+        self.layer = len(self.layer_classes) - 1
 
-        self.sub_layer_classes = sub_layer_classes
-        self.layer = len(self.sub_layer_classes)
-
-        assert (len(sub_layer_classes) + 1) == len(layer_envs), "Error, number of sub_layer classes should be one less than number of envs"
         next_level_steps = 0
-        if len(sub_layer_classes) > 0:
+        if len(self.layer_classes) > 1:
             next_level_steps = int(self.time_scales[1])
-            self.sub_layer = HAC(policy, bottom_env, sub_layer_classes[0], sub_layer_classes[1:],
+            self.sub_layer = HAC(policy, bottom_env, self.layer_classes[1:],
                                     time_scales=self.time_scales[1:],
                                     n_sampled_goal=n_sampled_goal,
                                     goal_selection_strategy=goal_selection_strategy,
@@ -223,7 +226,7 @@ class HAC(BaseAlgorithm):
         else:
             self.sub_layer = None
 
-        self.layer_alg = layer_class(
+        self.layer_alg = self.layer_class(
             policy=policy,
             env=self.env,
             _init_setup_model=False,  # pytype: disable=wrong-keyword-args

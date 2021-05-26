@@ -39,11 +39,6 @@ env: 'FetchReach-v1'
 
 seed: 0
 
-# layer classes for the algorithm
-layer_classes:
-  - sacvg
-  - sacvg
-
 # the path to where logs and policy pickles should go.
 base_logdir: 'data'
 
