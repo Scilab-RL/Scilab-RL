@@ -41,10 +41,7 @@ main_overrides: # These are the overrides for main.yaml
   # The data column on which early stopping is based.
   early_stop_data_column: 'test/success_rate'
 
-  # Number of seconds to wait for next plot with MatplotlibOutputFormat.
-  plot_at_most_every_secs: 0
-
-  # The number of steps after which to save the model.
+    # The number of steps after which to save the model.
   save_model_freq: 0
 
 alg_overrides:
