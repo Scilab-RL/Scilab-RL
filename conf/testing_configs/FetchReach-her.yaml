@@ -19,10 +19,6 @@ main_overrides: # These are the overrides for main.yaml
   env: 'FetchReach-v1'
   seed: 0
 
-  # layer classes for the algorithm
-  layer_classes:
-    - sac
-
   # The number of training steps after which to evaluate the policy.
   eval_after_n_steps: 2000
 
@@ -45,6 +41,10 @@ main_overrides: # These are the overrides for main.yaml
   save_model_freq: 0
 
 alg_overrides:
+
+
+  # layer classes for the algorithm
+  layer_class: sac
 
   verbose: true
 

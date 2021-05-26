@@ -60,14 +60,35 @@ def train(baseline, train_env, eval_env, cfg):
     eval_env.close()
     logger.info("Training finished!")
 
+def convert_alg_cfg(cfg):
+    """
+    This function converts kwargs for the algorithms if necessary. For example HER is called with an instance of SAC, not with the string `sac'
+    """
+    alg_dict = {}
+    with open_dict(cfg):
+        if cfg['algorithm']['name'] == 'her':
+            mc_str = cfg['algorithm']['model_class']
+            if mc_str in dir(importlib.import_module('ideas_baselines')):
+                mc = getattr(importlib.import_module('ideas_baselines.' + mc_str), mc_str.upper())
+            elif mc_str in dir(importlib.import_module('stable_baselines3')):
+                mc = getattr(importlib.import_module('stable_baselines3.' + mc_str), mc_str.upper())
+            else:
+                raise ValueError(f"class name {mc_str} not found")
+            alg_dict['model_class'] = mc
+            del cfg['algorithm']['model_class']
+        # remove name as we pass all arguments to the model constructor
+        if 'name' in cfg['algorithm']:
+            del cfg['algorithm']['name']
+
+    return alg_dict
+
+
+
 def launch(cfg, kwargs):
     set_global_seeds(cfg.seed)
     algo_name = cfg['algorithm'].name
 
-    # remove name as we pass all arguments to the model constructor
-    if 'name' in cfg.algorithm.keys():
-        with open_dict(cfg):
-            del cfg['algorithm']['name']
+    alg_kwargs = convert_alg_cfg(cfg)
 
     try:
         BaselineClass = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
@@ -76,9 +97,9 @@ def launch(cfg, kwargs):
     train_env = gym.make(cfg.env)
     eval_env = gym.make(cfg.env)
     if cfg.restore_policy is not None:
-        baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, env=train_env, **kwargs)
+        baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
     else:
-        baseline = BaselineClass('MlpPolicy', train_env, **cfg.algorithm, **kwargs)
+        baseline = BaselineClass('MlpPolicy', train_env, **cfg.algorithm, **alg_kwargs, **kwargs)
     env_alg_compatible = check_env_alg_compatibility(baseline, train_env)
     if not env_alg_compatible:
         logger.info("Environment {} and algorithm {} are not compatible.".format(train_env, baseline))
