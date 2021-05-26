@@ -53,7 +53,7 @@ class CustomEvalCallback(EvalCallback):
         self.best_mean_success = -np.inf
         self.deterministic = deterministic
         self.render = render
-
+        self.best_model_save_path = None
         eval_history_column_names = ['test/mean_reward', 'test/success_rate']
         self.eval_histories = {}
         for name in eval_history_column_names:

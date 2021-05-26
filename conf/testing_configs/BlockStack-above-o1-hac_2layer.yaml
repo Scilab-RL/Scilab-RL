@@ -24,11 +24,6 @@ main_overrides: # These are the overrides for main.yaml
   env: 'Blocks-o1-gripper_above-v1'
   seed: 0
 
-  # layer classes for the algorithm
-  layer_classes:
-    - sacvg
-    - sacvg
-
   # The number of training steps after which to evaluate the policy.
   eval_after_n_steps: 2000
 
@@ -51,6 +46,11 @@ main_overrides: # These are the overrides for main.yaml
   save_model_freq: 0
 
 alg_overrides:
+
+  # layer classes for the algorithm
+  layer_classes:
+    - sacvg
+    - sacvg
 
   # 'future', 'future2', 'final', 'episode', 'rndend', 'rndend2'
   goal_selection_strategy: 'rndend'
