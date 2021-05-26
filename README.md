@@ -73,7 +73,7 @@ python experiment/train.py env=FetchReach-v1 algorithm=her2 layer_classes=['sac'
 * The folder `util` contains some misc utilities.
 * The folder `hydra_plugins` contains some customized plugins for our hyperparameter management system.
 
-## Testing
+## Testing (CURRENTLY NOT SUPPORTED!)
 
 1. generate a file with all possible environment/algorithm combinations with:
 
