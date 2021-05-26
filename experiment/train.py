@@ -157,7 +157,7 @@ def main(cfg: DictConfig) -> (float, int):
         logger.info(OmegaConf.to_yaml(cfg))
         logger.info(f"Log directory: {run_dir}")
         # End configure logger
-
+        logger.info(f"Data base dir: {os.path.split(original_dir)[0]}")
         active_mlflow_run = mlflow.active_run()
         print("Active mlflow run_id: {}".format(active_mlflow_run.info.run_id))
 
