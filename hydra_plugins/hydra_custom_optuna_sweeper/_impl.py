@@ -290,37 +290,24 @@ class CustomOptunaSweeperImpl(Sweeper):
                 values: Optional[List[float]] = None
                 state: optuna.trial.TrialState = optuna.trial.TrialState.COMPLETE
                 # try:
-                if len(directions) == 1:
-                    # try:
-                    values = [float(ret.return_value[0])]
-                    if len(ret.return_value) > 1:
-                        n_epochs = int(ret.return_value[1])
-                        new_max_epochs = int(n_epochs * 1.5)
-                        if new_max_epochs <= study.user_attrs['max_n_epochs']:
-                            log.info(f"This trial had only {n_epochs} epochs. New upper limit for max. epochs is now {new_max_epochs}. ")
-                            study.set_user_attr("max_n_epochs", new_max_epochs)
+                assert len(
+                    ret.return_value) == 2, "The return value of main() should be a tuple where the first element is the hyperopt score and the second value is the number of epochs the script ran."
+                assert len(directions) == 1, "We currently support only one optimizaztion objective and direction."
+                # try:
+                values = [float(ret.return_value[0])]
+                if len(ret.return_value) > 1:
+                    n_epochs = int(ret.return_value[1])
+                    new_max_epochs = int(n_epochs * 1.5)
+                    if new_max_epochs <= study.user_attrs['max_n_epochs']:
+                        log.info(f"This trial had only {n_epochs} epochs. New upper limit for max. epochs is now {new_max_epochs}. ")
+                        study.set_user_attr("max_n_epochs", new_max_epochs)
 
-                    # except (ValueError, TypeError):
-                    #     err = f"Return value must be float-castable. Got '{ret.return_value}'."
-                    #     log.error(err)
-                    #     raise ValueError(
-                    #         err
-                    #     ).with_traceback(sys.exc_info()[2])
-                else:
-                    # try:
-                    values = [float(v) for v in ret.return_value]
-                    # except (ValueError, TypeError):
-                    #     err = f"Return value must be a list or tuple of float-castable values. Got '{ret.return_value}'."
-                    #     log.error(err)
-                    #     raise ValueError(
-                    #         err
-                    #     ).with_traceback(sys.exc_info()[2])
-                    if len(values) != len(directions):
-                        err = f"The number of the values and the number of the objectives are mismatched. Expect {len(directions)}, but actually {len(values)}."
-                        log.error(err)
-                        raise ValueError(
-                            err
-                        )
+                # except (ValueError, TypeError):
+                #     err = f"Return value must be float-castable. Got '{ret.return_value}'."
+                #     log.error(err)
+                #     raise ValueError(
+                #         err
+                #     ).with_traceback(sys.exc_info()[2])
                 study._tell(trial, state, values)
                 # except Exception as e:
                 #     state = optuna.trial.TrialState.FAIL
