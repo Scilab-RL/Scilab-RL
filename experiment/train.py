@@ -136,11 +136,9 @@ def main(cfg: DictConfig) -> (float, int):
         logger.info(f"Log directory: {run_dir}")
         # End configure logger
 
-
         active_mlflow_run = mlflow.active_run()
         print("Active mlflow run_id: {}".format(active_mlflow_run.info.run_id))
 
-        #
         if trial_no is not None:
             if trial_no > max_ctr:
                 logger.info("Already collected enough data for this parameterization.")
@@ -172,7 +170,6 @@ def main(cfg: DictConfig) -> (float, int):
 
         if cfg['seed'] == 0:
             cfg['seed'] = int(time.time())
-
 
         logdir = logger.get_dir()
         logger.info("Data dir: {} ".format(logdir))
