@@ -13,10 +13,6 @@ import hydra
 from omegaconf import DictConfig, OmegaConf, open_dict
 import csv
 import numpy as np
-
-# Force matplotlib to not use any Xwindows backend.
-# import sys,os
-# sys.path.append(os.getcwd())
 import gym
 from util.util import get_subdir_by_params,get_git_label,set_global_seeds,log_dict,get_last_epoch_from_logdir
 import time
@@ -27,7 +23,7 @@ from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
-
+from util.mlflow_util import setup_mlflow, get_hyperopt_score
 
 def check_env_alg_compatibility(model, env):
     return isinstance(model.action_space, type(env.action_space)) \
@@ -35,7 +31,10 @@ def check_env_alg_compatibility(model, env):
 
 def train(baseline, train_env, eval_env, cfg):
     total_steps = cfg.eval_after_n_steps * cfg.n_epochs
-    checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir())
+    callback = []
+    if cfg.save_model_freq > 0:
+        checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir())
+        callback.append(checkpoint_callback)
     if hasattr(baseline, 'time_scales'):
         eval_callback = HierarchicalEvalCallback(eval_env,
                                                  log_path=logger.get_dir(),
@@ -55,7 +54,7 @@ def train(baseline, train_env, eval_env, cfg):
                                            early_stop_threshold=cfg.early_stop_threshold)
 
     # Create the callback list
-    callback = CallbackList([checkpoint_callback, eval_callback])
+    callback.append(eval_callback)
     baseline.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
     train_env.close()
     eval_env.close()
@@ -87,43 +86,11 @@ def launch(cfg, kwargs):
     logger.info("Launching training")
     train(baseline, train_env, eval_env, cfg)
 
-def get_last_avg_hyperopt_score_epochs(logdir, cfg):
-
-    try:
-        with open(os.path.join(logdir, 'progress.csv')) as csvfile:
-            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-            data_idx = 0
-            data_vals = []
-            for line, row in enumerate(reader):
-                if line == 0:
-                    keys = row.copy()
-                    data_idx = keys.index('hyperopt_score')
-                    epochs_idx = keys.index("epoch")
-                else:
-                    data_val = float(row[data_idx])
-                    data_vals.append(data_val)
-                    n_epochs = int(row[epochs_idx])
-
-            avg_last_n = min(len(data_vals), cfg.early_stop_last_n)
-            score = np.mean(data_vals[-avg_last_n:])
-    except Exception as e:
-        logger.info(f"Could not determine hyperopt score: {e}")
-        score = None
-        n_epochs = None
-    try:
-        mlflow.log_metric("hyperopt_score", score)
-    except:
-        pass
-    return score, n_epochs
-
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 
 @hydra.main(config_name="main", config_path="../conf")
 def main(cfg: DictConfig) -> (float, int):
-    # Imports required for the joblib multiprocessing feature when hyperopting.
-    # import ideas_envs.register_envs
-    # import ideas_envs.wrappers.utils
     ctr = cfg['try_start_idx']
     max_ctr = cfg['max_try_idx']
     run_dir = 'tmp_logdir'
@@ -133,38 +100,36 @@ def main(cfg: DictConfig) -> (float, int):
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
         run_dir = run_dir + "_restored"
         trial_no = None
+        os.rename(original_dir, run_dir)
     else:
         path_dir_params = {key: cfg.algorithm[key] for key in cfg.algorithm.exp_path_params}
-        subdir_exists = True
-        while subdir_exists:
-            param_dir = get_subdir_by_params(path_dir_params, ctr)
-            run_dir = os.path.join(os.path.split(original_dir)[0], param_dir)
-            subdir_exists = os.path.exists(run_dir)
-            ctr += 1
+        dir_created = False
+        while not dir_created:
+            subdir_exists = True
+            while subdir_exists:
+                param_dir = get_subdir_by_params(path_dir_params, ctr)
+                run_dir = os.path.join(os.path.split(original_dir)[0], param_dir)
+                subdir_exists = os.path.exists(run_dir)
+                ctr += 1
+            try:
+                os.rename(original_dir, run_dir)
+                dir_created = True
+            except Exception as e:
+                print(f"Creating logdir did not work, trying again: {e}")
+                time.sleep(1)
         trial_no = ctr - 1
+    setup_mlflow(cfg, run_dir)
+    mlflow_run = mlflow.active_run()
 
-    # print('Renamed hydra dir to', run_dir)
-    # os.rename(original_dir, run_dir)
-
-    # print('Renamed hydra dir to', run_dir)
-    # os.rename(original_dir, run_dir)
-    try:
-        os.rename(original_dir, run_dir)
-    except Exception as e:
-        print(f"Creating logdir did not work, but continuing any ways: {e}")
 
     # Output will only be logged appropriately after configuring the logger in the following lines:
     logger.configure(folder=run_dir, format_strings=[])
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
     logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
-    try:
-        logger.Logger.CURRENT.output_formats.append(MatplotlibCSVOutputFormat(run_dir, cfg['plot_at_most_every_secs'], cols_to_plot=cfg['plot_eval_cols'])) # When using this, make sure that we don't have a csv output format already, otherwise there will be conflicts.
-    except Exception as e:
-        logger.info(f"Unable to setup Matplotlib CSV logger: {e}")
-    logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat(cfg, logdir=run_dir))
-    # logger.info('Hydra dir', original_dir)
+    logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat())
     logger.info(f"Starting training with the following configuration:")
     logger.info(OmegaConf.to_yaml(cfg))
+    logger.info(f"Log directory: {run_dir}")
     # End configure logger
 
     #
@@ -208,16 +173,20 @@ def main(cfg: DictConfig) -> (float, int):
     ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
     OmegaConf.save(config=cfg, f='params.yaml')
     launch(cfg, kwargs)
-
-    last_avg_hyperopt_score, n_epochs = get_last_avg_hyperopt_score_epochs(run_dir, cfg)
     logger.info("Finishing main training function.")
-
+    logger.info(f"MLflow run: {mlflow_run}.")
+    hyperopt_score, n_epochs = get_hyperopt_score(cfg, mlflow_run)
+    mlflow.log_metric("hyperopt_score", hyperopt_score)
+    logger.info(f"Hyperopt score: {hyperopt_score}, epochs: {n_epochs}.")
     try:
-        mlflow.end_run()
-    except:
-        logger.info("Mlflow run has been ended already.")
+        with open(os.path.join(run_dir, 'train.log'), 'r') as logfile:
+            log_text = logfile.read()
+            mlflow.log_text(log_text, 'train.log')
+    except Exception as e:
+        logger.info('Could not open logfile and log it in mlflow.')
+    mlflow.end_run()
 
-    return last_avg_hyperopt_score, n_epochs
+    return hyperopt_score, n_epochs
 
 
 
