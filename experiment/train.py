@@ -19,11 +19,11 @@ import time
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
 from stable_baselines3.common import logger
-from util.custom_logger import MatplotlibCSVOutputFormat, FixedHumanOutputFormat, MLFlowOutputFormat
+from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
-from util.mlflow_util import setup_mlflow, get_hyperopt_score
+from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 
 def check_env_alg_compatibility(model, env):
     return isinstance(model.action_space, type(env.action_space)) \
@@ -118,73 +118,77 @@ def main(cfg: DictConfig) -> (float, int):
                 print(f"Creating logdir did not work, trying again: {e}")
                 time.sleep(1)
         trial_no = ctr - 1
-    setup_mlflow(cfg, run_dir)
-    mlflow_run = mlflow.active_run()
+
+    setup_mlflow()
+    with mlflow.start_run() as mlflow_run:
+        log_params_from_omegaconf_dict(cfg)
+        if run_dir is not None:
+            mlflow.log_param(f'log_dir', run_dir)
 
 
-    # Output will only be logged appropriately after configuring the logger in the following lines:
-    logger.configure(folder=run_dir, format_strings=[])
-    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
-    logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
-    logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat())
-    logger.info(f"Starting training with the following configuration:")
-    logger.info(OmegaConf.to_yaml(cfg))
-    logger.info(f"Log directory: {run_dir}")
-    # End configure logger
+        # Output will only be logged appropriately after configuring the logger in the following lines:
+        logger.configure(folder=run_dir, format_strings=[])
+        logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
+        logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
+        logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat())
+        logger.info(f"Starting training with the following configuration:")
+        logger.info(OmegaConf.to_yaml(cfg))
+        logger.info(f"Log directory: {run_dir}")
+        # End configure logger
 
-    #
-    if trial_no is not None:
-        if trial_no > max_ctr:
-            logger.info("Already collected enough data for this parameterization.")
-            sys.exit()
-        logger.info("Trying this config for {}th time. ".format(trial_no))
+        active_mlflow_run = mlflow.active_run()
+        print("Active mlflow run_id: {}".format(active_mlflow_run.info.run_id))
 
-    if 'exp_path_params' in cfg.algorithm.keys():
-        with open_dict(cfg):
-            del cfg['algorithm']['exp_path_params']
-    kwargs = {}
-    # TODO: function for folder name
-    #  OmegaConf.register_resolver("git_label", lambda: get_git_label())
-    # Get default options for model classes
-    class_list = []
-    for class_name in cfg.layer_classes:
-        if class_name in dir(importlib.import_module('ideas_baselines')):
-            class_list.append(getattr(importlib.import_module('ideas_baselines.' + class_name), class_name.upper()))
-        elif class_name in dir(importlib.import_module('stable_baselines3')):
-            class_list.append(getattr(importlib.import_module('stable_baselines3.' + class_name), class_name.upper()))
-        else:
-            raise ValueError(f"class name {class_name} not found")
+        if trial_no is not None:
+            if trial_no > max_ctr:
+                logger.info("Already collected enough data for this parameterization.")
+                sys.exit()
+            logger.info("Trying this config for {}th time. ".format(trial_no))
 
-    if class_list:
-        kwargs['layer_class'] = class_list[0]
-        if len(class_list) > 1:
-            kwargs['sub_layer_classes'] = class_list[1:]
+        if 'exp_path_params' in cfg.algorithm.keys():
+            with open_dict(cfg):
+                del cfg['algorithm']['exp_path_params']
+        kwargs = {}
+        # TODO: function for folder name
+        #  OmegaConf.register_resolver("git_label", lambda: get_git_label())
+        # Get default options for model classes
+        class_list = []
+        for class_name in cfg.layer_classes:
+            if class_name in dir(importlib.import_module('ideas_baselines')):
+                class_list.append(getattr(importlib.import_module('ideas_baselines.' + class_name), class_name.upper()))
+            elif class_name in dir(importlib.import_module('stable_baselines3')):
+                class_list.append(getattr(importlib.import_module('stable_baselines3.' + class_name), class_name.upper()))
+            else:
+                raise ValueError(f"class name {class_name} not found")
 
-    logger.info("Starting process id: {}".format(os.getpid()))
+        if class_list:
+            kwargs['layer_class'] = class_list[0]
+            if len(class_list) > 1:
+                kwargs['sub_layer_classes'] = class_list[1:]
 
-    if cfg['seed'] == 0:
-        cfg['seed'] = int(time.time())
+        logger.info("Starting process id: {}".format(os.getpid()))
 
+        if cfg['seed'] == 0:
+            cfg['seed'] = int(time.time())
 
-    logdir = logger.get_dir()
-    logger.info("Data dir: {} ".format(logdir))
+        logdir = logger.get_dir()
+        logger.info("Data dir: {} ".format(logdir))
 
-    # Prepare xmls for subgoal visualizations
-    ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
-    OmegaConf.save(config=cfg, f='params.yaml')
-    launch(cfg, kwargs)
-    logger.info("Finishing main training function.")
-    logger.info(f"MLflow run: {mlflow_run}.")
-    hyperopt_score, n_epochs = get_hyperopt_score(cfg, mlflow_run)
-    mlflow.log_metric("hyperopt_score", hyperopt_score)
-    logger.info(f"Hyperopt score: {hyperopt_score}, epochs: {n_epochs}.")
-    try:
-        with open(os.path.join(run_dir, 'train.log'), 'r') as logfile:
-            log_text = logfile.read()
-            mlflow.log_text(log_text, 'train.log')
-    except Exception as e:
-        logger.info('Could not open logfile and log it in mlflow.')
-    mlflow.end_run()
+        # Prepare xmls for subgoal visualizations
+        ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
+        OmegaConf.save(config=cfg, f='params.yaml')
+        launch(cfg, kwargs)
+        logger.info("Finishing main training function.")
+        logger.info(f"MLflow run: {mlflow_run}.")
+        hyperopt_score, n_epochs = get_hyperopt_score(cfg, mlflow_run)
+        mlflow.log_metric("hyperopt_score", hyperopt_score)
+        logger.info(f"Hyperopt score: {hyperopt_score}, epochs: {n_epochs}.")
+        try:
+            with open(os.path.join(run_dir, 'train.log'), 'r') as logfile:
+                log_text = logfile.read()
+                mlflow.log_text(log_text, 'train.log')
+        except Exception as e:
+            logger.info('Could not open logfile and log it in mlflow.')
 
     return hyperopt_score, n_epochs
 
