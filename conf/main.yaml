@@ -12,8 +12,8 @@ defaults:
 #env: 'Blocks-o1-gripper_random-v1'
 #env: 'AntReacher-v1'
 #env: 'ButtonUnlock-o1-v1'
-#env: 'FetchReach-v1'
-env: 'AntMaze-v0'
+env: 'FetchReach-v1'
+#env: 'AntMaze-v0'
 # Currently supported envs:
 # 'FetchPush-v1',
 # 'FetchSlide-v1',
@@ -54,7 +54,7 @@ restore_policy: null
 eval_after_n_steps: 2000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 40
+n_epochs: 60
 
 # The number of testing rollouts.
 n_test_rollouts: 10
@@ -78,10 +78,6 @@ early_stop_data_column: 'test/success_rate'
 # are stored. Useful for debugging and addressing temporary changes to the code..
 info: ''
 
-# Max. number of tensorboard instances allowed at the same time.
-# Will be determined by number of open ports, starting at port 6006
-tensorboard: 2
-
 # Data to plot for evaluation. Strings separated by comma.
 plot_eval_cols:
  - 'test/success_rate'
@@ -103,7 +99,7 @@ hydra:
     subdir: ${hydra.job.num}
 
 
-  # sweeper, sampler and search_space is for hyperparameter optimization. Optimization can be started with --multirun as commandline parameter when executing train.py
+  # sweeper, sampler and search_space for hyperparameter optimization. Hyperparameter optimization can be started with --multirun as commandline parameter when executing train.py
   sweeper:
     sampler:
       _target_: optuna.samplers.TPESampler
@@ -118,8 +114,8 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: ant_maze_hac_2_layer
-    storage: sqlite:///ant_maze_hac_2_layer.db
+    study_name: hyperopt_test
+    storage: sqlite:///hyperopt_test.db
     n_jobs: 6
     max_trials: 9999
     max_duration_minutes: 10000
@@ -130,14 +126,14 @@ hydra:
 
       algorithm.learning_rates.0:
         type: float
-        low: 0.0015
+        low: 0.0005
         high: 0.005
         log: true
 
       algorithm.learning_rates.1:
         type: float
-        low: 0.0002
-        high: 0.005
+        low: 0.001
+        high: 0.01
         log: true
 
 
