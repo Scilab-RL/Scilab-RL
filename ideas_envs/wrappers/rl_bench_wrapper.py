@@ -16,7 +16,7 @@ class RLBenchWrapper(Wrapper):
     so that we can use them for goal-conditioned reinforcement learning.
     """
     def __init__(self, env):
-        env = TimeLimit(env, 1000)
+        env = TimeLimit(env, 50)
         super().__init__(env)
         self._max_episode_steps = self.env._max_episode_steps
         self.env.reset()
@@ -30,15 +30,6 @@ class RLBenchWrapper(Wrapper):
         obs_space.spaces['desired_goal'] = self._guess_goal_space(obs_space.spaces['desired_goal'])
         self.observation_space = obs_space
         self.vis = {}
-
-        cond = self.env.unwrapped.task._task._success_conditions[0]
-        if isinstance(cond, DetectedCondition):
-            bb = (cond._detector.get_bounding_box())
-            # the bounding box is ordered like this: min_x, max_x, min_y, max_y, min_z, max_z
-            # but we want to order it like this: min_x, min_y, min_z, max_x, max_y, max_z
-            bb = np.array([bb[0], bb[2], bb[4], bb[1], bb[3], bb[5]])
-            self.bb = bb
-            # TODO check for negation
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
@@ -75,7 +66,7 @@ class RLBenchWrapper(Wrapper):
         return goal
 
     def _guess_goal_space(self, goal_space):  # TODO proposition: always set the goal space = space above the table
-        n_samples = 10# FIXME 00
+        n_samples = 3# FIXME 1000
         goal_space.high = -goal_space.high
         goal_space.low = -goal_space.low
         for _ in range(n_samples):
@@ -107,24 +98,32 @@ class RLBenchWrapper(Wrapper):
         pass  # CoppeliaSim environments are not explicitly rendered
 
     def compute_reward(self, achieved_goal, desired_goal, info):
-        # The reward/success computation in an RLBench environment uses different types of conditions to determine the
-        # sparse rewards. To compute the reward manually, we would have to set the objects in the scene and then query
-        # whether the conditioned was met. This would take too much time.
-        # A workaround for DetectedConditions is to use the bounding box of the detector.
+        # For DetectedConditions, we set the positions in the simulation and then query the sensor.
         if len(achieved_goal.shape) == 1:
             achieved_goal = [achieved_goal]
             desired_goal = [desired_goal]
         rewards = []
+        # cache positions to reset them later
+        cond = self.env.unwrapped.task._task._success_conditions[0]
+        dpos = cond._detector.get_position()
+        opos = cond._obj.get_position()
+
+        achieved_goal = [[0.5, 0.5, 1.2], [0.6, 0.6, 1.3]]
+        desired_goal = [[0.5, 0.5, 1.2], [0.55, 0.55, 1.25]]
+
         for ag, dg in zip(achieved_goal, desired_goal):
-            distance = ag - dg
-            if np.all(distance >= self.bb[:3]) and np.all(distance <= self.bb[3:]):
-                rewards.append(0.0)
-            else:
-                rewards.append(-1.0)
+            cond._detector.set_position(dg)
+            cond._obj.set_position(ag)
+            #self.env.unwrapped.env._scene._pyrep.step() we don't need to step
+            r = int(cond.condition_met()[0]) - 1
+            rewards.append(r)
+
+        cond._detector.set_position(dpos)
+        cond._obj.set_position(opos)
         return np.array(rewards)
 
     def _is_success(self, achieved_goal, desired_goal):
-        return self.compute_reward(achieved_goal, desired_goal, []) == 0
+        return int(self.compute_reward(achieved_goal, desired_goal, []) == 0)
 
     def display_subgoals(self, subgoals):
         # receives the subgoals in a dict of the form
