@@ -5,6 +5,7 @@ from typing import Any, Iterable, List, Optional, Tuple, Type, Union
 import numpy as np
 import torch as th
 import gym
+import os
 import matplotlib.pyplot as plt
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -892,7 +893,9 @@ class HAC(BaseAlgorithm):
         """
         parent_loaded_model = cls("MlpPolicy", env, **policy_args)
         layer_model = parent_loaded_model
-        n_layers = len(policy_args['time_scales'])
+        n_layers = 0
+        while os.path.isfile(path + f"_lay{n_layers}.zip"):
+            n_layers
         for lay in reversed(range(n_layers)):
             layer_path = path + f"_lay{lay}"
             data, params, pytorch_variables = load_from_zip_file(layer_path, device=device)
