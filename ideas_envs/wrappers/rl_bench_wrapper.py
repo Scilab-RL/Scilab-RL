@@ -65,8 +65,8 @@ class RLBenchWrapper(Wrapper):
         _, goal = self._get_goals()
         return goal
 
-    def _guess_goal_space(self, goal_space):  # TODO proposition: always set the goal space = space above the table
-        n_samples = 3# FIXME 1000
+    def _guess_goal_space(self, goal_space):
+        n_samples = 50# FIXME set back to 1000
         goal_space.high = -goal_space.high
         goal_space.low = -goal_space.low
         for _ in range(n_samples):
@@ -98,29 +98,34 @@ class RLBenchWrapper(Wrapper):
         pass  # CoppeliaSim environments are not explicitly rendered
 
     def compute_reward(self, achieved_goal, desired_goal, info):
-        # For DetectedConditions, we set the positions in the simulation and then query the sensor.
         if len(achieved_goal.shape) == 1:
-            achieved_goal = [achieved_goal]
-            desired_goal = [desired_goal]
-        rewards = []
+            achieved_goal = np.array([achieved_goal])
+            desired_goal = np.array([desired_goal])
+        unmet_conditions = np.zeros(len(achieved_goal))
+        # loop through all conditions. If there are any unmet conditions, give a reward of -1, else give a reward of 0.
+        for cond in self.env.unwrapped.task._task._success_conditions:
+            if isinstance(cond, DetectedCondition):
+                unmet_conditions += self.compute_reward_detected_condition(achieved_goal[:, :3], desired_goal[:, :3], cond)
+                achieved_goal, desired_goal = achieved_goal[:, 3:], desired_goal[:, 3:]
+        rewards = [-1 if unmet_cond > 0 else 0 for unmet_cond in unmet_conditions]
+        return np.array(rewards)
+
+    def compute_reward_detected_condition(self, achieved_goal, desired_goal, cond):
+        # For DetectedConditions, we set the positions in the simulation and then query the sensor.
         # cache positions to reset them later
-        cond = self.env.unwrapped.task._task._success_conditions[0]
         dpos = cond._detector.get_position()
         opos = cond._obj.get_position()
 
-        achieved_goal = [[0.5, 0.5, 1.2], [0.6, 0.6, 1.3]]
-        desired_goal = [[0.5, 0.5, 1.2], [0.55, 0.55, 1.25]]
-
-        for ag, dg in zip(achieved_goal, desired_goal):
+        unmet = np.zeros(len(achieved_goal))
+        for i, (ag, dg) in enumerate(zip(achieved_goal, desired_goal)):
             cond._detector.set_position(dg)
             cond._obj.set_position(ag)
-            #self.env.unwrapped.env._scene._pyrep.step() we don't need to step
             r = int(cond.condition_met()[0]) - 1
-            rewards.append(r)
+            unmet[i] -= r
 
         cond._detector.set_position(dpos)
         cond._obj.set_position(opos)
-        return np.array(rewards)
+        return unmet
 
     def _is_success(self, achieved_goal, desired_goal):
         return int(self.compute_reward(achieved_goal, desired_goal, []) == 0)
