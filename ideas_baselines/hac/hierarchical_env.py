@@ -90,6 +90,8 @@ class HierarchicalVecEnv(DummyVecEnv):
         goals_to_viz = {}
         alphas = np.arange(GOAL_MARKER_MIN_ALPHA, GOAL_MARKER_MAX_ALPHA, GOAL_MARKER_MAX_ALPHA / len(goal_list))
         for layer_idx, layer_goals_to_render in enumerate(goal_list):
+            if len(layer_goals_to_render) % 3 != 0:
+                return
             n_goals = len(layer_goals_to_render) // 3
             colors = GOAL_MARKER_COLORS[:n_goals]
             for i in range(n_goals):
