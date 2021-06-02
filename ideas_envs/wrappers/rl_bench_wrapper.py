@@ -4,7 +4,7 @@ from gym.core import Wrapper
 import gym.spaces as spaces
 from gym.wrappers import TimeLimit
 import rlbench.gym  # unused, but do not remove. It registers the RL Bench environments.
-from rlbench.backend.conditions import DetectedCondition, NothingGrasped, GraspedCondition
+from rlbench.backend.conditions import DetectedCondition, NothingGrasped, GraspedCondition, JointCondition
 from pyrep.objects.shape import Shape
 from pyrep.const import PrimitiveShape
 
@@ -66,7 +66,7 @@ class RLBenchWrapper(Wrapper):
         return goal
 
     def _guess_goal_space(self, goal_space):
-        n_samples = 50# FIXME set back to 1000
+        n_samples = 5# FIXME set back to 1000
         goal_space.high = -goal_space.high
         goal_space.low = -goal_space.low
         for _ in range(n_samples):
@@ -89,6 +89,9 @@ class RLBenchWrapper(Wrapper):
                 desired_goal.append([1.])
                 not_grasped, _ = cond.condition_met()
                 achieved_goal.append([float(not_grasped)])
+            elif isinstance(cond, JointCondition):
+                desired_goal.append([cond._pos + 1e-20])
+                achieved_goal.append([np.abs(cond._joint.get_joint_position() - cond._original_pos)])
             else:
                 raise NotImplementedError("Converting this condition-type to a goal is not supported yet.")
         achieved_goal = np.array(list(chain.from_iterable(achieved_goal)))
@@ -112,6 +115,9 @@ class RLBenchWrapper(Wrapper):
             elif isinstance(cond, NothingGrasped) or isinstance(cond, GraspedCondition):
                 unmet_conditions += self.compute_reward_nothing_grasped_condition(achieved_goal[:, :1])
                 achieved_goal, desired_goal = achieved_goal[:, 1:], desired_goal[:, 1:]
+            elif isinstance(cond, JointCondition):
+                unmet_conditions += self.compute_reward_joint_condition(achieved_goal[:, :1], desired_goal[:, :1])
+                achieved_goal, desired_goal = achieved_goal[:, 1:], desired_goal[:, 1:]
             else:
                 raise NotImplementedError("This condition-type ({}) is not supported yet.".format(cond.__class__))
         rewards = [-1 if unmet_cond > 0 else 0 for unmet_cond in unmet_conditions]
@@ -125,19 +131,24 @@ class RLBenchWrapper(Wrapper):
 
         unmet = np.zeros(len(achieved_goal))
         for i, (ag, dg) in enumerate(zip(achieved_goal, desired_goal)):
-            cond._detector.set_position(dg)
-            cond._obj.set_position(ag)
+            cond._detector.set_position(dg, reset_dynamics=False)
+            cond._obj.set_position(ag, reset_dynamics=False)
             r = int(cond.condition_met()[0]) - 1
             unmet[i] -= r
 
-        cond._detector.set_position(dpos)
-        cond._obj.set_position(opos)
+        cond._detector.set_position(dpos, reset_dynamics=False)
+        cond._obj.set_position(opos, reset_dynamics=False)
         return unmet
 
     def compute_reward_nothing_grasped_condition(self, achieved_goal):
         # Either the gripper has grasped something or not. So we can infer the reward from just the achieved goal.
         achieved_goal = achieved_goal.flatten()
         return 1 - achieved_goal
+
+    def compute_reward_joint_condition(self, achieved_goal, desired_goal):
+        achieved_goal = achieved_goal.flatten()
+        desired_goal = desired_goal.flatten()
+        return 1 - (achieved_goal >= desired_goal)
 
     def _is_success(self, achieved_goal, desired_goal):
         return int(self.compute_reward(achieved_goal, desired_goal, []) == 0)
