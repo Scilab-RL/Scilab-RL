@@ -4,7 +4,8 @@ from gym.core import Wrapper
 import gym.spaces as spaces
 from gym.wrappers import TimeLimit
 import rlbench.gym  # unused, but do not remove. It registers the RL Bench environments.
-from rlbench.backend.conditions import DetectedCondition, NothingGrasped, GraspedCondition, JointCondition, DetectedSeveralCondition
+from rlbench.backend.conditions import DetectedCondition, NothingGrasped, GraspedCondition, JointCondition, \
+    DetectedSeveralCondition, ConditionSet
 from pyrep.objects.shape import Shape
 from pyrep.const import PrimitiveShape
 
@@ -81,11 +82,18 @@ class RLBenchWrapper(Wrapper):
     def _get_goals(self):
         achieved_goal = []
         desired_goal = []
+        conditions = []
         for cond in self.env.unwrapped.task._task._success_conditions:
+            if isinstance(cond, ConditionSet):
+                for c in cond._conditions:
+                    conditions.append(c)
+            else:
+                conditions.append(cond)
+        for cond in conditions:
             if isinstance(cond, DetectedCondition):
                 desired_goal.append(cond._detector.get_position())
                 achieved_goal.append(cond._obj.get_position())
-            elif isinstance(cond, NothingGrasped) or isinstance(cond, GraspedCondition):
+            elif isinstance(cond, (NothingGrasped, GraspedCondition)):
                 desired_goal.append([1.])
                 not_grasped, _ = cond.condition_met()
                 achieved_goal.append([float(not_grasped)])
@@ -112,12 +120,24 @@ class RLBenchWrapper(Wrapper):
             achieved_goal = np.array([achieved_goal])
             desired_goal = np.array([desired_goal])
         unmet_conditions = np.zeros(len(achieved_goal))
-        # loop through all conditions. If there are any unmet conditions, give a reward of -1, else give a reward of 0.
+        conditions = []
         for cond in self.env.unwrapped.task._task._success_conditions:
+            if isinstance(cond, ConditionSet):
+                # Computing the reward for a ConditionSet like this means that all conditions in the set have to be
+                # met simultaneously (instead of in order). This might be impossible in some cases (e.g. when the
+                # task is to first move an object to position A and then to position B). However, we can not check
+                # whether a condition has been met before here anyway, because we are looking at one time-step at a
+                # time.
+                for c in cond._conditions:
+                    conditions.append(c)
+            else:
+                conditions.append(cond)
+        # loop through all conditions. If there are any unmet conditions, give a reward of -1, else give a reward of 0.
+        for cond in conditions:
             if isinstance(cond, DetectedCondition):
                 unmet_conditions += self.compute_reward_detected_condition(achieved_goal[:, :3], desired_goal[:, :3], cond)
                 achieved_goal, desired_goal = achieved_goal[:, 3:], desired_goal[:, 3:]
-            elif isinstance(cond, NothingGrasped) or isinstance(cond, GraspedCondition):
+            elif isinstance(cond, (NothingGrasped, GraspedCondition)):
                 unmet_conditions += self.compute_reward_nothing_grasped_condition(achieved_goal[:, :1])
                 achieved_goal, desired_goal = achieved_goal[:, 1:], desired_goal[:, 1:]
             elif isinstance(cond, JointCondition):
@@ -164,6 +184,9 @@ class RLBenchWrapper(Wrapper):
 
     def compute_reward_detected_several_condition(self, achieved_goal, desired_goal, cond):
         # This is very similar to compute_reward_detected_condition()
+        # Attention! Does not work with HER, because HER sets desired_goal=achieved_goal to receive a positive reward
+        # but we can not set the position of one detector to be the same as that of n different blocks.
+
         # cache positions to reset them later
         dpos = cond._detector.get_position()
         opos = [obj.get_position() for obj in cond._objects]
