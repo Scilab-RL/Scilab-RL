@@ -62,7 +62,53 @@ put_toilet_roll_on_stand"
 # place_cups, remove_cups fail because they add a condition each time reset() is called
 # put_books_on_bookshelf is rather slow
 
-for ENV in $DetectedAndNothingGraspedConditionEnvs
+OtherEnvs="put_knife_in_knife_block
+toilet_seat_up
+slide_cabinet_open_and_place_cups
+put_plate_in_colored_dish_rack
+lamp_on
+close_microwave
+change_channel
+lamp_off
+pick_and_lift
+push_buttons
+take_lid_off_saucepan
+close_fridge
+get_ice_from_fridge
+put_knife_on_chopping_board
+open_fridge
+turn_tap
+press_switch
+open_microwave
+push_button
+tv_off
+stack_blocks
+pick_up_cup
+empty_container
+toilet_seat_down
+turn_oven_on
+open_door
+wipe_desk
+screw_nail
+close_drawer
+tv_on
+hannoi_square
+hit_ball_with_queue
+close_laptop_lid
+open_drawer
+slide_cabinet_open
+hockey
+close_door
+put_all_groceries_in_cupboard
+scoop_with_spatula
+open_window
+close_box
+block_pyramid
+pour_from_cup_to_cup
+open_box"
+# Could not place the task put_plate_in_colored_dish_rack in the scene. This should not happen, please raise an issues on this task.
+# pour_from_cup_to_cup also failed with the same error.
+for ENV in $OtherEnvs
 do
   ENV="$ENV-state-v0"
   python experiment/train.py env=$ENV algorithm=hac layer_classes=['sac','ddpg'] algorithm.render_train=display algorithm.time_scales=[5,-1] n_epochs=1 eval_after_n_steps=100 n_test_rollouts=1
