@@ -1,6 +1,10 @@
 name: 'her'
 
+##
 exp_path_params:
   - 'verbose'
+  - 'model_class'
 
 verbose: True
+
+model_class: sac

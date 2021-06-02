@@ -7,11 +7,12 @@ defaults:
   - override hydra/sweeper/sampler: tpe
   - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time. The standard launcher is much better for debugging.
 
-
 # The name of the OpenAI Gym environment that you want to train on.
-env: 'AntReacher-v1'
+#env: 'Blocks-o1-gripper_random-v1'
+#env: 'AntReacher-v1'
 #env: 'ButtonUnlock-o1-v1'
-#env: 'FetchReach-v1'
+env: 'FetchReach-v1'
+#env: 'AntMaze-v0'
 # Currently supported envs:
 # 'FetchPush-v1',
 # 'FetchSlide-v1',
@@ -25,22 +26,16 @@ env: 'AntReacher-v1'
 
 # 'AntReacher-v1',
 # 'Ant4Rooms-v1',
-# 'AntMaze-v1',
-# 'AntPush-v1',
-# 'AntFall-v1',
+# 'AntMaze-v0',
+# 'AntPush-v0',
+# 'AntFall-v0',
 
 # 'BlockStackMujocoEnv-gripper_random-o0-v1',
 # 'BlockStackMujocoEnv-gripper_random-o2-v1',
 # 'BlockStackMujocoEnv-gripper_above-o1-v1',
 # 'BlockStackMujocoEnv-gripper_none-o1-v1',
 
-
 seed: 0
-
-# layer classes for the algorithm
-layer_classes:
-  - sacvg
-  - sacvg
 
 # the path to where logs and policy pickles should go.
 base_logdir: 'data'
@@ -52,7 +47,7 @@ restore_policy: null
 eval_after_n_steps: 2000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 75
+n_epochs: 60
 
 # The number of testing rollouts.
 n_test_rollouts: 10
@@ -76,19 +71,6 @@ early_stop_data_column: 'test/success_rate'
 # are stored. Useful for debugging and addressing temporary changes to the code..
 info: ''
 
-# Max. number of tensorboard instances allowed at the same time.
-# Will be determined by number of open ports, starting at port 6006
-tensorboard: 2
-
-# Data to plot for evaluation. Strings separated by comma.
-plot_eval_cols:
- - 'test/success_rate'
- - 'test/mean_reward'
- - 'test_0/ep_length'
-
-# Min. number of seconds to wait for next plot with MatplotlibOutputFormat. OBSOLETE since the matplotlib logger is not used any more.
-plot_at_most_every_secs: 360
-
 # The number of steps after which to save the model. 0 to never save, i.e., to only save the best and last model.
 save_model_freq: 0
 
@@ -103,8 +85,7 @@ hydra:
 #    dir: ${base_logdir}/${git_label:}/${env} # This way, all trials within multiple hyperopt runs are stored in the same parent folder, without using the time subfolder.
     subdir: ${hydra.job.num}
 
-
-  # sweeper, sampler and search_space is for hyperparameter optimization. Optimization can be started with --multirun as commandline parameter when executing train.py
+  # sweeper, sampler and search_space for hyperparameter optimization. Hyperparameter optimization can be started with --multirun as commandline parameter when executing train.py
   sweeper:
     sampler:
       _target_: optuna.samplers.TPESampler
@@ -119,39 +100,38 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: hyperopt_study_hac_2_layer
-    storage: sqlite:///hyperopt_study_hac_2_layer.db
-    n_jobs: 3
+    study_name: hac_2_layer_AntMaze-v0
+    storage: sqlite:///hac_2_layer_AntMaze-v0.db
+    n_jobs: 6
     max_trials: 9999
     max_duration_minutes: 10000
     min_trials_per_param: 3
     max_trials_per_param: 9
 
     search_space:
-
       algorithm.learning_rates.0:
         type: float
-        low: 0.0005
-        high: 0.007
+        low: 0.0015
+        high: 0.005
         log: true
 
       algorithm.learning_rates.1:
         type: float
-        low: 0.0005
-        high: 0.007
+        low: 0.0002
+        high: 0.0007
         log: true
 
-#      algorithm.time_scales.0:
-#        type: int
-#        low: 5
-#        high: 10
-#        step: 1
-#
-#      algorithm.time_scales.1:
-#        type: int
-#        low: 5
-#        high: 10
-#        step: 1
+      algorithm.time_scales.0:
+        type: int
+        low: 15
+        high: 25
+        step: 10
+
+      algorithm.time_scales.1:
+        type: int
+        low: 15
+        high: 25
+        step: 10
 
       algorithm.n_sampled_goal:
         type: int
@@ -163,7 +143,7 @@ hydra:
         type: float
         low: 0.0
         high: 0.6
-        step: 0.1
+        step: 0.2
 
       algorithm.goal_selection_strategy:
         type: categorical
@@ -173,26 +153,26 @@ hydra:
           - rndend
           - rndend2
 
-#      algorithm.use_action_replay:
-#        type: categorical
-#        choices:
-#          - 1
-#          - 0
+      algorithm.use_action_replay:
+        type: categorical
+        choices:
+          - 1
+          - 0
 
-#      algorithm.ep_early_done_on_succ:
-#        type: int
-#        low: 0
-#        high: 1
-#        step: 1
+      algorithm.ep_early_done_on_succ:
+        type: int
+        low: 0
+        high: 1
+        step: 1
 
-#      algorithm.hindsight_sampling_done_if_success:
-#        type: categorical
-#        choices:
-#          - 1
-#          - 0
+      algorithm.hindsight_sampling_done_if_success:
+        type: categorical
+        choices:
+          - 1
+          - 0
 
-#      algorithm.set_fut_ret_zero_if_done:
-#        type: categorical
-#        choices:
-#          - 1
-#          - 0
+      algorithm.set_fut_ret_zero_if_done:
+        type: categorical
+        choices:
+          - 1
+          - 0
