@@ -4,7 +4,7 @@ from gym.core import Wrapper
 import gym.spaces as spaces
 from gym.wrappers import TimeLimit
 import rlbench.gym  # unused, but do not remove. It registers the RL Bench environments.
-from rlbench.backend.conditions import DetectedCondition, NothingGrasped, GraspedCondition, JointCondition
+from rlbench.backend.conditions import DetectedCondition, NothingGrasped, GraspedCondition, JointCondition, DetectedSeveralCondition
 from pyrep.objects.shape import Shape
 from pyrep.const import PrimitiveShape
 
@@ -92,6 +92,11 @@ class RLBenchWrapper(Wrapper):
             elif isinstance(cond, JointCondition):
                 desired_goal.append([cond._pos + 1e-20])
                 achieved_goal.append([np.abs(cond._joint.get_joint_position() - cond._original_pos)])
+            elif isinstance(cond, DetectedSeveralCondition):
+                detector_pos = cond._detector.get_position()
+                for o in cond._objects:
+                    achieved_goal.append(o.get_position())
+                    desired_goal.append(detector_pos)
             else:
                 raise NotImplementedError("Converting this condition-type to a goal is not supported yet.")
         achieved_goal = np.array(list(chain.from_iterable(achieved_goal)))
@@ -118,6 +123,11 @@ class RLBenchWrapper(Wrapper):
             elif isinstance(cond, JointCondition):
                 unmet_conditions += self.compute_reward_joint_condition(achieved_goal[:, :1], desired_goal[:, :1])
                 achieved_goal, desired_goal = achieved_goal[:, 1:], desired_goal[:, 1:]
+            elif isinstance(cond, DetectedSeveralCondition):
+                num_obj = len(cond._objects)
+                unmet_conditions += self.compute_reward_detected_several_condition(achieved_goal[:, :3 * num_obj],
+                                                                                   desired_goal[:, :3 * num_obj], cond)
+                achieved_goal, desired_goal = achieved_goal[:, 3 * num_obj:], desired_goal[:, 3 * num_obj:]
             else:
                 raise NotImplementedError("This condition-type ({}) is not supported yet.".format(cond.__class__))
         rewards = [-1 if unmet_cond > 0 else 0 for unmet_cond in unmet_conditions]
@@ -125,6 +135,8 @@ class RLBenchWrapper(Wrapper):
 
     def compute_reward_detected_condition(self, achieved_goal, desired_goal, cond):
         # For DetectedConditions, we set the positions in the simulation and then query the sensor.
+        # HER manipulates some achieved goals (object position), so that they are the same as the desired goal
+        # (detector position). Note that the position of the detector itself might NOT be a position that it detects.
         # cache positions to reset them later
         dpos = cond._detector.get_position()
         opos = cond._obj.get_position()
@@ -149,6 +161,26 @@ class RLBenchWrapper(Wrapper):
         achieved_goal = achieved_goal.flatten()
         desired_goal = desired_goal.flatten()
         return 1 - (achieved_goal >= desired_goal)
+
+    def compute_reward_detected_several_condition(self, achieved_goal, desired_goal, cond):
+        # This is very similar to compute_reward_detected_condition()
+        # cache positions to reset them later
+        dpos = cond._detector.get_position()
+        opos = [obj.get_position() for obj in cond._objects]
+
+        unmet = np.zeros(len(achieved_goal))
+        for i, (ag, dg) in enumerate(zip(achieved_goal, desired_goal)):
+            cond._detector.set_position(dg[:3], reset_dynamics=False)
+            ag = ag.reshape(int(len(ag) / 3), 3)
+            for j, pos in enumerate(ag):
+                cond._objects[j].set_position(pos, reset_dynamics=False)
+            r = int(cond.condition_met()[0]) - 1
+            unmet[i] -= r
+
+        cond._detector.set_position(dpos, reset_dynamics=False)
+        for obj, pos in zip(cond._objects, opos):
+            obj.set_position(pos, reset_dynamics=False)
+        return unmet
 
     def _is_success(self, achieved_goal, desired_goal):
         return int(self.compute_reward(achieved_goal, desired_goal, []) == 0)
