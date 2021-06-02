@@ -193,7 +193,7 @@ class RLBenchWrapper(Wrapper):
             # Attention! We need the following workaround for HER, because HER sets desired_goal=achieved_goal to
             # receive a positive reward but we can not set the position of one detector to be the same as that of
             # n different objects. So we just give a positive reward if desired_goal==achieved_goal
-            if ag == dg:
+            if np.all(ag == dg):
                 unmet[i] = 0
             else:
                 cond._detector.set_position(dg[:3], reset_dynamics=False)
