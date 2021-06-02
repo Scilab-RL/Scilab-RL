@@ -4,7 +4,7 @@ usage() { echo "$0 usage:" && grep " .)\ #" $0; exit 0; }
 
 gpu_ids=(0)
 min_mem_free=2500
-max_active_procs=16
+max_active_procs=6
 test_mode='performance'
 sleep_time=15
 while getopts ":ht:p:m:g:s:" arg; do

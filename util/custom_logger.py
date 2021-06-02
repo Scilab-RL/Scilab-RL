@@ -11,7 +11,7 @@ import numpy as np
 from util.util import print_dict, check_all_dict_values_equal, interpolate_data
 from typing import Any, Dict, List, Optional, Sequence, TextIO, Tuple, Union
 from stable_baselines3.common.logger import Video, FormatUnsupportedError, SeqWriter
-# import warningsmlflow.st
+import warnings
 import time
 from cycler import cycler
 import mlflow
@@ -20,9 +20,10 @@ import omegaconf
 from omegaconf import DictConfig, ListConfig
 
 
-class MLFlowOutputFormat(KVWriter):
+class MLFlowOutputFormat(KVWriter, SeqWriter):
 
     def __init__(self):
+        self.log_txt = ''
         return
 
     def write(self, key_values: Dict[str, Any], key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
@@ -30,243 +31,14 @@ class MLFlowOutputFormat(KVWriter):
         for k,v in kvs.items():
             mlflow.log_metric(k, v, step=step)
 
-    # def write_sequence(self, sequence: List) -> None:
-    #     sequence = list(sequence)
-    #     for i, elem in enumerate(sequence):
-    #         mlflow.log_text(elem, f"log.txt")
+    def write_sequence(self, sequence: List) -> None:
+        sequence = list(sequence)
+        for i, elem in enumerate(sequence):
+            self.log_txt += elem + '\n'
+        mlflow.log_text(self.log_txt, f"log.txt")
 
     def close(self) -> None:
         return
-
-
-class MatplotlibCSVOutputFormat(KVWriter):
-    def __init__(self, logpath, min_secs_wait_for_plot, cols_to_plot=None, plot_parent_dir=True):
-        if cols_to_plot is None:
-            cols_to_plot = ['test/success_rate', 'test/mean_reward']
-        self.logpath = logpath
-        self.csv_filename = "progress.csv"
-        self.csv_filepath = os.path.join(logpath,self.csv_filename)
-        self.sep = ','
-        if os.path.isfile(self.csv_filepath): # If a file is already existing, maybe because we continue training with restore_policy, determine the keys of the first row so we don't write them again.
-            file = open(self.csv_filepath, 'r')
-            reader = csv.reader(file, delimiter=self.sep, quotechar='|')
-            existing_keys = []
-            for line, row in enumerate(reader):
-                if line == 0:
-                    existing_keys = row
-                    break
-            self.keys = existing_keys
-        else:
-            self.keys = []
-        self.file = open(self.csv_filepath, 'a+')
-        if plot_parent_dir:
-            self.data_read_dir = "/".join(logpath.split("/")[:-1])
-        else:
-            self.data_read_dir = logpath
-        self.lock_file_name = os.path.join(self.data_read_dir, 'last_plot_timestamp.log')
-        self.step = 1
-        self.cols_to_plot = cols_to_plot
-        self.plot_colors = sorted(plt.rcParams['axes.prop_cycle'].by_key()['color'], reverse=True)
-        self.linestyles = ['-', '--', ':', '-.']
-        self.plot_cycler = (cycler(linestyle=self.linestyles) * cycler(color=self.plot_colors))
-        self.min_secs_wait_for_plot = min_secs_wait_for_plot
-
-    def set_plot_lock_file(self):
-        try:
-            plotlockfile = open(self.lock_file_name, 'w')
-            plotlockfile.write(str(time.time()))
-            plotlockfile.close()
-        except:
-            logger.info("Error, could not write plotlock file")
-
-    def check_plot_frequency(self):
-        last_plot_time = 0
-        try:
-            plotlockfile = open(self.lock_file_name, 'r')
-            time_str = plotlockfile.read()
-            plotlockfile.close()
-            last_plot_time = float(time_str)
-        except:
-            return True
-        if time.time() - last_plot_time > self.min_secs_wait_for_plot:
-            return True
-        else:
-            return False
-
-    def write(self, key_values: Dict[str, Any], key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
-        # Add our current row to the history
-        kvs = key_values.copy()
-        extra_keys = kvs.keys() - self.keys
-        if extra_keys:
-            self.keys.extend(extra_keys)
-            self.file.seek(0)
-            lines = self.file.readlines()
-            self.file.seek(0)
-            for (i, k) in enumerate(self.keys):
-                if i > 0:
-                    self.file.write(',')
-                self.file.write(k)
-            self.file.write('\n')
-            for line in lines[1:]:
-                self.file.write(line[:-1])
-                self.file.write(self.sep * len(extra_keys))
-                self.file.write('\n')
-        for (i, k) in enumerate(self.keys):
-            if i > 0:
-                self.file.write(',')
-            v = kvs.get(k)
-            if v is not None:
-                self.file.write(str(v))
-        self.file.write('\n')
-        self.file.flush()
-        if self.check_plot_frequency():
-            try:
-                self.plot_aggregate_kvs()
-            except Exception as e:
-                logger.info(f"Matplotlib plotting failed: {e}")
-            self.set_plot_lock_file()
-
-    def close(self):
-        self.file.close()
-
-    def get_data_dict(self):
-        def config_from_folder(folder_str):
-            return "&".join(folder_str.split("&")[:-1])
-
-        configs = set()
-        config_data = {}
-        data_dict = OrderedDict()
-        config_str = ''
-        for configdir in os.listdir(self.data_read_dir):
-            if not os.path.isdir(os.path.join(self.data_read_dir,configdir)) or '.ipynb_checkpoints' in configdir:
-                continue
-            folder = self.data_read_dir+"/"+configdir
-            config_str = config_from_folder(configdir)
-            if config_str not in data_dict.keys():
-                data_dict[config_str] = OrderedDict()
-            config_ctr_str = configdir.split("&")[-1]
-            configs.add(config_str)
-            if config_str not in config_data.keys():
-                config_data[config_str] = []
-            try:
-                with open(self.data_read_dir+"/"+configdir+"/"+self.csv_filename) as csvfile:
-                    reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-                    for line, row in enumerate(reader):
-                        if line == 0:
-                            keys = row.copy()
-                            for k in row:
-                                if k not in data_dict[config_str].keys():
-                                    data_dict[config_str][k] = {}
-                                if config_ctr_str not in data_dict[config_str][k].keys():
-                                    data_dict[config_str][k][config_ctr_str] = []
-                        else:
-                            for idx,item in enumerate(row):
-                                try:
-                                    data_dict[config_str][keys[idx]][config_ctr_str].append(float(item))
-                                except:
-                                    data_dict[config_str][keys[idx]][config_ctr_str].append(np.nan)
-                                    pass
-                                    # logger.info("item is not a float")
-            except Exception as e:
-                logger.warn("Warning, could not get data from {} because the file was not found.".format(self.data_read_dir+"/"+configdir+"/"+self.csv_filename))
-        return data_dict
-
-    def plot_aggregate_kvs(self):
-        data_dict = self.get_data_dict()
-        self.plot_dict(data_dict)
-
-    def tolerant_median(self, data_dict):
-        keys = sorted(data_dict.keys())
-        arr_lens = []
-        for k in keys:
-            arr_lens.append(len(data_dict[k]))
-        if len(arr_lens) == 0:
-            logger.info()
-            pass
-        assert len(arr_lens) > 0, "Error, no data for plotting."
-        shortest_key_data_count = min(arr_lens)
-        longest_key_data_count = max(arr_lens)
-        shortest_key = ''
-        longest_key = ''
-        for k in keys:
-            if len(data_dict[k]) == shortest_key_data_count:
-                shortest_key = k
-            if len(data_dict[k]) == longest_key_data_count:
-                longest_key = k
-
-        data_info = {'shortest_key': shortest_key, 'shortest_data_count': shortest_key_data_count,
-                     'longest_key': longest_key, 'longest_dat_count': longest_key_data_count}
-
-        d_lists = []
-        for ctr in range(longest_key_data_count):
-            d_lists.append([])
-            for k in keys:
-                if len(data_dict[k]) > ctr:
-                    d_lists[-1].append(data_dict[k][ctr])
-
-        median = [np.median(dlist) for dlist in d_lists]
-        lower = [np.percentile(dlist, 25) for dlist in d_lists]
-        upper = [np.percentile(dlist, 75) for dlist in d_lists]
-
-        return median, upper, lower, data_info
-
-    def plot_dict(self, all_data_dict):
-        # First interpolate all data
-        cols_to_del = []
-        reduced_data = {}
-        for config_str in all_data_dict.keys():
-            data = all_data_dict[config_str]
-            if 'time/total timesteps' not in data.keys():
-                logger.info("WARNING!!! No timesteps in data for config {} for plotting.".format(config_str))
-                continue
-            reduced_data[config_str] = {}
-            timesteps = data['time/total timesteps'].copy()
-            for k in data.keys():
-                if k in self.cols_to_plot + ['time/total timesteps']:
-                    reduced_data[config_str][k] = interpolate_data(data[k], timesteps)
-
-        for k in self.cols_to_plot:
-            fig = plt.figure(figsize=(20, 10))
-            ax = fig.gca()
-            ax.set_prop_cycle(self.plot_cycler)
-            color_idx = 0
-            all_data_info = {}
-            for config_str in reduced_data.keys():
-                data = reduced_data[config_str]
-                if k not in data.keys():
-                    continue
-                if len(data[k]) == 0:
-                    continue
-                median, upper, lower, data_info = self.tolerant_median(data[k])
-                min_data_len = data_info['shortest_data_count']
-                if 'time/total timesteps' in data.keys():
-                    xs = data['time/total timesteps'][data_info['shortest_key']]
-                    xs_label = 'action steps'
-                else:
-                    xs = range(0, data_info['shortest_data_count'])
-                    xs_label = 'epochs'
-                all_data_info[config_str] = data_info
-                try:
-                    line, = plt.plot(xs, median[:min_data_len], label=config_str + '-' + k)
-                except Exception as e:
-                    logger.info(f"This is a matplotlib error that we need to fix at some point... {e}")
-                plt.fill_between(xs, lower[:min_data_len],
-                                 upper[:min_data_len],
-                                 alpha=0.25, color=line.get_color())
-                plt.xlabel(xs_label)
-                plt.ylabel(k)
-                color_idx += 1
-                if color_idx >= len(self.plot_colors):
-                    color_idx = 0
-            key_str = k.replace('/','-')
-            plot_log_filename = self.data_read_dir + '/' + key_str + '.log'
-            plot_filename = self.data_read_dir+'/'+key_str+'.png'
-            plt.legend()
-            plt.savefig(plot_filename, format='png')
-            plt.close(fig)
-            with open(plot_log_filename, 'w') as logfile:
-                logfile.write(print_dict(all_data_info))
-
 
 class FixedHumanOutputFormat(KVWriter, SeqWriter):
     def __init__(self, filename_or_file: Union[str, TextIO]):
