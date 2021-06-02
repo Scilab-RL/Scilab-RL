@@ -184,21 +184,24 @@ class RLBenchWrapper(Wrapper):
 
     def compute_reward_detected_several_condition(self, achieved_goal, desired_goal, cond):
         # This is very similar to compute_reward_detected_condition()
-        # Attention! Does not work with HER, because HER sets desired_goal=achieved_goal to receive a positive reward
-        # but we can not set the position of one detector to be the same as that of n different blocks.
-
         # cache positions to reset them later
         dpos = cond._detector.get_position()
         opos = [obj.get_position() for obj in cond._objects]
 
         unmet = np.zeros(len(achieved_goal))
         for i, (ag, dg) in enumerate(zip(achieved_goal, desired_goal)):
-            cond._detector.set_position(dg[:3], reset_dynamics=False)
-            ag = ag.reshape(int(len(ag) / 3), 3)
-            for j, pos in enumerate(ag):
-                cond._objects[j].set_position(pos, reset_dynamics=False)
-            r = int(cond.condition_met()[0]) - 1
-            unmet[i] -= r
+            # Attention! We need the following workaround for HER, because HER sets desired_goal=achieved_goal to
+            # receive a positive reward but we can not set the position of one detector to be the same as that of
+            # n different objects. So we just give a positive reward if desired_goal==achieved_goal
+            if ag == dg:
+                unmet[i] = 0
+            else:
+                cond._detector.set_position(dg[:3], reset_dynamics=False)
+                ag = ag.reshape(int(len(ag) / 3), 3)
+                for j, pos in enumerate(ag):
+                    cond._objects[j].set_position(pos, reset_dynamics=False)
+                r = int(cond.condition_met()[0]) - 1
+                unmet[i] -= r
 
         cond._detector.set_position(dpos, reset_dynamics=False)
         for obj, pos in zip(cond._objects, opos):
