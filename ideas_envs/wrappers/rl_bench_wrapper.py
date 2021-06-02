@@ -5,7 +5,7 @@ import gym.spaces as spaces
 from gym.wrappers import TimeLimit
 import rlbench.gym  # unused, but do not remove. It registers the RL Bench environments.
 from rlbench.backend.conditions import DetectedCondition, NothingGrasped, GraspedCondition, JointCondition, \
-    DetectedSeveralCondition, ConditionSet
+    DetectedSeveralCondition, ConditionSet, EmptyCondition
 from pyrep.objects.shape import Shape
 from pyrep.const import PrimitiveShape
 
@@ -93,10 +93,10 @@ class RLBenchWrapper(Wrapper):
             if isinstance(cond, DetectedCondition):
                 desired_goal.append(cond._detector.get_position())
                 achieved_goal.append(cond._obj.get_position())
-            elif isinstance(cond, (NothingGrasped, GraspedCondition)):
+            elif isinstance(cond, (NothingGrasped, GraspedCondition, EmptyCondition)):
                 desired_goal.append([1.])
-                not_grasped, _ = cond.condition_met()
-                achieved_goal.append([float(not_grasped)])
+                met, _ = cond.condition_met()
+                achieved_goal.append([float(met)])
             elif isinstance(cond, JointCondition):
                 desired_goal.append([cond._pos + 1e-20])
                 achieved_goal.append([np.abs(cond._joint.get_joint_position() - cond._original_pos)])
@@ -137,8 +137,8 @@ class RLBenchWrapper(Wrapper):
             if isinstance(cond, DetectedCondition):
                 unmet_conditions += self.compute_reward_detected_condition(achieved_goal[:, :3], desired_goal[:, :3], cond)
                 achieved_goal, desired_goal = achieved_goal[:, 3:], desired_goal[:, 3:]
-            elif isinstance(cond, (NothingGrasped, GraspedCondition)):
-                unmet_conditions += self.compute_reward_nothing_grasped_condition(achieved_goal[:, :1])
+            elif isinstance(cond, (NothingGrasped, GraspedCondition, EmptyCondition)):
+                unmet_conditions += self.compute_reward_binary_condition(achieved_goal[:, :1])
                 achieved_goal, desired_goal = achieved_goal[:, 1:], desired_goal[:, 1:]
             elif isinstance(cond, JointCondition):
                 unmet_conditions += self.compute_reward_joint_condition(achieved_goal[:, :1], desired_goal[:, :1])
@@ -172,8 +172,9 @@ class RLBenchWrapper(Wrapper):
         cond._obj.set_position(opos, reset_dynamics=False)
         return unmet
 
-    def compute_reward_nothing_grasped_condition(self, achieved_goal):
-        # Either the gripper has grasped something or not. So we can infer the reward from just the achieved goal.
+    def compute_reward_binary_condition(self, achieved_goal):
+        # Either the gripper has grasped something or not. (Or the container is empty or not.)
+        # So we can infer the reward from just the achieved goal.
         achieved_goal = achieved_goal.flatten()
         return 1 - achieved_goal
 
