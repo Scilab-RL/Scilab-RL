@@ -51,6 +51,7 @@ def train(baseline, train_env, eval_env, cfg):
         eval_callback = CustomEvalCallback(eval_env,
                                            agent=baseline,
                                            log_path=logger.get_dir(),
+                                           render=cfg.render,
                                            eval_freq=cfg.eval_after_n_steps,
                                            n_eval_episodes=cfg.n_test_rollouts,
                                            early_stop_last_n=cfg.early_stop_last_n,

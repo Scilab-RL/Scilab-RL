@@ -85,9 +85,10 @@ class CustomEvalCallback(EvalCallback):
         if self.render == 'record':
             self.render_info = {'size': self.vid_size, 'fps': self.vid_fps, 'eval_count': self.eval_count,
                                 'path': self.log_path}
+        elif self.render == 'display':
+            self.render_info = {'mode': 'human'}
         else:
             self.render_info = None
-
 
     def _on_step(self, log_prefix='') -> bool:
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
