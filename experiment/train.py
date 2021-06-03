@@ -23,7 +23,6 @@ from util.util import get_subdir_by_params,get_git_label,set_global_seeds,log_di
 import time
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
-from ideas_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
 from stable_baselines3.common import logger
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
@@ -97,6 +96,7 @@ def launch(cfg, kwargs):
     except:
         BaselineClass = getattr(importlib.import_module('ideas_baselines.' + algo_name), algo_name.upper())
     if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an rl_bench env
+        from ideas_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
         render_mode = None
         if algo_name == 'hac':
             if cfg.algorithm.render_train == "display":
