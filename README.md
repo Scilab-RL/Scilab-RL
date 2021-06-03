@@ -99,6 +99,21 @@ TBD
 
 ## Environments
 Currently, all goal-conditioned gym environments are supported. A list of all tested environments can be found in `conf/main.yaml`. 
+
+### Install CoppeliaSim and RL Bench
+If you'd like to use environments simulated with CoppeliaSim, [download CoppeliaSim](https://www.coppeliarobotics.com/downloads)
+and set the following paths accordingly.
+```
+COPPELIASIM_ROOT=EDIT/ME/PATH/TO/COPPELIASIM/INSTALL/DIR
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:EDIT/ME/PATH/TO/COPPELIASIM/INSTALL/DIR
+QT_QPA_PLATFORM_PLUGIN_PATH=EDIT/ME/PATH/TO/COPPELIASIM/INSTALL/DIR
+```
+Then `pip install git+https://github.com/stepjam/PyRep.git`. You should now be able to use
+CoppeliaSim environments. 
+
+If you'd also like to use the [RL Bench](https://github.com/stepjam/RLBench) environments,
+`pip install git+https://github.com/stepjam/RLBench.git pyquaternion natsort`.
+An example for an RL Bench environment is *take_umbrella_out_of_umbrella_stand-state-v0*.
 ### Adding a new environment
 To add a new environment, we suggest to proceed as follows. 
 
