@@ -101,7 +101,8 @@ TBD
 Currently, all goal-conditioned gym environments are supported. A list of all tested environments can be found in `conf/main.yaml`. 
 
 ### Install CoppeliaSim and RL Bench
-If you'd like to use environments simulated with CoppeliaSim, [download CoppeliaSim](https://www.coppeliarobotics.com/downloads)
+If you'd like to use environments simulated with CoppeliaSim, 
+[download CoppeliaSim Edu 4.1.0](https://www.coppeliarobotics.com/previousVersions) (4.2.0 causes problems with some environments)
 and set the following paths accordingly.
 ```
 COPPELIASIM_ROOT=EDIT/ME/PATH/TO/COPPELIASIM/INSTALL/DIR
