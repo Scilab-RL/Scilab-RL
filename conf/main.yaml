@@ -100,8 +100,11 @@ hydra:
       warn_independent_sampling: true
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
     direction: maximize
-    study_name: hac_2_layer_AntMaze-v0
-    storage: sqlite:///hac_2_layer_AntMaze-v0.db
+    # study_name: ${defaults.algorithm/name}_${defaults.algorithm/layer_classes}_${env}
+    # storage: sqlite:///${defaults.algorithm/name}_${defaults.algorithm/layer_classes}_${env}.db
+    # TODO: get more parameters out of the default config group
+    study_name: ${defaults[0].algorithm}_${env}
+    storage: ${defaults[0].algorithm}_${env}://${env}.db
     n_jobs: 6
     max_trials: 9999
     max_duration_minutes: 10000
