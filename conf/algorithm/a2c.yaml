@@ -1,0 +1,6 @@
+name: 'a2c'
+
+exp_path_params:
+  - 'verbose'
+
+verbose: True

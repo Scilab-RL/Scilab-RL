@@ -1,4 +1,4 @@
-# import comet_ml # Direct comet.ml upload not supported in multiprocessing mode. See README.md and issue https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/issues/26
+#  import comet_ml # Direct comet.ml upload not supported in multiprocessing mode. See README.md and issue https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/issues/26
 import joblib.externals.loky.backend.context as jl_ctx
 jl_ctx._DEFAULT_START_METHOD = 'loky_init_main' # This is required for multiprocessing with joblib because by default, the loky multiprocessing backend of joblib re-imports all modules when calling main(). Since comet_ml monkey-patches several libraries, the changes to these libraries get lost. When setting the start_method to loky_init_main the modules are not re-imported and the monkey-path-changes don't get lost.
 import mlflow
@@ -11,10 +11,8 @@ sys.path.append(os.getcwd())
 import importlib
 import hydra
 from omegaconf import DictConfig, OmegaConf, open_dict
-import csv
-import numpy as np
 import gym
-from util.util import get_subdir_by_params,get_git_label,set_global_seeds,log_dict,get_last_epoch_from_logdir
+from util.util import get_subdir_by_params,get_git_label,set_global_seeds,get_last_epoch_from_logdir
 import time
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
@@ -22,12 +20,17 @@ from stable_baselines3.common import logger
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
-from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
+from stable_baselines3.common.callbacks import CheckpointCallback
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 
 def check_env_alg_compatibility(model, env):
-    return isinstance(model.action_space, type(env.action_space)) \
-        and isinstance(model.observation_space, type(env.observation_space['observation']))
+    check_action_space =  isinstance(model.action_space, type(env.action_space))
+    check_observation_space = False
+    if hasattr(env.observation_space, 'spaces'):
+        check_observation_space = isinstance(model.observation_space, type(env.observation_space['observation']))
+    else:
+        check_observation_space = isinstance(model.observation_space, type(env.observation_space))
+    return check_action_space and check_observation_space
 
 def train(baseline, train_env, eval_env, cfg):
     total_steps = cfg.eval_after_n_steps * cfg.n_epochs
@@ -96,8 +99,7 @@ def launch(cfg, kwargs):
         baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
     else:
         baseline = BaselineClass('MlpPolicy', train_env, **cfg.algorithm, **alg_kwargs, **kwargs)
-    env_alg_compatible = check_env_alg_compatibility(baseline, train_env)
-    if not env_alg_compatible:
+    if not check_env_alg_compatibility(baseline, train_env):
         logger.info("Environment {} and algorithm {} are not compatible.".format(train_env, baseline))
         sys.exit()
     logger.info("Launching training")
@@ -145,7 +147,6 @@ def main(cfg: DictConfig) -> (float, int):
         if run_dir is not None:
             mlflow.log_param(f'log_dir', run_dir)
 
-
         # Output will only be logged appropriately after configuring the logger in the following lines:
         logger.configure(folder=run_dir, format_strings=[])
         logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
@@ -168,8 +169,6 @@ def main(cfg: DictConfig) -> (float, int):
         if 'exp_path_params' in cfg.algorithm.keys():
             with open_dict(cfg):
                 del cfg['algorithm']['exp_path_params']
-        # TODO: function for folder name
-        #  OmegaConf.register_resolver("git_label", lambda: get_git_label())
 
         logger.info("Starting process id: {}".format(os.getpid()))
 

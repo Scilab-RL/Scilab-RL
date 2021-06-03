@@ -3,3 +3,4 @@ data/
 test_cmds.txt
 test_logs/
 __pycache__/
+mlruns/
