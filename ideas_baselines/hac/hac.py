@@ -92,7 +92,7 @@ def compute_time_scales(scales, env):
 
 class HAC(BaseAlgorithm):
     """
-    Model-based curious hierarchical actor-critic HAC
+    Hierarchical Actor-Critic HAC
     Cobed based on Hindsight Experience Replay (HER) code of stable baselines 3 repository
 
     .. warning::
@@ -178,7 +178,7 @@ class HAC(BaseAlgorithm):
         assert len(time_scales) == (len(layer_classes)), "Error, number of time scales is not equal to number of layers."
         assert time_scales.count(
             "-1") <= 1, "Error, only one wildcard  \'-1\' allowed in time_scales argument {}".format(time_scales)
-        if self.is_top_layer == 1:  # Determine time_scales. Only do this once at top layer.
+        if self.is_top_layer:  # Determine time_scales. Only do this once at top layer.
             self.time_scales = compute_time_scales(time_scales, env)
             # Build hierarchical layer_envs from env, depending on steps and action space.
             layer_envs = get_h_envs_from_env(env, time_scales)
@@ -371,9 +371,8 @@ class HAC(BaseAlgorithm):
         return action
 
     def train_layer(self, n_gradient_steps: int):
-        # if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > 0 and self.learning_enabled is True:
         rb_size = self.replay_buffer.size()
-        if self.num_timesteps > self.learning_starts and self.replay_buffer.size() > self.learning_starts and self.learning_enabled is True:
+        if self.num_timesteps > self.learning_starts and rb_size > self.learning_starts and self.learning_enabled is True:
             # logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
             # assign temporary logger to avoid generating duplicate keys for the different layers.
             real_logger = logger.Logger.CURRENT
