@@ -48,7 +48,7 @@ def evaluate_policy(
     """
 
     video_writer = None
-    if render_info is not None:
+    if render_info is not None and 'fps' in render_info:
         try:
             video_writer = cv2.VideoWriter(render_info['path'] + '/eval_{}.avi'.format(render_info['eval_count']),
                                             cv2.VideoWriter_fourcc('F', 'M', 'P', '4'), render_info['fps'], render_info['size'])
@@ -73,6 +73,8 @@ def evaluate_policy(
                 frame = env.venv.envs[0].render(mode='rgb_array', width=render_info['size'][0],
                                                            height=render_info['size'][1])
                 video_writer.write(frame)
+            elif render_info is not None and 'mode' in render_info:
+                env.venv.envs[0].render(mode=render_info['mode'])
 
             action, state = agent.predict(obs, state=state, deterministic=deterministic)
             obs, reward, done, _info = env.step(action)
