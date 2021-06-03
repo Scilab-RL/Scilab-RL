@@ -113,7 +113,7 @@ CoppeliaSim environments.
 
 If you'd also like to use the [RL Bench](https://github.com/stepjam/RLBench) environments,
 `pip install git+https://github.com/stepjam/RLBench.git pyquaternion natsort`.
-An example for an RL Bench environment is *take_umbrella_out_of_umbrella_stand-state-v0*.
+An example for an RL Bench environment is *reach_target-state-v0*.
 ### Adding a new environment
 To add a new environment, we suggest to proceed as follows. 
 
