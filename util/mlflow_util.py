@@ -24,15 +24,14 @@ def get_hyperopt_score(cfg, current_run):
 
     return hyperopt_score, epochs
 
-def setup_mlflow():
+def setup_mlflow(cfg: str):
     orig_path = hydra.utils.get_original_cwd()
     mlflow.set_tracking_uri('file://' + orig_path + '/mlruns')
-    # tracking_uri = mlflow.get_tracking_uri()
-    # logger.info("Current tracking uri: {}".format(tracking_uri))
-    study_name = omegaconf.OmegaConf.load(f'{orig_path}/conf/main.yaml').hydra.sweeper.study_name
-    mlflow.set_experiment(study_name)
-
-
+    experiment_name = 'Default'
+    # if multirun performance testing
+    if 'performance_testing_conditions' in cfg:
+        experiment_name = f"{cfg.algorithm.name}_{cfg.env}"
+    mlflow.set_experiment(experiment_name)
 
 def log_params_from_omegaconf_dict(params):
     for param_name, element in params.items():

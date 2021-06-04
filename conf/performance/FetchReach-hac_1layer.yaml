@@ -1,3 +1,32 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  # access algorithm config group to get the default paramters of hac
+  - override /algorithm: hac
+
+# overwrite parameters of main.yaml
+env: 'FetchReach-v1'
+
+eval_after_n_steps: 2000
+
+# The number of testing rollouts.
+n_test_rollouts: 10
+
+# Max. number of tries for this training config.
+max_try_idx: 399
+
+# Index for first try.
+try_start_idx: 100
+
+# The n last epochs over which to average for determining early stopping condition.
+early_stop_last_n: 4
+
+# The data column on which early stopping is based.
+early_stop_data_column: 'test/success_rate'
+
+# The number of steps after which to save the model.
+save_model_freq: 0
+
 performance_testing_conditions:
 
   # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 100000 steps.
@@ -13,35 +42,7 @@ performance_testing_conditions:
   max_steps: 14000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 
-main_overrides: # These are the overrides for main.yaml
-
-  algorithm: hac
-  env: 'FetchReach-v1'
-  seed: 0
-
-  # The number of training steps after which to evaluate the policy.
-  eval_after_n_steps: 2000
-
-  # The number of testing rollouts.
-  n_test_rollouts: 10
-
-  # Max. number of tries for this training config.
-  max_try_idx: 399
-
-  # Index for first try.
-  try_start_idx: 100
-
-  # The n last epochs over which to average for determining early stopping condition.
-  early_stop_last_n: 4
-
-  # The data column on which early stopping is based.
-  early_stop_data_column: 'test/success_rate'
-
-    # The number of steps after which to save the model.
-  save_model_freq: 0
-
-alg_overrides:
-
+algorithm:
   # layer classes for the algorithm
   layer_classes:
     - sacvg
