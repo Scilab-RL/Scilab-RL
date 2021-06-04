@@ -20,7 +20,6 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 1. generate a virtual python3 environment with
 
     `virtualenv -p python3 venv` or
-
     `python3 -m venv venv`
 
 1. load the environment with
@@ -124,7 +123,7 @@ The hyperparameter management and optimization builds on the following four tool
 ### Hydra
 Hydra manages the command-line parameters and configuration options.
 The command line parameters are set in the `conf/main.yaml` file.
-All algorithm-specific parameters are set in the `conf/algorithm/<alg_name>/yaml` file.
+All algorithm-specific parameters are set in the `conf/algorithm/<alg_name>.yaml` file.
 
 ### Optuna
 Optuna is a framework to perform the hyperparameter optimization algorithm (e.g. TPE).
@@ -140,6 +139,21 @@ The sweeper automatically learns when to early stop trials by remembering past t
 It sets the max. number of epochs for a new trial to 1.5 times the number of epochs of the so-far fastest trial (when terminated by early stopping).
 The sweeper stops after the set number of trials or the specified duration, as specified in the config file.
 For convenience, the sweeper also creates a file `delete_me_to_stop_hyperopt`, which you just need to delete to soft-stop the hyperopting after the current batch of jobs.
+
+#### Testing functionality (smoke test)
+Simply execute
+```
+python experiment/train.py algorithm=hac,her env=FetchReach-v1,AntReacher-v1 ++n_epochs=2 +defaults=smoke_test --multirun
+```
+, to run experiments for hac and her for two epochs (here we use `++` to override the amount of epochs).
+With `+defaults=smoke_test` we are loading the sweeper parameters from `confg/smoke_test.yaml`.
+Crashed experiments can be found in mlflow, having a red cross symbol.
+
+#### Sweeper performance testing
+
+Use `python experiment/train.py +performance=FetchReach-hac_2layer --multirun`
+to overwrite the global parameters with the ones of the the configuration file (hydra uses the `+` to add new config entries).
+Config files are named as follows: `conf/performance/<env>-<algorihtm>_<misc>`.
 
 ### Mlflow
 Mlflow collects studies and logs data of all runs.

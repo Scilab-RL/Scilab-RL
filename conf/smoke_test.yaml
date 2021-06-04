@@ -1,0 +1,21 @@
+# @package _global_
+
+hydra:
+  # sweeper, sampler and search_space for hyperparameter optimization. Hyperparameter optimization can be started with --multirun as commandline parameter when executing train.py
+  sweeper:
+    sampler:
+      _target_: optuna.samplers.TPESampler
+      seed: 123
+      n_startup_trials: 10
+      n_ei_candidates: 24
+      warn_independent_sampling: true
+    _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
+    direction: maximize
+    # TODO: get more parameters out of the default config group
+    study_name: smoke_test
+    storage: sqlite:///smoke_test.db
+    n_jobs: 6
+    max_trials: 9999
+    max_duration_minutes: 15
+    min_trials_per_param: 1
+    max_trials_per_param: 1
