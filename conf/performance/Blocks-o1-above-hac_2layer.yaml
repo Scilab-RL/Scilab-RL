@@ -4,8 +4,7 @@
 #############################################################
 
 performance_testing_conditions:
-
-  # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 100000 steps.
+  # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 200000 steps.
 
   total_runs: 3 # How many runs in total:
 
@@ -19,98 +18,21 @@ performance_testing_conditions:
 
 
 main_overrides: # These are the overrides for main.yaml
-
   algorithm: hac
   env: 'Blocks-o1-gripper_above-v1'
-  seed: 0
-
-  # The number of training steps after which to evaluate the policy.
-  eval_after_n_steps: 2000
-
-  # The number of testing rollouts.
-  n_test_rollouts: 10
-
-  # Max. number of tries for this training config.
-  max_try_idx: 399
-
-  # Index for first try.
-  try_start_idx: 100
 
   # The n last epochs over which to average for determining early stopping condition.
   early_stop_last_n: 4
 
-  # The data column on which early stopping is based.
-  early_stop_data_column: 'test/success_rate'
-
-    # The number of steps after which to save the model.
-  save_model_freq: 0
-
 alg_overrides:
-
-  # layer classes for the algorithm
-  layer_classes:
-    - sacvg
-    - sacvg
-
-  # 'future', 'future2', 'final', 'episode', 'rndend', 'rndend2'
-  goal_selection_strategy: 'rndend'
-
   # number of hindisght goals.
   n_sampled_goal: 7
-
-  # number of steps in each layer after which to train.
-  # 0 sets the training frequency to once per episode.
-  train_freq: 0
-
-  # The number of training batches per episode. 0 sets training batches to number of
-  # actions executed since last training in each layer, which effectively means that n_train_batches=n_train_freq.
-  n_train_batches: 0
-
-  # The number of transitions in each layer required to start NN training.
-  learning_starts: 100
-
-  # The learning rates of the layers. From highest to lowest layer.
-  learning_rates:
-    - 0.0018
-    - 0.003
-
-  # Whether to use action replay
-  use_action_replay: 1
-
-  # Number of successive successful steps to stop an episode early when
-  # the (sub-)goal has been achieved. 0 disables early stopping.
-  ep_early_done_on_succ: 1
 
   # Whether to consider an episode as done *in hindsight* during goal replay
   # if the hindsight goal has been achieved. This is important e.g. in SAC,
   # where the discounted expected return is set to 0 of an episode is done.
   # Only relevant if set_fut_ret_zero_if_done = 1.
   hindsight_sampling_done_if_success: 1
-
-  # Whether to set the future expected return to 0 if an episode is
-  # done when computing the TD q value.
-  set_fut_ret_zero_if_done: 0
-
-  # Whether and how to render the rollout execution during training. \'record\' is for video, \'display\' for direct visualization, \'null\' is for not rendering at all.
-  render_train: null
-
-  # Whether and how to render the rollout execution during testing.
-  # \'record\' is for video, \'display\' for direct visualization.
-  render_test: null
-
-  # The number of evaluations (epochs) after which to render the simluation.
-  # This has only an effect if \'render_train\' or \'render_test\' is not set to \'none\'.
-  render_every_n_eval: 15
-
-  # Steps per level from highest to lowest, separated by comma. There must be one -1
-  # in the list to indicates the layer where the time scale is determined from the
-  # environment's predefined steps.
-  time_scales:
-    - -1
-    - 7
-
-  # The percentage of subgoals to test.
-  subgoal_test_perc: 0.1
 
 hydra:
   sweeper:
