@@ -72,7 +72,7 @@ render_train: null
 # \'record\' is for video, \'display\' for direct visualization, \'null\' for not rendering at all.
 render_test: null
 
-# The number of evaluations (epochs) after which to render the simluation.
+# The number of evaluations (epochs) after which to render the simulation.
 # This has only an effect if \'render_train\' or \'render_test\' is not set to \'none\'.
 render_every_n_eval: 20
 
