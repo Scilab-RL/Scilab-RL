@@ -4,7 +4,6 @@ main() {
   local ALGS="hac,her"
 
   local ENVS=""
-  ENVS+="Blocks-o1-gripper_random-v1,"
   ENVS+="AntReacher-v1,"
   ENVS+="ButtonUnlock-o1-v1,"
   ENVS+="FetchReach-v1,"
@@ -22,10 +21,10 @@ main() {
   ENVS+="AntMaze-v0,"
   ENVS+="AntPush-v0,"
   ENVS+="AntFall-v0,"
-  ENVS+="BlockStackMujocoEnv-gripper_random-o0-v1,"
-  ENVS+="BlockStackMujocoEnv-gripper_random-o2-v1,"
-  ENVS+="BlockStackMujocoEnv-gripper_above-o1-v1,"
-  ENVS+="BlockStackMujocoEnv-gripper_none-o1-v1"
+  ENVS+="Blocks-o0-gripper_random-v1,"
+  ENVS+="Blocks-o1-gripper_above-v1,"
+  ENVS+="Blocks-o2-gripper_random-v1,"
+  ENVS+="Blocks-o3-gripper_none-v1"
 
   python3 experiment/train.py algorithm=$ALGS env=$ENVS ++n_epochs=2 +defaults=smoke_test --multirun;
 }
