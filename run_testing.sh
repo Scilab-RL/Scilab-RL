@@ -5,7 +5,7 @@ main() {
 
   local ENVS=""
   ENVS+="Blocks-o1-gripper_random-v1,"
-  ENVS+="AntReacher-v1,",
+  ENVS+="AntReacher-v1,"
   ENVS+="ButtonUnlock-o1-v1,"
   ENVS+="FetchReach-v1,"
   ENVS+="AntMaze-v0,"
