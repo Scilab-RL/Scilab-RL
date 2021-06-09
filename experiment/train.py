@@ -123,6 +123,9 @@ def main(cfg: DictConfig) -> (float, int):
                 \nHave you restored this policy before? Note that in this case the script will just overwrite your
                 previously restored policy run. \nWill continue any ways.""")
 
+    if 'performance_testing_conditions' in cfg:
+        cfg['n_epochs'] = int(cfg['performance_testing_conditions']['max_steps']/cfg['eval_after_n_steps'])
+
     setup_mlflow(cfg)
     with mlflow.start_run() as mlflow_run:
         log_params_from_omegaconf_dict(cfg)
@@ -171,9 +174,9 @@ def main(cfg: DictConfig) -> (float, int):
                 mlflow.log_text(log_text, 'train.log')
         except Exception as e:
             logger.info('Could not open logfile and log it in mlflow.')
+        run_id = mlflow.active_run().info.run_id
 
-    return hyperopt_score, n_epochs
-
+    return hyperopt_score, n_epochs, run_id
 
 
 if __name__ == '__main__':

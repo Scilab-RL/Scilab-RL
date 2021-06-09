@@ -291,8 +291,8 @@ class CustomOptunaSweeperImpl(Sweeper):
                 state: optuna.trial.TrialState = optuna.trial.TrialState.COMPLETE
                 # try:
                 assert len(
-                    ret.return_value) == 2, "The return value of main() should be a tuple where the first element is the hyperopt score and the second value is the number of epochs the script ran."
-                assert len(directions) == 1, "We currently support only one optimizaztion objective and direction."
+                    ret.return_value) == 3, "The return value of main() should be a triple where the first element is the hyperopt score, the second value is the number of epochs the script ran and the third is the mlflow run_id."
+                assert len(directions) == 1, "We currently support only one optimization objective and direction."
                 # try:
                 values = [float(ret.return_value[0])]
                 if len(ret.return_value) > 1:
