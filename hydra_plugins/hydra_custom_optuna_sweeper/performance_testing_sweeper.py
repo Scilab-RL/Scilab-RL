@@ -15,13 +15,13 @@ log = logging.getLogger(__name__)
 
 class PerformanceTestingSweeper(Sweeper):
     """
-    Run performance testing for a environment-algorithm combination. The conditions for a performance test are stored in
-    conf/performance/<ENV>/<optionalENVSUBTYPE>/<optionalENVCONFIG>-<ALGO>-test.yaml
+    Run performance testing for an environment-algorithm combination. The conditions for a performance test are stored
+    in conf/performance/<ENV>/<OPTIONAL_ENV_SUBTYPE>/<OPTIONAL_ENV_CONFIG>-<ALGO>-test.yaml
     You can for example run: "python experiment/train.py +performance=FetchReach/her-test --multirun"
     The joblib launcher allows to run n_jobs in parallel.
     YOU CANNOT run multiple performance tests by simply providing multiple configs separated by commas, for example:
     "python experiment/train.py +performance=FetchReach/her-test,Ant/AntMaze/hac-2layer-test --multirun" does not work.
-    In that case, just call experiment/train.py two times.
+    In that case, just call experiment/train.py twice with the different performance test configs.
     """
     def __init__(self, study_name, n_jobs, **kwargs):
         self.study_name = study_name

@@ -64,21 +64,14 @@ It is important that you  **put the path to the store policy in single quotes**,
 ## File structure
 * The main script from which all algorithms are started is `train.py`.
 * The root directory contains shell scripts for automated testing and data generation.
-* The folder `experiment` contains all architectural stuff for evaluation.
-
-    * `plot.py` is for plotting
-
-    * `testing_algos.py` is for defining testing parameters
-
-    * `testing_envs.py` is for defining testing environments
-
-    * `click_options.py` is for setting the global (model-independent) command-line parameters
-
-    * `check_error_logs.py`, `generate_testing_commands.py` and `validate_performance_testing.py` is for executing evaluations and tests.
-
-* The folder `ideas_baselines` contains the new HAC implementation and an implementation of HER. Other new algorithms should be added here, too. For details on the specific algorithms, see below.
+* The folder `experiment` contains `train.py` and `plot.py`, which can plot data generated during the training.
+    
+* The folder `ideas_baselines` contains the new HAC implementation, an implementation of HER, and SACVG (a version of SAC with variable gamma). 
+  Other new algorithms should be added here, too. For details on the specific algorithms, see below.
 * The folder `ideas_envs` should contain new environments (but we may also choose to put environments in a completely different repository).
-* The folder `interface` contains for each algorithm, both stable-baselines3 algorithms and the algorithms here, a file `config.py` and `click_options.py`. The click options file determines the kwargs passed on to the model (HAC, SAC, TD3, etc). These are specifyable as command-line options. The file `config.py` is right now just for determining the parameters to be used for generating a path name for the log directory.
+* The folder `conf/algorithm` contains configurations for each algorithm, both stable-baselines3 algorithms and the algorithms here. 
+  It determines the kwargs passed on to the model (HAC, SAC, TD3, etc). 
+  These are also overridable as command-line options, e.g. `algorithm.verbose=False`.
 * The folder `util` contains some misc utilities.
 * The folder `hydra_plugins` contains some customized plugins for our hyperparameter management system.
 
@@ -149,11 +142,15 @@ python experiment/train.py algorithm=hac,her env=FetchReach-v1,AntReacher-v1 ++n
 With `+defaults=smoke_test` we are loading the sweeper parameters from `confg/smoke_test.yaml`.
 Crashed experiments can be found in mlflow, having a red cross symbol.
 
-#### Sweeper performance testing
+#### Performance testing
+Run a performance test for an environment-algorithm combination. The conditions for a performance test are stored in
+*conf/performance/ENV/OPTIONAL_ENV_SUBTYPE/OPTIONAL_ENV_CONFIG-ALGO-test.yaml*.
+You can for example run: `python experiment/train.py +performance=FetchReach/her-test --multirun`.
+The joblib launcher allows to run `n_jobs` in parallel.
 
-Use `python experiment/train.py +performance=FetchReach-hac_2layer --multirun`
-to overwrite the global parameters with the ones of the the configuration file (hydra uses the `+` to add new config entries).
-Config files are named as follows: `conf/performance/<env>-<algorihtm>_<misc>`.
+**You cannot** run multiple performance tests by simply providing multiple configs separated by commas, for example:
+`python experiment/train.py +performance=FetchReach/her-test,Ant/AntMaze/hac-2layer-test --multirun` does not work.
+In that case, just call `experiment/train.py` twice with the different performance test configs.
 
 ### Mlflow
 Mlflow collects studies and logs data of all runs.
