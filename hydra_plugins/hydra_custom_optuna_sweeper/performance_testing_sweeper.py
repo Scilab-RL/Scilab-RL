@@ -13,15 +13,24 @@ from mlflow.tracking import MlflowClient
 log = logging.getLogger(__name__)
 
 
-"""
-only command that calls this so far: python experiment/train.py +performance=FetchReach/her-test --multirun
-"""
 class PerformanceTestingSweeper(Sweeper):
-    def __init__(self, study_name, n_jobs, max_duration_minutes, **kwargs):
+    """
+    Run performance testing for a environment-algorithm combination. The conditions for a performance test are stored in
+    conf/performance/<ENV>/<optionalENVSUBTYPE>/<optionalENVCONFIG>-<ALGO>-test.yaml
+    You can for example run: "python experiment/train.py +performance=FetchReach/her-test --multirun"
+    The joblib launcher allows to run n_jobs in parallel.
+    YOU CANNOT run multiple performance tests by simply providing multiple configs separated by commas, for example:
+    "python experiment/train.py +performance=FetchReach/her-test,Ant/AntMaze/hac-2layer-test --multirun" does not work.
+    In that case, just call experiment/train.py two times.
+    """
+    def __init__(self, study_name, n_jobs, **kwargs):
         self.study_name = study_name
         self.n_jobs = n_jobs
-        self.max_duration = 60*max_duration_minutes
         self.mlflow_client = MlflowClient()
+        if 'max_duration_minutes' in kwargs:
+            self.max_duration = 60*kwargs['max_duration_minutes']
+        else:
+            self.max_duration = 60*24*7  # one week
 
     def setup(
         self,
@@ -36,7 +45,9 @@ class PerformanceTestingSweeper(Sweeper):
             config=config, config_loader=config_loader, task_function=task_function)
 
     def sweep(self, arguments: List[str]) -> None:
-        # TODO add support for running multiple performance tests
+        for arg in arguments:
+            if arg.startswith('+performance='):
+                p_test_name = arg[13:]
         p_test_cond = self.config['performance_testing_conditions']
         n_runs_left = p_test_cond['total_runs']
         needed_succ_runs = p_test_cond['succ_runs']
@@ -68,11 +79,16 @@ class PerformanceTestingSweeper(Sweeper):
                 succ_runs += int(run.data.metrics[eval_col] >= eval_val)
 
             if succ_runs >= needed_succ_runs:
-                log.info(f"Performance test successful! The value for {eval_col} "
-                         f"was at least {eval_val} in {succ_runs}")
+                log.info(f"Performance test {p_test_name} successful! The value for {eval_col} "
+                         f"was at least {eval_val} in {succ_runs} runs.")
                 break
             if n_runs_left < needed_succ_runs - succ_runs:
-                log.info(f"Performance test failed. The needed number of successful runs could not be achieved.")
+                log.info(f"Performance test {p_test_name} failed. "
+                         "The needed number of successful runs could not be achieved.")
                 break
 
             current_time = time.time()
+
+        if needed_succ_runs > succ_runs and (start_time + self.max_duration) < current_time:
+            log.info("The needed number of successful runs could not be achieved within "
+                     f"{int(self.max_duration/60)} minutes for performance test {p_test_name}.")
