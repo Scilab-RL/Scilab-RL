@@ -26,6 +26,6 @@ performance_testing_conditions:
 hydra:
   sweeper:
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: her_FetchReach-v1-p-test # the study name has to end in p-test
-    storage: sqlite:///her_FetchReach-p-test.db
-    max_duration_minutes: 30
+    study_name: her_FetchReach-v1_p-test
+    storage: sqlite:///her_FetchReach-v1_p-test.db
+    max_duration_minutes: 15

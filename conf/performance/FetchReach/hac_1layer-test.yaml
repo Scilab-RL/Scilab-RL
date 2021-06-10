@@ -1,7 +1,7 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  # access algorithm config group to get the default paramters of hac
+  # access algorithm config group to get the default parameters of hac
   - override /algorithm: hac
 
 # overwrite parameters of main.yaml
@@ -29,7 +29,7 @@ algorithm:
   layer_classes:
     - sacvg
 
-  # number of hindisght goals.
+  # number of hindsight goals.
   n_sampled_goal: 7
 
   # The learning rates of the layers. From highest to lowest layer.
@@ -50,55 +50,6 @@ algorithm:
 
 hydra:
   sweeper:
-    study_name: hac_1_layer_FetchReach-v1
-    storage: sqlite:///hac_1_layer_FetchReach.db
-    search_space:
-      algorithm.learning_rates.0:
-        type: float
-        low: 6e-4
-        high: 3e-2
-        log: true
-#
-      algorithm.n_sampled_goal:
-        type: int
-        low: 1
-        high: 8
-        step: 1
-#
-      algorithm.subgoal_test_perc:
-        type: float
-        low: 0.0
-        high: 0.7
-        step: 0.1
-
-      algorithm.goal_selection_strategy:
-        type: categorical
-        choices:
-          - future
-          - future2
-          - rndend
-          - rndend2
-
-      algorithm.use_action_replay:
-        type: categorical
-        choices:
-          - 1
-          - 0
-
-      algorithm.ep_early_done_on_succ:
-        type: int
-        low: 0
-        high: 2
-        step: 1
-
-      algorithm.hindsight_sampling_done_if_success:
-        type: categorical
-        choices:
-          - 1
-          - 0
-
-      algorithm.set_fut_ret_zero_if_done:
-        type: categorical
-        choices:
-          - 1
-          - 0
+    _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
+    study_name: hac_1_layer_FetchReach-v1_p-test
+    storage: sqlite:///hac_1_layer_FetchReach_p-test.db
