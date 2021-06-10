@@ -121,13 +121,14 @@ def main(cfg: DictConfig) -> (float, int):
         except Exception as e:
             print(f""""Warning, could not rename directory because of the following exception: \n{e}.
                 \nHave you restored this policy before? Note that in this case the script will just overwrite your
-                previously restored policy run. \nWill continue any ways.""")
+                previously restored policy run. \nWill continue anyway.""")
 
     if 'performance_testing_conditions' in cfg:
         cfg['n_epochs'] = int(cfg['performance_testing_conditions']['max_steps']/cfg['eval_after_n_steps'])
 
     setup_mlflow(cfg)
-    with mlflow.start_run() as mlflow_run:
+    run_name = cfg['algorithm']['name'] + '_' + cfg['env']
+    with mlflow.start_run(run_name=run_name) as mlflow_run:
         log_params_from_omegaconf_dict(cfg)
         if run_dir is not None:
             mlflow.log_param(f'log_dir', run_dir)
