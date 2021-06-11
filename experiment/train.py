@@ -11,11 +11,7 @@ sys.path.append(os.getcwd())
 import importlib
 import hydra
 from omegaconf import DictConfig, OmegaConf, open_dict
-# importing gym also imports cv2, which changes the QT_QPA_PLATFORM_PLUGIN_PATH.
-# So we have to save it and set it again after importing gym.
-QT_QPA_PLATFORM_PLUGIN_PATH = os.environ['QT_QPA_PLATFORM_PLUGIN_PATH']
 import gym
-os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = QT_QPA_PLATFORM_PLUGIN_PATH
 from util.util import get_subdir_by_params,get_git_label,set_global_seeds,get_last_epoch_from_logdir
 import time
 import ideas_envs.register_envs
