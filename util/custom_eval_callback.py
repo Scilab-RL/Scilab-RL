@@ -1,18 +1,17 @@
-from stable_baselines3.common.callbacks import EvalCallback, BaseCallback
-from typing import Any, Callable, Dict, List, Optional, Union
-from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, sync_envs_normalization
+import os
+from typing import Union
+
+import cv2
 import gym
 import numpy as np
-import os
-import warnings
-from util.custom_evaluation import evaluate_policy
-from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common import logger
-from collections import deque
-import time
-from stable_baselines3.common.utils import safe_mean
-import cv2
+from stable_baselines3.common.base_class import BaseAlgorithm
+from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
+from stable_baselines3.common.vec_env import VecEnv, sync_envs_normalization
+
+from util.custom_evaluation import evaluate_policy
+
 
 class CustomEvalCallback(EvalCallback):
     """
@@ -82,12 +81,15 @@ class CustomEvalCallback(EvalCallback):
         self.vid_size = 1024, 768
         self.vid_fps = 25
         self.eval_count = 0
+        self.train_count = 0
         self.render_train_info = None
         self.render_test_info = None
+        self.last_step_was_train = False
+        self.video_writer = None
 
         if self.render_train == 'record':
-            self.render_rain_info = {'size': self.vid_size, 'fps': self.vid_fps, 'eval_count': self.eval_count,
-                                     'path': self.log_path}
+            self.render_train_info = {'size': self.vid_size, 'fps': self.vid_fps, 'train_count': self.train_count,
+                                      'path': self.log_path}
         elif self.render_train == 'display':
             self.render_train_info = {'mode': 'human'}
         if self.render_test == 'record':
@@ -98,6 +100,11 @@ class CustomEvalCallback(EvalCallback):
 
     def _on_step(self, log_prefix='') -> bool:
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
+            if self.video_writer is not None and self.last_step_was_train:
+                # save the training video
+                self.video_writer.release()
+                self.video_writer = None
+                self.last_step_was_train = False
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
             if self.render_test_info is not None:
@@ -158,6 +165,26 @@ class CustomEvalCallback(EvalCallback):
                 else:
                     env = self.training_env
                 env.render(mode=self.render_train_info['mode'])
-            # es wird jedes Mal ein Video writer erzeugt, wenn ein neues Video erstellt wird.
+            elif self.render_train == 'record':
+                if not self.last_step_was_train:
+                    self.train_count += 1
+                    self.render_train_info['train_count'] = self.train_count
+                    # create a new VideoWriter for each episode
+                    try:
+                        self.video_writer = cv2.VideoWriter(
+                            self.render_train_info['path'] + '/train_{}.avi'.format(self.render_train_info['train_count']),
+                            cv2.VideoWriter_fourcc('F', 'M', 'P', '4'),
+                            self.render_train_info['fps'], self.render_train_info['size'])
+                    except:
+                        logger.info("Error creating video writer")
+                else:
+                    if hasattr(self.training_env, 'venv'):
+                        frame = self.training_env.venv.envs[0].render(mode='rgb_array',
+                                                                      width=self.render_train_info['size'][0],
+                                                                      height=self.render_train_info['size'][1])
+                    else:
+                        frame = self.training_env.render(mode='rgb_array')
+                    self.video_writer.write(frame)
+            self.last_step_was_train = True
 
         return True
