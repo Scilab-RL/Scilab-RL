@@ -81,6 +81,9 @@ def convert_alg_cfg(cfg):
                 raise ValueError(f"class name {mc_str} not found")
             alg_dict['model_class'] = mc
             del cfg['algorithm']['model_class']
+        if cfg['algorithm']['name'] == 'hac':
+            alg_dict['render_train'] = cfg['render_train']
+            alg_dict['render_test'] = cfg['render_test']
         # remove name as we pass all arguments to the model constructor
         if 'name' in cfg['algorithm']:
             del cfg['algorithm']['name']

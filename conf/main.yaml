@@ -74,14 +74,13 @@ info: ''
 # The number of steps after which to save the model. 0 to never save, i.e., to only save the best and last model.
 save_model_freq: 0
 
-# RENDERING
-# 'display' or 'record' the agent in train and/or test episodes
-# none -> don't render
-# display -> render and display
-# record -> render and record
-# NOTE: this is only useful for sb3 algorithms
-render_train: ''
-render_test: ''
+# Whether and how to render the rollout execution during training.
+# \'record\' is for video, \'display\' for direct visualization, \'null\' is for not rendering at all.
+render_train: null
+
+# Whether and how to render the rollout execution during testing.
+# \'record\' is for video, \'display\' for direct visualization, \'null\' for not rendering at all.
+render_test: null
 
 # TODO: Currently, having a subfolder conf/hydra/output is buggy
 # override default dirname config
