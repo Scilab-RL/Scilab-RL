@@ -71,7 +71,7 @@ class CustomEvalCallback(EvalCallback):
             render_args = [[None, 1], [None, 1]]
         self.render_train = render_args[0][0]
         self.render_test = render_args[1][0]
-        # TODO self.render_every_n_train/eval implementieren
+        self.render_every_n_train = render_args[0][1]
         self.render_every_n_eval = render_args[1][1]
 
         eval_env = BaseAlgorithm._wrap_env(eval_env)
@@ -105,6 +105,7 @@ class CustomEvalCallback(EvalCallback):
                                      'path': self.log_path}
         elif self.render_test == 'display':
             self.render_test_info = {'mode': 'human'}
+        self.render_test_info['render_every_n_eval'] = self.render_every_n_eval
 
     def _on_step(self, log_prefix='') -> bool:
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
@@ -112,7 +113,7 @@ class CustomEvalCallback(EvalCallback):
                 # save the training video
                 self.video_writer.release()
                 self.video_writer = None
-                self.last_step_was_train = False
+            self.last_step_was_train = False
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
             if self.render_test_info is not None:
@@ -167,32 +168,34 @@ class CustomEvalCallback(EvalCallback):
                     return False
             self.eval_count += 1
         else:
-            if self.render_train == 'display':
-                if hasattr(self.training_env, 'venv'):
-                    env = self.training_env.venv.envs[0]
-                else:
-                    env = self.training_env
-                env.render(mode=self.render_train_info['mode'])
-            elif self.render_train == 'record':
-                if not self.last_step_was_train:
-                    self.train_count += 1
-                    self.render_train_info['train_count'] = self.train_count
-                    # create a new VideoWriter for each episode
-                    try:
-                        self.video_writer = cv2.VideoWriter(
-                            self.render_train_info['path'] + '/train_{}.avi'.format(self.render_train_info['train_count']),
-                            cv2.VideoWriter_fourcc('F', 'M', 'P', '4'),
-                            self.render_train_info['fps'], self.render_train_info['size'])
-                    except:
-                        logger.info("Error creating video writer")
-                else:
+            if not self.last_step_was_train:
+                self.train_count += 1
+            if (self.train_count-1) % self.render_every_n_train == 0:
+                if self.render_train == 'display':
                     if hasattr(self.training_env, 'venv'):
-                        frame = self.training_env.venv.envs[0].render(mode='rgb_array',
-                                                                      width=self.render_train_info['size'][0],
-                                                                      height=self.render_train_info['size'][1])
+                        env = self.training_env.venv.envs[0]
                     else:
-                        frame = self.training_env.render(mode='rgb_array')
-                    self.video_writer.write(frame)
+                        env = self.training_env
+                    env.render(mode=self.render_train_info['mode'])
+                elif self.render_train == 'record':
+                    if not self.last_step_was_train:
+                        self.render_train_info['train_count'] = self.train_count
+                        # create a new VideoWriter for each episode
+                        try:
+                            self.video_writer = cv2.VideoWriter(
+                                self.render_train_info['path'] + '/train_{}.avi'.format(self.train_count-1),
+                                cv2.VideoWriter_fourcc('F', 'M', 'P', '4'),
+                                self.render_train_info['fps'], self.render_train_info['size'])
+                        except:
+                            logger.info("Error creating video writer")
+                    else:
+                        if hasattr(self.training_env, 'venv'):
+                            frame = self.training_env.venv.envs[0].render(mode='rgb_array',
+                                                                          width=self.render_train_info['size'][0],
+                                                                          height=self.render_train_info['size'][1])
+                        else:
+                            frame = self.training_env.render(mode='rgb_array')
+                        self.video_writer.write(frame)
             self.last_step_was_train = True
 
         return True
