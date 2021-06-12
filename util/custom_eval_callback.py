@@ -1,5 +1,5 @@
 import os
-from typing import Union
+from typing import Union, List
 
 import cv2
 import gym
@@ -26,9 +26,13 @@ class CustomEvalCallback(EvalCallback):
         will be saved. It will be updated at each evaluation.
     :param deterministic: Whether the evaluation should
         use a stochastic or deterministic actions.
-    :param render_train: none -> don't render during training
-                         display -> render and display during training
-                         record -> render and record during training
+    :param render_args: List with rendering parameters, composed as follows:
+                        [[render_train, n_train], [render_test, n_test]]
+                        render_train/render_test are one of
+                            none -> don't render during training
+                            display -> render and display during training
+                            record -> render and record during training
+                        We render the training/testing after every n_train/n_test epoch
     :param render_test: Same as render train but during evaluation
     :param verbose:
     """
@@ -40,8 +44,7 @@ class CustomEvalCallback(EvalCallback):
         eval_freq: int = 10000,
         log_path: str = None,
         deterministic: bool = True,
-        render_train: str = 'none',
-        render_test: str = 'none',
+        render_args: List = None,
         verbose: int = 1,
         early_stop_data_column: str = 'test/success_rate',
         early_stop_threshold: float = 1.0,
@@ -54,8 +57,6 @@ class CustomEvalCallback(EvalCallback):
         self.best_mean_reward = -np.inf
         self.best_mean_success = -np.inf
         self.deterministic = deterministic
-        self.render_train = render_train
-        self.render_test = render_test
         self.best_model_save_path = None
         eval_history_column_names = ['test/mean_reward', 'test/success_rate']
         self.eval_histories = {}
@@ -65,6 +66,13 @@ class CustomEvalCallback(EvalCallback):
         self.early_stop_threshold = early_stop_threshold
         self.early_stop_last_n = early_stop_last_n
         self.agent = agent
+        # unpack render_args
+        if render_args is None:
+            render_args = [[None, 1], [None, 1]]
+        self.render_train = render_args[0][0]
+        self.render_test = render_args[1][0]
+        # TODO self.render_every_n_train/eval implementieren
+        self.render_every_n_eval = render_args[1][1]
 
         eval_env = BaseAlgorithm._wrap_env(eval_env)
 

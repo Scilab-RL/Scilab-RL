@@ -117,6 +117,13 @@ class HAC(BaseAlgorithm):
     :param max_episode_length: The maximum length of an episode. If not specified,
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
         it will be automatically inferred if the environment uses a ``gym.wrappers.TimeLimit`` wrapper.
+    :param render_args: List with rendering parameters, composed as follows:
+        [[render_train, n_train], [render_test, n_test]]
+        render_train/render_test are one of
+            none -> don't render during training
+            display -> render and display during training
+            record -> render and record during training
+        We render the training/testing after every n_train/n_test epoch
     """
 
     save_attrs_to_exclude = ['layer_alg', 'train_video_writer', 'test_video_writer', 'sub_layer', 'parent_layer', 'env',
@@ -142,9 +149,7 @@ class HAC(BaseAlgorithm):
         n_train_batches: int = 0,
         train_freq: int = 0,
         subgoal_test_perc: float = 0.3,
-        render_train: str = 'none',
-        render_test: str = 'none',
-        render_every_n_eval: int = 1,
+        render_args: List = None,
         use_action_replay: bool = True,
         ep_early_done_on_succ: bool = True,
         hindsight_sampling_done_if_success: int = 1,
@@ -156,11 +161,18 @@ class HAC(BaseAlgorithm):
         self.ep_early_done_on_succ = ep_early_done_on_succ
         self.gradient_steps = n_train_batches
         self.learn_callback = None
-        self.render_every_n_eval = render_every_n_eval
         self.is_top_layer = is_top_layer
         self.time_scales = time_scales
         self.train_freq = train_freq
         self.layer_classes = layer_classes
+
+        # unpack render_args
+        if render_args is None:
+            render_args = [[None, 1], [None, 1]]
+        render_train = render_args[0][0]
+        render_test = render_args[1][0]
+        self.render_every_n_train = render_args[0][1]
+        self.render_every_n_eval = render_args[1][1]
 
         # # Get default options for model classes
         class_name = layer_classes[0]
@@ -216,10 +228,8 @@ class HAC(BaseAlgorithm):
                                     train_freq=self.train_freq,
                                     is_top_layer=False,
                                     layer_envs=layer_envs[1:],
-                                    render_train=render_train,
-                                    render_test=render_test,
+                                    render_args=render_args,
                                     learning_rates=learning_rates[1:],
-                                    render_every_n_eval=render_every_n_eval,
                                     use_action_replay=use_action_replay,
                                     ep_early_done_on_succ=ep_early_done_on_succ,
                                     **kwargs)
@@ -539,7 +549,7 @@ class HAC(BaseAlgorithm):
                 # last_steps_succ.append(success)
                 if subgoal_test: # if the subgoal test has started here, unset testing mode of sub_layer if applicable.
                     self.unset_subgoal_test_mode()
-                if self.is_bottom_layer and self.train_render_info != 'none' and self.epoch_count % self.render_every_n_eval == 0:
+                if self.is_bottom_layer and self.train_render_info != 'none' and self.epoch_count % self.render_every_n_train == 0:
                     if self.render_train == 'record':
                         frame = self.env.unwrapped.render(mode='rgb_array', width=self.train_render_info['size'][0],
                                                              height=self.train_render_info['size'][1])
@@ -1026,7 +1036,7 @@ class HAC(BaseAlgorithm):
                 succ_rate = 0
             succ_learn_rate = float(succ_rate/self.epoch_count)
             logger.record("success learn rate", succ_learn_rate, exclude="tensorboard")
-            if self.epoch_count % self.render_every_n_eval == 0:
+            if self.epoch_count % self.render_every_n_train == 0:
                 if self.train_render_info is not None:
                     self.start_train_video_writer(self.get_env_steps())
                 if self.test_render_info is not None:

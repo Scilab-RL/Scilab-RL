@@ -51,8 +51,7 @@ def train(baseline, train_env, eval_env, cfg):
         eval_callback = CustomEvalCallback(eval_env,
                                            agent=baseline,
                                            log_path=logger.get_dir(),
-                                           render_train=cfg.render_train,
-                                           render_test=cfg.render_test,
+                                           render_args=cfg.render_args,
                                            eval_freq=cfg.eval_after_n_steps,
                                            n_eval_episodes=cfg.n_test_rollouts,
                                            early_stop_last_n=cfg.early_stop_last_n,
@@ -82,8 +81,7 @@ def convert_alg_cfg(cfg):
             alg_dict['model_class'] = mc
             del cfg['algorithm']['model_class']
         if cfg['algorithm']['name'] == 'hac':
-            alg_dict['render_train'] = cfg['render_train']
-            alg_dict['render_test'] = cfg['render_test']
+            alg_dict['render_args'] = cfg['render_args']
         # remove name as we pass all arguments to the model constructor
         if 'name' in cfg['algorithm']:
             del cfg['algorithm']['name']

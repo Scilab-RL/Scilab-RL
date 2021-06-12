@@ -64,10 +64,6 @@ hindsight_sampling_done_if_success: 0
 # done when computing the TD q value.
 set_fut_ret_zero_if_done: 0
 
-# The number of evaluations (epochs) after which to render the simluation.
-# This has only an effect if \'render_train\' or \'render_test\' is not set to \'none\'.
-render_every_n_eval: 20
-
 # The percentage of subgoals to test.
 subgoal_test_perc: 0.1
 
