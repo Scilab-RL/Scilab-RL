@@ -132,7 +132,7 @@ class HAC(BaseAlgorithm):
                              'gradient_steps', 'train_freq', # These two are not required because they are overwritten in the train() function of the model any ways.
                              '_episode_storage', 'eval_info_list', 'sub_layer_classes', 'goal_selection_strategy', 'layer_class', 'action_space', 'observation_space', # These require more than 1MB to save
                              'episode_steps',
-                             'render_train', 'render_test', 'render_every_n_eval', 'train_render_info', 'test_render_info' # Overwrite rendering variables.
+                             'render_train', 'render_test', 'render_every_n_train', 'render_every_n_eval', 'train_render_info', 'test_render_info' # Overwrite rendering variables.
                              ]
     def __init__(
         self,
@@ -1038,12 +1038,14 @@ class HAC(BaseAlgorithm):
             logger.record("success learn rate", succ_learn_rate, exclude="tensorboard")
             if self.epoch_count % self.render_every_n_train == 0:
                 if self.train_render_info is not None:
-                    self.start_train_video_writer(self.get_env_steps())
+                    self.start_train_video_writer(self.epoch_count)
+            if self.epoch_count % self.render_every_n_eval == 0:
                 if self.test_render_info is not None:
-                    self.start_test_video_writer(self.get_env_steps())
-            if (self.epoch_count - 1) % self.render_every_n_eval == 0:
+                    self.start_test_video_writer(self.epoch_count)
+            if (self.epoch_count - 1) % self.render_every_n_train == 0:
                 if self.train_render_info is not None:
                     self.stop_train_video_writer()
+            if (self.epoch_count - 1) % self.render_every_n_eval == 0:
                 if self.test_render_info is not None:
                     self.stop_test_video_writer()
 
