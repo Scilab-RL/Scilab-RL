@@ -48,7 +48,7 @@ def evaluate_policy(
     """
 
     video_writer = None
-    render = (render_info['eval_count']-1) % render_info['render_every_n_eval'] == 0
+    render = render_info is not None and (render_info['eval_count']-1) % render_info['render_every_n_eval'] == 0
     if render:
         if render_info is not None and 'fps' in render_info:
             try:
