@@ -64,9 +64,6 @@ class CustomEvalCallback(EvalCallback):
         self.agent = agent
 
         eval_env = BaseAlgorithm._wrap_env(eval_env)
-        # Convert to VecEnv for consistency
-        if not isinstance(eval_env, VecEnv):
-            eval_env = DummyVecEnv([lambda: eval_env])
 
         if isinstance(eval_env, VecEnv):
             assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
@@ -81,13 +78,13 @@ class CustomEvalCallback(EvalCallback):
         self.vid_size = 1024, 768
         self.vid_fps = 25
         self.eval_count = 0
+        self.render_info = None
 
         if self.render == 'record':
             self.render_info = {'size': self.vid_size, 'fps': self.vid_fps, 'eval_count': self.eval_count,
                                 'path': self.log_path}
-        else:
-            self.render_info = None
-
+        elif self.render == 'display':
+            self.render_info = {'mode': 'human'}
 
     def _on_step(self, log_prefix='') -> bool:
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
