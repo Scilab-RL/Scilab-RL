@@ -7,16 +7,6 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
 ## Getting started
 
-1. Download MuJoCo (mujoco.org) and obtain a license
-   (as student you can obtain a free one-year student license).
-   Copy the mjpro200_linux folder from the downloaded archive
-   as well as mjkey.txt that you will obtain from the registration
-   to folders of your choice.
-
-1. Set the environment variables in `set_paths.sh` according to the
-   locations where you saved the mjpro200_linux folder and the mjkey.txt.
-   If you are using an IDE, set the variables there as well.
-
 1. generate a virtual python3 environment with
 
     `virtualenv -p python3 venv` or
@@ -31,16 +21,12 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
 
     `pip install --upgrade pip`
-
-1. set environment variables and paths with
-
-    `source ./set_paths.sh`
-
+   
 1. install required python libraries with
 
     `pip install -r requirements.txt`
-
-1. Add the mujoco binary path to the  `LD_LIBRARY_PATH` environment variable. If you first run the script without doing this it will automatically remind you and identify the path for you.
+   
+1. Install one or both simulators from the [environments section](#environments).
 
 
 ## Start training manually
@@ -102,8 +88,22 @@ It is important that you  **put the path to the store policy in single quotes**,
 TBD
 
 ## Environments
-Currently, all goal-conditioned gym environments are supported. A list of all tested environments can be found in `conf/main.yaml`. 
+Currently, all goal-conditioned gym environments are supported. A list of all tested environments can be found in `conf/main.yaml`.
+You can use MuJoCo, CoppeliaSim or both. The following sections show you how to install them.
 
+### Install MuJoCo
+1. Download [MuJoCo](mujoco.org) and obtain a license
+   (as student you can obtain a free one-year student license).
+   Copy the *mjpro200_linux* folder from the downloaded archive
+   as well as *mjkey.txt* that you will obtain from the registration
+   to folders of your choice.
+
+1. Set the environment variables in `set_paths.sh` according to the
+   locations where you saved the *mjpro200_linux* folder and the *mjkey.txt*.
+   Run `source ./set_paths.sh`
+   If you are using an IDE, set the variables there as well.
+   
+1. `pip install mujoco-py`
 ### Install CoppeliaSim and RL Bench
 If you'd like to use environments simulated with CoppeliaSim, 
 [download CoppeliaSim Edu 4.1.0](https://www.coppeliarobotics.com/previousVersions) (4.2.0 causes problems with some environments)
