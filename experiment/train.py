@@ -94,8 +94,16 @@ def launch(cfg, kwargs):
         BaselineClass = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except:
         BaselineClass = getattr(importlib.import_module('ideas_baselines.' + algo_name), algo_name.upper())
-    train_env = gym.make(cfg.env)
-    eval_env = gym.make(cfg.env)
+    if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an rl_bench env
+        from ideas_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
+        render_mode = None
+        if algo_name == 'hac':
+            if cfg.algorithm.render_train == "display":
+                render_mode = "human"
+        train_env = eval_env = RLBenchWrapper(gym.make(cfg.env, render_mode=render_mode))
+    else:
+        train_env = gym.make(cfg.env)
+        eval_env = gym.make(cfg.env)
     if cfg.restore_policy is not None:
         baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
     else:
