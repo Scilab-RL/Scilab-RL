@@ -74,6 +74,10 @@ info: ''
 # The number of steps after which to save the model. 0 to never save, i.e., to only save the best and last model.
 save_model_freq: 0
 
+# 'display' or 'record' the agent in test episodes
+# NOTE: this is only useful for sb3 algorithms
+render: ''
+
 # TODO: Currently, having a subfolder conf/hydra/output is buggy
 # override default dirname config
 hydra:
