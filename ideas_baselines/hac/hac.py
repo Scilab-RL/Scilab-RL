@@ -1036,18 +1036,18 @@ class HAC(BaseAlgorithm):
                 succ_rate = 0
             succ_learn_rate = float(succ_rate/self.epoch_count)
             logger.record("success learn rate", succ_learn_rate, exclude="tensorboard")
-            if self.epoch_count % self.render_every_n_train == 0:
-                if self.train_render_info is not None:
-                    self.start_train_video_writer(self.epoch_count)
-            if self.epoch_count % self.render_every_n_eval == 0:
-                if self.test_render_info is not None:
-                    self.start_test_video_writer(self.epoch_count)
             if (self.epoch_count - 1) % self.render_every_n_train == 0:
                 if self.train_render_info is not None:
                     self.stop_train_video_writer()
             if (self.epoch_count - 1) % self.render_every_n_eval == 0:
                 if self.test_render_info is not None:
                     self.stop_test_video_writer()
+            if self.epoch_count % self.render_every_n_train == 0:
+                if self.train_render_info is not None:
+                    self.start_train_video_writer(self.epoch_count)
+            if self.epoch_count % self.render_every_n_eval == 0:
+                if self.test_render_info is not None:
+                    self.start_test_video_writer(self.epoch_count)
 
     def reset_train_info_list(self):
         self.train_info_list = {'ep_length': []}
