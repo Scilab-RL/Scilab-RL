@@ -303,7 +303,7 @@ class HAC(BaseAlgorithm):
         self.test_render_info = None
         self.train_render_info = None
 
-        self.vid_size = 1024, 768
+        self.vid_size = 640, 360  # changing this will break RLBench recording
         self.vid_fps = 25
 
         self.render_train = render_train

@@ -99,9 +99,15 @@ def launch(cfg, kwargs):
     if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an rl_bench env
         from ideas_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
         render_mode = None
-        if algo_name == 'hac':
-            if cfg.algorithm.render_train == "display":
-                render_mode = "human"
+        # For RLBench envs, we can either not render at all, display train AND test, or record train or test or both
+        # record will overwrite display
+        # e.g. render_args=[['display',1],['record',1]] will have the same effect
+        # as render_args=[['none',1],['record',1]]
+        if cfg.render_args[0][0] == 'display' or cfg.render_args[1][0] == 'display':
+            render_mode = 'human'
+        if cfg.render_args[0][0] == 'record' or cfg.render_args[1][0] == 'record':
+            render_mode = 'rgb_array'
+        # there can be only one PyRep instance per process, therefore train_env == eval_env
         train_env = eval_env = RLBenchWrapper(gym.make(cfg.env, render_mode=render_mode))
     else:
         train_env = gym.make(cfg.env)

@@ -86,7 +86,7 @@ class CustomEvalCallback(EvalCallback):
         self.evaluations_timesteps = []
         self.evaluations_length = []
 
-        self.vid_size = 1024, 768
+        self.vid_size = 640, 360  # changing this will break RLBench recording
         self.vid_fps = 25
         self.eval_count = 0
         self.train_count = 0

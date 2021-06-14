@@ -52,7 +52,7 @@ def evaluate_policy(
     if render:
         if render_info is not None and 'fps' in render_info:
             try:
-                video_writer = cv2.VideoWriter(render_info['path'] + '/eval_{}.avi'.format(render_info['eval_count']-1),
+                video_writer = cv2.VideoWriter(render_info['path'] + '/eval_{}.avi'.format(render_info['eval_count']),
                                                 cv2.VideoWriter_fourcc('F', 'M', 'P', '4'), render_info['fps'], render_info['size'])
             except:
                 logger.info("Error creating video writer")
