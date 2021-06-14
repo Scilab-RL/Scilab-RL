@@ -102,6 +102,8 @@ You can use MuJoCo, CoppeliaSim or both. The following sections show you how to 
    locations where you saved the *mjpro200_linux* folder and the *mjkey.txt*.
    Run `source ./set_paths.sh`
    If you are using an IDE, set the variables there as well.
+   
+1. `pip install mujoco-py`
 ### Install CoppeliaSim and RL Bench
 If you'd like to use environments simulated with CoppeliaSim, 
 [download CoppeliaSim Edu 4.1.0](https://www.coppeliarobotics.com/previousVersions) (4.2.0 causes problems with some environments)
