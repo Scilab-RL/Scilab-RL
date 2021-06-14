@@ -43,3 +43,11 @@ for task in ['Maze', 'Push', 'Fall']:
              entry_point='ideas_envs.ant.ant_maze_push_fall_env:AntMazePushFallEnv',
              kwargs=kwargs,
              max_episode_steps=600)
+
+# ReacherEnv using CoppeliaSim
+for IK in [0, 1]:  # whether to use inverse kinematics
+    kwargs = {'ik': IK, 'render': 1}
+    register(id='CopReach-ik{}-v0'.format(kwargs['ik']),
+             entry_point='ideas_envs.cop_reach.cop_reach_env:ReacherEnvMaker',
+             kwargs=kwargs,
+             max_episode_steps=200)

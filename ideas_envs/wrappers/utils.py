@@ -1,14 +1,19 @@
 import os
 from shutil import copyfile
 import xml.etree.ElementTree
-import gym.envs.robotics.fetch.reach as reach
 import ideas_envs.wrappers.subgoal_viz_wrapper as svw
 
 
 def goal_viz_for_gym_robotics():
     """
     patch the gym.envs.robotics environment.xml files so that we can render subgoals
+    Only if MuJoCo is installed
     """
+    try:
+        import mujoco_py
+        import gym.envs.robotics.fetch.reach as reach
+    except ImportError as e:
+        return
     base_path = reach.__file__[:-14]+'assets/'
     # copy the goal visualization XML to the gym.envs.robotics.assets directory
     # If it is already there, assume the required changes have already been made and return
