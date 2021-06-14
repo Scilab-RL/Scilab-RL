@@ -90,6 +90,8 @@ class HierarchicalVecEnv(DummyVecEnv):
         goals_to_viz = {}
         alphas = np.arange(GOAL_MARKER_MIN_ALPHA, GOAL_MARKER_MAX_ALPHA, GOAL_MARKER_MAX_ALPHA / len(goal_list))
         for layer_idx, layer_goals_to_render in enumerate(goal_list):
+            if len(layer_goals_to_render) % 3 != 0:
+                return
             n_goals = len(layer_goals_to_render) // 3
             colors = GOAL_MARKER_COLORS[:n_goals]
             for i in range(n_goals):
@@ -100,6 +102,9 @@ class HierarchicalVecEnv(DummyVecEnv):
                     layer_goals_to_render[i * 3: (i + 1) * 3], self.goal_viz_size, color_and_alpha)
         # set the sites' attributes in the simulation
         viz_env = self.envs[env_idx].unwrapped
+        if hasattr(viz_env, 'display_subgoals'):
+            viz_env.display_subgoals(goals_to_viz)
+            return
         for name in goals_to_viz:
             try:
                 site_id = viz_env.sim.model.site_name2id(name)
@@ -154,7 +159,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
             logger.warn("Warning, subgoal space of hierarchical environment not defined. "
                         "I will guess the subgoal bounds based on drawing goal samples when the sub env is set.")
 
-        self.observation_space = bottom_env.env.observation_space
+        self.observation_space = bottom_env.unwrapped.observation_space
         self._sub_env = None
         self.layer_alg = layer_alg
         self.is_testing_env = is_testing_env
@@ -164,7 +169,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
         self.action_space.high = [-np.inf] * len(self.action_space.high)
         self.action_space.low = [np.inf] * len(self.action_space.low)
         for _ in range(n_samples):
-            goal = self._sub_env.env.unwrapped._sample_goal()
+            goal = self._sub_env.unwrapped._sample_goal()
             self.action_space.high = np.maximum(goal, self.action_space.high)
             self.action_space.low = np.minimum(goal, self.action_space.low)
         # Add some small extra margin.
@@ -185,7 +190,7 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def step(self, action):
         subgoal = np.clip(action, self.action_space.low, self.action_space.high)
         self._sub_env.env._elapsed_steps = 0 # Set elapsed steps to 0 but don't reset the whole simulated environment
-        self._sub_env.env.unwrapped.goal = subgoal
+        self._sub_env.unwrapped.goal = subgoal
         # store the goals in the bottom_env, so that they can be displayed
         current_layer = self.layer_alg.layer
         self.bottom_env.goal_list[current_layer] = self.goal
@@ -229,7 +234,6 @@ class HierarchicalHLEnv(gym.GoalEnv):
         super().reset()
         obs = self._sub_env.reset()
         self.goal = self._sub_env.goal
-        self.last_obs = obs
         return obs
 
     def close(self):
@@ -244,14 +248,14 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def _get_obs(self):
         """Returns the observation.
         """
-        obs = self._sub_env.env.unwrapped._get_obs()
+        obs = self._sub_env.unwrapped._get_obs()
         obs['desired_goal'] = self.goal
         return obs
 
     def _is_success(self, achieved_goal, desired_goal):
         """Indicates whether or not the achieved goal successfully achieved the desired goal.
         """
-        return self._sub_env.env.unwrapped._is_success(achieved_goal, desired_goal)
+        return self._sub_env.unwrapped._is_success(achieved_goal, desired_goal)
 
     def _sample_goal(self):
         """Samples a new goal and returns it.
@@ -281,4 +285,4 @@ class HierarchicalHLEnv(gym.GoalEnv):
         """
 
     def compute_reward(self, achieved_goal, desired_goal, info):
-        return self._sub_env.env.compute_reward(achieved_goal, desired_goal, info)
+        return self._sub_env.unwrapped.compute_reward(achieved_goal, desired_goal, info)
