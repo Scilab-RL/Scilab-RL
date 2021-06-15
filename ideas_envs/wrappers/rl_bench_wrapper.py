@@ -112,8 +112,12 @@ class RLBenchWrapper(Wrapper):
         self.goal = desired_goal
         return achieved_goal, desired_goal
 
-    def render(self, **kwargs):
-        pass  # CoppeliaSim environments are not explicitly rendered
+    def render(self, mode='none', **kwargs):
+        if mode == 'none' or mode == 'human':
+            return
+        frame = self.env.unwrapped.render(mode='rgb_array')
+        frame = (frame*255).astype(np.uint8)[:, :, ::-1]  # convert to int and change color order
+        return frame
 
     def compute_reward(self, achieved_goal, desired_goal, info):
         if len(achieved_goal.shape) == 1:

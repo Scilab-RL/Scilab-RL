@@ -51,7 +51,7 @@ def train(baseline, train_env, eval_env, cfg):
         eval_callback = CustomEvalCallback(eval_env,
                                            agent=baseline,
                                            log_path=logger.get_dir(),
-                                           render=cfg.render,
+                                           render_args=cfg.render_args,
                                            eval_freq=cfg.eval_after_n_steps,
                                            n_eval_episodes=cfg.n_test_rollouts,
                                            early_stop_last_n=cfg.early_stop_last_n,
@@ -80,6 +80,8 @@ def convert_alg_cfg(cfg):
                 raise ValueError(f"class name {mc_str} not found")
             alg_dict['model_class'] = mc
             del cfg['algorithm']['model_class']
+        if cfg['algorithm']['name'] == 'hac':
+            alg_dict['render_args'] = cfg['render_args']
         # remove name as we pass all arguments to the model constructor
         if 'name' in cfg['algorithm']:
             del cfg['algorithm']['name']
@@ -97,9 +99,15 @@ def launch(cfg, kwargs):
     if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an rl_bench env
         from ideas_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
         render_mode = None
-        if algo_name == 'hac':
-            if cfg.algorithm.render_train == "display":
-                render_mode = "human"
+        # For RLBench envs, we can either not render at all, display train AND test, or record train or test or both
+        # record will overwrite display
+        # e.g. render_args=[['display',1],['record',1]] will have the same effect
+        # as render_args=[['none',1],['record',1]]
+        if cfg.render_args[0][0] == 'display' or cfg.render_args[1][0] == 'display':
+            render_mode = 'human'
+        if cfg.render_args[0][0] == 'record' or cfg.render_args[1][0] == 'record':
+            render_mode = 'rgb_array'
+        # there can be only one PyRep instance per process, therefore train_env == eval_env
         train_env = eval_env = RLBenchWrapper(gym.make(cfg.env, render_mode=render_mode))
     else:
         train_env = gym.make(cfg.env)
