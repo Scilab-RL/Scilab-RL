@@ -67,7 +67,7 @@ class RLBenchWrapper(Wrapper):
         return goal
 
     def _guess_goal_space(self, goal_space):
-        n_samples = 5# FIXME set back to 1000
+        n_samples = 300
         goal_space.high = -goal_space.high
         goal_space.low = -goal_space.low
         for _ in range(n_samples):
