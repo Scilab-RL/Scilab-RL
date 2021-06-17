@@ -195,7 +195,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         assert self.launcher is not None
         assert self.job_idx is not None
 
-        if self.config['defaults'] == 'smoke_test':
+        if 'defaults' in self.config and self.config['defaults'] == 'smoke_test':
             self.smoke_test(arguments)
             return
 
