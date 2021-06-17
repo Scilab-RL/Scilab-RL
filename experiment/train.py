@@ -145,7 +145,6 @@ def main(cfg: DictConfig) -> (float, int):
     setup_mlflow(cfg)
     run_name = cfg['algorithm']['name'] + '_' + cfg['env']
     with mlflow.start_run(run_name=run_name) as mlflow_run:
-        log_params_from_omegaconf_dict(cfg)
         if run_dir is not None:
             mlflow.log_param(f'log_dir', run_dir)
 
@@ -161,10 +160,6 @@ def main(cfg: DictConfig) -> (float, int):
         active_mlflow_run = mlflow.active_run()
         print("Active mlflow run_id: {}".format(active_mlflow_run.info.run_id))
 
-        if 'exp_path_params' in cfg.algorithm.keys():
-            with open_dict(cfg):
-                del cfg['algorithm']['exp_path_params']
-
         logger.info("Starting process id: {}".format(os.getpid()))
 
         if cfg['seed'] == 0:
@@ -173,9 +168,11 @@ def main(cfg: DictConfig) -> (float, int):
         logdir = logger.get_dir()
         logger.info("Data dir: {} ".format(logdir))
 
+        log_params_from_omegaconf_dict(cfg)
+        OmegaConf.save(config=cfg, f='params.yaml')
+
         # Prepare xmls for subgoal visualizations
         ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
-        OmegaConf.save(config=cfg, f='params.yaml')
 
         kwargs = {}
         launch(cfg, kwargs)
