@@ -20,11 +20,11 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
 
     `pip install --upgrade pip`
-   
+
 1. install required python libraries with
 
     `pip install -r requirements.txt`
-   
+
 1. Install one or both simulators from the [environments section](#environments).
 
 
@@ -51,12 +51,12 @@ It is important that you  **put the path to the store policy in single quotes**,
 * The main script from which all algorithms are started is `train.py`.
 * The root directory contains shell scripts for automated testing and data generation.
 * The folder `experiment` contains `train.py` and `plot.py`, which can plot data generated during the training.
-    
-* The folder `ideas_baselines` contains the new HAC implementation, an implementation of HER, and SACVG (a version of SAC with variable gamma). 
+
+* The folder `ideas_baselines` contains the new HAC implementation, an implementation of HER, and SACVG (a version of SAC with variable gamma).
   Other new algorithms should be added here, too. For details on the specific algorithms, see below.
 * The folder `ideas_envs` should contain new environments (but we may also choose to put environments in a completely different repository).
-* The folder `conf/algorithm` contains configurations for each algorithm, both stable-baselines3 algorithms and the algorithms here. 
-  It determines the kwargs passed on to the model (HAC, SAC, TD3, etc). 
+* The folder `conf/algorithm` contains configurations for each algorithm, both stable-baselines3 algorithms and the algorithms here.
+  It determines the kwargs passed on to the model (HAC, SAC, TD3, etc).
   These are also overridable as command-line options, e.g. `algorithm.verbose=False`.
 * The folder `util` contains some misc utilities.
 * The folder `hydra_plugins` contains some customized plugins for our hyperparameter management system.
@@ -94,10 +94,10 @@ You can use MuJoCo, CoppeliaSim or both. The following sections show you how to 
    locations where you saved the *mjpro200_linux* folder and the *mjkey.txt*.
    Run `source ./set_paths.sh`
    If you are using an IDE, set the variables there as well.
-   
+
 1. `pip install mujoco-py`
 ### Install CoppeliaSim and RL Bench
-If you'd like to use environments simulated with CoppeliaSim, 
+If you'd like to use environments simulated with CoppeliaSim,
 [download CoppeliaSim Edu 4.1.0](https://www.coppeliarobotics.com/previousVersions) (4.2.0 causes problems with some environments)
 and set the following paths accordingly.
 ```
@@ -106,7 +106,7 @@ LD_LIBRARY_PATH=$LD_LIBRARY_PATH:EDIT/ME/PATH/TO/COPPELIASIM/INSTALL/DIR
 QT_QPA_PLATFORM_PLUGIN_PATH=EDIT/ME/PATH/TO/COPPELIASIM/INSTALL/DIR
 ```
 Then `pip install git+https://github.com/stepjam/PyRep.git`. You should now be able to use
-CoppeliaSim environments. 
+CoppeliaSim environments.
 
 If you'd also like to use the [RL Bench](https://github.com/stepjam/RLBench) environments,
 `pip install git+https://github.com/stepjam/RLBench.git pyquaternion natsort`.
@@ -165,7 +165,7 @@ You can for example run: `python experiment/train.py +performance=FetchReach/her
 The joblib launcher allows to run `n_jobs` in parallel.
 
 **You cannot** run multiple performance tests by simply providing multiple configs separated by commas, for example:
-`python experiment/train.py +performance=FetchReach/her-test,Ant/AntMaze/hac-2layer-test --multirun` does not work.
+`python experiment/train.py +performance=FetchReach/her-test,AntMaze/hac-2layer-test --multirun` does not work.
 In that case, just call `experiment/train.py` twice with the different performance test configs.
 
 ### Mlflow
