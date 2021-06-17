@@ -5,7 +5,7 @@ hydra:
   sweeper:
     sampler:
       _target_: optuna.samplers.BaseSampler
-      seed: 123
+      seed: ${now:%f}
       n_startup_trials: 1
       n_ei_candidates: 1
       warn_independent_sampling: true

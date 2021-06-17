@@ -2,6 +2,7 @@ import hydra
 from stable_baselines3.common import logger
 import mlflow
 import omegaconf
+from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, ListConfig
 import numpy as np
 
@@ -28,9 +29,12 @@ def setup_mlflow(cfg: str):
     orig_path = hydra.utils.get_original_cwd()
     mlflow.set_tracking_uri('file://' + orig_path + '/mlruns')
     experiment_name = 'Default'
-    # if multirun performance testing
-    if 'performance_testing_conditions' in cfg:
-        experiment_name = f"{cfg.algorithm.name}_{cfg.env}"
+    # if multirun with sweeper
+    if HydraConfig.get().sweeper.study_name:
+        experiment_name = f"{HydraConfig.get().sweeper.study_name}"
+    elif cfg.defaults == 'smoke_test':
+        experiment_name = 'smoke_test'
+    print('MLFlow experiment name', experiment_name)
     mlflow.set_experiment(experiment_name)
 
 def log_params_from_omegaconf_dict(params):
