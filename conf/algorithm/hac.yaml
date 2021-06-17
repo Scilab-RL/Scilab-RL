@@ -1,18 +1,5 @@
 name: 'hac'
 
-# These parameters will be used to determine the log path. Each parameter name will be split by the `_` delimiter and the individual components of this split will be trundated to 2 or 3 characters. For example, the `time_scales` parameter will result in a substring `tisca=n1,n2`, where n` and n2 are the values.
-exp_path_params:
-  - 'time_scales'
-#  - 'use_action_replay'
-  - 'subgoal_test_perc'
-#  - 'ep_early_done_on_succ'
-  - 'goal_selection_strategy'
-  - 'n_sampled_goal'
-  - 'learning_rates'
-#  - 'hindsight_sampling_done_if_success'
-#  - 'set_fut_ret_zero_if_done'
-
-
 # Steps per level from highest to lowest, separated by comma. -1 indicates that a layer's timescale is determined
 # from the environment's predefined steps and the other time scales.
 time_scales:

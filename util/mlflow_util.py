@@ -32,7 +32,7 @@ def setup_mlflow(cfg: str):
     # if multirun with sweeper
     if HydraConfig.get().sweeper.study_name:
         experiment_name = f"{HydraConfig.get().sweeper.study_name}"
-    elif 'defaults' in cfg and cfg.defaults == 'smoke_test':
+    elif 'defaults' in cfg.keys() and cfg.defaults == 'smoke_test':
         experiment_name = 'smoke_test'
     print('MLFlow experiment name', experiment_name)
     mlflow.set_experiment(experiment_name)
