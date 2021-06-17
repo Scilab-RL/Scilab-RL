@@ -1,18 +1,17 @@
-from stable_baselines3.common.callbacks import EvalCallback, BaseCallback
-from typing import Any, Callable, Dict, List, Optional, Union
-from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, sync_envs_normalization
+import os
+from typing import Union, List
+
+import cv2
 import gym
 import numpy as np
-import os
-import warnings
-from util.custom_evaluation import evaluate_policy
-from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common import logger
-from collections import deque
-import time
-from stable_baselines3.common.utils import safe_mean
-import cv2
+from stable_baselines3.common.base_class import BaseAlgorithm
+from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
+from stable_baselines3.common.vec_env import VecEnv, sync_envs_normalization
+
+from util.custom_evaluation import evaluate_policy
+
 
 class CustomEvalCallback(EvalCallback):
     """
@@ -27,8 +26,14 @@ class CustomEvalCallback(EvalCallback):
         will be saved. It will be updated at each evaluation.
     :param deterministic: Whether the evaluation should
         use a stochastic or deterministic actions.
-    :param deterministic: Whether to render or not the environment during evaluation
-    :param render: Whether to render or not the environment during evaluation
+    :param render_args: List with rendering parameters, composed as follows:
+                        [[render_train, n_train], [render_test, n_test]]
+                        render_train/render_test are one of
+                            none -> don't render during training
+                            display -> render and display during training
+                            record -> render and record during training
+                        We render the training/testing after every n_train/n_test epoch
+    :param render_test: Same as render train but during evaluation
     :param verbose:
     """
 
@@ -39,7 +44,7 @@ class CustomEvalCallback(EvalCallback):
         eval_freq: int = 10000,
         log_path: str = None,
         deterministic: bool = True,
-        render: str = 'none',
+        render_args: List = None,
         verbose: int = 1,
         early_stop_data_column: str = 'test/success_rate',
         early_stop_threshold: float = 1.0,
@@ -52,7 +57,6 @@ class CustomEvalCallback(EvalCallback):
         self.best_mean_reward = -np.inf
         self.best_mean_success = -np.inf
         self.deterministic = deterministic
-        self.render = render
         self.best_model_save_path = None
         eval_history_column_names = ['test/mean_reward', 'test/success_rate']
         self.eval_histories = {}
@@ -62,6 +66,13 @@ class CustomEvalCallback(EvalCallback):
         self.early_stop_threshold = early_stop_threshold
         self.early_stop_last_n = early_stop_last_n
         self.agent = agent
+        # unpack render_args
+        if render_args is None:
+            render_args = [[None, 1], [None, 1]]
+        self.render_train = render_args[0][0]
+        self.render_test = render_args[1][0]
+        self.render_every_n_train = render_args[0][1]
+        self.render_every_n_eval = render_args[1][1]
 
         eval_env = BaseAlgorithm._wrap_env(eval_env)
 
@@ -75,30 +86,44 @@ class CustomEvalCallback(EvalCallback):
         self.evaluations_timesteps = []
         self.evaluations_length = []
 
-        self.vid_size = 1024, 768
+        self.vid_size = 640, 360  # changing this will break RLBench recording
         self.vid_fps = 25
         self.eval_count = 0
-        self.render_info = None
+        self.train_count = 0
+        self.render_train_info = None
+        self.render_test_info = None
+        self.last_step_was_train = False
+        self.video_writer = None
 
-        if self.render == 'record':
-            self.render_info = {'size': self.vid_size, 'fps': self.vid_fps, 'eval_count': self.eval_count,
-                                'path': self.log_path}
-        elif self.render == 'display':
-            self.render_info = {'mode': 'human'}
+        if self.render_train == 'record':
+            self.render_train_info = {'size': self.vid_size, 'fps': self.vid_fps, 'train_count': self.train_count,
+                                      'path': self.log_path}
+        elif self.render_train == 'display':
+            self.render_train_info = {'mode': 'human'}
+        if self.render_test == 'record':
+            self.render_test_info = {'size': self.vid_size, 'fps': self.vid_fps, 'eval_count': self.eval_count,
+                                     'path': self.log_path, 'render_every_n_eval': self.render_every_n_eval}
+        elif self.render_test == 'display':
+            self.render_test_info = {'mode': 'human', 'render_every_n_eval': self.render_every_n_eval}
 
     def _on_step(self, log_prefix='') -> bool:
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
+            if self.video_writer is not None and self.last_step_was_train:
+                # save the training video
+                self.video_writer.release()
+                self.video_writer = None
+            self.last_step_was_train = False
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
-            if self.render_info is not None:
-                self.render_info['eval_count'] = self.eval_count
+            if self.render_test_info is not None:
+                self.render_test_info['eval_count'] = self.eval_count
             episode_rewards, episode_lengths, episode_successes = evaluate_policy(
                 self.agent,
                 self.eval_env,
                 n_eval_episodes=self.n_eval_episodes,
                 deterministic=self.deterministic,
                 return_episode_rewards=True,
-                render_info=self.render_info,
+                render_info=self.render_test_info,
             )
             mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
             mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
@@ -141,24 +166,35 @@ class CustomEvalCallback(EvalCallback):
                         self.agent.save(os.path.join(self.log_path, "early_stop_agent"))
                     return False
             self.eval_count += 1
+        else:
+            if not self.last_step_was_train:
+                self.train_count += 1
+            if (self.train_count-1) % self.render_every_n_train == 0:
+                if self.render_train == 'display':
+                    if hasattr(self.training_env, 'venv'):
+                        env = self.training_env.venv.envs[0]
+                    else:
+                        env = self.training_env
+                    env.render(mode=self.render_train_info['mode'])
+                elif self.render_train == 'record':
+                    if not self.last_step_was_train:
+                        self.render_train_info['train_count'] = self.train_count
+                        # create a new VideoWriter for each episode
+                        try:
+                            self.video_writer = cv2.VideoWriter(
+                                self.render_train_info['path'] + '/train_{}.avi'.format(self.train_count-1),
+                                cv2.VideoWriter_fourcc('F', 'M', 'P', '4'),
+                                self.render_train_info['fps'], self.render_train_info['size'])
+                        except:
+                            logger.info("Error creating video writer")
+                    else:
+                        if hasattr(self.training_env, 'venv'):
+                            frame = self.training_env.venv.envs[0].render(mode='rgb_array',
+                                                                          width=self.render_train_info['size'][0],
+                                                                          height=self.render_train_info['size'][1])
+                        else:
+                            frame = self.training_env.render(mode='rgb_array')
+                        self.video_writer.write(frame)
+            self.last_step_was_train = True
+
         return True
-
-    # def dump_agent_logs(self):
-    #     """
-    #     Write log.
-    #     """
-    #     # logger.record("time/episodes", self.agent._episode_num, exclude="tensorboard")
-    #     # if len(self.agent.ep_info_buffer) > 0 and len(self.agent.ep_info_buffer[0]) > 0:
-        #     logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.agent.ep_info_buffer]))
-        #     logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.agent.ep_info_buffer]))
-        # logger.record("time/fps", fps)
-        # logger.record("time/time_elapsed", int(time.time() - self.agent.start_time), exclude="tensorboard")
-        # logger.record("time/total timesteps", self.agent.num_timesteps, exclude="tensorboard")
-        # if self.agent.use_sde:
-        #     logger.record("train/std", (self.agent.actor.get_std()).mean().item())
-        #
-        # if len(self.agent.ep_success_buffer) > 0:
-        #     logger.record("rollout/success rate", safe_mean(self.agent.ep_success_buffer))
-        # Pass the number of timesteps for tensorboard
-        # logger.dump(step=self.agent.num_timesteps)
-
