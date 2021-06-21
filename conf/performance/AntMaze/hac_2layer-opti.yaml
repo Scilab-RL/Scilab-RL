@@ -4,7 +4,7 @@ defaults:
   # access algorithm config group to get the default parameters of hac
   - override /algorithm: hac
 
-env: 'AntMaze-v1'
+env: 'AntMaze-v0'
 
 # The n last epochs over which to average for determining early stopping condition.
 early_stop_last_n: 4
