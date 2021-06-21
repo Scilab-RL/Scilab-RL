@@ -12,6 +12,7 @@ stable-baselines3==1.0
 torch==1.8.1
 tqdm==4.60.0
 comet_for_mlflow==0.1.2
+cffi==1.14.5
 # mujoco-py
 # git+https://github.com/stepjam/PyRep.git
 # git+https://github.com/stepjam/RLBench.git
