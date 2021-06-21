@@ -75,8 +75,8 @@ class RLBenchWrapper(Wrapper):
             goal_space.high = np.maximum(goal, goal_space.high)
             goal_space.low = np.minimum(goal, goal_space.low)
         # Add some small extra margin.
-        goal_space.high += np.abs(goal_space.high - goal_space.low) * 0.01
-        goal_space.low -= np.abs(goal_space.high - goal_space.low) * 0.01
+        goal_space.high += np.abs(goal_space.high - goal_space.low) * 0.01 + 0.01
+        goal_space.low -= np.abs(goal_space.high - goal_space.low) * 0.01 + 0.01
         return goal_space
 
     def _get_goals(self):
@@ -113,7 +113,7 @@ class RLBenchWrapper(Wrapper):
         return achieved_goal, desired_goal
 
     def render(self, mode='none', **kwargs):
-        if mode == 'none' or mode == 'human':
+        if mode in ['none', 'human']:
             return
         frame = self.env.unwrapped.render(mode='rgb_array')
         frame = (frame*255).astype(np.uint8)[:, :, ::-1]  # convert to int and change color order
