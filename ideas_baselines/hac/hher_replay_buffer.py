@@ -201,18 +201,6 @@ class HHerReplayBuffer(ReplayBuffer):
             )
             goals = self.buffer["next_achieved_goal"][her_episode_indices, transitions_indices]
 
-            valid_trans_idx_mask = transitions_indices < (self.episode_lengths[her_episode_indices] - 1)
-            valid_trans_idxs = transitions_indices[valid_trans_idx_mask]
-            debug_goals = self.buffer["next_achieved_goal"][her_episode_indices[valid_trans_idx_mask], valid_trans_idxs]
-            ag_goals = self.buffer["achieved_goal"][her_episode_indices[valid_trans_idx_mask], (valid_trans_idxs + 1)]
-            same = np.isclose(ag_goals, debug_goals)
-            same_all = same.all()
-            if same_all:
-                pass
-                # logger.info("Good")
-            else:
-                logger.info("ERROR! nag_t != ag_t+1 not good")
-
         elif self.goal_selection_strategy == GoalSelectionStrategy.EPISODE:
             # replay with random state which comes from the same episode as current transition
             transitions_indices = np.random.randint(self.episode_lengths[her_episode_indices])
