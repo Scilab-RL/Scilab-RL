@@ -2,7 +2,7 @@ from pyrep import PyRep
 from pyrep.robots.arms.arm import Arm
 from pyrep.objects.shape import Shape
 from pyrep.const import PrimitiveShape, ObjectType
-from pyrep.errors import IKError
+from pyrep.errors import IKError, PyRepError
 import numpy as np
 from os.path import dirname, join, abspath
 import gym
@@ -235,5 +235,8 @@ class ReacherEnv(gym.GoalEnv):
 
     def close(self):
         print('\033[91m' + 'Closing Env' + '\033[0m')
-        self.pr.stop()
-        self.pr.shutdown()
+        try:
+            self.pr.stop()
+            self.pr.shutdown()
+        except PyRepError:
+            print('Cannot shut down CoppeliaSim because it hasn\'t been launched')
