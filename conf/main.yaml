@@ -109,8 +109,11 @@ hydra:
     # study_name: ${defaults.algorithm/name}_${defaults.algorithm/layer_classes}_${env}
     # storage: sqlite:///${defaults.algorithm/name}_${defaults.algorithm/layer_classes}_${env}.db
     # TODO: get more parameters out of the default config group
-    study_name: ${defaults[0].algorithm}_${env}
-    storage: ${defaults[0].algorithm}_${env}://${env}.db
+    # study_name: ${defaults[0].algorithm}_${env}
+    # storage: ${defaults[0].algorithm}_${env}://${env}.db
+    # TODO: Assign study_name and storage automatically within python.
+    study_name: idrl_hyperopt_study
+    storage: sqlite:///idrl_hyperopt_study.db
     n_jobs: 6
     max_trials: 9999
     max_duration_minutes: 10000
@@ -158,9 +161,7 @@ hydra:
         type: categorical
         choices:
           - future
-          - future2
           - rndend
-          - rndend2
 
       algorithm.use_action_replay:
         type: categorical
