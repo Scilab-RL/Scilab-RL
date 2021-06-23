@@ -1,21 +1,11 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
-import logging
-import sys
-from typing import Any, Dict, List, MutableMapping, MutableSequence, Optional
-from optuna.trial import TrialState
-import optuna
-import time
 import datetime
+import logging
 import os
-from optuna import pruners
-from optuna.visualization import plot_contour
-from optuna.visualization import plot_edf
-from optuna.visualization import plot_intermediate_values
-from optuna.visualization import plot_optimization_history
-from optuna.visualization import plot_parallel_coordinate
-from optuna.visualization import plot_param_importances
-from optuna.visualization import plot_slice
-from hydra_plugins.hydra_custom_optuna_sweeper.param_repeat_pruner import ParamRepeatPruner
+import time
+from typing import Any, Dict, List, MutableMapping, MutableSequence, Optional
+
+import optuna
 from hydra.core.config_loader import ConfigLoader
 from hydra.core.override_parser.overrides_parser import OverridesParser
 from hydra.core.override_parser.types import (
@@ -25,7 +15,6 @@ from hydra.core.override_parser.types import (
     RangeSweep,
     Transformer,
 )
-import multiprocessing as mp
 from hydra.core.plugins import Plugins
 from hydra.plugins.sweeper import Sweeper
 from hydra.types import TaskFunction
@@ -40,7 +29,12 @@ from optuna.distributions import (
     LogUniformDistribution,
     UniformDistribution,
 )
+from optuna.trial import TrialState
+from optuna.visualization import plot_contour
+from optuna.visualization import plot_optimization_history
+from optuna.visualization import plot_param_importances
 
+from hydra_plugins.hydra_custom_optuna_sweeper.param_repeat_pruner import ParamRepeatPruner
 from .config import Direction, DistributionConfig, DistributionType
 
 log = logging.getLogger(__name__)
@@ -201,6 +195,10 @@ class CustomOptunaSweeperImpl(Sweeper):
         assert self.launcher is not None
         assert self.job_idx is not None
 
+        if 'defaults' in self.config and self.config['defaults'] == 'smoke_test':
+            self.smoke_test(arguments)
+            return
+
         parser = OverridesParser.create()
         parsed = parser.parse_overrides(arguments)
 
@@ -291,8 +289,8 @@ class CustomOptunaSweeperImpl(Sweeper):
                 state: optuna.trial.TrialState = optuna.trial.TrialState.COMPLETE
                 # try:
                 assert len(
-                    ret.return_value) == 2, "The return value of main() should be a tuple where the first element is the hyperopt score and the second value is the number of epochs the script ran."
-                assert len(directions) == 1, "We currently support only one optimizaztion objective and direction."
+                    ret.return_value) == 3, "The return value of main() should be a triple where the first element is the hyperopt score, the second value is the number of epochs the script ran and the third is the mlflow run_id."
+                assert len(directions) == 1, "We currently support only one optimization objective and direction."
                 # try:
                 values = [float(ret.return_value[0])]
                 if len(ret.return_value) > 1:
@@ -347,6 +345,30 @@ class CustomOptunaSweeperImpl(Sweeper):
         # except:
         #     pass # Already deleted
 
+    def smoke_test(self, args):
+        other_args = []
+        for arg in args:
+            if arg.startswith('algorithm='):
+                algos = arg[10:].split(',')
+            elif arg.startswith('env='):
+                envs = arg[4:].split(',')
+            else:
+                other_args.append(arg)
+
+        configs = []
+        for a in algos:
+            for e in envs:
+                args_for_this_conf = other_args.copy()
+                args_for_this_conf.append('algorithm='+a)
+                args_for_this_conf.append('env='+e)
+                configs.append(tuple(args_for_this_conf))
+
+        job_idx = 0
+        while configs:
+            batch_size = min(len(configs), self.n_jobs)
+            results = self.launcher.launch(configs[:batch_size], initial_job_idx=job_idx)
+            job_idx += batch_size
+            configs = configs[batch_size:]
 
     def plot_study_summary(self, study):
 
