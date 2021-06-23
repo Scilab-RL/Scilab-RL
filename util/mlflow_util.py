@@ -2,6 +2,7 @@ import hydra
 from stable_baselines3.common import logger
 import mlflow
 import omegaconf
+from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, ListConfig
 import numpy as np
 
@@ -24,15 +25,17 @@ def get_hyperopt_score(cfg, current_run):
 
     return hyperopt_score, epochs
 
-def setup_mlflow():
+def setup_mlflow(cfg: str):
     orig_path = hydra.utils.get_original_cwd()
     mlflow.set_tracking_uri('file://' + orig_path + '/mlruns')
-    # tracking_uri = mlflow.get_tracking_uri()
-    # logger.info("Current tracking uri: {}".format(tracking_uri))
-    study_name = omegaconf.OmegaConf.load(f'{orig_path}/conf/main.yaml').hydra.sweeper.study_name
-    mlflow.set_experiment(study_name)
-
-
+    experiment_name = 'Default'
+    # if multirun with sweeper
+    if HydraConfig.get().sweeper.study_name:
+        experiment_name = f"{HydraConfig.get().sweeper.study_name}"
+    elif 'defaults' in cfg.keys() and cfg.defaults == 'smoke_test':
+        experiment_name = 'smoke_test'
+    print('MLFlow experiment name', experiment_name)
+    mlflow.set_experiment(experiment_name)
 
 def log_params_from_omegaconf_dict(params):
     for param_name, element in params.items():

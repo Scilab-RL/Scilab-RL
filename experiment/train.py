@@ -127,40 +127,24 @@ OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 
 @hydra.main(config_name="main", config_path="../conf")
 def main(cfg: DictConfig) -> (float, int):
-    ctr = cfg['try_start_idx']
-    max_ctr = cfg['max_try_idx']
-    run_dir = 'tmp_logdir'
-    original_dir = os.getcwd()
+    run_dir = os.getcwd()
 
     if cfg.restore_policy is not None:
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
         run_dir = run_dir + "_restored"
-        trial_no = None
         try:
             os.rename(original_dir, run_dir)
         except Exception as e:
-            print(f"Warning, could not rename directory because of the following exception: \n{e}. \nHave you restored this policy before? Note that in this case the script will just overwrite your previously restored policy run. \nWill continue any ways.")
-    else:
-        path_dir_params = {key: cfg.algorithm[key] for key in cfg.algorithm.exp_path_params}
-        dir_created = False
-        while not dir_created:
-            subdir_exists = True
-            while subdir_exists:
-                param_dir = get_subdir_by_params(path_dir_params, ctr)
-                run_dir = os.path.join(os.path.split(original_dir)[0], param_dir)
-                subdir_exists = os.path.exists(run_dir)
-                ctr += 1
-            try:
-                os.rename(original_dir, run_dir)
-                dir_created = True
-            except Exception as e:
-                print(f"Creating logdir did not work, trying again: {e}")
-                time.sleep(1)
-        trial_no = ctr - 1
+            print(f""""Warning, could not rename directory because of the following exception: \n{e}.
+                \nHave you restored this policy before? Note that in this case the script will just overwrite your
+                previously restored policy run. \nWill continue anyway.""")
 
-    setup_mlflow()
-    with mlflow.start_run() as mlflow_run:
-        log_params_from_omegaconf_dict(cfg)
+    if 'performance_testing_conditions' in cfg:
+        cfg['n_epochs'] = int(cfg['performance_testing_conditions']['max_steps']/cfg['eval_after_n_steps'])
+
+    setup_mlflow(cfg)
+    run_name = cfg['algorithm']['name'] + '_' + cfg['env']
+    with mlflow.start_run(run_name=run_name) as mlflow_run:
         if run_dir is not None:
             mlflow.log_param(f'log_dir', run_dir)
 
@@ -173,19 +157,8 @@ def main(cfg: DictConfig) -> (float, int):
         logger.info(OmegaConf.to_yaml(cfg))
         logger.info(f"Log directory: {run_dir}")
         # End configure logger
-        logger.info(f"Data base dir: {os.path.split(original_dir)[0]}")
         active_mlflow_run = mlflow.active_run()
         print("Active mlflow run_id: {}".format(active_mlflow_run.info.run_id))
-
-        if trial_no is not None:
-            if trial_no > max_ctr:
-                logger.info("Already collected enough data for this parameterization.")
-                sys.exit()
-            logger.info("Trying this config for {}th time. ".format(trial_no))
-
-        if 'exp_path_params' in cfg.algorithm.keys():
-            with open_dict(cfg):
-                del cfg['algorithm']['exp_path_params']
 
         logger.info("Starting process id: {}".format(os.getpid()))
 
@@ -195,9 +168,11 @@ def main(cfg: DictConfig) -> (float, int):
         logdir = logger.get_dir()
         logger.info("Data dir: {} ".format(logdir))
 
+        log_params_from_omegaconf_dict(cfg)
+        OmegaConf.save(config=cfg, f='params.yaml')
+
         # Prepare xmls for subgoal visualizations
         ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
-        OmegaConf.save(config=cfg, f='params.yaml')
 
         kwargs = {}
         launch(cfg, kwargs)
@@ -213,9 +188,9 @@ def main(cfg: DictConfig) -> (float, int):
                 mlflow.log_text(log_text, 'train.log')
         except Exception as e:
             logger.info('Could not open logfile and log it in mlflow.')
+        run_id = mlflow.active_run().info.run_id
 
-    return hyperopt_score, n_epochs
-
+    return hyperopt_score, n_epochs, run_id
 
 
 if __name__ == '__main__':

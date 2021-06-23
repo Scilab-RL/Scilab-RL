@@ -629,7 +629,7 @@ class HAC(BaseAlgorithm):
                 if self.actions_since_last_train >= self.train_freq and self.train_freq != 0:
                     self.train_layer(self.actions_since_last_train)
 
-                # update paramters with model parameters
+                # update parameters with model parameters
                 self._n_updates = self.layer_alg._n_updates
                 self._last_dones = self.layer_alg._last_dones
 
