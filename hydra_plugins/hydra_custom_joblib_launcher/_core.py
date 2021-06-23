@@ -1,25 +1,102 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+import copy
 import logging
+import os
+import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Optional
 
 from hydra.core.config_loader import ConfigLoader
 from hydra.core.hydra_config import HydraConfig
 from hydra.core.singleton import Singleton
 from hydra.core.utils import (
     JobReturn,
+    JobStatus,
+    JobRuntime,
     configure_log,
     filter_overrides,
-    run_job,
+    env_override,
     setup_globals,
+    _flush_loggers,
+    _save_config
 )
 from hydra.types import TaskFunction
 from joblib import Parallel, delayed  # type: ignore
-from omegaconf import DictConfig, open_dict
+from omegaconf import DictConfig, open_dict, OmegaConf, read_write
 
 from .joblib_launcher import JoblibLauncher
 
 log = logging.getLogger(__name__)
+
+
+def run_job(
+    config: DictConfig,
+    task_function: TaskFunction,
+    job_dir_key: str,
+    job_subdir_key: Optional[str],
+    configure_logging: bool = True,
+) -> "JobReturn":
+    from hydra._internal.callbacks import Callbacks
+
+    callbacks = Callbacks(config)
+
+    old_cwd = os.getcwd()
+    orig_hydra_cfg = HydraConfig.instance().cfg
+    HydraConfig.instance().set_config(config)
+    working_dir = str(OmegaConf.select(config, job_dir_key))
+    if job_subdir_key is not None:
+        # evaluate job_subdir_key lazily.
+        # this is running on the client side in sweep and contains things such as job:id which
+        # are only available there.
+        subdir = str(OmegaConf.select(config, job_subdir_key))
+        working_dir = os.path.join(working_dir, subdir)
+    try:
+        ret = JobReturn()
+        ret.working_dir = working_dir
+        task_cfg = copy.deepcopy(config)
+        with read_write(task_cfg):
+            with open_dict(task_cfg):
+                del task_cfg["hydra"]
+
+        ret.cfg = task_cfg
+        hydra_cfg = copy.deepcopy(HydraConfig.instance().cfg)
+        assert isinstance(hydra_cfg, DictConfig)
+        ret.hydra_cfg = hydra_cfg
+        overrides = OmegaConf.to_container(config.hydra.overrides.task)
+        assert isinstance(overrides, list)
+        ret.overrides = overrides
+        # handle output directories here
+        Path(str(working_dir)).mkdir(parents=True, exist_ok=True)
+        os.chdir(working_dir)
+
+        if configure_logging:
+            configure_log(config.hydra.job_logging, config.hydra.verbose)
+
+        if config.hydra.output_subdir is not None:
+            hydra_output = Path(config.hydra.output_subdir)
+            _save_config(task_cfg, "config.yaml", hydra_output)
+            _save_config(hydra_cfg, "hydra.yaml", hydra_output)
+            _save_config(config.hydra.overrides.task, "overrides.yaml", hydra_output)
+
+        with env_override(hydra_cfg.hydra.job.env_set):
+            callbacks.on_job_start(config=config)
+            try:
+                ret.return_value = task_function(task_cfg)
+                ret.status = JobStatus.COMPLETED
+            except Exception:
+                ret.return_value = Exception(traceback.format_exc())
+                ret.status = JobStatus.FAILED
+
+        ret.task_name = JobRuntime.instance().get("name")
+
+        _flush_loggers()
+
+        callbacks.on_job_end(config=config, job_return=ret)
+
+        return ret
+    finally:
+        HydraConfig.instance().cfg = orig_hydra_cfg
+        os.chdir(old_cwd)
 
 
 def execute_job(
