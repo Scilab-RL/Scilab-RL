@@ -641,8 +641,6 @@ class HAC(BaseAlgorithm):
                 self.layer_alg.num_timesteps = self.num_timesteps
                 episode_timesteps += 1 # TODO: Why is there episode_timesteps and self.episode_steps? Is this redundant?
                 total_steps += 1
-                if episode_timesteps >= self.max_episode_length:
-                    break  # TODO this is just a temporary fix for RLBench Environments and should be removed when we created a solution from the environment side
 
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()

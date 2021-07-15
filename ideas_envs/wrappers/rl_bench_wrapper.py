@@ -16,7 +16,8 @@ class RLBenchWrapper(Wrapper):
     RL Bench tasks consist of "conditions". This wrapper extracts goals from these "conditions",
     so that we can use them for goal-conditioned reinforcement learning.
     """
-    def __init__(self, env):
+    def __init__(self, env, env_type):
+        self.env_type = env_type
         env = TimeLimit(env, 50)
         super().__init__(env)
         self._max_episode_steps = self.env._max_episode_steps
