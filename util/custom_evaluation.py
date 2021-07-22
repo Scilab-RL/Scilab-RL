@@ -1,5 +1,5 @@
 from typing import Callable, List, Optional, Tuple, Union, Dict
-from stable_baselines3.common import logger
+from stable_baselines3.common.logger import Logger
 import gym
 import numpy as np
 import cv2
@@ -26,7 +26,8 @@ def evaluate_policy(
     render_info: Dict = None,
     callback: Optional[Callable] = None,
     reward_threshold: Optional[float] = None,
-    return_episode_rewards: bool = False
+    return_episode_rewards: bool = False,
+    logger: Logger = None
 ) -> Union[Tuple[float, float], Tuple[List[float], List[int]]]:
     """
     Runs policy for ``n_eval_episodes`` episodes and returns average reward.

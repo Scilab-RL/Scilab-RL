@@ -4,7 +4,7 @@ from typing import Union, List
 import cv2
 import gym
 import numpy as np
-from stable_baselines3.common import logger
+from stable_baselines3.common.logger import Logger
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
@@ -49,7 +49,8 @@ class CustomEvalCallback(EvalCallback):
         early_stop_data_column: str = 'test/success_rate',
         early_stop_threshold: float = 1.0,
         early_stop_last_n: int = 5,
-        agent: OffPolicyAlgorithm = None
+        agent: OffPolicyAlgorithm = None,
+        logger: Logger = None
     ):
         super(EvalCallback, self).__init__(verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
@@ -66,6 +67,7 @@ class CustomEvalCallback(EvalCallback):
         self.early_stop_threshold = early_stop_threshold
         self.early_stop_last_n = early_stop_last_n
         self.agent = agent
+        self.logger = logger
         # unpack render_args
         if render_args is None:
             render_args = [[None, 1], [None, 1]]
@@ -124,26 +126,27 @@ class CustomEvalCallback(EvalCallback):
                 deterministic=self.deterministic,
                 return_episode_rewards=True,
                 render_info=self.render_test_info,
+                logger=self.logger
             )
             mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
             mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
             mean_success, std_success = np.mean(episode_successes), np.std(episode_successes)
 
             if self.verbose > 0:
-                logger.info(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
-                logger.info(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
+                self.logger.info(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
+                self.logger.info(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
 
-            logger.record("test/mean_reward", float(mean_reward))
-            logger.record("test/std_reward", float(std_reward))
-            logger.record("test/mean_ep_length", mean_ep_length)
-            logger.record("test/success_rate", mean_success)
+            self.logger.record("test/mean_reward", float(mean_reward))
+            self.logger.record("test/std_reward", float(std_reward))
+            self.logger.record("test/mean_ep_length", mean_ep_length)
+            self.logger.record("test/success_rate", mean_success)
 
             self.eval_histories['test/success_rate'].append(mean_success)
             self.eval_histories['test/mean_reward'].append(mean_reward)
 
             # if mean_reward > self.best_mean_reward:
             #     if self.verbose > 0:
-            #         logger.info("New best mean reward!")
+            #         self.logger.info("New best mean reward!")
             #     if self.best_agent_save_path is not None:
             #         self.agent.save(os.path.join(self.best_agent_save_path, "best_agent"))
             #     self.best_mean_reward = mean_reward
@@ -152,7 +155,7 @@ class CustomEvalCallback(EvalCallback):
             #         return self._on_event()
             if mean_success > self.best_mean_success:
                 if self.verbose > 0:
-                    logger.info("New best mean success rate!")
+                    self.logger.info("New best mean success rate!")
                 if self.log_path is not None:
                     self.agent.save(os.path.join(self.log_path, "best_agent"))
                 self.best_mean_success = mean_success
@@ -161,7 +164,7 @@ class CustomEvalCallback(EvalCallback):
             if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                 mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
                 if mean_val >= self.early_stop_threshold:
-                    logger.info("Early stop threshold for {} met: Average over last {} evaluations is {} and threshold is {}. Stopping training.".format(self.early_stop_data_column, self.early_stop_last_n, mean_val, self.early_stop_threshold))
+                    self.logger.info("Early stop threshold for {} met: Average over last {} evaluations is {} and threshold is {}. Stopping training.".format(self.early_stop_data_column, self.early_stop_last_n, mean_val, self.early_stop_threshold))
                     if self.log_path is not None:
                         self.agent.save(os.path.join(self.log_path, "early_stop_agent"))
                     return False
@@ -186,7 +189,7 @@ class CustomEvalCallback(EvalCallback):
                                 cv2.VideoWriter_fourcc('F', 'M', 'P', '4'),
                                 self.render_train_info['fps'], self.render_train_info['size'])
                         except:
-                            logger.info("Error creating video writer")
+                            self.logger.info("Error creating video writer")
                     else:
                         if hasattr(self.training_env, 'venv'):
                             frame = self.training_env.venv.envs[0].render(mode='rgb_array',

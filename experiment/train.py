@@ -16,7 +16,7 @@ from util.util import get_subdir_by_params,get_git_label,set_global_seeds,get_la
 import time
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
-from stable_baselines3.common import logger
+from stable_baselines3.common.logger import configure
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
@@ -26,13 +26,13 @@ from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_o
 def check_env_alg_compatibility(model, env):
     check_action_space =  isinstance(model.action_space, type(env.action_space))
     check_observation_space = False
-    if hasattr(env.observation_space, 'spaces'):
+    if False:# TODO with multiinputpolicy, the policies can receive dicts    hasattr(env.observation_space, 'spaces'):
         check_observation_space = isinstance(model.observation_space, type(env.observation_space['observation']))
     else:
         check_observation_space = isinstance(model.observation_space, type(env.observation_space))
     return check_action_space and check_observation_space
 
-def train(baseline, train_env, eval_env, cfg):
+def train(baseline, train_env, eval_env, cfg, logger):
     total_steps = cfg.eval_after_n_steps * cfg.n_epochs
     callback = []
     if cfg.save_model_freq > 0:
@@ -88,7 +88,7 @@ def convert_alg_cfg(cfg):
 
     return alg_dict
 
-def launch(cfg, kwargs):
+def launch(cfg, logger, kwargs):
     set_global_seeds(cfg.seed)
     algo_name = cfg['algorithm'].name
     alg_kwargs = convert_alg_cfg(cfg)
@@ -115,12 +115,13 @@ def launch(cfg, kwargs):
     if cfg.restore_policy is not None:
         baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
     else:
-        baseline = BaselineClass('MlpPolicy', train_env, **cfg.algorithm, **alg_kwargs, **kwargs)
+        baseline = BaselineClass('MultiInputPolicy', train_env, **cfg.algorithm, **alg_kwargs, **kwargs)
+    baseline.set_logger(logger)
     if not check_env_alg_compatibility(baseline, train_env):
         logger.info("Environment {} and algorithm {} are not compatible.".format(train_env, baseline))
         sys.exit()
     logger.info("Launching training")
-    train(baseline, train_env, eval_env, cfg)
+    train(baseline, train_env, eval_env, cfg, logger)
 
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
@@ -149,10 +150,10 @@ def main(cfg: DictConfig) -> (float, int):
             mlflow.log_param(f'log_dir', run_dir)
 
         # Output will only be logged appropriately after configuring the logger in the following lines:
-        logger.configure(folder=run_dir, format_strings=[])
-        logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(sys.stdout))
-        logger.Logger.CURRENT.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
-        logger.Logger.CURRENT.output_formats.append(MLFlowOutputFormat())
+        logger = configure(folder=run_dir, format_strings=[])
+        logger.output_formats.append(FixedHumanOutputFormat(sys.stdout))
+        logger.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
+        logger.output_formats.append(MLFlowOutputFormat())
         logger.info(f"Starting training with the following configuration:")
         logger.info(OmegaConf.to_yaml(cfg))
         logger.info(f"Log directory: {run_dir}")
@@ -175,7 +176,7 @@ def main(cfg: DictConfig) -> (float, int):
         ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
 
         kwargs = {}
-        launch(cfg, kwargs)
+        launch(cfg, logger, kwargs)
 
         logger.info("Finishing main training function.")
         logger.info(f"MLflow run: {mlflow_run}.")
