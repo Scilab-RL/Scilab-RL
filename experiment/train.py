@@ -21,6 +21,7 @@ from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
+from stable_baselines3.her.her import HerReplayBuffer
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 
 def check_env_alg_compatibility(model, env):
@@ -112,10 +113,13 @@ def launch(cfg, logger, kwargs):
     else:
         train_env = gym.make(cfg.env)
         eval_env = gym.make(cfg.env)
+    rep_buf = None
+    if 'using_her' in cfg and cfg.using_her:
+        rep_buf = HerReplayBuffer
     if cfg.restore_policy is not None:
         baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
     else:
-        baseline = BaselineClass('MultiInputPolicy', train_env, **cfg.algorithm, **alg_kwargs, **kwargs)
+        baseline = BaselineClass('MultiInputPolicy', train_env, replay_buffer_class=rep_buf, **cfg.algorithm, **alg_kwargs, **kwargs)
     baseline.set_logger(logger)
     if not check_env_alg_compatibility(baseline, train_env):
         logger.info("Environment {} and algorithm {} are not compatible.".format(train_env, baseline))
