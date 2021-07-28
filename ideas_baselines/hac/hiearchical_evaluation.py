@@ -45,7 +45,7 @@ def evaluate_hierarchical_policy(
         if maybe_reset_env:
             if not isinstance(env, VecEnv) or i == 0:
                 obs = env.reset()
-        assert isinstance(env.venv, DummyVecEnv), "Error environment must be a DummyVecEnv"
+        assert isinstance(env, DummyVecEnv), "Error environment must be a DummyVecEnv"
         layer_alg.reset_eval_info_list()
         this_info_list = layer_alg.test_episode(env)
         info_list = merge_list_dicts(this_info_list, info_list)
