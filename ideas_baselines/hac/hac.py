@@ -321,7 +321,7 @@ class HAC(BaseAlgorithm):
 
         if self.render_train == 'record':
             train_render_info = {'size': self.vid_size, 'fps': self.vid_fps,
-                                'path': logger.get_dir()}
+                                'path': self.logger.get_dir()}
             self.set_train_render_info(train_render_info)
             self.train_video_writer = None
         else:
@@ -329,7 +329,7 @@ class HAC(BaseAlgorithm):
 
         if self.render_test == 'record':
             test_render_info = {'size': self.vid_size, 'fps': self.vid_fps,
-                                'path': logger.get_dir()}
+                                'path': self.logger.get_dir()}
             self.set_test_render_info(test_render_info)
             self.test_video_writer = None
         else:
@@ -393,7 +393,7 @@ class HAC(BaseAlgorithm):
     def train_layer(self, n_gradient_steps: int):
         rb_size = self.replay_buffer.size()
         if self.num_timesteps > self.learning_starts and rb_size > self.learning_starts and self.learning_enabled is True:
-            # logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
+            # self.logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
             # assign temporary logger to avoid generating duplicate keys for the different layers. TODO handle
             #real_logger = logger.Logger.CURRENT
             #logger.Logger.CURRENT = self.tmp_train_logger
@@ -407,11 +407,11 @@ class HAC(BaseAlgorithm):
             #        new_k = prefix + "_{}".format(self.layer) + "/" + postfix
             #    except:
             #        new_k = k
-            #    logger.record_mean(new_k, v)
+            #    self.logger.record_mean(new_k, v)
             #self.tmp_train_logger.dump()
             self.actions_since_last_train = 0
         else:
-            pass  # logger.info("Did not yet train layer {} because I have not yet enough experience collected.".format(self.layer))
+            pass  # self.logger.info("Did not yet train layer {} because I have not yet enough experience collected.".format(self.layer))
 
     def run_and_maybe_train(self, n_episodes: int):
         rollout = self.collect_rollouts(
@@ -481,7 +481,7 @@ class HAC(BaseAlgorithm):
         ### THIS IS THE MAIN TRAINING LOOP
         while self.get_env_steps() < total_env_timesteps and continue_training:
             continue_training = self.run_and_maybe_train(n_episodes=1)
-            # logger.info(f"Performed {self.get_env_steps()} / {total_env_timesteps} action steps. Continue another training round: {continue_training}")
+            # self.logger.info(f"Performed {self.get_env_steps()} / {total_env_timesteps} action steps. Continue another training round: {continue_training}")
 
         callback.on_training_end()
         return self    # callback: Optional[Callable] = None,
@@ -733,12 +733,12 @@ class HAC(BaseAlgorithm):
         last_succ = []
         # For consistency wrap env.
         eval_env = self._wrap_env(eval_env)
-        assert hasattr(eval_env, 'venv'), "Error, vectorized environment required."
+        assert isinstance(eval_env, DummyVecEnv), "Error, vectorized environment required."
         if self.is_top_layer: # Reset simulator for all layers.
             eval_env.reset_all()
 
         while not done:
-            # logger.info("Level {} step {}".format(self.layer, step_ctr)) ## DEBUG
+            # self.logger.info("Level {} step {}".format(self.layer, step_ctr)) ## DEBUG
             self.update_venv_buf_obs(eval_env)
             obs = eval_env.buf_obs
             #obs = ObsDictWrapper.convert_dict(obs)
@@ -748,15 +748,15 @@ class HAC(BaseAlgorithm):
             # if self.layer != 0 and step_ctr+1 == eval_env.envs[0]._max_episode_steps:
             #     action = [eval_env.envs[0].goal.copy()]
             # if self.layer == 1: ## DEBUG
-            #     logger.info("Setting new subgoal {} for observation {}".format(action, obs))
+            #     self.logger.info("Setting new subgoal {} for observation {}".format(action, obs))
             # else:
-            #     logger.info("Executing low-level action {} for observation {}".format(action, obs))
+            #     self.logger.info("Executing low-level action {} for observation {}".format(action, obs))
             new_obs, reward, done, info = eval_env.step(action)
             info.append({'q_mean': q_mean, 'q_std': q_std})
             # if self.layer == 0: ## DEBUG
-            #     logger.info(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
-            #     logger.info(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
-            #     logger.info(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
+            #     self.logger.info(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
+            #     self.logger.info(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
+            #     self.logger.info(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
             if self.is_bottom_layer and self.test_render_info != 'none' and self.epoch_count % self.render_every_n_eval == 0:
                 if self.render_test == 'record':
                     frame = eval_env.unwrapped.render(mode='rgb_array', width=self.test_render_info['size'][0],
@@ -774,7 +774,7 @@ class HAC(BaseAlgorithm):
                 last_succ.append(info['is_success'].copy())
                 info['step_success'] = info['is_success'].copy()
                 del info['is_success']
-                # logger.info("Success in layer {}: {}".format(self.layer, info['step_success'])) ## DEBUG:
+                # self.logger.info("Success in layer {}: {}".format(self.layer, info['step_success'])) ## DEBUG:
                 if self.ep_early_done_on_succ > 0 and len(last_succ) >= self.ep_early_done_on_succ:
                     last_succ_steps = last_succ[-self.ep_early_done_on_succ:]
                     finished = np.all(last_succ_steps)
@@ -805,7 +805,7 @@ class HAC(BaseAlgorithm):
                 self.eval_info_list[success_key] = last_succ[-1].copy()
             else:
                 assert False, "Error, step_success key not in info values."
-                # logger.info("Episode success in layer {}: {}".format(self.layer, last_succ)) ## DEBUG
+                # self.logger.info("Episode success in layer {}: {}".format(self.layer, last_succ)) ## DEBUG
         if reward_key not in self.eval_info_list.keys():
             self.eval_info_list[reward_key] = [ep_reward]
         return self.eval_info_list
@@ -879,17 +879,17 @@ class HAC(BaseAlgorithm):
                     if type(valid) == np.ndarray:
                         valid = valid.all()
                     if not valid:
-                        logger.info(f"Warning, mismatch of parameter {k} in model of HAC ({v}) and HAC itself ({layer_data[k]}).")
+                        self.logger.info(f"Warning, mismatch of parameter {k} in model of HAC ({v}) and HAC itself ({layer_data[k]}).")
                         exclude_params.append(k)
                 except:
-                    logger.info(f"Warning, cannot compare parameter {k} in model of HAC and HAC itself.")
+                    self.logger.info(f"Warning, cannot compare parameter {k} in model of HAC and HAC itself.")
                     exclude_params.append(k)
         for param_name in exclude_params:
             layer_data.pop(param_name, None)
 
         self.layer_alg.layer_data = layer_data
         layer_path = path + f"_lay{self.layer}"
-        model_excludes = ['replay_buffer']
+        model_excludes = ['replay_buffer', 'layer_data']
         self.layer_alg.save(layer_path, model_excludes, include)
         if self.sub_layer is not None:
             self.sub_layer.save(path)
@@ -1008,23 +1008,23 @@ class HAC(BaseAlgorithm):
         train_pf = "train_{}".format(self.layer)
 
         fps = int(self.num_timesteps / (time.time() - self.start_time))
-        logger.record(time_pf + "/episodes", self._episode_num, exclude="tensorboard")
+        self.logger.record(time_pf + "/episodes", self._episode_num, exclude="tensorboard")
         if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
-            logger.record(rollout_pf + "/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
-            logger.record(rollout_pf + "/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
-        logger.record(time_pf + "/fps", fps)
-        logger.record(time_pf + "/total layer steps", self.num_timesteps, exclude="tensorboard")
+            self.logger.record(rollout_pf + "/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
+            self.logger.record(rollout_pf + "/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+        self.logger.record(time_pf + "/fps", fps)
+        self.logger.record(time_pf + "/total layer steps", self.num_timesteps, exclude="tensorboard")
         # env_steps = self.get_env_steps()
-        # logger.record(time_pf + "/total timesteps", env_steps, exclude="tensorboard")
+        # self.logger.record(time_pf + "/total timesteps", env_steps, exclude="tensorboard")
         if self.is_top_layer:
             env_steps = self.get_env_steps()
-            logger.record("time/total timesteps", env_steps, exclude="tensorboard")
-            logger.record("time/time_elapsed", int(time.time() - self.start_time), exclude="tensorboard")
+            self.logger.record("time/total timesteps", env_steps, exclude="tensorboard")
+            self.logger.record("time/time_elapsed", int(time.time() - self.start_time), exclude="tensorboard")
         if self.use_sde:
-            logger.record(train_pf + "/std", (self.actor.get_std()).mean().item())
+            self.logger.record(train_pf + "/std", (self.actor.get_std()).mean().item())
 
         if len(self.ep_success_buffer) > 0:
-            logger.record(rollout_pf + "/success_rate", safe_mean(self.ep_success_buffer))
+            self.logger.record(rollout_pf + "/success_rate", safe_mean(self.ep_success_buffer))
             if safe_mean(self.ep_success_buffer) > 0.9: # Start training of higher level layer if the success rate is above 90%. This has only an effect if action replay is disabled.
                 if self.parent_layer is not None:
                     self.parent_layer.set_learning_enabled()
@@ -1033,21 +1033,21 @@ class HAC(BaseAlgorithm):
             self.sub_layer._record_logs()
 
         for k,v in self.train_info_list.items():
-            logger.record(train_pf + f"/{k}", safe_mean(v))
-            logger.record(train_pf + f"/{k}_std", np.std(v))
+            self.logger.record(train_pf + f"/{k}", safe_mean(v))
+            self.logger.record(train_pf + f"/{k}_std", np.std(v))
         self.reset_train_info_list()
 
         self.epoch_count += 1
 
         if self.is_top_layer:
-            logger.record("epoch", self.epoch_count)
+            self.logger.record("epoch", self.epoch_count)
             try:
-                succ_rate = logger.name_to_value['test/success_rate']
+                succ_rate = self.logger.name_to_value['test/success_rate']
             except Exception as e:
-                logger.info("Error getting test success rate")
+                self.logger.info("Error getting test success rate")
                 succ_rate = 0
             succ_learn_rate = float(succ_rate/self.epoch_count)
-            logger.record("success learn rate", succ_learn_rate, exclude="tensorboard")
+            self.logger.record("success learn rate", succ_learn_rate, exclude="tensorboard")
             if (self.epoch_count - 1) % self.render_every_n_train == 0:
                 if self.train_render_info is not None:
                     self.stop_train_video_writer()
@@ -1066,8 +1066,8 @@ class HAC(BaseAlgorithm):
 
     def _dump_logs(self) -> None:
         self._record_logs()
-        logger.info("Writing log data to {}".format(logger.get_dir()))
-        logger.dump(step=self.num_timesteps)
+        self.logger.info("Writing log data to {}".format(self.logger.get_dir()))
+        self.logger.dump(step=self.num_timesteps)
 
     def _sample_action(
         self, observation: np.ndarray = None, learning_starts: int = 0, deterministic: bool = False
@@ -1104,7 +1104,7 @@ class HAC(BaseAlgorithm):
             try:
                 unscaled_action, _ = self.layer_alg.predict(observation, deterministic=deterministic)
             except Exception as e:
-                logger.info("ohno {}".format(e))
+                self.logger.info("ohno {}".format(e))
 
         # Rescale the action from [low, high] to [-1, 1]
         if isinstance(self.layer_alg.action_space, gym.spaces.Box):

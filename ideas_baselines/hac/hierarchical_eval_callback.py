@@ -9,7 +9,7 @@ from util.custom_evaluation import evaluate_policy
 from ideas_baselines.hac.hiearchical_evaluation import evaluate_hierarchical_policy
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
-from stable_baselines3.common import logger
+from stable_baselines3.common.logger import Logger
 from collections import deque
 import time
 from ideas_baselines.hac.hac import HAC
@@ -47,7 +47,8 @@ class HierarchicalEvalCallback(EvalCallback):
         early_stop_data_column: str = 'test/success_rate',
         early_stop_threshold: float = 1.0,
         early_stop_last_n: int = 5,
-        top_level_layer = None
+        top_level_layer=None,
+        logger: Logger = None
     ):
         super(EvalCallback, self).__init__(verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
@@ -59,6 +60,7 @@ class HierarchicalEvalCallback(EvalCallback):
         self.early_stop_threshold = early_stop_threshold
         self.early_stop_last_n = early_stop_last_n
         self.top_level_layer = top_level_layer
+        self.logger = logger
 
         layer_envs = get_h_envs_from_env(eval_env, top_level_layer.time_scales, is_testing_env=True, layer_alg=top_level_layer)
         for idx, eval_env in enumerate(layer_envs):
@@ -95,28 +97,28 @@ class HierarchicalEvalCallback(EvalCallback):
                     continue
                 mean = np.mean(v)
                 std = np.std(v)
-                logger.record(new_k + '', mean)
-                logger.record(new_k + '_std', std)
+                self.logger.record(new_k + '', mean)
+                self.logger.record(new_k + '_std', std)
                 if k not in self.eval_histories.keys():
                     self.eval_histories[new_k] = []
                 self.eval_histories[new_k].append(mean)
 
             if self.top_level_layer is not None:
                 self.top_level_layer._dump_logs()
-                logger.info("Log path: {}".format(self.log_path))
+                self.logger.info("Log path: {}".format(self.log_path))
                 if self.early_stop_data_column in self.eval_histories.keys():
                     if self.eval_histories[self.early_stop_data_column][-1] >= self.best_early_stop_val:
                         self.best_early_stop_val = self.eval_histories[self.early_stop_data_column][-1]
                         if self.log_path is not None:
                             self.top_level_layer.save(os.path.join(self.log_path, "best_model"))
-                            logger.info("New best mean {}: {:.5f}!".format(self.early_stop_data_column,
+                            self.logger.info("New best mean {}: {:.5f}!".format(self.early_stop_data_column,
                                                                      self.best_early_stop_val))
-                            logger.info(f"Saving new best model at {self.log_path}/best_model")
+                            self.logger.info(f"Saving new best model at {self.log_path}/best_model")
 
                     if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                         mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
                         if mean_val >= self.early_stop_threshold:
-                            logger.info(
+                            self.logger.info(
                                 "Early stop threshold for {} met: Average over last {} evaluations is {:5f} and threshold is {}. Stopping training.".format(
                                     self.early_stop_data_column, self.early_stop_last_n, mean_val,
                                     self.early_stop_threshold))
@@ -124,7 +126,7 @@ class HierarchicalEvalCallback(EvalCallback):
                                 self.model.save(os.path.join(self.log_path, "early_stop_model"))
                             return False
                 else:
-                    logger.warn("Warning, early stop data column {} not in eval history keys {}. This should only happen once during initialization.".format(self.early_stop_data_column, self.eval_histories.keys()))
+                    self.logger.warn("Warning, early stop data column {} not in eval history keys {}. This should only happen once during initialization.".format(self.early_stop_data_column, self.eval_histories.keys()))
             self.eval_count += 1
 
 

@@ -47,7 +47,8 @@ def train(baseline, train_env, eval_env, cfg, logger):
                                                  early_stop_last_n=cfg.early_stop_last_n,
                                                  early_stop_data_column=cfg.early_stop_data_column,
                                                  early_stop_threshold=cfg.early_stop_threshold,
-                                                 top_level_layer=baseline)
+                                                 top_level_layer=baseline,
+                                                 logger=logger)
     else:
         eval_callback = CustomEvalCallback(eval_env,
                                            agent=baseline,
@@ -57,7 +58,8 @@ def train(baseline, train_env, eval_env, cfg, logger):
                                            n_eval_episodes=cfg.n_test_rollouts,
                                            early_stop_last_n=cfg.early_stop_last_n,
                                            early_stop_data_column=cfg.early_stop_data_column,
-                                           early_stop_threshold=cfg.early_stop_threshold)
+                                           early_stop_threshold=cfg.early_stop_threshold,
+                                           logger=logger)
     # Create the callback list
     callback.append(eval_callback)
     baseline.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
