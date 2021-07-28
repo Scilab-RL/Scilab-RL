@@ -278,30 +278,30 @@ class HAC(BaseAlgorithm):
         perform_action_replay = not self.is_bottom_layer
         self.perform_action_replay = perform_action_replay and use_action_replay
 
-        self._episode_storage = HerReplayBuffer(env=self.env,
-                                                buffer_size=her_buffer_size,
-                                                device=self.device,
-                                                max_episode_length=self.max_episode_length,
-                                                n_sampled_goal=self.n_sampled_goal,
-                                                goal_selection_strategy='future'#self.goal_selection_strategy, TODO RNDEND is not available
-                                                #online_sampling: bool = True,
-                                                #handle_timeout_termination: bool = True)
-        )
-            #HHerReplayBuffer(
-            #self.env,
-            #her_buffer_size,
-            #self.max_episode_length,
-            #self.goal_selection_strategy,
-            #self.env.observation_space,
-            #self.env.action_space,
-            #self.device,
-            #self.n_envs,
-            #self.her_ratio,  # pytype: disable=wrong-arg-types
-            #self.perform_action_replay,
-            #sample_test_trans_fraction,
-            #subgoal_test_fail_penalty,
-            #self.hindsight_sampling_done_if_success,
+        #self._episode_storage = HerReplayBuffer(env=self.env,
+        #                                        buffer_size=her_buffer_size,
+        #                                        device=self.device,
+        #                                        max_episode_length=self.max_episode_length,
+        #                                        n_sampled_goal=self.n_sampled_goal,
+        #                                        goal_selection_strategy='future'#self.goal_selection_strategy, TODO RNDEND is not available
+        #                                        #online_sampling: bool = True,
+        #                                        #handle_timeout_termination: bool = True)
         #)
+        self._episode_storage = HHerReplayBuffer(
+            self.env,
+            her_buffer_size,
+            self.max_episode_length,
+            self.goal_selection_strategy,
+            self.env.observation_space,
+            self.env.action_space,
+            self.device,
+            self.n_envs,
+            self.her_ratio,  # pytype: disable=wrong-arg-types
+            self.perform_action_replay,
+            sample_test_trans_fraction,
+            subgoal_test_fail_penalty,
+            self.hindsight_sampling_done_if_success,
+        )
 
         # counter for steps in episode
         self.episode_steps = 0

@@ -5,15 +5,15 @@ import numpy as np
 import torch as th
 from gym import spaces
 
-from stable_baselines3.common.buffers import ReplayBuffer
+from stable_baselines3.common.buffers import DictReplayBuffer
 from stable_baselines3.common.type_aliases import RolloutBufferSamples
 from ideas_baselines.common.type_aliases import ReplayBufferSamplesWithTestTrans
 from stable_baselines3.common.vec_env import VecNormalize
-from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
+from ideas_baselines.hac.hierarchical_env import HierarchicalVecEnv
 from ideas_baselines.hac.goal_selection_strategy import GoalSelectionStrategy
 from stable_baselines3.common import logger
 
-class HHerReplayBuffer(ReplayBuffer):
+class HHerReplayBuffer(DictReplayBuffer):
     """
     Replay buffer for sampling Hierarchical HER (Hindsight Experience Replay) transitions, as described in the HAC paper by Levy et al. 2019.
     In the online sampling case, these new transitions will not be saved in the replay buffer
@@ -37,7 +37,7 @@ class HHerReplayBuffer(ReplayBuffer):
 
     def __init__(
         self,
-        env: ObsDictWrapper,
+        env: HierarchicalVecEnv,
         buffer_size: int,
         max_episode_length: int,
         goal_selection_strategy: GoalSelectionStrategy,
@@ -94,14 +94,14 @@ class HHerReplayBuffer(ReplayBuffer):
 
         # input dimensions for buffer initialization
         self.input_shape = {
-            "observation": (self.env.num_envs, self.env.obs_dim),
-            "achieved_goal": (self.env.num_envs, self.env.goal_dim),
-            "desired_goal": (self.env.num_envs, self.env.goal_dim),
+            "observation": (self.env.num_envs, self.env.observation_space['observation'].shape[0]),
+            "achieved_goal": (self.env.num_envs, self.env.observation_space['achieved_goal'].shape[0]),
+            "desired_goal": (self.env.num_envs, self.env.observation_space['desired_goal'].shape[0]),
             "action": (self.action_dim,),
             "reward": (1,),
-            "next_obs": (self.env.num_envs, self.env.obs_dim),
-            "next_achieved_goal": (self.env.num_envs, self.env.goal_dim),
-            "next_desired_goal": (self.env.num_envs, self.env.goal_dim),
+            "next_obs": (self.env.num_envs, self.env.observation_space['observation'].shape[0]),
+            "next_achieved_goal": (self.env.num_envs, self.env.observation_space['achieved_goal'].shape[0]),
+            "next_desired_goal": (self.env.num_envs, self.env.observation_space['desired_goal'].shape[0]),
             "done": (1,),
             "is_subgoal_testing_trans": (1,),
         }
@@ -130,7 +130,7 @@ class HHerReplayBuffer(ReplayBuffer):
         assert "env" not in state
         self.env = None
 
-    def set_env(self, env: ObsDictWrapper) -> None:
+    def set_env(self, env: HierarchicalVecEnv) -> None:
         """
         Sets the environment.
 
@@ -290,10 +290,10 @@ class HHerReplayBuffer(ReplayBuffer):
         transitions["reward"][:, 0] = rewards
 
         # concatenate observation with (desired) goal
-        observations = ObsDictWrapper.convert_dict(self._normalize_obs(transitions, maybe_vec_env))
+        observations = self._normalize_obs(transitions, maybe_vec_env)
         # HACK to make normalize obs work with the next observation
         transitions["observation"] = transitions["next_obs"]
-        next_observations = ObsDictWrapper.convert_dict(self._normalize_obs(transitions, maybe_vec_env))
+        next_observations = self._normalize_obs(transitions, maybe_vec_env)
 
         data = (
             observations[:, 0],
@@ -370,10 +370,10 @@ class HHerReplayBuffer(ReplayBuffer):
             transitions['action'][no_success_idxs] = scaled_action[no_success_idxs]
 
         # concatenate observation with (desired) goal
-        observations = ObsDictWrapper.convert_dict(self._normalize_obs(transitions, maybe_vec_env))
+        observations = self._normalize_obs(transitions, maybe_vec_env)
         # HACK to make normalize obs work with the next observation
         transitions["observation"] = transitions["next_obs"]
-        next_observations = ObsDictWrapper.convert_dict(self._normalize_obs(transitions, maybe_vec_env))
+        next_observations = self._normalize_obs(transitions, maybe_vec_env)
 
         data = (
             observations[:, 0],
