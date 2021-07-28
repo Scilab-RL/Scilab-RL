@@ -19,6 +19,7 @@ from ideas_baselines.hac.util import check_for_correct_spaces
 # from stable_baselines3.common.utils import check_for_correct_spaces
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
+from stable_baselines3.her.her import HerReplayBuffer
 from ideas_baselines.hac.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
 from ideas_baselines.hac.hher_replay_buffer import HHerReplayBuffer
 from ideas_baselines.hac.hierarchical_env import get_h_envs_from_env
@@ -277,21 +278,30 @@ class HAC(BaseAlgorithm):
         perform_action_replay = not self.is_bottom_layer
         self.perform_action_replay = perform_action_replay and use_action_replay
 
-        self._episode_storage = HHerReplayBuffer(
-            self.env,
-            her_buffer_size,
-            self.max_episode_length,
-            self.goal_selection_strategy,
-            self.env.observation_space,
-            self.env.action_space,
-            self.device,
-            self.n_envs,
-            self.her_ratio,  # pytype: disable=wrong-arg-types
-            self.perform_action_replay,
-            sample_test_trans_fraction,
-            subgoal_test_fail_penalty,
-            self.hindsight_sampling_done_if_success,
+        self._episode_storage = HerReplayBuffer(env=self.env,
+                                                buffer_size=her_buffer_size,
+                                                device=self.device,
+                                                max_episode_length=self.max_episode_length,
+                                                n_sampled_goal=self.n_sampled_goal,
+                                                goal_selection_strategy='future'#self.goal_selection_strategy, TODO RNDEND is not available
+                                                #online_sampling: bool = True,
+                                                #handle_timeout_termination: bool = True)
         )
+            #HHerReplayBuffer(
+            #self.env,
+            #her_buffer_size,
+            #self.max_episode_length,
+            #self.goal_selection_strategy,
+            #self.env.observation_space,
+            #self.env.action_space,
+            #self.device,
+            #self.n_envs,
+            #self.her_ratio,  # pytype: disable=wrong-arg-types
+            #self.perform_action_replay,
+            #sample_test_trans_fraction,
+            #subgoal_test_fail_penalty,
+            #self.hindsight_sampling_done_if_success,
+        #)
 
         # counter for steps in episode
         self.episode_steps = 0
@@ -299,7 +309,7 @@ class HAC(BaseAlgorithm):
             self._setup_model()
 
         self.train_callback = None
-        self.tmp_train_logger = logger.Logger(folder=None, output_formats=[]) # HumanOutputFormat(sys.stdout)
+        #self.tmp_train_logger = logger.Logger(folder=None, output_formats=[]) # HumanOutputFormat(sys.stdout)
         self.test_render_info = None
         self.train_render_info = None
 
@@ -384,21 +394,21 @@ class HAC(BaseAlgorithm):
         rb_size = self.replay_buffer.size()
         if self.num_timesteps > self.learning_starts and rb_size > self.learning_starts and self.learning_enabled is True:
             # logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
-            # assign temporary logger to avoid generating duplicate keys for the different layers.
-            real_logger = logger.Logger.CURRENT
-            logger.Logger.CURRENT = self.tmp_train_logger
+            # assign temporary logger to avoid generating duplicate keys for the different layers. TODO handle
+            #real_logger = logger.Logger.CURRENT
+            #logger.Logger.CURRENT = self.tmp_train_logger
             self.train(batch_size=self.batch_size, gradient_steps=n_gradient_steps)
-            logger.Logger.CURRENT = real_logger
-            logged_kvs = self.tmp_train_logger.name_to_value
-            for k, v in logged_kvs.items():
-                try:
-                    postfix = k.split("/")[1]
-                    prefix = k.split("/")[0]
-                    new_k = prefix + "_{}".format(self.layer) + "/" + postfix
-                except:
-                    new_k = k
-                logger.record_mean(new_k, v)
-            self.tmp_train_logger.dump()
+            #logger.Logger.CURRENT = real_logger
+            #logged_kvs = self.tmp_train_logger.name_to_value
+            #for k, v in logged_kvs.items():
+            #    try:
+            #        postfix = k.split("/")[1]
+            #        prefix = k.split("/")[0]
+            #        new_k = prefix + "_{}".format(self.layer) + "/" + postfix
+            #    except:
+            #        new_k = k
+            #    logger.record_mean(new_k, v)
+            #self.tmp_train_logger.dump()
             self.actions_since_last_train = 0
         else:
             pass  # logger.info("Did not yet train layer {} because I have not yet enough experience collected.".format(self.layer))
@@ -520,9 +530,9 @@ class HAC(BaseAlgorithm):
             episode_reward, episode_timesteps = 0.0, 0
             while not done:
                 self.update_venv_buf_obs(self.env)
-                observation = self.env.venv.buf_obs
+                observation = self.env.buf_obs
                 observation = deepcopy(observation) # Required so that values don't get changed.
-                self._last_obs = ObsDictWrapper.convert_dict(observation)
+                self._last_obs = observation#ObsDictWrapper.convert_dict(observation)
                 self.layer_alg._last_obs = self._last_obs
 
                 if self.layer_alg.use_sde and self.layer_alg.sde_sample_freq > 0 and total_steps % self.layer_alg.sde_sample_freq == 0:
@@ -631,7 +641,7 @@ class HAC(BaseAlgorithm):
 
                 # update parameters with model parameters
                 self._n_updates = self.layer_alg._n_updates
-                self._last_dones = self.layer_alg._last_dones
+                self._last_dones = self.layer_alg._last_episode_starts
 
                 if 0 < n_steps < total_steps:
                     break
@@ -648,7 +658,7 @@ class HAC(BaseAlgorithm):
                 self.replay_buffer.store_episode()
 
                 if self.is_top_layer: # Reset environments and _last_obs of all sub_layers.
-                    new_obs = self.env.venv.reset_all()
+                    new_obs = self.env.reset_all()
                     tmp_layer = self
                     while True:
                         tmp_layer._last_obs = new_obs
@@ -711,7 +721,7 @@ class HAC(BaseAlgorithm):
             self.sub_layer.reset_eval_info_list()
 
     def update_venv_buf_obs(self, env):
-        for i,e in enumerate(env.venv.envs):
+        for i,e in enumerate(env.envs):
             env._save_obs(i, e.unwrapped._get_obs())
 
 
@@ -725,18 +735,18 @@ class HAC(BaseAlgorithm):
         eval_env = self._wrap_env(eval_env)
         assert hasattr(eval_env, 'venv'), "Error, vectorized environment required."
         if self.is_top_layer: # Reset simulator for all layers.
-            eval_env.venv.reset_all()
+            eval_env.reset_all()
 
         while not done:
             # logger.info("Level {} step {}".format(self.layer, step_ctr)) ## DEBUG
             self.update_venv_buf_obs(eval_env)
-            obs = eval_env.venv.buf_obs
-            obs = ObsDictWrapper.convert_dict(obs)
+            obs = eval_env.buf_obs
+            #obs = ObsDictWrapper.convert_dict(obs)
             action, _ = self._sample_action(observation=obs,learning_starts=0, deterministic=True)
             q_mean, q_std = self.maybe_get_layer_q_value(action, obs)
             # If it is the last high-level action, then set subgoal to end goal.
-            # if self.layer != 0 and step_ctr+1 == eval_env.venv.envs[0]._max_episode_steps:
-            #     action = [eval_env.venv.envs[0].goal.copy()]
+            # if self.layer != 0 and step_ctr+1 == eval_env.envs[0]._max_episode_steps:
+            #     action = [eval_env.envs[0].goal.copy()]
             # if self.layer == 1: ## DEBUG
             #     logger.info("Setting new subgoal {} for observation {}".format(action, obs))
             # else:
@@ -1032,7 +1042,7 @@ class HAC(BaseAlgorithm):
         if self.is_top_layer:
             logger.record("epoch", self.epoch_count)
             try:
-                succ_rate = logger.Logger.CURRENT.name_to_value['test/success_rate']
+                succ_rate = logger.name_to_value['test/success_rate']
             except Exception as e:
                 logger.info("Error getting test success rate")
                 succ_rate = 0
@@ -1111,15 +1121,14 @@ class HAC(BaseAlgorithm):
 
     def _wrap_env(self, env: GymEnv, verbose: int = 0, monitor_wrapper: bool = False) -> HierarchicalVecEnv:
         # TODO: consider also monitor wrapper as in stable_baselines v 1.0
-        if not isinstance(env, ObsDictWrapper):
-            if not isinstance(env, HierarchicalVecEnv):
-                env = HierarchicalVecEnv([lambda: env], self.ep_early_done_on_succ)
+        if not isinstance(env, HierarchicalVecEnv):
+            env = HierarchicalVecEnv([lambda: env], self.ep_early_done_on_succ)
 
-                if is_image_space(env.observation_space) and not is_wrapped(env, VecTransposeImage):
-                    env = VecTransposeImage(env)
-            # check if wrapper for dict support is needed when using HER
-            if isinstance(env.observation_space, gym.spaces.dict.Dict):
-                env = ObsDictWrapper(env)
+            if is_image_space(env.observation_space) and not is_wrapped(env, VecTransposeImage):
+                env = VecTransposeImage(env)
+        # check if wrapper for dict support is needed when using HER
+        #if isinstance(env.observation_space, gym.spaces.dict.Dict):
+        #    env = ObsDictWrapper(env)
 
         return env
 
@@ -1138,3 +1147,20 @@ class HAC(BaseAlgorithm):
         self.train_render_info = render_info
         if self.sub_layer is not None:
             self.sub_layer.set_train_render_info(render_info)
+
+    def set_logger(self, logger) -> None:
+        """
+        Setter for logger object.
+
+        .. warning::
+
+          When passing a custom logger object,
+          this will overwrite ``tensorboard_log`` and ``verbose`` settings
+          passed to the constructor.
+        """
+        self._logger = logger
+        # User defined logger
+        self._custom_logger = True
+        self.layer_alg.set_logger(logger)
+        if self.sub_layer is not None:
+            self.sub_layer.set_logger(logger)
