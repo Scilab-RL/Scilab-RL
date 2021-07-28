@@ -8,6 +8,7 @@ from gym import spaces
 from stable_baselines3.common.buffers import DictReplayBuffer
 from stable_baselines3.common.type_aliases import RolloutBufferSamples
 from ideas_baselines.common.type_aliases import ReplayBufferSamplesWithTestTrans
+from stable_baselines3.common.type_aliases import DictReplayBufferSamples
 from stable_baselines3.common.vec_env import VecNormalize
 from ideas_baselines.hac.hierarchical_env import HierarchicalVecEnv
 from ideas_baselines.hac.goal_selection_strategy import GoalSelectionStrategy
@@ -105,6 +106,7 @@ class HHerReplayBuffer(DictReplayBuffer):
             "done": (1,),
             "is_subgoal_testing_trans": (1,),
         }
+        self._observation_keys = ["observation", "desired_goal", "achieved_goal"]
 
         self.reset()
 
@@ -239,7 +241,7 @@ class HHerReplayBuffer(DictReplayBuffer):
 
         if n_test_trans > 0:
             test_replay_trans = self.sample_test_transitions(batch_size=n_test_trans, maybe_vec_env=maybe_vec_env)
-            tmp_list = []
+            tmp_dict = {}
             for key in replay_trans._fields:
 
                 if key == 'is_test_trans':
@@ -248,10 +250,20 @@ class HHerReplayBuffer(DictReplayBuffer):
                     rt_t = replay_trans._asdict()[key]
 
                 trt_t = test_replay_trans._asdict()[key]
-                concat_t = th.cat((rt_t, trt_t), 0)
-                tmp_list.append(concat_t)
+                if type(rt_t) == dict:
+                    concat_t = {}
+                    for k in rt_t:
+                        concat_t[k] = th.cat((rt_t[k], trt_t[k]), 0)
+                else:
+                    concat_t = th.cat((rt_t, trt_t), 0)
+                tmp_dict[key] = concat_t
 
-            replay_trans = ReplayBufferSamplesWithTestTrans(*tuple(tmp_list))
+            replay_trans = DictReplayBufferSamples(
+                observations=tmp_dict['observations'],
+                actions=tmp_dict["actions"],
+                next_observations=tmp_dict['next_observations'],
+                dones=tmp_dict['dones'],
+                rewards=tmp_dict['rewards'])
 
         return replay_trans
 
@@ -259,7 +271,7 @@ class HHerReplayBuffer(DictReplayBuffer):
         self,
         batch_size: Optional[int],
         maybe_vec_env: Optional[VecNormalize],
-    ) -> Union[ReplayBufferSamplesWithTestTrans, Tuple[np.ndarray, ...]]:
+    ) -> Union[DictReplayBufferSamples, Tuple[np.ndarray, ...]]:
         """
         :param batch_size: Number of element to sample (only used for online sampling)
         :param env: associated gym VecEnv to normalize the observations/rewards
@@ -291,25 +303,33 @@ class HHerReplayBuffer(DictReplayBuffer):
 
         # concatenate observation with (desired) goal
         observations = self._normalize_obs(transitions, maybe_vec_env)
-        # HACK to make normalize obs work with the next observation
-        transitions["observation"] = transitions["next_obs"]
-        next_observations = self._normalize_obs(transitions, maybe_vec_env)
 
-        data = (
-            observations[:, 0],
-            transitions["action"],
-            next_observations[:, 0],
-            transitions["done"],
-            self._normalize_reward(transitions["reward"], maybe_vec_env),
-            transitions['is_subgoal_testing_trans'],
+        # HACK to make normalize obs and `add()` work with the next observation
+        next_observations = {
+            "observation": transitions["next_obs"],
+            "achieved_goal": transitions["next_achieved_goal"],
+            # The desired goal for the next observation must be the same as the previous one
+            "desired_goal": transitions["desired_goal"],
+        }
+        next_observations = self._normalize_obs(next_observations, maybe_vec_env)
+
+        next_obs = {key: self.to_torch(next_observations[key][:, 0, :]) for key in self._observation_keys}
+
+        normalized_obs = {key: self.to_torch(observations[key][:, 0, :]) for key in self._observation_keys}
+
+        return DictReplayBufferSamples(
+            observations=normalized_obs,
+            actions=self.to_torch(transitions["action"]),
+            next_observations=next_obs,
+            dones=self.to_torch(transitions["done"]),
+            rewards=self.to_torch(self._normalize_reward(transitions["reward"], maybe_vec_env)),
         )
-        return ReplayBufferSamplesWithTestTrans(*tuple(map(self.to_torch, data)))
 
     def sample_goal_action_replay_transitions(
         self,
         batch_size: Optional[int],
         maybe_vec_env: Optional[VecNormalize],
-    ) -> Union[ReplayBufferSamplesWithTestTrans, Tuple[np.ndarray, ...]]:
+    ) -> Union[DictReplayBufferSamples, Tuple[np.ndarray, ...]]:
         """
         :param batch_size: Number of element to sample (only used for online sampling)
         :param env: associated gym VecEnv to normalize the observations/rewards
@@ -371,19 +391,27 @@ class HHerReplayBuffer(DictReplayBuffer):
 
         # concatenate observation with (desired) goal
         observations = self._normalize_obs(transitions, maybe_vec_env)
-        # HACK to make normalize obs work with the next observation
-        transitions["observation"] = transitions["next_obs"]
-        next_observations = self._normalize_obs(transitions, maybe_vec_env)
 
-        data = (
-            observations[:, 0],
-            transitions["action"],
-            next_observations[:, 0],
-            transitions["done"],
-            self._normalize_reward(transitions["reward"], maybe_vec_env),
-            transitions["is_subgoal_testing_trans"],
+        # HACK to make normalize obs and `add()` work with the next observation
+        next_observations = {
+            "observation": transitions["next_obs"],
+            "achieved_goal": transitions["next_achieved_goal"],
+            # The desired goal for the next observation must be the same as the previous one
+            "desired_goal": transitions["desired_goal"],
+        }
+        next_observations = self._normalize_obs(next_observations, maybe_vec_env)
+
+        next_obs = {key: self.to_torch(next_observations[key][:, 0, :]) for key in self._observation_keys}
+
+        normalized_obs = {key: self.to_torch(observations[key][:, 0, :]) for key in self._observation_keys}
+
+        return DictReplayBufferSamples(
+            observations=normalized_obs,
+            actions=self.to_torch(transitions["action"]),
+            next_observations=next_obs,
+            dones=self.to_torch(transitions["done"]),
+            rewards=self.to_torch(self._normalize_reward(transitions["reward"], maybe_vec_env)),
         )
-        return ReplayBufferSamplesWithTestTrans(*tuple(map(self.to_torch, data)))
 
     def add(
         self,
