@@ -155,9 +155,9 @@ class HierarchicalHLEnv(gym.GoalEnv):
     def __init__(self, bottom_env, is_testing_env=None, layer_alg=None):
         self.bottom_env = bottom_env
         self.action_space = bottom_env.observation_space.spaces['desired_goal']
-        if np.inf in self.action_space.high or -np.inf in self.action_space.low:
-            logger.warn("Warning, subgoal space of hierarchical environment not defined. "
-                        "I will guess the subgoal bounds based on drawing goal samples when the sub env is set.")
+        #if np.inf in self.action_space.high or -np.inf in self.action_space.low: todo warn without using the logger
+        #    logger.warn("Warning, subgoal space of hierarchical environment not defined. "
+        #                "I will guess the subgoal bounds based on drawing goal samples when the sub env is set.")
 
         self.observation_space = bottom_env.unwrapped.observation_space
         self._sub_env = None
