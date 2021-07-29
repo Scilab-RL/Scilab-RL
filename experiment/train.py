@@ -16,7 +16,7 @@ from util.util import get_subdir_by_params,get_git_label,set_global_seeds,get_la
 import time
 import ideas_envs.register_envs
 import ideas_envs.wrappers.utils
-from stable_baselines3.common.logger import configure
+from ideas_baselines.hac.util import configure
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback

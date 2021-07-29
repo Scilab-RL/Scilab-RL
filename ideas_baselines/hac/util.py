@@ -1,6 +1,10 @@
-import numpy as np
+from typing import Any, Tuple, Union, Optional, List
+import os
+import datetime
+import tempfile
 import gym
 from stable_baselines3.common.type_aliases import GymEnv
+from stable_baselines3.common.logger import Logger, KVWriter, make_output_format
 
 def get_concat_dict_from_dict_list(dict_list):
     concat_info = {}
@@ -41,3 +45,48 @@ def check_for_correct_spaces(env: GymEnv, observation_space: gym.spaces.Space, a
         raise ValueError(f"Observation spaces do not match: {observation_space} != {env.observation_space}")
     if str(action_space) != str(env.action_space):
         raise ValueError(f"Action spaces do not match: {action_space} != {env.action_space}")
+
+
+class LayerLogger(Logger):
+    def __init__(self, folder: Optional[str], output_formats: List[KVWriter]):
+        self.layer = ''
+        super().__init__(folder, output_formats)
+
+    def record(self, key: str, value: Any, exclude: Optional[Union[str, Tuple[str, ...]]] = None) -> None:
+        if key.startswith('train'):
+            key = 'train' + self.layer + '/' + key.split('/')[1]
+        super().record(key, value, exclude)
+
+    def set_layer(self, layer: str):
+        self.layer = layer
+
+
+def configure(folder: Optional[str] = None, format_strings: Optional[List[str]] = None) -> LayerLogger:
+    """
+    Configure the current logger.
+
+    :param folder: the save location
+        (if None, $SB3_LOGDIR, if still None, tempdir/SB3-[date & time])
+    :param format_strings: the output logging format
+        (if None, $SB3_LOG_FORMAT, if still None, ['stdout', 'log', 'csv'])
+    :return: The logger object.
+    """
+    if folder is None:
+        folder = os.getenv("SB3_LOGDIR")
+    if folder is None:
+        folder = os.path.join(tempfile.gettempdir(), datetime.datetime.now().strftime("SB3-%Y-%m-%d-%H-%M-%S-%f"))
+    assert isinstance(folder, str)
+    os.makedirs(folder, exist_ok=True)
+
+    log_suffix = ""
+    if format_strings is None:
+        format_strings = os.getenv("SB3_LOG_FORMAT", "stdout,log,csv").split(",")
+
+    format_strings = list(filter(None, format_strings))
+    output_formats = [make_output_format(f, folder, log_suffix) for f in format_strings]
+
+    logger = LayerLogger(folder=folder, output_formats=output_formats)
+    # Only print when some files will be saved
+    if len(format_strings) > 0 and format_strings != ["stdout"]:
+        logger.log(f"Logging to {folder}")
+    return logger
