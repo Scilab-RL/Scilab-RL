@@ -278,15 +278,6 @@ class HAC(BaseAlgorithm):
         perform_action_replay = not self.is_bottom_layer
         self.perform_action_replay = perform_action_replay and use_action_replay
 
-        #self._episode_storage = HerReplayBuffer(env=self.env,
-        #                                        buffer_size=her_buffer_size,
-        #                                        device=self.device,
-        #                                        max_episode_length=self.max_episode_length,
-        #                                        n_sampled_goal=self.n_sampled_goal,
-        #                                        goal_selection_strategy='future'#self.goal_selection_strategy, TODO RNDEND is not available
-        #                                        #online_sampling: bool = True,
-        #                                        #handle_timeout_termination: bool = True)
-        #)
         self._episode_storage = HHerReplayBuffer(
             self.env,
             her_buffer_size,
@@ -397,6 +388,7 @@ class HAC(BaseAlgorithm):
             # assign temporary logger to avoid generating duplicate keys for the different layers. TODO handle
             #real_logger = logger.Logger.CURRENT
             #logger.Logger.CURRENT = self.tmp_train_logger
+            self.logger.set_layer(str(self.layer))
             self.train(batch_size=self.batch_size, gradient_steps=n_gradient_steps)
             #logger.Logger.CURRENT = real_logger
             #logged_kvs = self.tmp_train_logger.name_to_value
@@ -1003,6 +995,7 @@ class HAC(BaseAlgorithm):
         """
         Write log.
         """
+        self.logger.set_layer(str(self.layer))
         time_pf = "time_{}".format(self.layer)
         rollout_pf = "rollout_{}".format(self.layer)
         train_pf = "train_{}".format(self.layer)
@@ -1031,6 +1024,7 @@ class HAC(BaseAlgorithm):
 
         if self.sub_layer is not None:
             self.sub_layer._record_logs()
+            self.logger.set_layer(str(self.layer))
 
         for k,v in self.train_info_list.items():
             self.logger.record(train_pf + f"/{k}", safe_mean(v))
