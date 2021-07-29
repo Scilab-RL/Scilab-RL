@@ -804,11 +804,15 @@ class HAC(BaseAlgorithm):
 
     def maybe_get_layer_q_value(self, action, obs):
         try: # if we are lucky we obtain the layer_alg's q value like this.
+            th_obs = {}
+            for k in obs:
+                if self.device.type != 'cpu':
+                    th_obs[k] = th.from_numpy(obs[k]).cuda()
+                else:
+                    th_obs[k] = th.from_numpy(obs[k])
             if self.device.type != 'cpu':
-                th_obs = th.from_numpy(obs).cuda()
                 th_act = th.from_numpy(action).cuda()
             else:
-                th_obs = th.from_numpy(obs)
                 th_act = th.from_numpy(action)
             with th.no_grad():
                 q = th.stack(self.layer_alg.critic(th_obs, th_act))
