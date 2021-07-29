@@ -910,9 +910,7 @@ class HAC(BaseAlgorithm):
         """
         parent_loaded_model = cls("MlpPolicy", env, **policy_args)
         layer_model = parent_loaded_model
-        n_layers = 0
-        while os.path.isfile(path + f"_lay{n_layers}.zip"):
-            n_layers
+        n_layers = len(policy_args['time_scales'])
         for lay in reversed(range(n_layers)):
             layer_path = path + f"_lay{lay}"
             data, params, pytorch_variables = load_from_zip_file(layer_path, device=device)
