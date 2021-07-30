@@ -129,7 +129,7 @@ class HAC(BaseAlgorithm):
 
     save_attrs_to_exclude = ['layer_alg', 'train_video_writer', 'test_video_writer', 'sub_layer', 'parent_layer', 'env',
                              'episode_storage', 'device', 'train_callback', 'tmp_train_logger', 'policy_class',
-                             'policy_kwargs', 'lr_schedule',
+                             'policy_kwargs', 'lr_schedule', '_logger',
                              'gradient_steps', 'train_freq', # These two are not required because they are overwritten in the train() function of the model any ways.
                              '_episode_storage', 'eval_info_list', 'sub_layer_classes', 'goal_selection_strategy', 'layer_class', 'action_space', 'observation_space', # These require more than 1MB to save
                              'episode_steps',
@@ -885,7 +885,7 @@ class HAC(BaseAlgorithm):
 
         self.layer_alg.layer_data = layer_data
         layer_path = path + f"_lay{self.layer}"
-        model_excludes = ['replay_buffer', 'layer_data']
+        model_excludes = ['replay_buffer']
         self.layer_alg.save(layer_path, model_excludes, include)
         if self.sub_layer is not None:
             self.sub_layer.save(path)
