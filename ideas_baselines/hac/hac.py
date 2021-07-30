@@ -908,7 +908,7 @@ class HAC(BaseAlgorithm):
         :param device: Device on which the code should run.
         :param kwargs: extra arguments to change the agent when loading
         """
-        parent_loaded_model = cls("MlpPolicy", env, **policy_args)
+        parent_loaded_model = cls("MultiInputPolicy", env, **policy_args)
         layer_model = parent_loaded_model
         n_layers = len(policy_args['time_scales'])
         for lay in reversed(range(n_layers)):
