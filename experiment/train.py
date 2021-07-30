@@ -25,12 +25,8 @@ from stable_baselines3.her.her import HerReplayBuffer
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 
 def check_env_alg_compatibility(model, env):
-    check_action_space =  isinstance(model.action_space, type(env.action_space))
-    check_observation_space = False
-    if False:# TODO with multiinputpolicy, the policies can receive dicts    hasattr(env.observation_space, 'spaces'):
-        check_observation_space = isinstance(model.observation_space, type(env.observation_space['observation']))
-    else:
-        check_observation_space = isinstance(model.observation_space, type(env.observation_space))
+    check_action_space = isinstance(model.action_space, type(env.action_space))
+    check_observation_space = isinstance(model.observation_space, type(env.observation_space))
     return check_action_space and check_observation_space
 
 def train(baseline, train_env, eval_env, cfg, logger):
@@ -116,7 +112,7 @@ def launch(cfg, logger, kwargs):
         train_env = gym.make(cfg.env)
         eval_env = gym.make(cfg.env)
     rep_buf = None
-    if 'using_her' in cfg and cfg.using_her:
+    if 'using_her' in cfg and cfg.using_her:  # enable with +replay_buffer=her
         rep_buf = HerReplayBuffer
     if cfg.restore_policy is not None:
         baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
