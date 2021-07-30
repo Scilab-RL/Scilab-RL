@@ -127,7 +127,7 @@ class HAC(BaseAlgorithm):
     """
 
     save_attrs_to_exclude = ['layer_alg', 'train_video_writer', 'test_video_writer', 'sub_layer', 'parent_layer', 'env',
-                             'episode_storage', 'device', 'train_callback', 'tmp_train_logger', 'policy_class',
+                             'episode_storage', 'device', 'train_callback', 'policy_class',
                              'policy_kwargs', 'lr_schedule', '_logger',
                              'gradient_steps', 'train_freq', # These two are not required because they are overwritten in the train() function of the model any ways.
                              '_episode_storage', 'eval_info_list', 'sub_layer_classes', 'goal_selection_strategy', 'layer_class', 'action_space', 'observation_space', # These require more than 1MB to save
@@ -299,7 +299,6 @@ class HAC(BaseAlgorithm):
             self._setup_model()
 
         self.train_callback = None
-        #self.tmp_train_logger = logger.Logger(folder=None, output_formats=[]) # HumanOutputFormat(sys.stdout)
         self.test_render_info = None
         self.train_render_info = None
 
@@ -383,26 +382,11 @@ class HAC(BaseAlgorithm):
     def train_layer(self, n_gradient_steps: int):
         rb_size = self.replay_buffer.size()
         if self.num_timesteps > self.learning_starts and rb_size > self.learning_starts and self.learning_enabled is True:
-            # self.logger.info("Training layer {} for {} steps.".format(self.layer, n_gradient_steps))
-            # assign temporary logger to avoid generating duplicate keys for the different layers. TODO handle
-            #real_logger = logger.Logger.CURRENT
-            #logger.Logger.CURRENT = self.tmp_train_logger
             self.logger.set_layer(str(self.layer))
             self.train(batch_size=self.batch_size, gradient_steps=n_gradient_steps)
-            #logger.Logger.CURRENT = real_logger
-            #logged_kvs = self.tmp_train_logger.name_to_value
-            #for k, v in logged_kvs.items():
-            #    try:
-            #        postfix = k.split("/")[1]
-            #        prefix = k.split("/")[0]
-            #        new_k = prefix + "_{}".format(self.layer) + "/" + postfix
-            #    except:
-            #        new_k = k
-            #    self.logger.record_mean(new_k, v)
-            #self.tmp_train_logger.dump()
             self.actions_since_last_train = 0
         else:
-            pass  # self.logger.info("Did not yet train layer {} because I have not yet enough experience collected.".format(self.layer))
+            pass
 
     def run_and_maybe_train(self, n_episodes: int):
         rollout = self.collect_rollouts(
