@@ -18,7 +18,6 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Rollout
 from ideas_baselines.hac.util import check_for_correct_spaces
 # from stable_baselines3.common.utils import check_for_correct_spaces
 from stable_baselines3.common.vec_env import VecEnv
-from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
 from stable_baselines3.her.her import HerReplayBuffer
 from ideas_baselines.hac.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
 from ideas_baselines.hac.hher_replay_buffer import HHerReplayBuffer
@@ -524,7 +523,7 @@ class HAC(BaseAlgorithm):
                 self.update_venv_buf_obs(self.env)
                 observation = self.env.buf_obs
                 observation = deepcopy(observation) # Required so that values don't get changed.
-                self._last_obs = observation#ObsDictWrapper.convert_dict(observation)
+                self._last_obs = observation
                 self.layer_alg._last_obs = self._last_obs
 
                 if self.layer_alg.use_sde and self.layer_alg.sde_sample_freq > 0 and total_steps % self.layer_alg.sde_sample_freq == 0:
@@ -733,7 +732,6 @@ class HAC(BaseAlgorithm):
             # self.logger.info("Level {} step {}".format(self.layer, step_ctr)) ## DEBUG
             self.update_venv_buf_obs(eval_env)
             obs = eval_env.buf_obs
-            #obs = ObsDictWrapper.convert_dict(obs)
             action, _ = self._sample_action(observation=obs,learning_starts=0, deterministic=True)
             q_mean, q_std = self.maybe_get_layer_q_value(action, obs)
             # If it is the last high-level action, then set subgoal to end goal.
@@ -745,10 +743,6 @@ class HAC(BaseAlgorithm):
             #     self.logger.info("Executing low-level action {} for observation {}".format(action, obs))
             new_obs, reward, done, info = eval_env.step(action)
             info.append({'q_mean': q_mean, 'q_std': q_std})
-            # if self.layer == 0: ## DEBUG
-            #     self.logger.info(" New obs after ll-action: {}".format(ObsDictWrapper.convert_dict(new_obs)))
-            #     self.logger.info(" desired goal after ll-action: {}".format(new_obs['desired_goal']))
-            #     self.logger.info(" achieved goal after ll-action: {}".format(new_obs['achieved_goal']))
             if self.is_bottom_layer and self.test_render_info != 'none' and self.epoch_count % self.render_every_n_eval == 0:
                 if self.render_test == 'record':
                     frame = eval_env.unwrapped.render(mode='rgb_array', width=self.test_render_info['size'][0],
@@ -1116,15 +1110,11 @@ class HAC(BaseAlgorithm):
         return action, buffer_action
 
     def _wrap_env(self, env: GymEnv, verbose: int = 0, monitor_wrapper: bool = False) -> HierarchicalVecEnv:
-        # TODO: consider also monitor wrapper as in stable_baselines v 1.0
         if not isinstance(env, HierarchicalVecEnv):
             env = HierarchicalVecEnv([lambda: env], self.ep_early_done_on_succ)
 
             if is_image_space(env.observation_space) and not is_wrapped(env, VecTransposeImage):
                 env = VecTransposeImage(env)
-        # check if wrapper for dict support is needed when using HER
-        #if isinstance(env.observation_space, gym.spaces.dict.Dict):
-        #    env = ObsDictWrapper(env)
 
         return env
 
