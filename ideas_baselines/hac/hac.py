@@ -641,7 +641,7 @@ class HAC(BaseAlgorithm):
                         if tmp_layer.sub_layer is None:
                             break
                         else:
-                            tmp_layer = self.sub_layer
+                            tmp_layer = tmp_layer.sub_layer
                 self.train_info_list['ep_length'].append(episode_timesteps)
                 assert episode_timesteps == self.episode_steps, "DEBUG TEST: If this assertion never triggers, episode_timesteps can be removed and replaced by self.episode_steps to avoid redundancy."
                 total_episodes += 1
