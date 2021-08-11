@@ -1,0 +1,21 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  # access algorithm config group to get the default parameters of sac
+  - override /algorithm: sac
+
+# overwrite default parameters.
+env: 'reach_target-state-v0'
+
++replay_buffer: 'her'
+
+hydra:
+  sweeper:
+    study_name: sac_her_RLB_reach_target
+    storage: sqlite:///sac_her_RLB_reach_target.db
+    search_space:
+      +algorithm.learning_rate:
+        type: float
+        low: 3e-4
+        high: 3e-2
+        log: true
