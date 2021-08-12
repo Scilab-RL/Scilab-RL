@@ -1,0 +1,29 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  # access algorithm config group to get the default parameters of sac
+  - override /algorithm: sac
+
+# overwrite default parameters.
+env: 'push_button-state-v0'
+
+# use HER
+using_her: true
+algorithm:
+  replay_buffer_kwargs:
+    n_sampled_goal: 1
+    goal_selection_strategy: 'future'
+    online_sampling: True
+
+hydra:
+  sweeper:
+    study_name: sac_her_RLB_push_button
+    storage: sqlite:///sac_her_RLB_push_button.db
+    max_trials: 60
+    n_jobs: 6
+    search_space:
+      +algorithm.learning_rate:
+        type: float
+        low: 1e-3
+        high: 3e-3
+        log: true
