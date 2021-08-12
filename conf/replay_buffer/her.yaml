@@ -2,6 +2,6 @@
 using_her: true
 algorithm:
   replay_buffer_kwargs:
-    n_sampled_goal: 2
+    n_sampled_goal: 4
     goal_selection_strategy: 'future'
     online_sampling: True
