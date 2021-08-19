@@ -155,7 +155,7 @@ For convenience, the sweeper also creates a file `delete_me_to_stop_hyperopt`, w
 #### Hyperparameter tuning
 Run
 ```bash
-python experiment/train.py +performance=FetchReach/her-opti.yaml --multirun
+python experiment/train.py +performance=FetchReach/sac_her-opti.yaml --multirun
 ```
 to optimize parameters for `her` in the `FetchReach` environment.
 
@@ -173,7 +173,7 @@ Run a performance test for an environment-algorithm combination. The conditions 
 *conf/performance/ENV/OPTIONAL_ENV_CONFIG-ALGO-test.yaml*.
 You can for example run:
 ```bash
-python experiment/train.py +performance=FetchReach/her-test.yaml --multirun
+python experiment/train.py +performance=FetchReach/sac_her-test.yaml --multirun
 ```
 to test the performance of the current hyperparamters.
 The joblib launcher allows to run `n_jobs` in parallel.
