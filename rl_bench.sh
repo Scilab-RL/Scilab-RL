@@ -111,5 +111,5 @@ open_box"
 for ENV in $OtherEnvs
 do
   ENV="$ENV-state-v0"
-  python experiment/train.py env=$ENV algorithm=hac algorithm.layer_classes=['sac','ddpg'] ~algorithm.set_fut_ret_zero_if_done algorithm.render_train=display algorithm.time_scales=[5,-1] n_epochs=1 eval_after_n_steps=100 n_test_rollouts=1
+  python experiment/train.py env=$ENV algorithm=hac algorithm.layer_classes=['sac','ddpg'] ~algorithm.set_fut_ret_zero_if_done render_args=[['display',1],['none',1]] algorithm.time_scales=[5,-1] n_epochs=1 eval_after_n_steps=100 n_test_rollouts=1
 done

@@ -629,7 +629,7 @@ class HAC(BaseAlgorithm):
                 if self.actions_since_last_train >= self.train_freq and self.train_freq != 0:
                     self.train_layer(self.actions_since_last_train)
 
-                # update paramters with model parameters
+                # update parameters with model parameters
                 self._n_updates = self.layer_alg._n_updates
                 self._last_dones = self.layer_alg._last_dones
 
@@ -641,6 +641,8 @@ class HAC(BaseAlgorithm):
                 self.layer_alg.num_timesteps = self.num_timesteps
                 episode_timesteps += 1 # TODO: Why is there episode_timesteps and self.episode_steps? Is this redundant?
                 total_steps += 1
+                if episode_timesteps >= self.max_episode_length:
+                    break  # TODO this is just a temporary fix for RLBench Environments and should be removed when we created a solution from the environment side
 
             if done or self.episode_steps >= self.max_episode_length:
                 self.replay_buffer.store_episode()
@@ -902,9 +904,7 @@ class HAC(BaseAlgorithm):
         """
         parent_loaded_model = cls("MlpPolicy", env, **policy_args)
         layer_model = parent_loaded_model
-        n_layers = 0
-        while os.path.isfile(path + f"_lay{n_layers}.zip"):
-            n_layers
+        n_layers = len(policy_args['time_scales'])
         for lay in reversed(range(n_layers)):
             layer_path = path + f"_lay{lay}"
             data, params, pytorch_variables = load_from_zip_file(layer_path, device=device)

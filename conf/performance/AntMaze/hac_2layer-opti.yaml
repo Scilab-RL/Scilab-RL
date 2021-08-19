@@ -1,0 +1,96 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  # access algorithm config group to get the default parameters of hac
+  - override /algorithm: hac
+
+env: 'AntMaze-v0'
+
+# The n last epochs over which to average for determining early stopping condition.
+early_stop_last_n: 4
+
+# overwrite algorithm parameters
+algorithm:
+  # Steps per level from highest to lowest, separated by comma. There must be one -1
+  # in the list to indicates the layer where the time scale is determined from the
+  # environment's predefined steps.
+  time_scales:
+    - 20
+    - 20
+
+  # The percentage of subgoals to test.
+  subgoal_test_perc: 0.0
+
+hydra:
+  sweeper:
+    study_name: hac_2_layer_AntMaze-v1
+    storage: sqlite:///hac_2_layer_AntMaze-v1.db
+
+    search_space:
+      algorithm.learning_rates.0:
+        type: float
+        low: 0.0015
+        high: 0.005
+        log: true
+
+      algorithm.learning_rates.1:
+        type: float
+        low: 0.0002
+        high: 0.0007
+        log: true
+
+      algorithm.time_scales.0:
+        type: int
+        low: 15
+        high: 25
+        step: 10
+
+      algorithm.time_scales.1:
+        type: int
+        low: 15
+        high: 25
+        step: 10
+
+      algorithm.n_sampled_goal:
+        type: int
+        low: 6
+        high: 10
+        step: 2
+
+      algorithm.subgoal_test_perc:
+        type: float
+        low: 0.0
+        high: 0.6
+        step: 0.2
+
+      algorithm.goal_selection_strategy:
+        type: categorical
+        choices:
+          - future
+          - future2
+          - rndend
+          - rndend2
+
+      algorithm.use_action_replay:
+        type: categorical
+        choices:
+          - 1
+          - 0
+
+      algorithm.ep_early_done_on_succ:
+        type: int
+        low: 0
+        high: 1
+        step: 1
+
+      algorithm.hindsight_sampling_done_if_success:
+        type: categorical
+        choices:
+          - 1
+          - 0
+
+      algorithm.set_fut_ret_zero_if_done:
+        type: categorical
+        choices:
+          - 1
+          - 0
