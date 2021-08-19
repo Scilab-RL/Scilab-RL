@@ -108,7 +108,9 @@ def launch(cfg, kwargs):
         if cfg.render_args[0][0] == 'record' or cfg.render_args[1][0] == 'record':
             render_mode = 'rgb_array'
         # there can be only one PyRep instance per process, therefore train_env == eval_env
-        train_env = eval_env = RLBenchWrapper(gym.make(cfg.env, render_mode=render_mode))
+        rlbench_env = gym.make(cfg.env, render_mode=render_mode)
+        train_env = RLBenchWrapper(rlbench_env, "train")
+        eval_env = RLBenchWrapper(rlbench_env, "eval")
     else:
         train_env = gym.make(cfg.env)
         eval_env = gym.make(cfg.env)
