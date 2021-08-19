@@ -2,16 +2,22 @@
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
   # access algorithm config group to get the default parameters of her
-  - override /algorithm: her
+  - override /algorithm: sac
 
 # overwrite parameters of main.yaml
 env: 'FetchReach-v1'
 
-# The n last epochs over which to average for determining early stopping condition.
-early_stop_last_n: 4
+# use HER
+using_her: true
+algorithm:
+  learning_rate: 0.0017
+  replay_buffer_kwargs:
+    n_sampled_goal: 1
+    goal_selection_strategy: 'future'
+    online_sampling: True
 
 performance_testing_conditions:
-  # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 14000 steps.
+  # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 22.000 steps.
 
   total_runs: 3 # How many runs in total:
 
@@ -25,7 +31,7 @@ performance_testing_conditions:
 
 hydra:
   sweeper:
+    n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: her_FetchReach-v1_p-test
-    storage: sqlite:///her_FetchReach-v1_p-test.db
-    max_duration_minutes: 15
+    study_name: sac_her_FetchReach-test
+    storage: sqlite:///sac_her_FetchReach-test.db
