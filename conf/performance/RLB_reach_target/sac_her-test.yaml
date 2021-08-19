@@ -31,6 +31,7 @@ performance_testing_conditions:
 
 hydra:
   sweeper:
+    n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
     study_name: sac_her-reach_target-state-v0-test
     storage: sqlite:///sac_her-reach_target-state-v0-test.db
