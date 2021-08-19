@@ -10,7 +10,6 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 1. generate a virtual python3 environment with
 
     `virtualenv -p python3 venv` or
-
     `python3 -m venv venv`
 
 1. load the environment with
@@ -21,24 +20,24 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
 
     `pip install --upgrade pip`
-   
+
 1. install required python libraries with
 
     `pip install -r requirements.txt`
-   
+
 1. Install one or both simulators from the [environments section](#environments).
 
 
 ## Start training manually
 
 ```bash
-python3 experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.render_test=record algorithm.time_scales=[5,-1]
-python experiment/train.py env=FetchReach-v1 algorithm=hac layer_classes=['sacvg','ddpg']
+python3 experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.time_scales=[5,-1]
+python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_classes=['sacvg','ddpg'] ~algorithm.set_fut_ret_zero_if_done
 ```
 
 ```bash
-python experiment/train.py env=FetchReach-v1 algorithm=her2 layer_classes=['sac']
-# also works with ddpg
+python experiment/train.py env=FetchReach-v1 algorithm=her2 algorithm.layer_classes=['sac']
+# also works with ddpg,td3,...
 ```
 
 ## Load a stored policy
@@ -51,21 +50,14 @@ It is important that you  **put the path to the store policy in single quotes**,
 ## File structure
 * The main script from which all algorithms are started is `train.py`.
 * The root directory contains shell scripts for automated testing and data generation.
-* The folder `experiment` contains all architectural stuff for evaluation.
+* The folder `experiment` contains `train.py` and `plot.py`, which can plot data generated during the training.
 
-    * `plot.py` is for plotting
-
-    * `testing_algos.py` is for defining testing parameters
-
-    * `testing_envs.py` is for defining testing environments
-
-    * `click_options.py` is for setting the global (model-independent) command-line parameters
-
-    * `check_error_logs.py`, `generate_testing_commands.py` and `validate_performance_testing.py` is for executing evaluations and tests.
-
-* The folder `ideas_baselines` contains the new HAC implementation and an implementation of HER. Other new algorithms should be added here, too. For details on the specific algorithms, see below.
+* The folder `ideas_baselines` contains the new HAC implementation, an implementation of HER, and SACVG (a version of SAC with variable gamma).
+  Other new algorithms should be added here, too. For details on the specific algorithms, see below.
 * The folder `ideas_envs` should contain new environments (but we may also choose to put environments in a completely different repository).
-* The folder `interface` contains for each algorithm, both stable-baselines3 algorithms and the algorithms here, a file `config.py` and `click_options.py`. The click options file determines the kwargs passed on to the model (HAC, SAC, TD3, etc). These are specifyable as command-line options. The file `config.py` is right now just for determining the parameters to be used for generating a path name for the log directory.
+* The folder `conf/algorithm` contains configurations for each algorithm, both stable-baselines3 algorithms and the algorithms here.
+  It determines the kwargs passed on to the model (HAC, SAC, TD3, etc).
+  These are also overridable as command-line options, e.g. `algorithm.verbose=False`.
 * The folder `util` contains some misc utilities.
 * The folder `hydra_plugins` contains some customized plugins for our hyperparameter management system.
 
@@ -102,10 +94,10 @@ You can use MuJoCo, CoppeliaSim or both. The following sections show you how to 
    locations where you saved the *mjpro200_linux* folder and the *mjkey.txt*.
    Run `source ./set_paths.sh`
    If you are using an IDE, set the variables there as well.
-   
+
 1. `pip install mujoco-py`
 ### Install CoppeliaSim and RL Bench
-If you'd like to use environments simulated with CoppeliaSim, 
+If you'd like to use environments simulated with CoppeliaSim,
 [download CoppeliaSim Edu 4.1.0](https://www.coppeliarobotics.com/previousVersions) (4.2.0 causes problems with some environments)
 and set the following paths accordingly.
 ```
@@ -114,7 +106,7 @@ LD_LIBRARY_PATH=$LD_LIBRARY_PATH:EDIT/ME/PATH/TO/COPPELIASIM/INSTALL/DIR
 QT_QPA_PLATFORM_PLUGIN_PATH=EDIT/ME/PATH/TO/COPPELIASIM/INSTALL/DIR
 ```
 Then `pip install git+https://github.com/stepjam/PyRep.git`. You should now be able to use
-CoppeliaSim environments. 
+CoppeliaSim environments.
 
 If you'd also like to use the [RL Bench](https://github.com/stepjam/RLBench) environments,
 `pip install git+https://github.com/stepjam/RLBench.git pyquaternion natsort`.
@@ -129,18 +121,21 @@ To add a new environment, we suggest to proceed as follows.
 1. That's it. Now you can take your copy as a basis for your new environment and modify it as you want to develop your new environment.
 
 ## Limitations
-Currently, only off-policy algorithms are supported: DQN, DDPG, TD3, SAC, HER and HAC. PPO is not yet supported but it should not be too hard to enable it.
+> :warning: Currently, only off-policy algorithms are supported: DQN, DDPG, TD3, SAC, HER and HAC. PPO is not yet supported but it should not be too hard to enable it.
 
 ## Hyperparameter optimization and management
 The framework has a sophisticated hyperparameter management and optimization pipeline.
 To start the hyperparameter optimization start `experiment/train.py --multirun`. The `--multirun` flag starts the hyperparameter optimization mode.
-[comment]: <> (A problem with the comet.ml integration is that if a script raises an Error and stops, all parallel processes will be blocked and the error will not be output. Therefore, if you spot that all processes of the hyperopt are idle you should re-start the process without comet.ml &#40;just remove the import in `train.py`&#41; and try to reproduce and find the error by observing the console output.  )
+
+> :warning: <> (A problem with the comet.ml integration is that if a script raises an Error and stops, all parallel processes will be blocked and the error will not be output. Therefore, if you spot that all processes of the hyperopt are idle you should re-start the process without comet.ml &#40;just remove the import in `train.py`&#41; and try to reproduce and find the error by observing the console output.  )
+
 The hyperparameter management and optimization builds on the following four tools:
 
 ### Hydra
 Hydra manages the command-line parameters and configuration options.
 The command line parameters are set in the `conf/main.yaml` file.
-All algorithm-specific parameters are set in the `conf/algorithm/<alg_name>/yaml` file.
+All algorithm-specific parameters are set in the `conf/algorithm/<alg_name>.yaml` file.
+Parameters can be removed `~`, added `+` or overridden `++`.
 
 ### Optuna
 Optuna is a framework to perform the hyperparameter optimization algorithm (e.g. TPE).
@@ -156,6 +151,36 @@ The sweeper automatically learns when to early stop trials by remembering past t
 It sets the max. number of epochs for a new trial to 1.5 times the number of epochs of the so-far fastest trial (when terminated by early stopping).
 The sweeper stops after the set number of trials or the specified duration, as specified in the config file.
 For convenience, the sweeper also creates a file `delete_me_to_stop_hyperopt`, which you just need to delete to soft-stop the hyperopting after the current batch of jobs.
+
+#### Hyperparameter tuning
+Run
+```bash
+python experiment/train.py +performance=FetchReach/her-opti.yaml --multirun
+```
+to optimize parameters for `her` in the `FetchReach` environment.
+
+#### Testing functionality (smoke test)
+Simply execute
+```bash
+python experiment/train.py algorithm=hac,her env=FetchReach-v1,AntReacher-v1 ++n_epochs=2 +defaults=smoke_test --multirun
+```
+, to run experiments for hac and her for two epochs (here we use `++` to override the amount of epochs).
+With `+defaults=smoke_test` we are loading the sweeper parameters from `confg/smoke_test.yaml`.
+Crashed experiments can be found in mlflow, having a red cross symbol.
+
+#### Performance testing
+Run a performance test for an environment-algorithm combination. The conditions for a performance test are stored in
+*conf/performance/ENV/OPTIONAL_ENV_CONFIG-ALGO-test.yaml*.
+You can for example run:
+```bash
+python experiment/train.py +performance=FetchReach/her-test.yaml --multirun
+```
+to test the performance of the current hyperparamters.
+The joblib launcher allows to run `n_jobs` in parallel.
+
+> :warning: **You cannot** run multiple performance tests by simply providing multiple configs separated by commas, for example:
+`python experiment/train.py +performance=FetchReach/her-test,AntMaze/hac-2layer-test --multirun` does not work.
+In that case, just call `experiment/train.py` twice with the different performance test configs.
 
 ### Mlflow
 Mlflow collects studies and logs data of all runs.
@@ -180,8 +205,3 @@ To upload the results to comet.ml in either way, using the import or the `mlflow
 [comet]
    api_key=<your API key>
 ```
-
-
-
-
-

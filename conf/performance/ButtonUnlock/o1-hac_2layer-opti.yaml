@@ -1,0 +1,81 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  # access algorithm config group to get the default parameters of hac
+  - override /algorithm: hac
+
+env: 'ButtonUnlock-o1-v1'
+
+# The n last epochs over which to average for determining early stopping condition.
+early_stop_last_n: 4
+
+algorithm:
+  # number of hindsight goals.
+  n_sampled_goal: 7
+
+  # Whether to consider an episode as done *in hindsight* during goal replay
+  # if the hindsight goal has been achieved. This is important e.g. in SAC,
+  # where the discounted expected return is set to 0 of an episode is done.
+  # Only relevant if set_fut_ret_zero_if_done = 1.
+  hindsight_sampling_done_if_success: 1
+
+hydra:
+  sweeper:
+    study_name: hac_2_layer_ButtonUnlock-o1-v1
+    storage: sqlite:///hac_2_layer_ButtonUnlock-o1-v1.db
+    search_space:
+      algorithm.learning_rates.0:
+        type: float
+        low: 6e-4
+        high: 3e-2
+        log: true
+#
+      algorithm.learning_rates.1:
+        type: float
+        low: 6e-4
+        high: 3e-2
+        log: true
+#
+      algorithm.n_sampled_goal:
+        type: int
+        low: 1
+        high: 8
+        step: 1
+#
+      algorithm.subgoal_test_perc:
+        type: float
+        low: 0.0
+        high: 0.7
+        step: 0.1
+
+      algorithm.goal_selection_strategy:
+        type: categorical
+        choices:
+          - future
+          - future2
+          - rndend
+          - rndend2
+
+      algorithm.use_action_replay:
+        type: categorical
+        choices:
+          - 1
+          - 0
+
+      algorithm.ep_early_done_on_succ:
+        type: int
+        low: 0
+        high: 2
+        step: 1
+
+      algorithm.hindsight_sampling_done_if_success:
+        type: categorical
+        choices:
+          - 1
+          - 0
+
+      algorithm.set_fut_ret_zero_if_done:
+        type: categorical
+        choices:
+          - 1
+          - 0

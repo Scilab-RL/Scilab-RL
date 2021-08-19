@@ -159,7 +159,7 @@ class OptunaSweeperConf:
     n_jobs: int = 1
 
     # Max. duration in minutes for hyperopt
-    max_duration_minutes: int = 60
+    max_duration_minutes: int = 1440
 
     # After how many repeats of the same parameterization will the trial be pruned? 0 means there can be no repeats.
 #    max_repeats_prune: int = 0
