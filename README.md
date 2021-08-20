@@ -32,13 +32,16 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
 ```bash
 python3 experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.time_scales=[5,-1]
-python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_classes=['sacvg','ddpg'] ~algorithm.set_fut_ret_zero_if_done
+python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_classes=['sacvg','ddpg'] algorithm.set_fut_ret_zero_if_done
 ```
 
-```bash
-python experiment/train.py env=FetchReach-v1 algorithm=her2 algorithm.layer_classes=['sac']
-# also works with ddpg,td3,...
-```
+[comment]: <> (```bash)
+
+[comment]: <> (python experiment/train.py env=FetchReach-v1 algorithm=her2 algorithm.layer_classes=['sac'])
+
+[comment]: <> (# also works with ddpg,td3,...)
+
+[comment]: <> (```)
 
 ## Load a stored policy
 By default, the script stores the latest policy, the best policy (the best is the one with the highest value in `early_stop_data_column`), and it stores policies regularly in an interval of `save_model_freq` steps. To restore a saved policy, use the `restore_policy` commandline parameter. For example, say the best model is stored under the following directory:
