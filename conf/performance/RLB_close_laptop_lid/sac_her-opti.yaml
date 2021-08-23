@@ -18,8 +18,8 @@ algorithm:
 
 hydra:
   sweeper:
-    study_name: sac_her_RLB_close_laptop_lid
-    storage: sqlite:///sac_her_RLB_close_laptop_lid.db
+    study_name: sac_her_RLB_close_laptop_lid-opt
+    storage: sqlite:///sac_her_RLB_close_laptop_lid-opt.db
     max_trials: 30
     n_jobs: 6
     direction: maximize
