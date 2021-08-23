@@ -38,6 +38,10 @@ hydra:
   sweeper:
     study_name: hac_1_layer_FetchReach-v1
     storage: sqlite:///hac_1_layer_FetchReach.db
+    direction: maximize
+    max_duration_minutes: 600
+    min_trials_per_param: 3
+    max_trials_per_param: 6
     search_space:
       algorithm.learning_rates.0:
         type: float

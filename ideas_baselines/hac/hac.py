@@ -232,6 +232,7 @@ class HAC(BaseAlgorithm):
                                     learning_rates=learning_rates[1:],
                                     use_action_replay=use_action_replay,
                                     ep_early_done_on_succ=ep_early_done_on_succ,
+                                    *args,
                                     **kwargs)
             self.sub_layer.parent_layer = self
         else:
