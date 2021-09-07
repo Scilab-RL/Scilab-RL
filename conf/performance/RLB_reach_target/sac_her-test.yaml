@@ -12,7 +12,7 @@ using_her: true
 algorithm:
   learning_rate: 0.00264
   replay_buffer_kwargs:
-    n_sampled_goal: 1
+    n_sampled_goal: 2
     goal_selection_strategy: 'future'
     online_sampling: True
 
