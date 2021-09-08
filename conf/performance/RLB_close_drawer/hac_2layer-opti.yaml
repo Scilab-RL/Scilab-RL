@@ -6,11 +6,12 @@ defaults:
 
 # overwrite parameters of main.yaml
 env: 'close_drawer-state-v0'
+n_epochs: 100
 
 # overwrite algorithm parameters
 algorithm:
   # number of hindsight goals.
-  n_sampled_goal: 7
+  n_sampled_goal: 4
 
   # Whether to consider an episode as done *in hindsight* during goal replay
   # if the hindsight goal has been achieved. This is important e.g. in SAC,
@@ -22,17 +23,22 @@ hydra:
   sweeper:
     study_name: hac_2_layer_RLB_close_drawer
     storage: sqlite:///hac_2_layer_RLB_close_drawer.db
+    max_trials: 40
+    n_jobs: 4
+    direction: maximize
+    min_trials_per_param: 2
+    max_trials_per_param: 4
     search_space:
       algorithm.learning_rates.0:
         type: float
-        low: 6e-4
-        high: 3e-2
+        low: 5e-4
+        high: 1e-2
         log: true
 
       algorithm.learning_rates.1:
         type: float
-        low: 6e-4
-        high: 3e-2
+        low: 5e-4
+        high: 1e-2
         log: true
 
       #algorithm.n_sampled_goal:
