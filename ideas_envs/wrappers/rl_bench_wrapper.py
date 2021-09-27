@@ -40,6 +40,9 @@ class RLBenchWrapper(Wrapper):
         if os.path.exists(path + '.pkl'):
             obs_space.spaces['desired_goal'] = pickle.load(open(path + '.pkl', 'rb'))[0]
         else:
+            print('\033[92m' + "You are the first to sample a goal_space for this environment. "
+                               "This will take some time. "
+                               "Please commit the result, which will be saved to " + path + ".pkl" + '\033[0m')
             goal_space = self._guess_goal_space(obs_space.spaces['desired_goal'])
             obs_space.spaces['desired_goal'] = goal_space
             pickle.dump((goal_space, get_git_label()), file=open(path + '.pkl', 'wb'))
