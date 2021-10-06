@@ -1,6 +1,6 @@
 # ideas_deep_rl2
 
-This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-conditioned reinforcement learning using the stable baselines 3 methods and OpenAI gym interface
+This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-conditioned reinforcement learning using the [stable baselines 3](https://stable-baselines3.readthedocs.io/en/master/) methods and [OpenAI gym](https://gym.openai.com/) interface.
 
 ## Requirements:
 - Python 3.6+
@@ -43,6 +43,13 @@ python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_class
 
 [comment]: <> (```)
 
+## Configure the training parameters
+We use [hydra](https://hydra.cc/docs/next/intro) to manage the command-line parameters and configuration options.
+The command line parameters are set in the `conf/main.yaml` file. 
+It specifies that the default parameters are retrieved from `conf/exp_params/default.yaml`.
+All algorithm-specific parameters are set in the `conf/algorithm/<alg_name>.yaml` file.
+Parameters can be removed `~`, added `+` or overridden `++`.
+
 ## Load a stored policy
 By default, the script stores the latest policy, the best policy (the best is the one with the highest value in `early_stop_data_column`), and it stores policies regularly in an interval of `save_model_freq` steps. To restore a saved policy, use the `restore_policy` commandline parameter. For example, say the best model is stored under the following directory:
 `/storage/gdrive/Coding/ideas_deep_rl2/data/ac47785/FetchReach-v1/goaselstr=rndend&learat=0.0018,0.003&nsamgoa=6&subtesper=0.1&timsca=-1,7&100/best_model`
@@ -63,19 +70,6 @@ It is important that you  **put the path to the store policy in single quotes**,
   These are also overridable as command-line options, e.g. `algorithm.verbose=False`.
 * The folder `util` contains some misc utilities.
 * The folder `hydra_plugins` contains some customized plugins for our hyperparameter management system.
-
-## Testing (CURRENTLY NOT SUPPORTED!)
-
-1. generate a file with all possible environment/algorithm combinations with:
-
-    `./run_testing.sh -g <comma-separated list of gpu_ids in paremtheses, e.g. '(0,1)'> -p <max processes> -m <min. free GPU memory required to star a new process> -s <time to sleep before executing next command> -t <type of testing <function|performance>>`
-
-    The defaults for these parameters are g=0, p=6, m=2500, t='performance', s=15
-
-    The script will create a file `test_cmds.txt` in the base directory with all currently supported environment-algorithm combinations and useful hyperparameters. It will also execute them and perform two checks:
-
-    1. A function check to determine whether a process crashed
-    1. A performance test to determine whether certain predefined success rates are met. These success rates are defined in `experiment/testing_algos.py` (see Section on Testing below.)
 
 ## Algorithms
 
@@ -130,37 +124,29 @@ To add a new environment, we suggest to proceed as follows.
 The framework has a sophisticated hyperparameter management and optimization pipeline.
 To start the hyperparameter optimization start `experiment/train.py --multirun`. The `--multirun` flag starts the hyperparameter optimization mode.
 
-> :warning: <> (A problem with the comet.ml integration is that if a script raises an Error and stops, all parallel processes will be blocked and the error will not be output. Therefore, if you spot that all processes of the hyperopt are idle you should re-start the process without comet.ml &#40;just remove the import in `train.py`&#41; and try to reproduce and find the error by observing the console output.  )
+> :warning: (A problem with the comet.ml integration is that if a script raises an Error and stops, all parallel processes will be blocked and the error will not be output. Therefore, if you spot that all processes of the hyperopt are idle you should re-start the process without comet.ml &#40;just remove the import in `train.py`&#41; and try to reproduce and find the error by observing the console output.  )
 
 The hyperparameter management and optimization builds on the following four tools:
 
-### Hydra
-Hydra manages the command-line parameters and configuration options.
-The command line parameters are set in the `conf/main.yaml` file.
-All algorithm-specific parameters are set in the `conf/algorithm/<alg_name>.yaml` file.
-Parameters can be removed `~`, added `+` or overridden `++`.
-
-### Optuna
+### Optuna & Hydra
 Optuna is a framework to perform the hyperparameter optimization algorithm (e.g. TPE).
 Optuna integrates flawlessly with hydra.
-To set up the search space for the hyperparameter optimization look at the `search_space` section of the `conf/main.yaml` file.
 The default optuna launcher for hyperopting is the joblib launcher which spawns several loky processes.
 A disadvantage of this approach is that the logging to stdout is disabled.
 However, you will be able to read all console outputs produced by `logger.info()` in the log folder.
 The hyperparameter search is implemented via a customized sweeper plugin located in the `hydra_plugins` subfolder.
 By default, the sweeper uses the TPE optimizer.
-You can control the behavior of the sweeper in the `hydra/sweeper` section of `conf/main.yaml`.
 The sweeper automatically learns when to early stop trials by remembering past trials.
 It sets the max. number of epochs for a new trial to 1.5 times the number of epochs of the so-far fastest trial (when terminated by early stopping).
 The sweeper stops after the set number of trials or the specified duration, as specified in the config file.
 For convenience, the sweeper also creates a file `delete_me_to_stop_hyperopt`, which you just need to delete to soft-stop the hyperopting after the current batch of jobs.
 
 #### Hyperparameter tuning
-Run
+We configure the hyperparameter tuning with hydra. The configurations are stored in `conf/performance/<env_name>/<algo_name>-opti.yaml`. For example, to optimize `sac` with `her` for the RLBench reacher environment, run
 ```bash
-python experiment/train.py +performance=FetchReach/sac_her-opti.yaml --multirun
+python experiment/train.py +performance=RLB_reach_target/sac_her-opti.yaml --multirun
 ```
-to optimize parameters for `her` in the `FetchReach` environment.
+We use theses files to specify the algorithm (e.g. `override /algorithm: sac`) and its parameters, the environment (e.g. `env: reach_target-state-v0`), and the search space for the optimization. If you copy and change a config to optimize for a different environment or algorithm, it is also important to change `hydra:sweeper:study_name` and `hydra:sweeper:storage` accordingly.
 
 #### Testing functionality (smoke test)
 Simply execute
@@ -173,12 +159,12 @@ Crashed experiments can be found in mlflow, having a red cross symbol.
 
 #### Performance testing
 Run a performance test for an environment-algorithm combination. The conditions for a performance test are stored in
-*conf/performance/ENV/OPTIONAL_ENV_CONFIG-ALGO-test.yaml*.
+`conf/performance/<env_name>/<algo_name>-test.yaml`.
 You can for example run:
 ```bash
 python experiment/train.py +performance=FetchReach/sac_her-test.yaml --multirun
 ```
-to test the performance of the current hyperparamters.
+to test the performance of the current hyperparameters.
 The joblib launcher allows to run `n_jobs` in parallel.
 
 > :warning: **You cannot** run multiple performance tests by simply providing multiple configs separated by commas, for example:

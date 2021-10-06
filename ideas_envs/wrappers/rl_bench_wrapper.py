@@ -1,5 +1,9 @@
+import pickle
+import os
+from pathlib import Path
 from itertools import chain
 import numpy as np
+from tqdm import tqdm
 from gym.core import Wrapper
 import gym.spaces as spaces
 from gym.wrappers import TimeLimit
@@ -8,6 +12,7 @@ from rlbench.backend.conditions import DetectedCondition, NothingGrasped, Graspe
     DetectedSeveralCondition, ConditionSet, EmptyCondition
 from pyrep.objects.shape import Shape
 from pyrep.const import PrimitiveShape
+from util.util import get_git_label
 
 
 class RLBenchWrapper(Wrapper):
@@ -29,7 +34,18 @@ class RLBenchWrapper(Wrapper):
             achieved_goal=spaces.Box(-np.inf, np.inf, shape=obs['achieved_goal'].shape, dtype='float32'),
             observation=spaces.Box(-np.inf, np.inf, shape=obs['observation'].shape, dtype='float32'),
         ))
-        obs_space.spaces['desired_goal'] = self._guess_goal_space(obs_space.spaces['desired_goal'])
+        # load goal space if it has been sampled before
+        path = Path(__file__).parent.absolute()
+        path = str(path / 'goal_spaces' / env.env.spec.id)
+        if os.path.exists(path + '.pkl'):
+            obs_space.spaces['desired_goal'] = pickle.load(open(path + '.pkl', 'rb'))[0]
+        else:
+            print('\033[92m' + "You are the first to sample a goal_space for this environment. "
+                               "This will take some time. "
+                               "Please commit the result, which will be saved to " + path + ".pkl" + '\033[0m')
+            goal_space = self._guess_goal_space(obs_space.spaces['desired_goal'])
+            obs_space.spaces['desired_goal'] = goal_space
+            pickle.dump((goal_space, get_git_label()), file=open(path + '.pkl', 'wb'))
         self.observation_space = obs_space
         self.vis = {}
 
@@ -68,10 +84,10 @@ class RLBenchWrapper(Wrapper):
         return goal
 
     def _guess_goal_space(self, goal_space):
-        n_samples = 300
+        n_samples = 10000
         goal_space.high = -goal_space.high
         goal_space.low = -goal_space.low
-        for _ in range(n_samples):
+        for _ in tqdm(range(n_samples)):
             goal = self._sample_goal()
             goal_space.high = np.maximum(goal, goal_space.high)
             goal_space.low = np.minimum(goal, goal_space.low)

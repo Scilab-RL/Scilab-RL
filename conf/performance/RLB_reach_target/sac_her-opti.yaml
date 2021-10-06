@@ -17,15 +17,18 @@ algorithm:
 
 hydra:
   sweeper:
-    study_name: sac_her_RLB_reach_target
-    storage: sqlite:///sac_her_RLB_reach_target.db
-    max_trials: 60
+    study_name: sac_her_RLB_reach_target-opt
+    storage: sqlite:///sac_her_RLB_reach_target-opt.db
+    max_trials: 120
     n_jobs: 6
+    direction: maximize
+    min_trials_per_param: 3
+    max_trials_per_param: 6
     search_space:
       +algorithm.learning_rate:
         type: float
         low: 1e-4
-        high: 1e-2
+        high: 3e-2
         log: true
       ++algorithm.replay_buffer_kwargs.n_sampled_goal:
         type: int

@@ -33,12 +33,34 @@ algorithm:
 
 hydra:
   sweeper:
-    n_jobs: 3
-    study_name: hac_1layer-reach_target-state-v0-opti
-    storage: sqlite:///hac_1layer-reach_target-state-v0-opti.db
+    n_jobs: 6
+    max_trials: 120
+    study_name: hac_1layer-reach_target-state-v0-opt
+    storage: sqlite:///hac_1layer-reach_target-state-v0-opt.db
+    direction: maximize
+    min_trials_per_param: 3
+    max_trials_per_param: 6
     search_space:
       algorithm.learning_rates.0:
         type: float
-        low: 6e-4
+        low: 1e-4
         high: 3e-2
         log: true
+
+      algorithm.ep_early_done_on_succ:
+        type: int
+        low: 0
+        high: 2
+        step: 1
+
+      algorithm.hindsight_sampling_done_if_success:
+        type: categorical
+        choices:
+          - 1
+          - 0
+
+      algorithm.set_fut_ret_zero_if_done:
+        type: categorical
+        choices:
+          - 1
+          - 0
