@@ -35,8 +35,8 @@ class RLBenchWrapper(Wrapper):
             observation=spaces.Box(-np.inf, np.inf, shape=obs['observation'].shape, dtype='float32'),
         ))
         # load goal space if it has been sampled before
-        path = str(Path(__file__).parent.absolute())
-        path = path + '/goal_spaces/' + env.env.spec.id
+        path = Path(__file__).parent.absolute()
+        path = str(path / 'goal_spaces' / env.env.spec.id)
         if os.path.exists(path + '.pkl'):
             obs_space.spaces['desired_goal'] = pickle.load(open(path + '.pkl', 'rb'))[0]
         else:
