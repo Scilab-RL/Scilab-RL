@@ -12,7 +12,7 @@ n_epochs: 100
 using_her: true
 algorithm:
   replay_buffer_kwargs:
-    n_sampled_goal: 1
+    n_sampled_goal: 2
     goal_selection_strategy: 'future'
     online_sampling: True
 
