@@ -128,7 +128,7 @@ To start the hyperparameter optimization start `experiment/train.py --multirun`.
 
 The hyperparameter management and optimization builds on the following four tools:
 
-### Optuna
+### Optuna & Hydra
 Optuna is a framework to perform the hyperparameter optimization algorithm (e.g. TPE).
 Optuna integrates flawlessly with hydra.
 The default optuna launcher for hyperopting is the joblib launcher which spawns several loky processes.
