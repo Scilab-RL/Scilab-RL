@@ -50,6 +50,7 @@ algorithm:
 
 hydra:
   sweeper:
+    n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
     study_name: hac_1_layer_FetchReach-v1_p-test
     storage: sqlite:///hac_1_layer_FetchReach_p-test.db
