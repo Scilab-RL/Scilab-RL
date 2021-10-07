@@ -34,6 +34,7 @@ algorithm:
 
 hydra:
   sweeper:
+    n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
     study_name: hac_2_layer_ButtonUnlock-o1-v1_p-test
     storage: sqlite:///hac_2_layer_ButtonUnlock-o1-v1_p-test.db

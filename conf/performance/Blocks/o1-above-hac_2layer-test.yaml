@@ -15,7 +15,7 @@ env: 'Blocks-o1-gripper_above-v1'
 early_stop_last_n: 4
 
 performance_testing_conditions:
-  # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 200000 steps.
+  # In 2 out of 3 tests, the test/success rate should be at least 0.05 after 200000 steps.
 
   total_runs: 3 # How many runs in total:
 
@@ -40,6 +40,7 @@ algorithm:
 
 hydra:
   sweeper:
+    n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
     study_name: hac_2_layer_Blocks-o1-gripper_above-v1_p-test
     storage: sqlite:///hac_2_layer_Blocks-o1-gripper_above-v1_p-test.db
