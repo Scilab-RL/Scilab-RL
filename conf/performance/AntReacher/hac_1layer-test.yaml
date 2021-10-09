@@ -10,11 +10,11 @@ env: 'AntReacher-v1'
 early_stop_last_n: 4
 
 performance_testing_conditions:
-  # In 2 out of 3 tests, the test/success rate should be at least 0.5 after 150000 steps.
+  # In 1 out of 3 tests, the test/success rate should be at least 0.5 after 150000 steps.
 
   total_runs: 3 # How many runs in total:
 
-  succ_runs: 2 # This number of runs should meet the conditions:
+  succ_runs: 1 # This number of runs should meet the conditions:
 
   eval_columns: test/success_rate # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
 
