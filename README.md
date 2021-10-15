@@ -33,7 +33,7 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
 ```bash
 python3 experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.time_scales=[5,-1]
-python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_classes=['sacvg','ddpg'] algorithm.set_fut_ret_zero_if_done
+python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_classes=['sacvg','ddpg']
 ```
 
 [comment]: <> (```bash)
@@ -111,14 +111,6 @@ CoppeliaSim environments.
 If you'd also like to use the [RL Bench](https://github.com/stepjam/RLBench) environments,
 `pip install git+https://github.com/stepjam/RLBench.git pyquaternion natsort`.
 An example for an RL Bench environment is *reach_target-state-v0*.
-### Adding a new environment
-To add a new environment, we suggest to proceed as follows.
-
-1. As a basis, use an environment that is as close as possible to the new environment you want to develop. A good start for a gripper-based environment is the gym version of FetchReach. Run your favorite algorithm with this base environment and make sure it works as intended. It is also a good idea to take notes about the learning performance (how many training steps required to achieve success).
-1. Make a copy of that environment and add it to the `ideas_envs` folder in the repository. Therefore, create a new subfolder for your new environment under `ideas_envs`, say `ideas_envs/new_env`. Then, say you want to start with the `FetchReach-v1` environment as a basis, and assuming that `venv` is the folder where you have your virtual python 3.6 environment, copy `venv/lib/python3.6/site-packages/gym/envs/robotics/fetch_env.py` to that subfolder. You may want to save it under a different filename, say `new_env.py`. Finally, if you use an OpenAI gym env like FetchReach, you have to create an entry point class for your environment, as found in `venv/lib/python3.6/site-packages/gym/envs/robotics/fetch/reach.py:FetchReachEnv`. Using an entry point class is the preferred way of implementing different variations for each environment. For example, the fetch environment has different entry points for `FetchReach` and `FetchPush`. You find these in `reach.py` and `push.py` respectively. For the following we assume that your entry point class is `NewClassEnv` and your environment name is `NewEnv-v0` (note that the `-vN` suffix is mandatory for each environment name, where `N` is the version number).
-1. Then you need to register your entry point class as a new environment. You can do this by adding it to the `ideas_envs/register_envs.py` file. You find examples for how exactly to do this in the file.
-1. Now try whether your copy of the base environment is running as intended, in the same way as the original one. Therefore, set the `env` parameter in `conf/main.yaml` to `NewEnv-v0`, or add the commandline parameter `env=NewEnv-v0`.
-1. That's it. Now you can take your copy as a basis for your new environment and modify it as you want to develop your new environment.
 
 ## Limitations
 > :warning: Currently, only off-policy algorithms are supported: DQN, DDPG, TD3, SAC, HER and HAC. PPO is not yet supported but it should not be too hard to enable it.
