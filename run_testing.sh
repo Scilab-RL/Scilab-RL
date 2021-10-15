@@ -14,6 +14,7 @@ main() {
   ENVS+="ButtonUnlock-o2-v1,"
   ENVS+="AntReacher-v1,"
   ENVS+="Ant4Rooms-v1,"
+  ENVS+="AntButtonUnlock-o2-v1,"
   ENVS+="AntMaze-v0,"
   ENVS+="AntPush-v0,"
   ENVS+="AntFall-v0,"
