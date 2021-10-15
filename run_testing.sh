@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
 main() {
-  local ALGS="hac,her"
+  local ALGS="hac,sac"
 
   local ENVS=""
+  #MuJoCo
   ENVS+="AntReacher-v1,"
   ENVS+="ButtonUnlock-o1-v1,"
   ENVS+="FetchReach-v1,"
@@ -23,10 +24,15 @@ main() {
   ENVS+="AntFall-v0,"
   ENVS+="Blocks-o0-gripper_random-v1,"
   ENVS+="Blocks-o1-gripper_above-v1,"
-  ENVS+="Blocks-o2-gripper_random-v1,"
-  ENVS+="Blocks-o3-gripper_none-v1"
+  ENVS+="Blocks-o3-gripper_none-v1,"
+  #RLBench
+  ENVS+="reach_target-state-v0,"
+  ENVS+="turn_tap-state-v0,"
+  ENVS+="close_laptop_lid-state-v0,"
+  ENVS+="close_drawer-state-v0,"
+  ENVS+="close_box-state-v0"
 
-  python3 experiment/train.py algorithm=$ALGS env=$ENVS ++n_epochs=2 +defaults=smoke_test --multirun;
+  python3 experiment/train.py algorithm=$ALGS env=$ENVS ++n_epochs=1 +defaults=smoke_test --multirun;
 }
 
 main;
