@@ -5,18 +5,13 @@ main() {
 
   local ENVS=""
   #MuJoCo
-  ENVS+="AntReacher-v1,"
-  ENVS+="ButtonUnlock-o1-v1,"
   ENVS+="FetchReach-v1,"
-  ENVS+="AntMaze-v0,"
   ENVS+="FetchPush-v1,"
   ENVS+="FetchSlide-v1,"
   ENVS+="FetchPickAndPlace-v1,"
-  ENVS+="FetchReach-v1,"
   ENVS+="HandManipulateBlock-v0,"
   ENVS+="Hook-o1-v1,"
   ENVS+="ButtonUnlock-o2-v1,"
-  ENVS+="ButtonUnlock-o1-v1,"
   ENVS+="AntReacher-v1,"
   ENVS+="Ant4Rooms-v1,"
   ENVS+="AntMaze-v0,"
