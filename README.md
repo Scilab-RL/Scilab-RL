@@ -33,7 +33,7 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
 ```bash
 python3 experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.time_scales=[5,-1]
-python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_classes=['sacvg','ddpg'] algorithm.set_fut_ret_zero_if_done
+python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_classes=['sacvg','ddpg']
 ```
 
 [comment]: <> (```bash)
