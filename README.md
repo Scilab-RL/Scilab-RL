@@ -1,6 +1,7 @@
 # ideas_deep_rl2
 
 This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-conditioned reinforcement learning using the [stable baselines 3](https://stable-baselines3.readthedocs.io/en/master/) methods and [OpenAI gym](https://gym.openai.com/) interface.
+> We now have a wiki, [check it out!](https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/wikis/home)
 
 ## Requirements:
 - Python 3.6+
@@ -32,7 +33,7 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 
 ```bash
 python3 experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.time_scales=[5,-1]
-python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_classes=['sacvg','ddpg'] algorithm.set_fut_ret_zero_if_done
+python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_classes=['sacvg','ddpg']
 ```
 
 [comment]: <> (```bash)
@@ -53,7 +54,7 @@ Parameters can be removed `~`, added `+` or overridden `++`.
 ## Load a stored policy
 By default, the script stores the latest policy, the best policy (the best is the one with the highest value in `early_stop_data_column`), and it stores policies regularly in an interval of `save_model_freq` steps. To restore a saved policy, use the `restore_policy` commandline parameter. For example, say the best model is stored under the following directory:
 `/storage/gdrive/Coding/ideas_deep_rl2/data/ac47785/FetchReach-v1/goaselstr=rndend&learat=0.0018,0.003&nsamgoa=6&subtesper=0.1&timsca=-1,7&100/best_model`
-Then you can restore that policy py starting the script with the ``
+Then you can restore that policy by starting the script with the ``
 `python experiment/train.py restore_policy='/storage/gdrive/Coding/ideas_deep_rl2/data/ac47785/FetchReach-v1/goaselstr=rndend&learat=0.0018,0.003&nsamgoa=6&subtesper=0.1&timsca=-1,7&100/best_model'`
 It is important that you  **put the path to the store policy in single quotes**, otherwise the parser will fail because of the `=` symbols in the path! Double quotes won't work!
 
@@ -64,28 +65,30 @@ It is important that you  **put the path to the store policy in single quotes**,
 
 * The folder `ideas_baselines` contains the new HAC implementation, an implementation of HER, and SACVG (a version of SAC with variable gamma).
   Other new algorithms should be added here, too. For details on the specific algorithms, see below.
-* The folder `ideas_envs` should contain new environments (but we may also choose to put environments in a completely different repository).
+* The folder `ideas_envs` contains new environments.
+* The folder `conf/exp_params` contains general configurations for the experiment parameters.
 * The folder `conf/algorithm` contains configurations for each algorithm, both stable-baselines3 algorithms and the algorithms here.
   It determines the kwargs passed on to the model (HAC, SAC, TD3, etc).
   These are also overridable as command-line options, e.g. `algorithm.verbose=False`.
+* The folder `conf/performance` contains optimization and performance-testing scripts for different environments.
 * The folder `util` contains some misc utilities.
 * The folder `hydra_plugins` contains some customized plugins for our hyperparameter management system.
 
 ## Algorithms
 
-### HAC
-TBD
+We currently support the _Stable Baselines 3_ goal-conditioned algorithms and our implementation of the
+Hierarchical Actor Critic (HAC) algorithm.
 
 ## Environments
-Currently, all goal-conditioned gym environments are supported. A list of all tested environments can be found in `conf/main.yaml`.
+Currently, all goal-conditioned gym environments are supported. A list of tested environments can be found in `run_testing.sh`.
 You can use MuJoCo, CoppeliaSim or both. The following sections show you how to install them.
 
 ### Install MuJoCo
 1. Download [MuJoCo](mujoco.org) and obtain a license
-   (as student you can obtain a free one-year student license).
+   (as student you can obtain a free one-year student license, until the end of October 2021 they even give you a [license without registration](https://www.roboti.us/license.html)).
    Copy the *mjpro200_linux* folder from the downloaded archive
    as well as *mjkey.txt* that you will obtain from the registration
-   to folders of your choice.
+   to folders of your choice (We recommend `/data/USERNAME/`).
 
 1. Set the environment variables in `set_paths.sh` according to the
    locations where you saved the *mjpro200_linux* folder and the *mjkey.txt*.
@@ -108,14 +111,6 @@ CoppeliaSim environments.
 If you'd also like to use the [RL Bench](https://github.com/stepjam/RLBench) environments,
 `pip install git+https://github.com/stepjam/RLBench.git pyquaternion natsort`.
 An example for an RL Bench environment is *reach_target-state-v0*.
-### Adding a new environment
-To add a new environment, we suggest to proceed as follows.
-
-1. As a basis, use an environment that is as close as possible to the new environment you want to develop. A good start for a gripper-based environment is the gym version of FetchReach. Run your favorite algorithm with this base environment and make sure it works as intended. It is also a good idea to take notes about the learning performance (how many training steps required to achieve success).
-1. Make a copy of that environment and add it to the `ideas_envs` folder in the repository. Therefore, create a new subfolder for your new environment under `ideas_envs`, say `ideas_envs/new_env`. Then, say you want to start with the `FetchReach-v1` environment as a basis, and assuming that `venv` is the folder where you have your virtual python 3.6 environment, copy `venv/lib/python3.6/site-packages/gym/envs/robotics/fetch_env.py` to that subfolder. You may want to save it under a different filename, say `new_env.py`. Finally, if you use an OpenAI gym env like FetchReach, you have to create an entry point class for your environment, as found in `venv/lib/python3.6/site-packages/gym/envs/robotics/fetch/reach.py:FetchReachEnv`. Using an entry point class is the preferred way of implementing different variations for each environment. For example, the fetch environment has different entry points for `FetchReach` and `FetchPush`. You find these in `reach.py` and `push.py` respectively. For the following we assume that your entry point class is `NewClassEnv` and your environment name is `NewEnv-v0` (note that the `-vN` suffix is mandatory for each environment name, where `N` is the version number).
-1. Then you need to register your entry point class as a new environment. You can do this by adding it to the `ideas_envs/register_envs.py` file. You find examples for how exactly to do this in the file.
-1. Now try whether your copy of the base environment is running as intended, in the same way as the original one. Therefore, set the `env` parameter in `conf/main.yaml` to `NewEnv-v0`, or add the commandline parameter `env=NewEnv-v0`.
-1. That's it. Now you can take your copy as a basis for your new environment and modify it as you want to develop your new environment.
 
 ## Limitations
 > :warning: Currently, only off-policy algorithms are supported: DQN, DDPG, TD3, SAC, HER and HAC. PPO is not yet supported but it should not be too hard to enable it.
@@ -153,8 +148,8 @@ Simply execute
 ```bash
 python experiment/train.py algorithm=hac,her env=FetchReach-v1,AntReacher-v1 ++n_epochs=2 +defaults=smoke_test --multirun
 ```
-, to run experiments for hac and her for two epochs (here we use `++` to override the amount of epochs).
-With `+defaults=smoke_test` we are loading the sweeper parameters from `confg/smoke_test.yaml`.
+, to run experiments for hac and sac for two epochs (here we use `++` to override the amount of epochs).
+With `+defaults=smoke_test` we are loading the sweeper parameters from `conf/smoke_test.yaml`.
 Crashed experiments can be found in mlflow, having a red cross symbol.
 
 #### Performance testing
