@@ -9,6 +9,10 @@ for n_objects in range(5):
                  entry_point='ideas_envs.blocks.blocks_env:BlocksEnv',
                  kwargs={'n_objects': n_objects, 'gripper_goal': gripper_goal},
                  max_episode_steps=max(50, 50*n_objects))
+        register(id='OOBlocks-o{}-{}-v1'.format(n_objects, gripper_goal),
+                 entry_point='ideas_envs.oo_blocks.oo_blocks_env:OOBlocksEnv',
+                 kwargs={'n_objects': n_objects, 'gripper_goal': gripper_goal},
+                 max_episode_steps=max(50, 50 * n_objects))
 
 for n_objects in range(3):
     register(id='Hook-o{}-v1'.format(n_objects),
