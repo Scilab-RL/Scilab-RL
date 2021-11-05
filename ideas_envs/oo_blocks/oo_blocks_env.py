@@ -158,7 +158,7 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
             goal[:] = self.initial_gripper_xpos \
                       + self.np_random.uniform(-self.target_range, self.target_range, size=3)
         # TODO for Elnur:
-        #  To get going, start the whole thing with the following command-line parameters: experiment/train.py env=OOBlocks-o1-gripper_random-v1 algorithm=sac
+        #  To get going, start the whole thing with the following command-line parameters: experiment/train.py env=OOBlocks-o0-gripper_random-v1 algorithm=sac
         #  Then do the following:
         #  1: Change this function such that it is object-oriented. That is, from the goal variable above,
         #  derive an object-oriented goal variable that randomly selects an object index, and appends this as a 1-hot vector
@@ -169,6 +169,6 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         #  The get_obs function is already designed for this. For example, in line 67 you see how the obs vector is asembled.
         #  The first three values denote the gripper position. Hence, the object attribute index for gripper pos is 0.
         #  The next three values denote the block positions. Hence, the object attribute index for the first block is 1 (if there is at leas one block).
-        #  The next value indices depend on how many blocks there are. You can control this with the Environment name (look at line 12 in register_envs to see how)
+        #  The next value indices depend on how many blocks there are. You can control the number of objects (blocks) with the Environment name: OOBlocks-o0-... denotes 0 blocks and OOBlocks-o1-... 1 block, and so on.
         #
         return goal.copy()
