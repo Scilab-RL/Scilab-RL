@@ -71,9 +71,15 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         else:
             achieved_goal = obs[:self.goal_size]
 
+        # TODO: transform achieved goal to oo achieved goal
+        # 1. get object index from self.goal
+        # 2. Detect the values of achieved_goal that correspond to self.goal
+        ooachieved_goal = [1, 0, -0.05111022,  0.03454098,  0.525]
+
         return {
             'observation': obs.copy(),
-            'achieved_goal': achieved_goal.copy(),
+            # 'achieved_goal': achieved_goal.copy(),
+            'achieved_goal': ooachieved_goal.copy(),
             'desired_goal': self.goal.copy(),
         }
 
@@ -157,12 +163,24 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
             # n_objects == 0 is only possible with 'gripper_random'
             goal[:] = self.initial_gripper_xpos \
                       + self.np_random.uniform(-self.target_range, self.target_range, size=3)
+
+        #  E.g. Let gripper be object 0 and block be object 1 and x,y,z are goal coordinates:
+        # Then if you randomly decide to choose a goal for the block: oogoal = (0, 1, x,y,z)
+        # obj_idx = 1
+        # oneHot = np.eye(obj_idx)[1]
+        # ooValues = list(goal[obj_idx * 3 : obj_idx * 3 + 3])
+        # oogoal = oneHot + ooValues
+        # oogoal = [obj_idx] + ooValues
+        # Example, the gripper (object 0) should be at the values below.
+        oogoal = [1, 0, -0.05111022,  0.03454098,  0.525]
+
         # TODO for Elnur:
-        #  To get going, start the whole thing with the following command-line parameters: experiment/train.py env=OOBlocks-o0-gripper_random-v1 algorithm=sac
+        #  To get going, start the whole thing with the following command-line parameters: experiment/train.py env=OOBlocks-o0-gripper_above-v1 algorithm=sac
         #  Then do the following:
         #  1: Change this function such that it is object-oriented. That is, from the goal variable above,
         #  derive an object-oriented goal variable that randomly selects an object index, and appends this as a 1-hot vector
         #  before the goal values for that object.
+        #  Assumption: Each object goal has three values (x,y,z)
         #  2: Overwrite the is_success function in the parent class and assure that it is object oriented.
         #  3: Overwrite the get_obs function and make the achieved_goal object-oriented.
         # TODO In all three steps: I recommend to consider object attributes that consist of three values each.
