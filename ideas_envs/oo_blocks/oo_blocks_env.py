@@ -31,9 +31,11 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         self.n_objects = n_objects
         self.gripper_goal = gripper_goal
 
-        self.goal_size = self.n_objects * 3
-        if self.gripper_goal != 'gripper_none':
-            self.goal_size += 3
+        # self.goal_size = self.n_objects * 3
+        # if self.gripper_goal != 'gripper_none':
+        #     self.goal_size += 3
+        assert self.gripper_goal != 'gripper_none', "Error, we expect a gripper to be included in the goal for OO-stuff"
+        self.goal_size = self.n_objects + 1 + 3
         self.object_height = 0.05
         self.table_height = 0.4
         self.sample_dist_threshold = np.sqrt(2 * self.object_height**2)
@@ -74,7 +76,7 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         # TODO: transform achieved goal to oo achieved goal
         # 1. get object index from self.goal
         # 2. Detect the values of achieved_goal that correspond to self.goal
-        ooachieved_goal = [1, 0, -0.05111022,  0.03454098,  0.525]
+        ooachieved_goal = np.array([1, 0, -0.05111022,  0.03454098,  0.525])
 
         return {
             'observation': obs.copy(),
@@ -125,7 +127,7 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         return True
 
     def _sample_goal(self):
-        goal = np.empty(self.goal_size)
+        full_goal = np.empty((self.n_objects + 1) * 3)
         if self.n_objects > 0:
             # Find a random position for the tower
             lowest_block_xy = self.initial_gripper_xpos[:2]\
@@ -141,13 +143,13 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
             for i in range(self.n_objects):
                 z += self.object_height
                 pos = np.concatenate([lowest_block_xy, z])
-                goal[start_idx + i * 3:start_idx + i * 3 + 3] = pos
+                full_goal[start_idx + i * 3:start_idx + i * 3 + 3] = pos
 
             # set the gripper_goal, if there is any
             if not self.gripper_goal == 'gripper_none':
                 if self.gripper_goal == 'gripper_above':
                     z += 2 * self.object_height
-                    goal[:3] = np.concatenate([lowest_block_xy, z])
+                    full_goal[:3] = np.concatenate([lowest_block_xy, z])
                 if self.gripper_goal == 'gripper_random':
                     too_close = True
                     while too_close:
@@ -155,24 +157,24 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
                                     + self.np_random.uniform(-self.target_range, self.target_range, size=3)
                         closest_dist = np.inf
                         for i in range(self.n_objects):
-                            closest_dist = min(closest_dist, np.linalg.norm(grip_goal - goal[3 + 3 * i:6 + 3 * i]))
+                            closest_dist = min(closest_dist, np.linalg.norm(grip_goal - full_goal[3 + 3 * i:6 + 3 * i]))
                         if closest_dist > self.sample_dist_threshold:
                             too_close = False
-                    goal[:3] = grip_goal
+                    full_goal[:3] = grip_goal
         else:
             # n_objects == 0 is only possible with 'gripper_random'
-            goal[:] = self.initial_gripper_xpos \
+            full_goal[:] = self.initial_gripper_xpos \
                       + self.np_random.uniform(-self.target_range, self.target_range, size=3)
 
         #  E.g. Let gripper be object 0 and block be object 1 and x,y,z are goal coordinates:
         # Then if you randomly decide to choose a goal for the block: oogoal = (0, 1, x,y,z)
         # obj_idx = 1
-        # oneHot = np.eye(obj_idx)[1]
+        # oneHot = np.eye(obj_idx)[1] # To get from index to one-hot use np.eye()
         # ooValues = list(goal[obj_idx * 3 : obj_idx * 3 + 3])
         # oogoal = oneHot + ooValues
         # oogoal = [obj_idx] + ooValues
         # Example, the gripper (object 0) should be at the values below.
-        oogoal = [1, 0, -0.05111022,  0.03454098,  0.525]
+        oogoal = np.array([1, 0, -0.05111022,  0.03454098,  0.525])
 
         # TODO for Elnur:
         #  To get going, start the whole thing with the following command-line parameters: experiment/train.py env=OOBlocks-o0-gripper_above-v1 algorithm=sac
@@ -189,4 +191,5 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         #  The next three values denote the block positions. Hence, the object attribute index for the first block is 1 (if there is at leas one block).
         #  The next value indices depend on how many blocks there are. You can control the number of objects (blocks) with the Environment name: OOBlocks-o0-... denotes 0 blocks and OOBlocks-o1-... 1 block, and so on.
         #
-        return goal.copy()
+        return oogoal
+        # return goal.copy()
