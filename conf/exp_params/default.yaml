@@ -42,6 +42,9 @@ eval_after_n_steps: 2000
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
 n_epochs: 60
 
+# Whether to use HER sampling
+using_her: true
+
 # The number of testing rollouts.
 n_test_rollouts: 10
 
