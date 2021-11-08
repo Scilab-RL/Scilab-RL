@@ -75,6 +75,7 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
 
         # TODO: transform achieved goal to oo achieved goal
         # 1. get object index from self.goal
+        # obj_idx = np.where(self.goal[:-3], 1.0)
         # 2. Detect the values of achieved_goal that correspond to self.goal
         ooachieved_goal = np.array([1, 0, -0.05111022,  0.03454098,  0.525])
 
