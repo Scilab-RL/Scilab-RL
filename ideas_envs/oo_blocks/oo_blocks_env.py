@@ -1,4 +1,6 @@
 import os
+import random
+
 import numpy as np
 from gym.utils import EzPickle
 from gym.envs.robotics import fetch_env, rotations, utils
@@ -38,7 +40,7 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         self.goal_size = self.n_objects + 1 + 3
         self.object_height = 0.05
         self.table_height = 0.4
-        self.sample_dist_threshold = np.sqrt(2 * self.object_height**2)
+        self.sample_dist_threshold = np.sqrt(2 * self.object_height ** 2)
 
         has_object = self.n_objects > 0
 
@@ -54,7 +56,7 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         grip_velp = self.sim.data.get_site_xvelp('robot0:grip') * dt
         robot_qpos, robot_qvel = utils.robot_get_obs(self.sim)
         gripper_state = np.concatenate((robot_qpos[-2:], [0]))
-        gripper_vel =np.concatenate((robot_qvel[-2:] * dt, [0]))
+        gripper_vel = np.concatenate((robot_qvel[-2:] * dt, [0]))
 
         object_pos, object_rot, object_velp, object_velr = (np.empty(self.n_objects * 3) for _ in range(4))
         for i in range(self.n_objects):
@@ -68,21 +70,19 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
 
         obs = np.concatenate([grip_pos, object_pos, gripper_state, object_rot,
                               grip_velp, object_velp, object_velr, gripper_vel])
-        if self.gripper_goal == 'gripper_none':
-            achieved_goal = obs[3:3 + self.goal_size]
-        else:
-            achieved_goal = obs[:self.goal_size]
-
         # TODO: transform achieved goal to oo achieved goal
-        # 1. get object index from self.goal
-        # obj_idx = np.where(self.goal[:-3], 1.0)
+        # 1. get object index from self.goal (any index != 0 is object, since 0 is gripper index)
+        obj_idx = np.where(self.goal[:-3] != 0)
         # 2. Detect the values of achieved_goal that correspond to self.goal
-        ooachieved_goal = np.array([1, 0, -0.05111022,  0.03454098,  0.525])
+        if self.gripper_goal == 'gripper_none':
+            oo_achieved_goal = obs[3:3 + self.goal_size]
+        else:
+            oo_achieved_goal = obs[:self.goal_size]
 
         return {
             'observation': obs.copy(),
             # 'achieved_goal': achieved_goal.copy(),
-            'achieved_goal': ooachieved_goal.copy(),
+            'achieved_goal': oo_achieved_goal.copy(),
             'desired_goal': self.goal.copy(),
         }
 
@@ -131,8 +131,8 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         full_goal = np.empty((self.n_objects + 1) * 3)
         if self.n_objects > 0:
             # Find a random position for the tower
-            lowest_block_xy = self.initial_gripper_xpos[:2]\
-                               + self.np_random.uniform(-self.target_range, self.target_range, size=2)
+            lowest_block_xy = self.initial_gripper_xpos[:2] \
+                              + self.np_random.uniform(-self.target_range, self.target_range, size=2)
             # the height z is set below table height for now because we add the object height later
             z = np.array([self.table_height - self.object_height * 0.5])
             # if the gripper position is included in the goal, leave the first 3 values free
@@ -165,25 +165,28 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         else:
             # n_objects == 0 is only possible with 'gripper_random'
             full_goal[:] = self.initial_gripper_xpos \
-                      + self.np_random.uniform(-self.target_range, self.target_range, size=3)
+                           + self.np_random.uniform(-self.target_range, self.target_range, size=3)
 
         #  E.g. Let gripper be object 0 and block be object 1 and x,y,z are goal coordinates:
         # Then if you randomly decide to choose a goal for the block: oogoal = (0, 1, x,y,z)
         # obj_idx = 1
+        obj_idx = random.randint(1, self.n_objects)
         # oneHot = np.eye(obj_idx)[1] # To get from index to one-hot use np.eye()
-        # ooValues = list(goal[obj_idx * 3 : obj_idx * 3 + 3])
-        # oogoal = oneHot + ooValues
+        # Number of objects + 1 (gripper) to get one-hot representation of object in env
+        oneHot_idx = np.eye(self.n_objects + 1)[obj_idx]
+        oo_values = list(full_goal[obj_idx * 3: obj_idx * 3 + 3])
+        oo_goal = np.array(list(oneHot_idx) + oo_values)
         # oogoal = [obj_idx] + ooValues
         # Example, the gripper (object 0) should be at the values below.
-        oogoal = np.array([1, 0, -0.05111022,  0.03454098,  0.525])
+        # oo_goal = np.array([1, 0, -0.05111022,  0.03454098,  0.525])
 
         # TODO for Elnur:
-        #  To get going, start the whole thing with the following command-line parameters: experiment/train.py env=OOBlocks-o0-gripper_above-v1 algorithm=sac
+        #  To get going, start the whole thing with the following command-line parameters: experiment/train.py env=OOBlocks-o0-gripper_above-v1 algorithm=sac +
         #  Then do the following:
-        #  1: Change this function such that it is object-oriented. That is, from the goal variable above,
-        #  derive an object-oriented goal variable that randomly selects an object index, and appends this as a 1-hot vector
-        #  before the goal values for that object.
-        #  Assumption: Each object goal has three values (x,y,z)
+        #  1: Change this function such that it is object-oriented. That is, from the goal variable above, +
+        #  derive an object-oriented goal variable that randomly selects an object index, and appends this as a 1-hot vector +
+        #  before the goal values for that object. +
+        #  Assumption: Each object goal has three values (x,y,z) +
         #  2: Overwrite the is_success function in the parent class and assure that it is object oriented.
         #  3: Overwrite the get_obs function and make the achieved_goal object-oriented.
         # TODO In all three steps: I recommend to consider object attributes that consist of three values each.
@@ -192,5 +195,7 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         #  The next three values denote the block positions. Hence, the object attribute index for the first block is 1 (if there is at leas one block).
         #  The next value indices depend on how many blocks there are. You can control the number of objects (blocks) with the Environment name: OOBlocks-o0-... denotes 0 blocks and OOBlocks-o1-... 1 block, and so on.
         #
-        return oogoal
-        # return goal.copy()
+        return oo_goal.copy()
+
+    def _is_success(self, achieved_goal, desired_goal):
+        return super()._is_success(achieved_goal, desired_goal)
