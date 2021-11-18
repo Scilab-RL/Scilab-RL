@@ -84,18 +84,17 @@ Currently, all goal-conditioned gym environments are supported. A list of tested
 You can use MuJoCo, CoppeliaSim or both. The following sections show you how to install them.
 
 ### Install MuJoCo
-1. Download [MuJoCo](mujoco.org) and obtain a license
-   (as student you can obtain a free one-year student license, until the end of October 2021 they even give you a [license without registration](https://www.roboti.us/license.html)).
-   Copy the *mjpro200_linux* folder from the downloaded archive
-   as well as *mjkey.txt* that you will obtain from the registration
-   to folders of your choice (We recommend `/data/USERNAME/`).
+1. Download [MuJoCo](mujoco.org) 
+   Copy the *mujoco210* folder from the downloaded archive
+      to folders of your choice (We recommend `/home/USERNAME/`).
 
 1. Set the environment variables in `set_paths.sh` according to the
-   locations where you saved the *mjpro200_linux* folder and the *mjkey.txt*.
+   locations where you saved the *mujoco210* folder.
    Run `source ./set_paths.sh`
    If you are using an IDE, set the variables there as well.
 
-1. `pip install mujoco-py`
+1. Install python interface. For mujoco 2.1, use `pip install git+https://github.com/openai/mujoco-py`. In case there is an error during compilation, try `sudo apt install libpython3-dev`, and `sudo apt-get install libosmesa6-dev`
+
 ### Install CoppeliaSim and RL Bench
 If you'd like to use environments simulated with CoppeliaSim,
 [download CoppeliaSim Edu 4.1.0](https://www.coppeliarobotics.com/previousVersions) (4.2.0 causes problems with some environments)
