@@ -7,11 +7,11 @@ from gym import spaces
 
 from stable_baselines3.common.buffers import DictReplayBuffer
 from stable_baselines3.common.type_aliases import RolloutBufferSamples
-from ideas_baselines.common.type_aliases import ReplayBufferSamplesWithTestTrans
+from custom_algorithms.common.type_aliases import ReplayBufferSamplesWithTestTrans
 from stable_baselines3.common.type_aliases import DictReplayBufferSamples
 from stable_baselines3.common.vec_env import VecNormalize
-from ideas_baselines.hac.hierarchical_env import HierarchicalVecEnv
-from ideas_baselines.hac.goal_selection_strategy import GoalSelectionStrategy
+from custom_algorithms.hac.hierarchical_env import HierarchicalVecEnv
+from custom_algorithms.hac.goal_selection_strategy import GoalSelectionStrategy
 from stable_baselines3.common import logger
 
 class HHerReplayBuffer(DictReplayBuffer):

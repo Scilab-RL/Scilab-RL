@@ -113,7 +113,7 @@ class HierarchicalVecEnv(DummyVecEnv):
                 viz_env.sim.model.site_size[site_id] = size
                 viz_env.sim.model.site_rgba[site_id] = goals_to_viz[name][2]
             except ValueError as e:
-                raise ValueError("Site {} does not exist. Please include the ideas_envs.assets.subgoal_viz.xml "
+                raise ValueError("Site {} does not exist. Please include the custom_envs.assets.subgoal_viz.xml "
                                  "in your environment xml.".format(name)) from e
 
     def render(self, mode='rgb_array', width=1024, height=768):

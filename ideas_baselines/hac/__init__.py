@@ -1,3 +1,0 @@
-from ideas_baselines.her2.goal_selection_strategy import GoalSelectionStrategy
-from ideas_baselines.hac.hac import HAC
-from ideas_baselines.her2.her_replay_buffer import HerReplayBuffer

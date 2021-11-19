@@ -9,7 +9,7 @@ from stable_baselines3.common.buffers import ReplayBuffer
 from stable_baselines3.common.type_aliases import ReplayBufferSamples, RolloutBufferSamples
 from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
-from ideas_baselines.her2.goal_selection_strategy import GoalSelectionStrategy
+from custom_algorithms.her2.goal_selection_strategy import GoalSelectionStrategy
 
 
 class HerReplayBuffer(ReplayBuffer):
