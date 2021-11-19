@@ -16,8 +16,8 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Rollout
 from stable_baselines3.common.utils import check_for_correct_spaces
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
-from ideas_baselines.her2.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
-from ideas_baselines.her2.her_replay_buffer import HerReplayBuffer
+from custom_algorithms.her2.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
+from custom_algorithms.her2.her_replay_buffer import HerReplayBuffer
 
 
 def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> int:

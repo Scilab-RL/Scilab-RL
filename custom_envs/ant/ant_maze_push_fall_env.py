@@ -2,8 +2,8 @@
 
 import os
 import numpy as np
-from ideas_envs.ant.ant_env import AntEnv
-from ideas_envs.ant.xml_creator import create_xml
+from custom_envs.ant.ant_env import AntEnv
+from custom_envs.ant.xml_creator import create_xml
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'ant_maze_push_fall.xml')
 MAX_GOAL_DIST = 5.0

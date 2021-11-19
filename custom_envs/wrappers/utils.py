@@ -1,7 +1,7 @@
 import os
 from shutil import copyfile
 import xml.etree.ElementTree
-import ideas_envs.wrappers.subgoal_viz_wrapper as svw
+import custom_envs.wrappers.subgoal_viz_wrapper as svw
 
 
 def goal_viz_for_gym_robotics():
