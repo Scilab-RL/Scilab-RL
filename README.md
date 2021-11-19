@@ -4,7 +4,7 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-c
 > We now have a wiki, [check it out!](https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/wikis/home)
 
 ## Requirements:
-- Python 3.6+
+- Python 3.6 or Python 3.7 (Python 3.8 is not recommended because it may throw [this error](https://github.com/openai/mujoco-py/issues/544) when debugging).
 
 ## Getting started
 
