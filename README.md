@@ -93,7 +93,7 @@ You can use MuJoCo, CoppeliaSim or both. The following sections show you how to 
    Run `source ./set_paths.sh`
    If you are using an IDE, set the variables there as well.
 
-1. Install python interface. For mujoco 2.1, use `pip install 'mujoco-py<2.2,>=2.1'`. In case there is an error during compilation, try `sudo apt install libpython3-dev`, and `sudo apt-get install libosmesa6-dev`
+1. Install python interface. For mujoco 2.1, use `pip install 'mujoco-py<2.2,>=2.1'`. In case there is an error during compilation, try `sudo apt install libpython3.X-dev` (where `X` is to be replaced with the appropriate version), and `sudo apt-get install libosmesa6-dev`
 
 ### Install CoppeliaSim and RL Bench
 If you'd like to use environments simulated with CoppeliaSim,
