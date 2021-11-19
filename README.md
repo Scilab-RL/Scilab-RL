@@ -1,7 +1,15 @@
 # ideas_deep_rl3
 
-This is the IDEAS / LeCAREbot deep RL repository focusing on hierarchical goal-conditioned reinforcement learning using the [stable baselines 3](https://stable-baselines3.readthedocs.io/en/master/) methods and [OpenAI gym](https://gym.openai.com/) interface.
+This is the IDEAS / LeCAREbot deep RL repository focusing on (hierarchical) goal-conditioned reinforcement learning using the [stable baselines 3](https://stable-baselines3.readthedocs.io/en/master/) methods and [OpenAI gym](https://gym.openai.com/) interface.
 > We now have a wiki, [check it out!](https://collaborating.tuhh.de/ckv0173/ideas_deep_rl3/-/wikis/home)
+
+The framework is tailored towards the rapid prototyping and development and evaluation of new RL algorithms and methods. It has the following unique selling-points compared to others, like spinning up and stable baselines:
+* Built-in data visualization for fast and efficient debugging using MLFLow and cometML (and possibly weights n biases).
+* Support for many state-of-the-art algorithms via stable baselines 3 and extensible to others. 
+* Built-in hyperparameter optimization using Optuna
+* Easy development of new robotic simulation and real robot environments based on MuJoCo, CoppeliaSim, and PyBullet. 
+* Smoke and performance testing
+* Compatibility between a multitude of state-of-the-art algorithms for quick empirical comparison and evaluation. 
 
 ## Requirements:
 - Python 3.6 or Python 3.7 (Python 3.8 is not recommended because it may throw [this error](https://github.com/openai/mujoco-py/issues/544) when debugging).
