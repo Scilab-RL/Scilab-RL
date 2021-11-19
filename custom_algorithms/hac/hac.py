@@ -15,22 +15,22 @@ from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.policies import BasePolicy
 from stable_baselines3.common.save_util import load_from_zip_file, recursive_setattr
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, RolloutReturn
-from ideas_baselines.hac.util import check_for_correct_spaces
+from custom_algorithms.hac.util import check_for_correct_spaces
 # from stable_baselines3.common.utils import check_for_correct_spaces
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.her.her import HerReplayBuffer
-from ideas_baselines.hac.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
-from ideas_baselines.hac.hher_replay_buffer import HHerReplayBuffer
-from ideas_baselines.hac.hierarchical_env import get_h_envs_from_env
+from custom_algorithms.hac.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, GoalSelectionStrategy
+from custom_algorithms.hac.hher_replay_buffer import HHerReplayBuffer
+from custom_algorithms.hac.hierarchical_env import get_h_envs_from_env
 from stable_baselines3.common import logger
 from stable_baselines3.common.utils import safe_mean
 from stable_baselines3.common.preprocessing import is_image_space
-from ideas_baselines.hac.hierarchical_env import HierarchicalVecEnv
+from custom_algorithms.hac.hierarchical_env import HierarchicalVecEnv
 from gym.wrappers import TimeLimit
 from stable_baselines3.common.monitor import Monitor
 import importlib
 import time
-from ideas_baselines.hac.util import get_concat_dict_from_dict_list, merge_list_dicts
+from custom_algorithms.hac.util import get_concat_dict_from_dict_list, merge_list_dicts
 from copy import deepcopy
 from stable_baselines3.common.logger import HumanOutputFormat
 import sys
@@ -176,8 +176,8 @@ class HAC(BaseAlgorithm):
 
         # # Get default options for model classes
         class_name = layer_classes[0]
-        if class_name in dir(importlib.import_module('ideas_baselines')):
-            self.layer_class = getattr(importlib.import_module('ideas_baselines.' + class_name), class_name.upper())
+        if class_name in dir(importlib.import_module('custom_algorithms')):
+            self.layer_class = getattr(importlib.import_module('custom_algorithms.' + class_name), class_name.upper())
         elif class_name in dir(importlib.import_module('stable_baselines3')):
             self.layer_class = getattr(importlib.import_module('stable_baselines3.' + class_name), class_name.upper())
         else:
