@@ -6,15 +6,15 @@ import numpy as np
 import os
 import warnings
 from util.custom_evaluation import evaluate_policy
-from ideas_baselines.hac.hiearchical_evaluation import evaluate_hierarchical_policy
+from custom_algorithms.hac.hiearchical_evaluation import evaluate_hierarchical_policy
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.logger import Logger
 from collections import deque
 import time
-from ideas_baselines.hac.hac import HAC
+from custom_algorithms.hac.hac import HAC
 from stable_baselines3.common.utils import safe_mean
-from ideas_baselines.hac.hierarchical_env import get_h_envs_from_env
+from custom_algorithms.hac.hierarchical_env import get_h_envs_from_env
 import matplotlib.pyplot as plt
 import cv2
 

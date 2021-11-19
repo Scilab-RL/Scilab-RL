@@ -8,7 +8,7 @@ from stable_baselines3.common import base_class
 from stable_baselines3.common.vec_env import VecEnv, DummyVecEnv
 from util.custom_evaluation import get_success
 from collections import OrderedDict
-from ideas_baselines.hac.util import merge_list_dicts
+from custom_algorithms.hac.util import merge_list_dicts
 
 def evaluate_hierarchical_policy(
     layer_alg: "base_class.BaseAlgorithm",

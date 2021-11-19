@@ -14,12 +14,12 @@ from omegaconf import DictConfig, OmegaConf, open_dict
 import gym
 from util.util import get_subdir_by_params,get_git_label,set_global_seeds,get_last_epoch_from_logdir
 import time
-import ideas_envs.register_envs
-import ideas_envs.wrappers.utils
-from ideas_baselines.hac.util import configure
+import custom_envs.register_envs
+import custom_envs.wrappers.utils
+from custom_algorithms.hac.util import configure
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
-from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
+from custom_algorithms.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
@@ -71,8 +71,8 @@ def convert_alg_cfg(cfg):
     with open_dict(cfg):
         if cfg['algorithm']['name'] == 'her':
             mc_str = cfg['algorithm']['model_class']
-            if mc_str in dir(importlib.import_module('ideas_baselines')):
-                mc = getattr(importlib.import_module('ideas_baselines.' + mc_str), mc_str.upper())
+            if mc_str in dir(importlib.import_module('custom_algorithms')):
+                mc = getattr(importlib.import_module('custom_algorithms.' + mc_str), mc_str.upper())
             elif mc_str in dir(importlib.import_module('stable_baselines3')):
                 mc = getattr(importlib.import_module('stable_baselines3.' + mc_str), mc_str.upper())
             else:
@@ -94,9 +94,9 @@ def launch(cfg, logger, kwargs):
     try:
         BaselineClass = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except:
-        BaselineClass = getattr(importlib.import_module('ideas_baselines.' + algo_name), algo_name.upper())
+        BaselineClass = getattr(importlib.import_module('custom_algorithms.' + algo_name), algo_name.upper())
     if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an rl_bench env
-        from ideas_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
+        from custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
         render_mode = None
         # For RLBench envs, we can either not render at all, display train AND test, or record train or test or both
         # record will overwrite display
@@ -177,7 +177,7 @@ def main(cfg: DictConfig) -> (float, int):
         OmegaConf.save(config=cfg, f='params.yaml')
 
         # Prepare xmls for subgoal visualizations
-        ideas_envs.wrappers.utils.goal_viz_for_gym_robotics()
+        custom_envs.wrappers.utils.goal_viz_for_gym_robotics()
 
         kwargs = {}
         launch(cfg, logger, kwargs)
