@@ -199,7 +199,7 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         return oo_goal.copy()
 
     def _is_success(self, achieved_goal, desired_goal):
-        d = fetch_env.goal_distance(achieved_goal[self.n_objects+1:], desired_goal[self.n_objects:])
+        d = fetch_env.goal_distance(achieved_goal[self.n_objects+1:], desired_goal[self.n_objects+1:])
         # Should the object indexes also be involved in goal_distance calculation?
         # If so, we could just use _is_success from superclass (don't derive this at all)
         return (d < self.distance_threshold).astype(np.float32)
