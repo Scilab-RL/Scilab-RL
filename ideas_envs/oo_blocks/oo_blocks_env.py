@@ -70,7 +70,6 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
 
         obs = np.concatenate([grip_pos, object_pos, gripper_state, object_rot,
                               grip_velp, object_velp, object_velr, gripper_vel])
-        # TODO: transform achieved goal to oo achieved goal DONE
         # 1. get object index from self.goal (any index != 0 is object, since 0 is gripper index)
         obj_idx = np.where(self.goal[:-3] != 0)
         # 2. Detect the values of achieved_goal that correspond to self.goal
