@@ -172,34 +172,14 @@ class OOBlocksEnv(fetch_env.FetchEnv, EzPickle):
         # Then if you randomly decide to choose a goal for the block: oogoal = (0, 1, x,y,z)
         # obj_idx = 1
         obj_idx = random.randint(1, self.n_objects)
-        # oneHot = np.eye(obj_idx)[1] # To get from index to one-hot use np.eye()
         # Number of objects + 1 (gripper) to get one-hot representation of object in env
         oneHot_idx = np.eye(self.n_objects + 1)[obj_idx]
         oo_values = list(full_goal[obj_idx * 3: obj_idx * 3 + 3])
         oo_goal = np.array(list(oneHot_idx) + oo_values)
-        # oogoal = [obj_idx] + ooValues
         # Example, the gripper (object 0) should be at the values below.
         # oo_goal = np.array([1, 0, -0.05111022,  0.03454098,  0.525])
-
-        # TODO for Elnur:
-        #  To get going, start the whole thing with the following command-line parameters: experiment/train.py env=OOBlocks-o0-gripper_above-v1 algorithm=sac DONE
-        #  Then do the following:
-        #  1: Change this function such that it is object-oriented. That is, from the goal variable above,
-        #  derive an object-oriented goal variable that randomly selects an object index, and appends this as a 1-hot vector
-        #  before the goal values for that object. DONE
-        #  Assumption: Each object goal has three values (x,y,z)
-        #  2: Overwrite the is_success function in the parent class and assure that it is object oriented. DONE
-        #  3: Overwrite the get_obs function and make the achieved_goal object-oriented. DONE (except gripper_none goal)
-        # TODO In all three steps: I recommend to consider object attributes that consist of three values each.
-        #  The get_obs function is already designed for this. For example, in line 67 you see how the obs vector is asembled.
-        #  The first three values denote the gripper position. Hence, the object attribute index for gripper pos is 0.
-        #  The next three values denote the block positions. Hence, the object attribute index for the first block is 1 (if there is at leas one block).
-        #  The next value indices depend on how many blocks there are. You can control the number of objects (blocks) with the Environment name: OOBlocks-o0-... denotes 0 blocks and OOBlocks-o1-... 1 block, and so on.
-        #
         return oo_goal.copy()
 
     def _is_success(self, achieved_goal, desired_goal):
         d = fetch_env.goal_distance(achieved_goal[self.n_objects+1:], desired_goal[self.n_objects+1:])
-        # Should the object indexes also be involved in goal_distance calculation?
-        # If so, we could just use _is_success from superclass (don't derive this at all)
         return (d < self.distance_threshold).astype(np.float32)
