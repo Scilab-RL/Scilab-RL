@@ -1,0 +1,8 @@
+name: 'oo_sac'
+
+learning_rate: 3e-4
+batch_size: 256
+tau: 0.005
+gamma: 0.99
+
+verbose: True
