@@ -40,13 +40,13 @@ restore_policy: null
 eval_after_n_steps: 2000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 60
+n_epochs: 600
 
 # Whether to use HER sampling
 using_her: true
 
 # The number of testing rollouts.
-n_test_rollouts: 10
+n_test_rollouts: 50
 
 # Max. number of tries for this training config.
 max_try_idx: 399
