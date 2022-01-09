@@ -106,9 +106,11 @@ Currently, all goal-conditioned gym environments are supported. A list of tested
 You can use MuJoCo, CoppeliaSim or both. The following sections show you how to install them.
 
 * *OpenAI Gym:*
+
     Currently, MuJoCo and Robotics environements are supported. Please see the installation instructions on MuJoCo environment [below](#installation-instructions-on-mujoco).
 
 * *RL_Bench:*
+
     Please see the installation instructions on RL_Bench environment [below](#installation-instructions-on-rl_bench).
 
 ### Installation Instructions on MuJoCo
