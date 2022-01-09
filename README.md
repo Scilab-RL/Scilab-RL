@@ -16,6 +16,9 @@ The framework is tailored towards the rapid prototyping and development and eval
 - [Installation](#installation)
   * [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
+- [Supported Environments](#supported-environments)
+- [Supported Algorithms](#supported-algorithms)
+  * [Limitations](#limitations)
 
 ## Installation
 
@@ -90,16 +93,26 @@ It is important that you  **put the path to the store policy in single quotes**,
 * The folder `util` contains some misc utilities.
 * The folder `hydra_plugins` contains some customized plugins for our hyperparameter management system.
 
-## Algorithms
+## Supported Algorithms
 
 We currently support the _Stable Baselines 3_ goal-conditioned algorithms and our implementation of the
 Hierarchical Actor Critic (HAC) algorithm.
 
-## Environments
+### Limitations
+> :warning: Currently, only off-policy algorithms are supported: DQN, DDPG, TD3, SAC, HER and HAC. PPO is not yet supported but it should not be too hard to enable it.
+
+## Supported Environments
 Currently, all goal-conditioned gym environments are supported. A list of tested environments can be found in `run_testing.sh`.
 You can use MuJoCo, CoppeliaSim or both. The following sections show you how to install them.
 
-### Install MuJoCo
+* *OpenAI Gym:*
+    Currently, MuJoCo and Robotics environements are supported. Please see the installation instructions on MuJoCo environment [below](#installation-instructions-on-mujoco).
+
+* *RL_Bench:*
+    Please see the installation instructions on RL_Bench environment [below](#installation-instructions-on-rl_bench).
+
+### Installation Instructions on MuJoCo
+
 1. Download [MuJoCo](mujoco.org) 
    Copy the *mujoco210* folder from the downloaded archive
       to folders of your choice (We recommend `/home/USERNAME/`).
@@ -111,7 +124,7 @@ You can use MuJoCo, CoppeliaSim or both. The following sections show you how to 
 
 1. Install python interface. For mujoco 2.1, use `pip install 'mujoco-py<2.2,>=2.1'`. In case there is an error during compilation, try `sudo apt install libpython3.X-dev` (where `X` is to be replaced with the appropriate version), and `sudo apt-get install libosmesa6-dev`
 
-### Install CoppeliaSim and RL Bench
+### Installation Instructions on RL_Bench
 If you'd like to use environments simulated with CoppeliaSim,
 [download CoppeliaSim Edu 4.1.0](https://www.coppeliarobotics.com/previousVersions) (4.2.0 causes problems with some environments)
 and set the following paths accordingly.
@@ -126,9 +139,6 @@ CoppeliaSim environments.
 If you'd also like to use the [RL Bench](https://github.com/stepjam/RLBench) environments,
 `pip install git+https://github.com/stepjam/RLBench.git pyquaternion natsort`.
 An example for an RL Bench environment is *reach_target-state-v0*.
-
-## Limitations
-> :warning: Currently, only off-policy algorithms are supported: DQN, DDPG, TD3, SAC, HER and HAC. PPO is not yet supported but it should not be too hard to enable it.
 
 ## Hyperparameter optimization and management
 The framework has a sophisticated hyperparameter management and optimization pipeline.
