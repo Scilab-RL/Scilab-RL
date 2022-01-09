@@ -11,10 +11,18 @@ The framework is tailored towards the rapid prototyping and development and eval
 * Smoke and performance testing
 * Compatibility between a multitude of state-of-the-art algorithms for quick empirical comparison and evaluation. 
 
-## Requirements:
-- Python 3.6 or Python 3.7 (Python 3.8 is not recommended because it may throw [this error](https://github.com/openai/mujoco-py/issues/544) when debugging).
+## Table of Contents
 
-## Getting started
+- [Installation](#installation)
+  * [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+
+## Installation
+
+### Prerequisites:
+- ideas_deep_rl3 requires python 3.6 or python 3.7. (python 3.8 is not recommended because it may throw [this error](https://github.com/openai/mujoco-py/issues/544) when debugging).
+
+## Getting Started
 
 1. generate a virtual python3 environment with
 
