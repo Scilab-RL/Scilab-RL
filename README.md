@@ -17,6 +17,8 @@ The framework is tailored towards the rapid prototyping and development and eval
   * [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
 - [Supported Environments](#supported-environments)
+  * [OpenAI Gym](#openai-gym)
+  * [CoppeliaSim and RL_Bench](#coppeliasim-and-rl_bench)
 - [Supported Algorithms](#supported-algorithms)
   * [Limitations](#limitations)
 
@@ -105,15 +107,15 @@ Hierarchical Actor Critic (HAC) algorithm.
 Currently, all goal-conditioned gym environments are supported. A list of tested environments can be found in `run_testing.sh`.
 You can use MuJoCo, CoppeliaSim or both. The following sections show you how to install them.
 
-* *OpenAI Gym:*
+### OpenAI Gym
 
     Currently, MuJoCo and Robotics environements are supported. Please see the installation instructions on MuJoCo environment [below](#installation-instructions-on-mujoco).
 
-* *RL_Bench:*
+### CoppeliaSim and RL_Bench
 
-    Please see the installation instructions on RL_Bench environment [below](#installation-instructions-on-rl_bench).
+    Please see the installation instructions on RL_Bench environment [below](#installation-instructions-on-coppeliasim-and-rl_bench).
 
-### Installation Instructions on MuJoCo
+#### Installation Instructions on MuJoCo
 
 1. Download [MuJoCo](mujoco.org) 
    Copy the *mujoco210* folder from the downloaded archive
@@ -126,7 +128,7 @@ You can use MuJoCo, CoppeliaSim or both. The following sections show you how to 
 
 1. Install python interface. For mujoco 2.1, use `pip install 'mujoco-py<2.2,>=2.1'`. In case there is an error during compilation, try `sudo apt install libpython3.X-dev` (where `X` is to be replaced with the appropriate version), and `sudo apt-get install libosmesa6-dev`
 
-### Installation Instructions on RL_Bench
+#### Installation Instructions on CoppeliaSim and RL_Bench
 If you'd like to use environments simulated with CoppeliaSim,
 [download CoppeliaSim Edu 4.1.0](https://www.coppeliarobotics.com/previousVersions) (4.2.0 causes problems with some environments)
 and set the following paths accordingly.
