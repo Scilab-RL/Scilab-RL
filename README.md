@@ -20,7 +20,8 @@ The framework is tailored towards the rapid prototyping and development and eval
   * [OpenAI Gym](#openai-gym)
   * [CoppeliaSim and RL_Bench](#coppeliasim-and-rl_bench)
 - [Supported Algorithms](#supported-algorithms)
-  * [Limitations](#limitations)
+  * [Stable Baselines3 (SB3)](#stable-baselines3-(sb3))
+  * [Custom Algorithms](#custom-algorithms)
 
 ## Installation
 
@@ -97,11 +98,14 @@ It is important that you  **put the path to the store policy in single quotes**,
 
 ## Supported Algorithms
 
-We currently support the _Stable Baselines 3_ goal-conditioned algorithms and our implementation of the
-Hierarchical Actor Critic (HAC) algorithm.
+### Stable Baselines3 (SB3)
+We currently support the _Stable Baselines 3_ goal-conditioned off-policy algorithms: DQN, DDPG, TD3, SAC, HER and HAC
 
 ### Limitations
-> :warning: Currently, only off-policy algorithms are supported: DQN, DDPG, TD3, SAC, HER and HAC. PPO is not yet supported but it should not be too hard to enable it.
+> :warning: PPO is not yet supported but it should not be too hard to enable it.
+
+### Custom Algorithms
+We support our implementation of the _Stable Baselines 3_ Hierarchical Actor Critic (HAC) algorithm.
 
 ## Supported Environments
 Currently, all goal-conditioned gym environments are supported. A list of tested environments can be found in `run_testing.sh`.
