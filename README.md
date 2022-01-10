@@ -130,6 +130,11 @@ Please see the installation instructions on RL_Bench environment [below](#instal
 
 1. Install python interface. For mujoco 2.1, use `pip install 'mujoco-py<2.2,>=2.1'`. In case there is an error during compilation, try `sudo apt install libpython3.X-dev` (where `X` is to be replaced with the appropriate version), and `sudo apt-get install libosmesa6-dev`
 
+1. MuJoCo uses **GLEW** graphics library for rendering with the viewer. When we render an environment using MuJoCo on **Ubuntu**, we get the following error: 
+    `GLEW initialization error: Missing GL version.`
+To solve thus, we need to set the **LD_PRELOAD** environment variable below:
+    `export LD_PRELOAD=$LD_PRELOAD:/usr/lib/x86_64-linux-gnu/libGLEW.so`
+
 ##### Installation Instructions on CoppeliaSim and RL_Bench
 If you'd like to use environments simulated with CoppeliaSim,
 [download CoppeliaSim Edu 4.1.0](https://www.coppeliarobotics.com/previousVersions) (4.2.0 causes problems with some environments)
