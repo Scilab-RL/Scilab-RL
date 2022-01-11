@@ -71,7 +71,7 @@ class OO_SAC(SAC):
             done = False
             episode_reward, episode_timesteps = 0.0, 0
 
-            obj_idx = random.random(1, env.envs[0].n_objects)
+            obj_idx = random.randint(1, env.envs[0].n_objects)
 
             while not done:
 
@@ -82,7 +82,7 @@ class OO_SAC(SAC):
                 # TODO: self._last_obs = oo_last_obs  # include oo-represenation in desired_goal
                 #  and achieved_goal, based on obj_idx. Use the following transform function:
 
-                transform_obs_to_oo_obs(observation, obj_idx)
+                self._last_obs = self.transform_obs_to_oo_obs(self._last_obs, obj_idx)
 
                 # Select action randomly or according to policy
                 action, buffer_action = self._sample_action(learning_starts, action_noise)
@@ -90,7 +90,10 @@ class OO_SAC(SAC):
                 # Rescale and perform action
                 new_obs, reward, done, infos = env.step(action)
 
-                # TODO: new_obs = get_oo_obs_from_obs(new_obs) # This function should change the desired_goal and achieved_goal part of the observation to an object-oriented representation, based on obj_idx. Use the transofrm function again.
+                # TODO: new_obs = get_oo_obs_from_obs(new_obs)
+                #   This function should change the desired_goal and achieved_goal part
+                #   of the observation to an object-oriented representation,
+                #   based on obj_idx. Use the transofrm function again.
                 # TODO: reward = get_new_oo_reward() # implement new reward function based on obj_idx,
 
                 self.num_timesteps += 1
@@ -141,12 +144,19 @@ class OO_SAC(SAC):
 
         return RolloutReturn(mean_reward, num_collected_steps, num_collected_episodes, continue_training)
 
-    def transform_obs_to_oo_obs(obs, obj_idx):
+    def transform_obs_to_oo_obs(self, obs, obj_idx):
         new_obs = obs.copy()
-        new_obs['desired_goal'] = obs['desired_goal'][
-            one_hot_obj_idx, three_coord_values, zeroes]
-        new_obs['achieved_goal'] = obs['achieved_goal'][
-            one_hot_obj_idx, three_coord_values, zeroes]
-        # TODO: Zero pad values if the goal vector is too long. E.g., for blocks-o1 with gripper,
-        #  the goal vector has 6 values. With oo-representation there are only 2+3=5 values.
-        #  In that case, zero-pad the last value of the vector.
+        original_len = obs['achieved_goal'].shape[1]
+        oneHot_idx = np.eye(self.env.envs[0].n_objects + 1)[obj_idx]
+
+        achieved_coords = obs['achieved_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
+        new_obs['achieved_goal'] = np.concatenate([oneHot_idx, achieved_coords])#+zeroes
+
+        desired_coords = obs['desired_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
+        new_obs['desired_goal'] = np.concatenate([oneHot_idx, desired_coords])
+        # Zero-pad values if vector is too long
+        len_diff = abs(len(new_obs['achieved_goal']) - original_len)
+        if len_diff != 0:
+            new_obs['achieved_goal'] = np.concatenate([new_obs['achieved_goal'], np.zeros(len_diff)])
+            new_obs['desired_goal'] = np.concatenate([new_obs['desired_goal'], np.zeros(len_diff)])
+        return new_obs
