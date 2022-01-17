@@ -79,9 +79,6 @@ class OO_SAC(SAC):
                     # Sample a new noise matrix
                     self.actor.reset_noise()
 
-                # TODO: self._last_obs = oo_last_obs  # include oo-represenation in desired_goal
-                #  and achieved_goal, based on obj_idx. Use the following transform function:
-
                 self._last_obs = self.transform_obs_to_oo_obs(self._last_obs, obj_idx)
 
                 # Select action randomly or according to policy
@@ -90,10 +87,7 @@ class OO_SAC(SAC):
                 # Rescale and perform action
                 new_obs, reward, done, infos = env.step(action)
 
-                # TODO: new_obs = get_oo_obs_from_obs(new_obs)
-                #   This function should change the desired_goal and achieved_goal part
-                #   of the observation to an object-oriented representation,
-                #   based on obj_idx. Use the transofrm function again.
+                new_obs = self.transform_obs_to_oo_obs(new_obs, obj_idx)
                 # TODO: reward = get_new_oo_reward() # implement new reward function based on obj_idx,
 
                 self.num_timesteps += 1
@@ -150,13 +144,18 @@ class OO_SAC(SAC):
         oneHot_idx = np.eye(self.env.envs[0].n_objects + 1)[obj_idx]
 
         achieved_coords = obs['achieved_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
-        new_obs['achieved_goal'] = np.concatenate([oneHot_idx, achieved_coords])#+zeroes
+        new_obs['achieved_goal'] = np.expand_dims(np.concatenate([oneHot_idx, achieved_coords]), axis=0)
 
         desired_coords = obs['desired_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
-        new_obs['desired_goal'] = np.concatenate([oneHot_idx, desired_coords])
+        new_obs['desired_goal'] = np.expand_dims(np.concatenate([oneHot_idx, desired_coords]), axis=0)
         # Zero-pad values if vector is too long
-        len_diff = abs(len(new_obs['achieved_goal']) - original_len)
+        len_diff = abs(len(new_obs['achieved_goal'][0]) - original_len)
         if len_diff != 0:
-            new_obs['achieved_goal'] = np.concatenate([new_obs['achieved_goal'], np.zeros(len_diff)])
-            new_obs['desired_goal'] = np.concatenate([new_obs['desired_goal'], np.zeros(len_diff)])
+            new_obs['achieved_goal'] = np.expand_dims(
+                np.concatenate([new_obs['achieved_goal'][0], np.zeros(len_diff)]), axis=0)
+            new_obs['desired_goal'] = np.expand_dims(
+                np.concatenate([new_obs['desired_goal'][0], np.zeros(len_diff)]), axis=0)
         return new_obs
+
+    def transform_reward_to_oo_reward(self, reward):
+        pass
