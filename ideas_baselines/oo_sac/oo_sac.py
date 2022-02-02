@@ -89,6 +89,7 @@ class OO_SAC(SAC):
 
                 new_obs = self.transform_obs_to_oo_obs(new_obs, obj_idx)
                 # TODO: reward = get_new_oo_reward() # implement new reward function based on obj_idx,
+                reward = self.transform_reward_to_oo_reward(reward, obj_idx, env.envs[0].n_objects + 1) # n_obj + gripper
 
                 self.num_timesteps += 1
                 episode_timesteps += 1
@@ -139,23 +140,25 @@ class OO_SAC(SAC):
         return RolloutReturn(mean_reward, num_collected_steps, num_collected_episodes, continue_training)
 
     def transform_obs_to_oo_obs(self, obs, obj_idx):
-        new_obs = obs.copy()
+        oo_obs = obs.copy()
         original_len = obs['achieved_goal'].shape[1]
         oneHot_idx = np.eye(self.env.envs[0].n_objects + 1)[obj_idx]
 
         achieved_coords = obs['achieved_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
-        new_obs['achieved_goal'] = np.expand_dims(np.concatenate([oneHot_idx, achieved_coords]), axis=0)
+        oo_obs['achieved_goal'] = np.expand_dims(np.concatenate([oneHot_idx, achieved_coords]), axis=0)
 
         desired_coords = obs['desired_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
-        new_obs['desired_goal'] = np.expand_dims(np.concatenate([oneHot_idx, desired_coords]), axis=0)
+        oo_obs['desired_goal'] = np.expand_dims(np.concatenate([oneHot_idx, desired_coords]), axis=0)
         # Zero-pad values if vector is too long
-        len_diff = abs(len(new_obs['achieved_goal'][0]) - original_len)
+        len_diff = abs(len(oo_obs['achieved_goal'][0]) - original_len)
         if len_diff != 0:
-            new_obs['achieved_goal'] = np.expand_dims(
-                np.concatenate([new_obs['achieved_goal'][0], np.zeros(len_diff)]), axis=0)
-            new_obs['desired_goal'] = np.expand_dims(
-                np.concatenate([new_obs['desired_goal'][0], np.zeros(len_diff)]), axis=0)
-        return new_obs
+            oo_obs['achieved_goal'] = np.expand_dims(
+                np.concatenate([oo_obs['achieved_goal'][0], np.zeros(len_diff)]), axis=0)
+            oo_obs['desired_goal'] = np.expand_dims(
+                np.concatenate([oo_obs['desired_goal'][0], np.zeros(len_diff)]), axis=0)
+        return oo_obs
 
-    def transform_reward_to_oo_reward(self, reward):
-        pass
+    def transform_reward_to_oo_reward(self, reward, idx, n_obj):
+        oo_reward = np.full(n_obj, float(-1))
+        oo_reward[idx] = reward[0]
+        return oo_reward
