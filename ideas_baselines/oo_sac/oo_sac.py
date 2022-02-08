@@ -1,27 +1,16 @@
-import io
-import pathlib
-import random
-import time
-import warnings
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Optional
 
-import gym
 import numpy as np
 import torch as th
-
-from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.common.buffers import DictReplayBuffer, ReplayBuffer
+from stable_baselines3.common.buffers import ReplayBuffer
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.noise import ActionNoise
-from stable_baselines3.common.policies import BasePolicy
-from stable_baselines3.common.save_util import load_from_pkl, save_to_pkl
-from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, RolloutReturn, Schedule, TrainFreq, \
-    TrainFrequencyUnit
-from stable_baselines3.common.utils import safe_mean, should_collect_more_steps
+from stable_baselines3.common.type_aliases import RolloutReturn, TrainFreq
+from stable_baselines3.common.utils import polyak_update
+from stable_baselines3.common.utils import should_collect_more_steps
 from stable_baselines3.common.vec_env import VecEnv
-from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
-
 from stable_baselines3.sac import SAC
+from torch.nn import functional as F
 
 
 class OO_SAC(SAC):
@@ -71,7 +60,7 @@ class OO_SAC(SAC):
             done = False
             episode_reward, episode_timesteps = 0.0, 0
 
-            obj_idx = random.randint(1, env.envs[0].n_objects)
+            obj_idx = 1#random.randint(0, env.envs[0].n_objects+1)
 
             while not done:
 
@@ -89,7 +78,7 @@ class OO_SAC(SAC):
 
                 new_obs = self.transform_obs_to_oo_obs(new_obs, obj_idx)
                 # TODO: reward = get_new_oo_reward() # implement new reward function based on obj_idx,
-                reward = self.transform_reward_to_oo_reward(reward, obj_idx, env.envs[0].n_objects + 1) # n_obj + gripper
+                #reward = self.transform_reward_to_oo_reward(reward, obj_idx, env.envs[0].n_objects + 1) # n_obj + gripper
 
                 self.num_timesteps += 1
                 episode_timesteps += 1
@@ -139,15 +128,24 @@ class OO_SAC(SAC):
 
         return RolloutReturn(mean_reward, num_collected_steps, num_collected_episodes, continue_training)
 
+    def _is_one_hot(self, vec):
+        return np.isin(vec, [0., 1.])
+
     def transform_obs_to_oo_obs(self, obs, obj_idx):
         oo_obs = obs.copy()
         original_len = obs['achieved_goal'].shape[1]
-        oneHot_idx = np.eye(self.env.envs[0].n_objects + 1)[obj_idx]
+        n_obj = self.env.envs[0].n_objects
+        oneHot_idx = np.eye(n_obj + 1)[obj_idx]
 
-        achieved_coords = obs['achieved_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
+        # Considering one-hot vector
+        if self._is_one_hot(oo_obs['achieved_goal'][0][:n_obj]):
+            achieved_coords = oo_obs['achieved_goal'][0][1 + n_obj + obj_idx * 3: 1 + n_obj + obj_idx * 3 + 3]
+            desired_coords = oo_obs['desired_goal'][0][1 + n_obj + obj_idx * 3: 1 + n_obj + obj_idx * 3 + 3]
+        else:
+            achieved_coords = oo_obs['achieved_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
+            desired_coords = oo_obs['desired_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
+
         oo_obs['achieved_goal'] = np.expand_dims(np.concatenate([oneHot_idx, achieved_coords]), axis=0)
-
-        desired_coords = obs['desired_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
         oo_obs['desired_goal'] = np.expand_dims(np.concatenate([oneHot_idx, desired_coords]), axis=0)
         # Zero-pad values if vector is too long
         len_diff = abs(len(oo_obs['achieved_goal'][0]) - original_len)
@@ -162,3 +160,98 @@ class OO_SAC(SAC):
         oo_reward = np.full(n_obj, float(-1))
         oo_reward[idx] = reward[0]
         return oo_reward
+
+    def train(self, gradient_steps: int, batch_size: int = 64) -> None:
+        # Update optimizers learning rate
+        optimizers = [self.actor.optimizer, self.critic.optimizer]
+        if self.ent_coef_optimizer is not None:
+            optimizers += [self.ent_coef_optimizer]
+
+        # Update learning rate according to lr schedule
+        self._update_learning_rate(optimizers)
+
+        ent_coef_losses, ent_coefs = [], []
+        actor_losses, critic_losses = [], []
+
+        for gradient_step in range(gradient_steps):
+            # Sample replay buffer
+            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)
+
+            # We need to sample because `log_std` may have changed between two gradient steps
+            if self.use_sde:
+                self.actor.reset_noise()
+
+            # Action by the current actor for the sampled state
+            actions_pi, log_prob = self.actor.action_log_prob(replay_data.observations)
+            log_prob = log_prob.reshape(-1, 1)
+
+            ent_coef_loss = None
+            if self.ent_coef_optimizer is not None:
+                # Important: detach the variable from the graph
+                # so we don't change it with other losses
+                # see https://github.com/rail-berkeley/softlearning/issues/60
+                ent_coef = th.exp(self.log_ent_coef.detach())
+                ent_coef_loss = -(self.log_ent_coef * (log_prob + self.target_entropy).detach()).mean()
+                ent_coef_losses.append(ent_coef_loss.item())
+            else:
+                ent_coef = self.ent_coef_tensor
+
+            ent_coefs.append(ent_coef.item())
+
+            # Optimize entropy coefficient, also called
+            # entropy temperature or alpha in the paper
+            if ent_coef_loss is not None:
+                self.ent_coef_optimizer.zero_grad()
+                ent_coef_loss.backward()
+                self.ent_coef_optimizer.step()
+
+            with th.no_grad():
+                # Select action according to policy
+                next_actions, next_log_prob = self.actor.action_log_prob(replay_data.next_observations)
+                # Compute the next Q values: min over all critics targets
+                next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
+                next_q_values, _ = th.min(next_q_values, dim=1, keepdim=True)
+                # add entropy term
+                next_q_values = next_q_values - ent_coef * next_log_prob.reshape(-1, 1)
+                # td error + entropy term
+                target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
+
+            # Get current Q-values estimates for each critic network
+            # using action from the replay buffer
+            current_q_values = self.critic(replay_data.observations, replay_data.actions)
+
+            # Compute critic loss
+            critic_loss = 0.5 * sum([F.mse_loss(current_q, target_q_values) for current_q in current_q_values])
+            critic_losses.append(critic_loss.item())
+
+            # Optimize the critic
+            self.critic.optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic.optimizer.step()
+
+            # Compute actor loss
+            # Alternative: actor_loss = th.mean(log_prob - qf1_pi)
+            # Mean over all critic networks
+            q_values_pi = th.cat(self.critic.forward(replay_data.observations, actions_pi), dim=1)
+            min_qf_pi, _ = th.min(q_values_pi, dim=1, keepdim=True)
+            actor_loss = (ent_coef * log_prob - min_qf_pi).mean()
+            actor_losses.append(actor_loss.item())
+
+            # Optimize the actor
+            self.actor.optimizer.zero_grad()
+            actor_loss.backward()
+            self.actor.optimizer.step()
+
+            # Update target networks
+            if gradient_step % self.target_update_interval == 0:
+                polyak_update(self.critic.parameters(), self.critic_target.parameters(), self.tau)
+
+        self._n_updates += gradient_steps
+
+        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
+        self.logger.record("train/ent_coef", np.mean(ent_coefs))
+        self.logger.record("train/actor_loss", np.mean(actor_losses))
+        self.logger.record("train/critic_loss", np.mean(critic_losses))
+        if len(ent_coef_losses) > 0:
+            self.logger.record("train/ent_coef_loss", np.mean(ent_coef_losses))
+
