@@ -19,6 +19,7 @@ import ideas_envs.wrappers.utils
 from ideas_baselines.hac.util import configure
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
+from util.custom_oo_eval_callback import CustomOOEvalCallback
 from ideas_baselines.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
@@ -46,7 +47,7 @@ def train(baseline, train_env, eval_env, cfg, logger):
                                                  top_level_layer=baseline,
                                                  logger=logger)
     else:
-        eval_callback = CustomEvalCallback(eval_env,
+        eval_callback = CustomOOEvalCallback(eval_env,
                                            agent=baseline,
                                            log_path=logger.get_dir(),
                                            render_args=cfg.render_args,
