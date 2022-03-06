@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
+import random
 import numpy as np
 import torch as th
 from stable_baselines3.common.buffers import ReplayBuffer
@@ -7,13 +8,99 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.noise import ActionNoise
 from stable_baselines3.common.type_aliases import RolloutReturn, TrainFreq
 from stable_baselines3.common.utils import polyak_update
+from stable_baselines3.sac.policies import SACPolicy
+from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.utils import should_collect_more_steps
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.sac import SAC
 from torch.nn import functional as F
 
+from ideas_baselines.oo_sac.oo_monitor import OO_Monitor
+
+
+def _get_idx(obs, n_obj):
+    for i in range(n_obj+1):
+        if obs['achieved_goal'][i] == 1:
+            return i
+
 
 class OO_SAC(SAC):
+    def __init__(
+            self,
+            policy: Union[str, Type[SACPolicy]],
+            env: Union[GymEnv, str],
+            learning_rate: Union[float, Schedule] = 3e-4,
+            buffer_size: int = 1000000,  # 1e6
+            learning_starts: int = 100,
+            batch_size: int = 256,
+            tau: float = 0.005,
+            gamma: float = 0.99,
+            train_freq: Union[int, Tuple[int, str]] = 1,
+            gradient_steps: int = 1,
+            action_noise: Optional[ActionNoise] = None,
+            replay_buffer_class: Optional[ReplayBuffer] = None,
+            replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
+            optimize_memory_usage: bool = False,
+            ent_coef: Union[str, float] = "auto",
+            target_update_interval: int = 1,
+            target_entropy: Union[str, float] = "auto",
+            use_sde: bool = False,
+            sde_sample_freq: int = -1,
+            use_sde_at_warmup: bool = False,
+            tensorboard_log: Optional[str] = None,
+            create_eval_env: bool = False,
+            policy_kwargs: Dict[str, Any] = None,
+            verbose: int = 0,
+            seed: Optional[int] = None,
+            device: Union[th.device, str] = "auto",
+            _init_setup_model: bool = True,
+    ):
+        super(OO_SAC, self).__init__(
+            policy=policy,
+            env=env,
+            learning_rate=learning_rate,
+            buffer_size=buffer_size,
+            learning_starts=learning_starts,
+            batch_size=batch_size,
+            tau=tau,
+            gamma=gamma,
+            train_freq=train_freq,
+            gradient_steps=gradient_steps,
+            action_noise=action_noise,
+            replay_buffer_class=replay_buffer_class,
+            replay_buffer_kwargs=replay_buffer_kwargs,
+            optimize_memory_usage=optimize_memory_usage,
+            ent_coef=ent_coef,
+            target_update_interval=target_update_interval,
+            target_entropy=target_entropy,
+            use_sde=use_sde,
+            sde_sample_freq=sde_sample_freq,
+            use_sde_at_warmup=use_sde_at_warmup,
+            tensorboard_log=tensorboard_log,
+            create_eval_env=create_eval_env,
+            policy_kwargs=policy_kwargs,
+            verbose=verbose,
+            seed=seed,
+            device=device,
+            _init_setup_model=_init_setup_model
+        )
+
+        #env.env = OO_Monitor(env.env)
+        env.env._is_success = self._is_success
+        env.env.goal_distance = self.goal_distance
+        self.distance_threshold = env.env.distance_threshold
+
+    def _is_success(self, achieved_goal, desired_goal):
+        obj_idx = self._current_obj_idx
+        d = self.goal_distance(achieved_goal[obj_idx * 3:obj_idx * 3 + 3], desired_goal[obj_idx * 3:obj_idx * 3 + 3])
+        return (d < self.distance_threshold).astype(np.float32)
+
+    def goal_distance(self, goal_a, goal_b):
+        assert goal_a.shape == goal_b.shape
+        return np.linalg.norm(goal_a - goal_b, axis=-1)
+
+    _current_obj_idx = 0
+
     def collect_rollouts(
             self,
             env: VecEnv,
@@ -50,6 +137,10 @@ class OO_SAC(SAC):
         assert env.num_envs == 1, "OffPolicyAlgorithm only support single environment"
         assert train_freq.frequency > 0, "Should at least collect one step or episode."
 
+        #env.envs[0].env.env._is_success = self._is_success
+        #env.envs[0].env.env.goal_distance = self.goal_distance
+        #self.distance_threshold = env.envs[0].env.env.distance_threshold
+
         if self.use_sde:
             self.actor.reset_noise()
 
@@ -60,7 +151,8 @@ class OO_SAC(SAC):
             done = False
             episode_reward, episode_timesteps = 0.0, 0
 
-            obj_idx = 1#random.randint(0, env.envs[0].n_objects+1)
+            obj_idx = random.randint(1, env.envs[0].n_objects)
+            self._current_obj_idx = obj_idx
 
             while not done:
 
@@ -68,17 +160,16 @@ class OO_SAC(SAC):
                     # Sample a new noise matrix
                     self.actor.reset_noise()
 
-                self._last_obs = self.transform_obs_to_oo_obs(self._last_obs, obj_idx)
-
                 # Select action randomly or according to policy
                 action, buffer_action = self._sample_action(learning_starts, action_noise)
 
                 # Rescale and perform action
                 new_obs, reward, done, infos = env.step(action)
 
-                new_obs = self.transform_obs_to_oo_obs(new_obs, obj_idx)
-                # TODO: reward = get_new_oo_reward() # implement new reward function based on obj_idx,
-                #reward = self.transform_reward_to_oo_reward(reward, obj_idx, env.envs[0].n_objects + 1) # n_obj + gripper
+                oo_obs = self.transform_obs_to_oo_obs(new_obs, obj_idx)
+
+                oo_reward = env.envs[0].compute_reward(oo_obs['achieved_goal'], oo_obs['desired_goal'], infos)
+                reward = oo_reward
 
                 self.num_timesteps += 1
                 episode_timesteps += 1
@@ -96,7 +187,7 @@ class OO_SAC(SAC):
                 self._update_info_buffer(infos, done)
 
                 # Store data in replay buffer (normalized action and unnormalized observation)
-                self._store_transition(replay_buffer, buffer_action, new_obs, reward, done, infos)
+                self._store_transition(replay_buffer, buffer_action, oo_obs, reward, done, infos)
 
                 self._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)
 
@@ -129,7 +220,7 @@ class OO_SAC(SAC):
         return RolloutReturn(mean_reward, num_collected_steps, num_collected_episodes, continue_training)
 
     def _is_one_hot(self, vec):
-        return np.isin(vec, [0., 1.])
+        return np.isin(vec, [0., 1.]).all()
 
     def transform_obs_to_oo_obs(self, obs, obj_idx):
         oo_obs = obs.copy()
@@ -138,9 +229,9 @@ class OO_SAC(SAC):
         oneHot_idx = np.eye(n_obj + 1)[obj_idx]
 
         # Considering one-hot vector
-        if self._is_one_hot(oo_obs['achieved_goal'][0][:n_obj]):
-            achieved_coords = oo_obs['achieved_goal'][0][1 + n_obj + obj_idx * 3: 1 + n_obj + obj_idx * 3 + 3]
-            desired_coords = oo_obs['desired_goal'][0][1 + n_obj + obj_idx * 3: 1 + n_obj + obj_idx * 3 + 3]
+        if self._is_one_hot(oo_obs['achieved_goal'][0][:n_obj+1]):
+            achieved_coords = oo_obs['achieved_goal'][0][1 + n_obj: 1 + n_obj + 3]
+            desired_coords = oo_obs['desired_goal'][0][1 + n_obj: 1 + n_obj + 3]
         else:
             achieved_coords = oo_obs['achieved_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
             desired_coords = oo_obs['desired_goal'][0][obj_idx * 3: obj_idx * 3 + 3]
@@ -161,6 +252,7 @@ class OO_SAC(SAC):
         oo_reward[idx] = reward[0]
         return oo_reward
 
+    # TODO: Remove this function if we don't need to modify it.
     def train(self, gradient_steps: int, batch_size: int = 64) -> None:
         # Update optimizers learning rate
         optimizers = [self.actor.optimizer, self.critic.optimizer]
