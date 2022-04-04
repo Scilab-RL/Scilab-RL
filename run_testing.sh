@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 main() {
-  local ALGS="hac,sac"
+  local ALGS="sac"
 
   local ENVS=""
   #MuJoCo
