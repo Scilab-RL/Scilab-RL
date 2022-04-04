@@ -114,6 +114,12 @@ def launch(cfg, logger, kwargs):
         train_env = gym.make(cfg.env)
         eval_env = gym.make(cfg.env)
     rep_buf = None
+    if 'learning_starts' in cfg.algorithm:
+        # if learning_starts < max_episode_steps, learning starts before the first episode is stored
+        cfg.algorithm.learning_starts = max(cfg.algorithm['learning_starts'], train_env._max_episode_steps)
+    else:
+        with open_dict(cfg):
+            cfg.algorithm.learning_starts = train_env._max_episode_steps
     if 'using_her' in cfg and cfg.using_her:  # enable with +replay_buffer=her
         rep_buf = HerReplayBuffer
     if cfg.restore_policy is not None:
