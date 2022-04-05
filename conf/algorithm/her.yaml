@@ -1,5 +1,0 @@
-name: 'her'
-
-verbose: True
-
-model_class: sac
