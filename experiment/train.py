@@ -125,7 +125,8 @@ def launch(cfg, logger, kwargs):
     if cfg.restore_policy is not None:
         baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
     else:
-        baseline = BaselineClass('MultiInputPolicy', train_env, replay_buffer_class=rep_buf, **cfg.algorithm, **alg_kwargs, **kwargs)
+        baseline = BaselineClass(policy='MultiInputPolicy', env=train_env, replay_buffer_class=rep_buf, **cfg.algorithm,
+                                 **alg_kwargs, **kwargs)
     baseline.set_logger(logger)
     if not check_env_alg_compatibility(baseline, train_env):
         logger.info("Environment {} and algorithm {} are not compatible.".format(train_env, baseline))
