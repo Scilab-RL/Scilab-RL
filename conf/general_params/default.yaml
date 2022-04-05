@@ -36,9 +36,6 @@ base_logdir: 'data'
 # The pretrained policy file to start with to avoid learning from scratch again. Useful for interrupting and restoring training sessions.
 restore_policy: null
 
-# Whether to use Hinsight Experience Replay if the algorithm supports it (if it is an offline algorithm)
-using_her: True
-
 # The number of training steps after which to evaluate the policy.
 eval_after_n_steps: 2000
 

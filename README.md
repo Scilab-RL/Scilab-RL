@@ -3,6 +3,8 @@
 This is the IDEAS / LeCAREbot deep RL repository focusing on (hierarchical) goal-conditioned reinforcement learning using the [stable baselines 3](https://stable-baselines3.readthedocs.io/en/master/) methods and [OpenAI gym](https://gym.openai.com/) interface.
 > We now have a wiki, [check it out!](https://collaborating.tuhh.de/ckv0173/ideas_deep_rl3/-/wikis/home)
 
+![](overview.svg)
+
 The framework is tailored towards the rapid prototyping and development and evaluation of new RL algorithms and methods. It has the following unique selling-points compared to others, like spinning up and stable baselines:
 * Built-in data visualization for fast and efficient debugging using MLFLow and cometML (and possibly weights n biases).
 * Support for many state-of-the-art algorithms via stable baselines 3 and extensible to others. 
