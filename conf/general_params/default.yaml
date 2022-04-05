@@ -1,39 +1,16 @@
 # @package _global_
 
 # The name of the OpenAI Gym environment that you want to train on.
-#env: 'Blocks-o1-gripper_random-v1'
-#env: 'AntReacher-v1'
-#env: 'ButtonUnlock-o1-v1'
 env: 'FetchReach-v1'
-#env: 'AntMaze-v0'
-# Currently supported envs:
-# 'FetchPush-v1',
-# 'FetchSlide-v1',
-# 'FetchPickAndPlace-v1',
-# 'FetchReach-v1',
 
-# 'HandManipulateBlock-v0',
-# 'Hook-o1-v1',
-# 'ButtonUnlock-o2-v1',
-# 'ButtonUnlock-o1-v1',
-
-# 'AntReacher-v1',
-# 'Ant4Rooms-v1',
-# 'AntMaze-v0',
-# 'AntPush-v0',
-# 'AntFall-v0',
-
-# 'BlockStackMujocoEnv-gripper_random-o0-v1',
-# 'BlockStackMujocoEnv-gripper_random-o2-v1',
-# 'BlockStackMujocoEnv-gripper_above-o1-v1',
-# 'BlockStackMujocoEnv-gripper_none-o1-v1',
-
+# If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
 
 # the path to where logs and policy pickles should go.
 base_logdir: 'data'
 
-# The pretrained policy file to start with to avoid learning from scratch again. Useful for interrupting and restoring training sessions.
+# The pretrained policy file to start with to avoid learning from scratch again.
+# Useful for interrupting and restoring training sessions.
 restore_policy: null
 
 # The number of training steps after which to evaluate the policy.
@@ -46,10 +23,10 @@ n_epochs: 60
 n_test_rollouts: 10
 
 # Max. number of tries for this training config.
-max_try_idx: 399
+max_try_idx: 199
 
 # Index for first try.
-try_start_idx: 100
+try_start_idx: 0
 
 # The n last epochs over which to average for determining early stopping condition.
 early_stop_last_n: 3
@@ -61,7 +38,7 @@ early_stop_threshold: 0.9
 early_stop_data_column: 'test/success_rate'
 
 # A command line comment that will be integrated in the folder where the results
-# are stored. Useful for debugging and addressing temporary changes to the code..
+# are stored. Useful for debugging and addressing temporary changes to the code.
 info: ''
 
 # The number of steps after which to save the model. 0 to never save, i.e., to only save the best and last model.
