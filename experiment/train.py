@@ -68,21 +68,10 @@ def train(baseline, train_env, eval_env, cfg, logger):
 
 def convert_alg_cfg(cfg):
     """
-    This function converts kwargs for the algorithms if necessary. For example HER is called with an instance of SAC,
-    not with the string `sac'
+    This function converts kwargs for the algorithms if necessary.
     """
     alg_dict = {}
     with open_dict(cfg):
-        if cfg['algorithm']['name'] == 'her':
-            mc_str = cfg['algorithm']['model_class']
-            if mc_str in dir(importlib.import_module('custom_algorithms')):
-                mc = getattr(importlib.import_module('custom_algorithms.' + mc_str), mc_str.upper())
-            elif mc_str in dir(importlib.import_module('stable_baselines3')):
-                mc = getattr(importlib.import_module('stable_baselines3.' + mc_str), mc_str.upper())
-            else:
-                raise ValueError(f"class name {mc_str} not found")
-            alg_dict['model_class'] = mc
-            del cfg['algorithm']['model_class']
         if cfg['algorithm']['name'] == 'hac':
             alg_dict['render_args'] = cfg['render_args']
         # remove name as we pass all arguments to the model constructor
