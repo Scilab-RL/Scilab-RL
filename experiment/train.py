@@ -124,16 +124,9 @@ def launch(cfg, logger, kwargs):
 @hydra.main(config_name="main", config_path="../conf")
 def main(cfg: DictConfig) -> (float, int):
     run_dir = os.getcwd()
-
     if cfg.restore_policy is not None:
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
         run_dir = run_dir + "_restored"
-        try:
-            os.rename(original_dir, run_dir)
-        except Exception as e:
-            print(f""""Warning, could not rename directory because of the following exception: \n{e}.
-                \nHave you restored this policy before? Note that in this case the script will just overwrite your
-                previously restored policy run. \nWill continue anyway.""")
 
     if 'performance_testing_conditions' in cfg:
         cfg['n_epochs'] = int(cfg['performance_testing_conditions']['max_steps'] / cfg['eval_after_n_steps'])
