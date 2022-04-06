@@ -1,3 +1,6 @@
+"""
+This is the main script from which all training runs are started.
+"""
 import os
 import sys
 import time
@@ -20,6 +23,7 @@ from util.custom_eval_callback import CustomEvalCallback
 
 matplotlib.use('Agg')
 sys.path.append(os.getcwd())
+
 
 def check_env_alg_compatibility(model, env):
     check_action_space = isinstance(model.action_space, type(env.action_space))
