@@ -9,11 +9,11 @@ import matplotlib
 import mlflow
 import hydra
 import gym
-import custom_envs.register_envs
-import custom_envs.wrappers.utils
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
 from omegaconf import DictConfig, OmegaConf, open_dict
+import custom_envs.register_envs
+import custom_envs.wrappers.utils
 from custom_algorithms.hac.util import configure
 from custom_algorithms.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
@@ -24,7 +24,7 @@ from util.custom_eval_callback import CustomEvalCallback
 matplotlib.use('Agg')
 sys.path.append(os.getcwd())
 # make git_label available in hydra
-OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
+OmegaConf.register_new_resolver("git_label", get_git_label)
 
 
 def train(baseline, train_env, eval_env, cfg, logger):
@@ -81,9 +81,9 @@ def launch(cfg, logger, kwargs):
     algo_name = cfg['algorithm'].name
     alg_kwargs = convert_alg_cfg(cfg)
     try:
-        BaselineClass = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
+        baseline_class = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except ModuleNotFoundError:
-        BaselineClass = getattr(importlib.import_module('custom_algorithms.' + algo_name), algo_name.upper())
+        baseline_class = getattr(importlib.import_module('custom_algorithms.' + algo_name), algo_name.upper())
     if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an RLBench env
         from custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
         render_mode = None
@@ -112,9 +112,9 @@ def launch(cfg, logger, kwargs):
     if 'using_her' in cfg and cfg.using_her:  # enable with +replay_buffer=her
         rep_buf = HerReplayBuffer
     if cfg.restore_policy is not None:
-        baseline = BaselineClass.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
+        baseline = baseline_class.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
     else:
-        baseline = BaselineClass(policy='MultiInputPolicy', env=train_env, replay_buffer_class=rep_buf, **cfg.algorithm,
+        baseline = baseline_class(policy='MultiInputPolicy', env=train_env, replay_buffer_class=rep_buf, **cfg.algorithm,
                                  **alg_kwargs, **kwargs)
     baseline.set_logger(logger)
     logger.info("Launching training")
@@ -135,27 +135,24 @@ def main(cfg: DictConfig) -> (float, int):
     run_name = cfg['algorithm']['name'] + '_' + cfg['env']
     with mlflow.start_run(run_name=run_name) as mlflow_run:
         if run_dir is not None:
-            mlflow.log_param(f'log_dir', run_dir)
+            mlflow.log_param('log_dir', run_dir)
 
         # Output will only be logged appropriately after configuring the logger in the following lines:
         logger = configure(folder=run_dir, format_strings=[])
         logger.output_formats.append(FixedHumanOutputFormat(sys.stdout))
         logger.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
         logger.output_formats.append(MLFlowOutputFormat())
-        logger.info(f"Starting training with the following configuration:")
+        logger.info("Starting training with the following configuration:")
         logger.info(OmegaConf.to_yaml(cfg))
         logger.info(f"Log directory: {run_dir}")
         # End configure logger
         active_mlflow_run = mlflow.active_run()
-        print("Active mlflow run_id: {}".format(active_mlflow_run.info.run_id))
+        print(f"Active mlflow run_id: {active_mlflow_run.info.run_id}")
 
-        logger.info("Starting process id: {}".format(os.getpid()))
+        logger.info(f"Starting process id: {os.getpid()}")
 
         if cfg['seed'] == 0:
             cfg['seed'] = int(time.time())
-
-        logdir = logger.get_dir()
-        logger.info("Data dir: {} ".format(logdir))
 
         log_params_from_omegaconf_dict(cfg)
         OmegaConf.save(config=cfg, f='params.yaml')
@@ -175,7 +172,7 @@ def main(cfg: DictConfig) -> (float, int):
             with open(os.path.join(run_dir, 'train.log'), 'r') as logfile:
                 log_text = logfile.read()
                 mlflow.log_text(log_text, 'train.log')
-        except Exception as e:
+        except:
             logger.info('Could not open logfile and log it in mlflow.')
         run_id = mlflow.active_run().info.run_id
 
