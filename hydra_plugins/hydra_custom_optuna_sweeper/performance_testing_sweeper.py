@@ -56,7 +56,7 @@ class PerformanceTestingSweeper(Sweeper):
         eval_val = p_test_cond['eval_value']
 
         job_idx = 0
-        start_time = time.time()
+        start_time = time.perf_counter()
         current_time = start_time
         # The following is the main loop that starts all runs
         while n_runs_left > 0 and (start_time + self.max_duration) > current_time:
@@ -87,7 +87,7 @@ class PerformanceTestingSweeper(Sweeper):
                          "The needed number of successful runs could not be achieved.")
                 break
 
-            current_time = time.time()
+            current_time = time.perf_counter()
 
         if needed_succ_runs > succ_runs and (start_time + self.max_duration) < current_time:
             log.info("The needed number of successful runs could not be achieved within "

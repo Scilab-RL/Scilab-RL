@@ -246,7 +246,7 @@ class CustomOptunaSweeperImpl(Sweeper):
             study.set_user_attr("max_n_epochs", self.config.n_epochs)
 
         n_trials_to_go = self.max_trials
-        start_time = time.time()
+        start_time = time.perf_counter()
         current_time = start_time
         while n_trials_to_go > 0 and (start_time + self.max_duration_seconds) > current_time and os.path.isfile(self.del_to_stop_fname):
             running_duration = (current_time - start_time)
@@ -320,7 +320,7 @@ class CustomOptunaSweeperImpl(Sweeper):
 
             self.plot_study_summary(study)
             n_trials_to_go -= batch_size
-            current_time = time.time()
+            current_time = time.perf_counter()
 
             self.try_upload_to_cometml() #Run upload to cometml if possible.
 
