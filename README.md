@@ -6,7 +6,7 @@ This is the IDEAS / LeCAREbot deep RL repository focusing on (hierarchical) goal
 ![](overview.svg)
 
 The framework is tailored towards the rapid prototyping and development and evaluation of new RL algorithms and methods. It has the following unique selling-points compared to others, like spinning up and stable baselines:
-* Built-in data visualization for fast and efficient debugging using MLFLow and cometML (and possibly weights n biases).
+* Built-in data visualization for fast and efficient debugging using MLFLow (and possibly weights n biases).
 * Support for many state-of-the-art algorithms via stable baselines 3 and extensible to others. 
 * Built-in hyperparameter optimization using Optuna
 * Easy development of new robotic simulation and real robot environments based on MuJoCo, CoppeliaSim, and PyBullet. 
@@ -156,8 +156,6 @@ An example for an RL Bench environment is *reach_target-state-v0*.
 The framework has a sophisticated hyperparameter management and optimization pipeline.
 To start the hyperparameter optimization start `experiment/train.py --multirun`. The `--multirun` flag starts the hyperparameter optimization mode.
 
-> :warning: (A problem with the comet.ml integration is that if a script raises an Error and stops, all parallel processes will be blocked and the error will not be output. Therefore, if you spot that all processes of the hyperopt are idle you should re-start the process without comet.ml &#40;just remove the import in `train.py`&#41; and try to reproduce and find the error by observing the console output.  )
-
 The hyperparameter management and optimization builds on the following four tools:
 
 ### Optuna & Hydra
@@ -208,21 +206,3 @@ Mlflow collects studies and logs data of all runs.
 The information about all runs is stored in a subfolder called `mlruns`.
 You can watch the mlflow runs by executing `mlflow ui --host 0.0.0.0` in the root folder of this project, which will call a web server that you can access via port 5000 (by default).
 The `--host` tells the server to allow connections from all machines.
-
-### Comet.ml
-  Comet.ml is a cloud-based framework for logging and visualizing all data, including GPU usage, memory usage, and even the Python code and console output. You can obtain a free academic license on the website.
-  Comet.ml is supposed to seamlessly integrate with mlflow, just by having the `import comet_ml` at the top of the `experiment/train.py`. In theory, this should enable auto logging of all sorts of information, but this is not working in multiprocessing mode (see issue https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/issues/26).
-  As a workaround, the sweeper now calls the `mlflow_to_cometml` script which uploads all data to cometml after each batch of jobs, i.e., we use the live logging functionality and the logging of CPU usage, GPU usage, etc.
-
-Note that the comet.ml import monkey-patches several other modules, including mlflow, which is why it has to be at the top of the `train.py` file.
-  Some conflicts with the joblib multiprocessing library occur when using the standard `_DEFAULT_START_METHOD` of joblib/loky because the standard multiprocessing re-loads all modules and overwrites the monkey-patched ones.
-  Therefore, there is an overwrite just below the comet_ml import, telling joblib/loky to use `loky_init_main`, as this seems not to overwrite the monkey-patched modules.
-
-To upload the results to comet.ml in either way, using the import or the `mlflow_to_cometml` script, you need to specify your API key that you obtain when you register with comet.ml.
-  There are several options to do this.
-  The recommended option is to create a config file `~/.comet.config` (in your home folder, note the `.` in the file name).
-  The config file should have the following content:
-```
-[comet]
-   api_key=<your API key>
-```
