@@ -23,6 +23,8 @@ from util.custom_eval_callback import CustomEvalCallback
 
 matplotlib.use('Agg')
 sys.path.append(os.getcwd())
+# make git_label available in hydra
+OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 
 
 def check_env_alg_compatibility(model, env):
@@ -77,7 +79,6 @@ def convert_alg_cfg(cfg):
         # remove name as we pass all arguments to the model constructor
         if 'name' in cfg['algorithm']:
             del cfg['algorithm']['name']
-
     return alg_dict
 
 
@@ -87,9 +88,9 @@ def launch(cfg, logger, kwargs):
     alg_kwargs = convert_alg_cfg(cfg)
     try:
         BaselineClass = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
-    except:
+    except ModuleNotFoundError:
         BaselineClass = getattr(importlib.import_module('custom_algorithms.' + algo_name), algo_name.upper())
-    if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an rl_bench env
+    if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an RLBench env
         from custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
         render_mode = None
         # For RLBench envs, we can either not render at all, display train AND test, or record train or test or both
@@ -127,10 +128,6 @@ def launch(cfg, logger, kwargs):
         sys.exit()
     logger.info("Launching training")
     train(baseline, train_env, eval_env, cfg, logger)
-
-
-# make git_label available in hydra
-OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 
 
 @hydra.main(config_name="main", config_path="../conf")
