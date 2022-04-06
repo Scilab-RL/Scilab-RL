@@ -1,33 +1,31 @@
-#  import comet_ml # Direct comet.ml upload not supported in multiprocessing mode. See README.md and issue https://git.informatik.uni-hamburg.de/eppe/ideas_deep_rl2/-/issues/26
-import joblib.externals.loky.backend.context as jl_ctx
-jl_ctx._DEFAULT_START_METHOD = 'loky_init_main' # This is required for multiprocessing with joblib because by default, the loky multiprocessing backend of joblib re-imports all modules when calling main(). Since comet_ml monkey-patches several libraries, the changes to these libraries get lost. When setting the start_method to loky_init_main the modules are not re-imported and the monkey-path-changes don't get lost.
-import mlflow
-
-import matplotlib
-matplotlib.use('Agg')
 import os
 import sys
-sys.path.append(os.getcwd())
-import importlib
-import hydra
-from omegaconf import DictConfig, OmegaConf, open_dict
-import gym
-from util.util import get_subdir_by_params,get_git_label,set_global_seeds,get_last_epoch_from_logdir
 import time
+import importlib
+import matplotlib
+import mlflow
+import hydra
+import gym
 import custom_envs.register_envs
 import custom_envs.wrappers.utils
-from custom_algorithms.hac.util import configure
-from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
-from util.custom_eval_callback import CustomEvalCallback
-from custom_algorithms.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
+from omegaconf import DictConfig, OmegaConf, open_dict
+from custom_algorithms.hac.util import configure
+from custom_algorithms.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
+from util.util import get_git_label, set_global_seeds
+from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
+from util.custom_eval_callback import CustomEvalCallback
+
+matplotlib.use('Agg')
+sys.path.append(os.getcwd())
 
 def check_env_alg_compatibility(model, env):
     check_action_space = isinstance(model.action_space, type(env.action_space))
     check_observation_space = isinstance(model.observation_space, type(env.observation_space))
     return check_action_space and check_observation_space
+
 
 def train(baseline, train_env, eval_env, cfg, logger):
     total_steps = cfg.eval_after_n_steps * cfg.n_epochs
@@ -63,9 +61,11 @@ def train(baseline, train_env, eval_env, cfg, logger):
     eval_env.close()
     logger.info("Training finished!")
 
+
 def convert_alg_cfg(cfg):
     """
-    This function converts kwargs for the algorithms if necessary. For example HER is called with an instance of SAC, not with the string `sac'
+    This function converts kwargs for the algorithms if necessary. For example HER is called with an instance of SAC,
+    not with the string `sac'
     """
     alg_dict = {}
     with open_dict(cfg):
@@ -86,6 +86,7 @@ def convert_alg_cfg(cfg):
             del cfg['algorithm']['name']
 
     return alg_dict
+
 
 def launch(cfg, logger, kwargs):
     set_global_seeds(cfg.seed)
@@ -134,8 +135,10 @@ def launch(cfg, logger, kwargs):
     logger.info("Launching training")
     train(baseline, train_env, eval_env, cfg, logger)
 
+
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
+
 
 @hydra.main(config_name="main", config_path="../conf")
 def main(cfg: DictConfig) -> (float, int):
@@ -152,7 +155,7 @@ def main(cfg: DictConfig) -> (float, int):
                 previously restored policy run. \nWill continue anyway.""")
 
     if 'performance_testing_conditions' in cfg:
-        cfg['n_epochs'] = int(cfg['performance_testing_conditions']['max_steps']/cfg['eval_after_n_steps'])
+        cfg['n_epochs'] = int(cfg['performance_testing_conditions']['max_steps'] / cfg['eval_after_n_steps'])
 
     setup_mlflow(cfg)
     run_name = cfg['algorithm']['name'] + '_' + cfg['env']
