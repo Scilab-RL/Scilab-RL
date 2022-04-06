@@ -1,11 +1,11 @@
 from typing import Callable, List, Optional, Tuple, Union, Dict
-from stable_baselines3.common.logger import Logger
 import gym
 import numpy as np
 import cv2
-
-from stable_baselines3.common import base_class
+from stable_baselines3.common.logger import Logger
+from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.vec_env import VecEnv
+
 
 def get_success(info_list):
     succ = np.nan
@@ -17,9 +17,8 @@ def get_success(info_list):
     return succ
 
 
-
 def evaluate_policy(
-    agent: "base_class.BaseAlgorithm",
+    agent: BaseAlgorithm,
     env: Union[gym.Env, VecEnv],
     n_eval_episodes: int = 10,
     deterministic: bool = True,
@@ -54,11 +53,11 @@ def evaluate_policy(
         if render_info is not None and 'fps' in render_info:
             try:
                 video_writer = cv2.VideoWriter(render_info['path'] + '/eval_{}.avi'.format(render_info['eval_count']),
-                                                cv2.VideoWriter_fourcc('F', 'M', 'P', '4'), render_info['fps'], render_info['size'])
+                                               cv2.VideoWriter_fourcc('F', 'M', 'P', '4'),
+                                               render_info['fps'], render_info['size'])
             except:
                 logger.info("Error creating video writer")
 
-    info_list = []
     episode_rewards, episode_lengths, episode_successes = [], [], []
     for i in range(n_eval_episodes):
         # Avoid double reset, as VecEnv are reset automatically
