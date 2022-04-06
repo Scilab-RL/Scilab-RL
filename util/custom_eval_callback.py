@@ -1,6 +1,5 @@
 import os
 from typing import Union, List
-
 import cv2
 import gym
 import numpy as np
@@ -9,7 +8,6 @@ from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.vec_env import VecEnv, sync_envs_normalization
-
 from util.custom_evaluation import evaluate_policy
 
 
@@ -18,8 +16,6 @@ class CustomEvalCallback(EvalCallback):
     Callback for evaluating an agent.
 
     :param eval_env: The environment used for initialization
-    :param callback_on_new_best: Callback to trigger
-        when there is a new best agent according to the ``mean_reward``
     :param n_eval_episodes: The number of episodes to test the agent
     :param eval_freq: Evaluate the agent every eval_freq call of the callback.
     :param log_path: Path to a folder where the evaluations (``evaluations.npz``)
@@ -33,7 +29,6 @@ class CustomEvalCallback(EvalCallback):
                             display -> render and display during training
                             record -> render and record during training
                         We render the training/testing after every n_train/n_test epoch
-    :param render_test: Same as render train but during evaluation
     :param verbose:
     """
 
@@ -144,15 +139,6 @@ class CustomEvalCallback(EvalCallback):
             self.eval_histories['test/success_rate'].append(mean_success)
             self.eval_histories['test/mean_reward'].append(mean_reward)
 
-            # if mean_reward > self.best_mean_reward:
-            #     if self.verbose > 0:
-            #         self.logger.info("New best mean reward!")
-            #     if self.best_agent_save_path is not None:
-            #         self.agent.save(os.path.join(self.best_agent_save_path, "best_agent"))
-            #     self.best_mean_reward = mean_reward
-            #     # Trigger callback if needed
-            #     if self.callback is not None:
-            #         return self._on_event()
             if mean_success > self.best_mean_success:
                 if self.verbose > 0:
                     self.logger.info("New best mean success rate!")
@@ -164,7 +150,9 @@ class CustomEvalCallback(EvalCallback):
             if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                 mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
                 if mean_val >= self.early_stop_threshold:
-                    self.logger.info("Early stop threshold for {} met: Average over last {} evaluations is {} and threshold is {}. Stopping training.".format(self.early_stop_data_column, self.early_stop_last_n, mean_val, self.early_stop_threshold))
+                    self.logger.info(f"Early stop threshold for {self.early_stop_data_column} met: "
+                                     f"Average over last {self.early_stop_last_n} evaluations is {mean_val} "
+                                     f"and threshold is {self.early_stop_threshold}. Stopping training.")
                     if self.log_path is not None:
                         self.agent.save(os.path.join(self.log_path, "early_stop_agent"))
                     return False
@@ -185,7 +173,7 @@ class CustomEvalCallback(EvalCallback):
                         # create a new VideoWriter for each episode
                         try:
                             self.video_writer = cv2.VideoWriter(
-                                self.render_train_info['path'] + '/train_{}.avi'.format(self.train_count-1),
+                                self.render_train_info['path'] + f'/train_{self.train_count-1}.avi',
                                 cv2.VideoWriter_fourcc('F', 'M', 'P', '4'),
                                 self.render_train_info['fps'], self.render_train_info['size'])
                         except:
@@ -199,5 +187,4 @@ class CustomEvalCallback(EvalCallback):
                             frame = self.training_env.render(mode='rgb_array')
                         self.video_writer.write(frame)
             self.last_step_was_train = True
-
         return True
