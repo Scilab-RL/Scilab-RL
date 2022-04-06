@@ -1,3 +1,5 @@
+# This list contains all RLBench environments sorted by their goal-conditions.
+
 DetectedConditionEnvs="close_grill
 reach_target
 place_shape_in_shape_sorter
@@ -108,8 +110,8 @@ pour_from_cup_to_cup
 open_box"
 # Could not place the task put_plate_in_colored_dish_rack in the scene. This should not happen, please raise an issues on this task.
 # pour_from_cup_to_cup also failed with the same error.
-for ENV in $OtherEnvs
+for ENV in $DetectedConditionEnvs
 do
   ENV="$ENV-state-v0"
-  python experiment/train.py env=$ENV algorithm=hac algorithm.layer_classes=['sac','ddpg'] ~algorithm.set_fut_ret_zero_if_done render_args=[['display',1],['none',1]] algorithm.time_scales=[5,-1] n_epochs=1 eval_after_n_steps=100 n_test_rollouts=1
+  python experiment/train.py env=$ENV algorithm=sac +replay_buffer=her render_args=[['display',1],['none',1]] n_epochs=1 eval_after_n_steps=100 n_test_rollouts=1
 done
