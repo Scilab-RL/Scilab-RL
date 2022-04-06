@@ -7,6 +7,7 @@ from hydra.types import TaskFunction
 from omegaconf import DictConfig
 
 from .config import SamplerConfig
+from ._impl import CustomOptunaSweeperImpl
 
 
 class CustomOptunaSweeper(Sweeper):
@@ -26,10 +27,10 @@ class CustomOptunaSweeper(Sweeper):
         max_trials_per_param: int,
         search_space: Optional[DictConfig],
     ) -> None:
-        from ._impl import CustomOptunaSweeperImpl
 
         self.sweeper = CustomOptunaSweeperImpl(
-            sampler, direction, storage, study_name, max_trials, n_jobs, max_duration_minutes, min_trials_per_param, max_trials_per_param, search_space
+            sampler, direction, storage, study_name, max_trials, n_jobs, max_duration_minutes,
+            min_trials_per_param, max_trials_per_param, search_space
         )
 
     def setup(

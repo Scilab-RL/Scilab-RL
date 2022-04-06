@@ -6,7 +6,7 @@ from collections import defaultdict
 
 
 class ParamRepeatPruner:
-    """Prunes reapeated trials, which means trials with the same parameters won't waste time/resources."""
+    """Prunes repeated trials, which means trials with the same parameters won't waste time/resources."""
 
     def __init__(
         self,
@@ -19,11 +19,16 @@ class ParamRepeatPruner:
         Args:
             study (optuna.study.Study): Study of the trials.
 
-            max_runs (int, optional): Max. number of allowed runs per parameterization. (max_runs = 0 prunes all parameterizations, even if they have never been tested).
+            max_runs (int, optional): Max. number of allowed runs per parameterization.
+            (max_runs = 0 prunes all parameterizations, even if they have never been tested).
 
-            should_compare_states (List[TrialState], optional): By default it only skips the trial if the paremeters are equal to existing COMPLETE trials, so it repeats possible existing FAILed and PRUNED trials. If you also want to skip these trials then use [TrialState.COMPLETE,TrialState.FAIL,TrialState.PRUNED] for example. Defaults to [TrialState.COMPLETE].
+            should_compare_states (List[TrialState], optional): By default it only skips the trial if the parameters
+            are equal to existing COMPLETE trials, so it repeats possible existing FAILed and PRUNED trials.
+            If you also want to skip these trials then use [TrialState.COMPLETE,TrialState.FAIL,TrialState.PRUNED]
+            for example. Defaults to [TrialState.COMPLETE].
 
-            compare_unfinished (bool, optional): Unfinished trials (e.g. `RUNNING`) are treated like COMPLETE ones, if you don't want this behavior change this to False. Defaults to True.
+            compare_unfinished (bool, optional): Unfinished trials (e.g. `RUNNING`) are treated like COMPLETE ones,
+            if you don't want this behavior change this to False. Defaults to True.
         """
         self.should_compare_states = should_compare_states
         self.max_runs = max_runs
@@ -32,7 +37,6 @@ class ParamRepeatPruner:
         self.compare_unfinished = compare_unfinished
         self.study = study
         self.register_existing_trials()
-
 
     def register_existing_trials(self):
         """In case of studies with existing trials, it counts existing repeats"""
@@ -66,7 +70,8 @@ class ParamRepeatPruner:
         ignore_last_trial: Optional[int] = None,
     ):
         """
-        Check if parameterization has been executed already. If so, return number of previous executions and a trial id of a previous exeuction.
+        Check if parameterization has been executed already. If so, return number of previous executions
+        and a trial id of a previous exeuction.
         Args:
             trial:
             prune_existing:
@@ -84,9 +89,8 @@ class ParamRepeatPruner:
 
         self.clean_unfinised_trials()
 
-        # self.repeated_idx = -1
         self.repeated_number = -1
-        for idx_p, trial_past in enumerate(trials[:ignore_last_trial]):
+        for trial_past in trials[:ignore_last_trial]:
             should_compare = self.should_compare(trial_past.state)
             should_compare |= (
                 self.compare_unfinished and not trial_past.state.is_finished()
@@ -95,7 +99,6 @@ class ParamRepeatPruner:
                 if not trial_past.state.is_finished():
                     self.unfinished_repeats[trial_past.number].append(trial.number)
                     continue
-                # self.repeated_idx = idx_p
                 self.repeated_number = trial_past.number
                 break
 
@@ -107,7 +110,6 @@ class ParamRepeatPruner:
         if now_param_runs > self.max_runs:
             if prune_existing:
                 raise optuna.exceptions.TrialPruned()
-            # return n_param_runs, self.repeated_number
 
         return now_param_runs, self.repeated_number
 
@@ -134,20 +136,13 @@ if __name__ == "__main__":
     )
     # Create "Pruner"
     prune_params = ParamRepeatPruner(study)
-    # By default it only skips the trial if the paremeters are equal to existing COMPLETE trials, so it repeats possible existing FAILed and PRUNED trials. If you also want to skip these trials then just declare it like so:
+    # By default, it only skips the trial if the parameters are equal to existing COMPLETE trials, so it repeats
+    # possible existing FAILed and PRUNED trials. If you also want to skip these trials then just declare it like so:
     # prune_params = ParamRepeatPruner(study, should_compare_states=[TrialState.COMPLETE,TrialState.FAIL,TrialState.PRUNED])
     # Check the constructor docstring for more information
 
     def dummy_objective(trial: optuna.trial.Trial):
         trial.suggest_int("dummy_param-0", 1, 20)
-        # Check parameters with the pruner
-        repeated = prune_params.check_params()
-        # # Instead of prunning you can return a mean of previous values, useful if allowing some repeats to happen in non deterministic objective functions
-        # repeated = prune_params.check_params(prune_existing=False)
-        # if repeated > -1:
-        #     print("repeated")
-        #     return prune_params.get_value_of_repeats(repeated)
-
         return trial.params["dummy_param-0"]
 
     study.optimize(dummy_objective, n_trials=40)
