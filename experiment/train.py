@@ -27,12 +27,6 @@ sys.path.append(os.getcwd())
 OmegaConf.register_new_resolver("git_label", lambda: get_git_label())
 
 
-def check_env_alg_compatibility(model, env):
-    check_action_space = isinstance(model.action_space, type(env.action_space))
-    check_observation_space = isinstance(model.observation_space, type(env.observation_space))
-    return check_action_space and check_observation_space
-
-
 def train(baseline, train_env, eval_env, cfg, logger):
     total_steps = cfg.eval_after_n_steps * cfg.n_epochs
     callback = []
@@ -123,9 +117,6 @@ def launch(cfg, logger, kwargs):
         baseline = BaselineClass(policy='MultiInputPolicy', env=train_env, replay_buffer_class=rep_buf, **cfg.algorithm,
                                  **alg_kwargs, **kwargs)
     baseline.set_logger(logger)
-    if not check_env_alg_compatibility(baseline, train_env):
-        logger.info("Environment {} and algorithm {} are not compatible.".format(train_env, baseline))
-        sys.exit()
     logger.info("Launching training")
     train(baseline, train_env, eval_env, cfg, logger)
 
