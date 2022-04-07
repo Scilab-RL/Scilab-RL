@@ -120,9 +120,9 @@ Please see the installation instructions on RL_Bench environment [below](#instal
 
 ##### Installation Instructions on MuJoCo
 
-1. Download [MuJoCo version 2.1.2](https://github.com/deepmind/mujoco/releases/tag/2.1.2) 
+1. Download [MuJoCo version 2.1.0](https://github.com/deepmind/mujoco/releases/tag/2.1.0) 
    Copy the *mujoco210* folder from the downloaded archive
-      to folders of your choice (We recommend `/home/USERNAME/`).  Note that we recommend using MuJoCo 2.1.2 because newer versions use GLAD instead of GLEW, and currently mujoco-py is not yet adapted to GLAD. Hence, if you use MuJoCo 2.1.4, you'll get an error message saying something like "cannot find libGLEW, did you mean libGL"? 
+      to folders of your choice (We recommend `/home/USERNAME/`). Note that MuJoCo versions other than 2.1.0 probably do not work. 
 
 1. Set the environment variables in `set_paths.sh` according to the
    locations where you saved the *mujoco210* folder.
