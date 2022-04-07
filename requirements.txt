@@ -1,6 +1,5 @@
 cffi==1.15.0
 cloudpickle==2.0.0
-comet_for_mlflow==0.1.2
 Cython==0.29.28
 glfw==2.5.2
 gym==0.21.0

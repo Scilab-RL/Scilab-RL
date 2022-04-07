@@ -1,9 +1,3 @@
 name: 'sacvg'
 
-exp_path_params:
-  - 'set_fut_ret_zero_if_done'
-  - 'opti_clipped_critic'
-
 verbose: True
-
-
