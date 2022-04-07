@@ -979,7 +979,7 @@ class HAC(BaseAlgorithm):
         rollout_pf = "rollout_{}".format(self.layer)
         train_pf = "train_{}".format(self.layer)
 
-        fps = int(self.num_timesteps / (time.time() - self.start_time))
+        fps = int(self.num_timesteps / (time.perf_counter() - self.start_time))
         self.logger.record(time_pf + "/episodes", self._episode_num, exclude="tensorboard")
         if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
             self.logger.record(rollout_pf + "/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
@@ -991,7 +991,7 @@ class HAC(BaseAlgorithm):
         if self.is_top_layer:
             env_steps = self.get_env_steps()
             self.logger.record("time/total timesteps", env_steps, exclude="tensorboard")
-            self.logger.record("time/time_elapsed", int(time.time() - self.start_time), exclude="tensorboard")
+            self.logger.record("time/time_elapsed", int(time.perf_counter() - self.start_time), exclude="tensorboard")
         if self.use_sde:
             self.logger.record(train_pf + "/std", (self.actor.get_std()).mean().item())
 

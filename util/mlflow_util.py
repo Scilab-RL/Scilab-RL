@@ -1,10 +1,9 @@
 import hydra
-from stable_baselines3.common import logger
 import mlflow
-import omegaconf
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, ListConfig
 import numpy as np
+
 
 def get_hyperopt_score(cfg, current_run):
     data_key = cfg.early_stop_data_column
@@ -25,6 +24,7 @@ def get_hyperopt_score(cfg, current_run):
 
     return hyperopt_score, epochs
 
+
 def setup_mlflow(cfg: str):
     orig_path = hydra.utils.get_original_cwd()
     mlflow.set_tracking_uri('file://' + orig_path + '/mlruns')
@@ -37,6 +37,7 @@ def setup_mlflow(cfg: str):
     print('MLFlow experiment name', experiment_name)
     mlflow.set_experiment(experiment_name)
 
+
 def log_params_from_omegaconf_dict(params):
     for param_name, element in params.items():
         explore_recursive(param_name, element)
@@ -45,7 +46,7 @@ def log_params_from_omegaconf_dict(params):
 def explore_recursive(parent_name, element):
     if isinstance(element, DictConfig):
         for k, v in element.items():
-            if isinstance(v, DictConfig) or isinstance(v, ListConfig):
+            if isinstance(v, (DictConfig, ListConfig)):
                 explore_recursive(f'{parent_name}.{k}', v)
             else:
                 mlflow.log_param(f'{parent_name}.{k}', v)

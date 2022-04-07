@@ -1,6 +1,6 @@
 """Common aliases for type hints"""
 
-from typing import Any, Callable, Dict, List, NamedTuple, Tuple, Union
+from typing import NamedTuple
 
 import torch as th
 
@@ -11,5 +11,3 @@ class ReplayBufferSamplesWithTestTrans(NamedTuple):
     dones: th.Tensor
     rewards: th.Tensor
     is_test_trans: th.Tensor
-
-

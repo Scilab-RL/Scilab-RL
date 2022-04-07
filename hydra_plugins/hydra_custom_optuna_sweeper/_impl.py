@@ -106,10 +106,9 @@ def create_optuna_distribution_from_override(override: Override) -> Any:
             if isinstance(value.start, int) and isinstance(value.end, int):
                 return IntLogUniformDistribution(int(value.start), int(value.end))
             return LogUniformDistribution(value.start, value.end)
-        else:
-            if isinstance(value.start, int) and isinstance(value.end, int):
-                return IntUniformDistribution(value.start, value.end)
-            return UniformDistribution(value.start, value.end)
+        if isinstance(value.start, int) and isinstance(value.end, int):
+            return IntUniformDistribution(value.start, value.end)
+        return UniformDistribution(value.start, value.end)
 
     raise NotImplementedError(f"{override} is not supported by Optuna sweeper.")
 
@@ -130,7 +129,6 @@ class CustomOptunaSweeperImpl(Sweeper):
     ) -> None:
         self.sampler = sampler
         self.direction = direction
-        # assert (len(self.direction) == 1), "Multi opbjective optimization is not supported."
         self.storage = storage
         self.study_name = study_name
         self.max_trials = max_trials
@@ -156,7 +154,6 @@ class CustomOptunaSweeperImpl(Sweeper):
 
         self.metric_to_check_for_early_stop = 'time/total timesteps'
 
-
     def setup(
         self,
         config: DictConfig,
@@ -171,25 +168,6 @@ class CustomOptunaSweeperImpl(Sweeper):
         )
         self.sweep_dir = config.hydra.sweep.dir
 
-
-    # @staticmethod
-    # def get_study_min_epochs_complete(study):
-    #     min_epochs = None
-    #     for trial in study.trials:
-    #         if trial.state != TrialState.COMPLETE:
-    #             continue
-    #         print(trial)
-    #     return min_epochs
-
-    @staticmethod
-    def try_upload_to_cometml():
-        try:
-            os.makedirs('data', exist_ok=True)
-            os.makedirs('data/comet_offline_tmp', exist_ok=True)
-            os.system("COMET_OFFLINE_DIRECTORY=data/comet_offline_tmp comet_for_mlflow --upload --yes --output-dir data/comet_offline_tmp")
-        except Exception as e:
-            log.info(f"Upload to comet.ml not possible: {e}")
-
     def sweep(self, arguments: List[str]) -> None:
         assert self.config is not None
         assert self.launcher is not None
@@ -203,7 +181,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         parsed = parser.parse_overrides(arguments)
 
         search_space = dict(self.search_space)
-        fixed_params = dict()
+        fixed_params = {}
         for override in parsed:
             value = create_optuna_distribution_from_override(override)
             if isinstance(value, BaseDistribution):
@@ -246,17 +224,18 @@ class CustomOptunaSweeperImpl(Sweeper):
             study.set_user_attr("max_n_epochs", self.config.n_epochs)
 
         n_trials_to_go = self.max_trials
-        start_time = time.time()
+        start_time = time.perf_counter()
         current_time = start_time
         while n_trials_to_go > 0 and (start_time + self.max_duration_seconds) > current_time and os.path.isfile(self.del_to_stop_fname):
             running_duration = (current_time - start_time)
-            log.info(f"Hyperparameter optimization is now running for {str(datetime.timedelta(seconds=running_duration))} of {str(datetime.timedelta(seconds=self.max_duration_seconds))}. Max. {n_trials_to_go} trials left.")
+            log.info(f"Hyperparameter optimization is now running for {str(datetime.timedelta(seconds=running_duration))} "
+                     f"of {str(datetime.timedelta(seconds=self.max_duration_seconds))}. Max. {n_trials_to_go} trials left.")
             enqueued_param_runs = 0
             batch_size = min(n_trials_to_go, self.n_jobs)
             overrides = []
             trials = []
             max_n_epochs = min(study.user_attrs['max_n_epochs'], self.config.n_epochs)
-            if max_n_epochs != None:
+            if max_n_epochs is not None:
                 fixed_params['n_epochs'] = max_n_epochs
             while len(overrides) < batch_size:
                 trial = study._ask()
@@ -269,7 +248,8 @@ class CustomOptunaSweeperImpl(Sweeper):
                 total_and_enqueued_param_runs = total_param_runs + enqueued_param_runs
                 if total_and_enqueued_param_runs > self.max_trials_per_param:
                     log.info(
-                        f"Parameters {params} have been tested or pruned {total_param_runs} times in trial {repeated_trial_idx} already, pruning this trial.")
+                        f"Parameters {params} have been tested or pruned {total_param_runs} times in "
+                        f"trial {repeated_trial_idx} already, pruning this trial.")
                     state = optuna.trial.TrialState.PRUNED
                     study._tell(trial, state, None)
                     continue
@@ -285,11 +265,12 @@ class CustomOptunaSweeperImpl(Sweeper):
             returns = self.launcher.launch(overrides, initial_job_idx=self.job_idx)
             self.job_idx += len(returns)
             for trial, ret in zip(trials, returns):
-                values: Optional[List[float]] = None
                 state: optuna.trial.TrialState = optuna.trial.TrialState.COMPLETE
                 # try:
                 assert len(
-                    ret.return_value) == 3, "The return value of main() should be a triple where the first element is the hyperopt score, the second value is the number of epochs the script ran and the third is the mlflow run_id."
+                    ret.return_value) == 3, "The return value of main() should be a triple where the first element " \
+                                            "is the hyperopt score, the second value is the number of epochs the " \
+                                            "script ran and the third is the mlflow run_id."
                 assert len(directions) == 1, "We currently support only one optimization objective and direction."
                 # try:
                 values = [float(ret.return_value[0])]
@@ -297,32 +278,15 @@ class CustomOptunaSweeperImpl(Sweeper):
                     n_epochs = int(ret.return_value[1])
                     new_max_epochs = int(n_epochs * 1.5)
                     if new_max_epochs <= study.user_attrs['max_n_epochs']:
-                        log.info(f"This trial had only {n_epochs} epochs. New upper limit for max. epochs is now {new_max_epochs}. ")
+                        log.info(f"This trial had only {n_epochs} epochs. "
+                                 f"New upper limit for max. epochs is now {new_max_epochs}. ")
                         study.set_user_attr("max_n_epochs", new_max_epochs)
 
-                # except (ValueError, TypeError):
-                #     err = f"Return value must be float-castable. Got '{ret.return_value}'."
-                #     log.error(err)
-                #     raise ValueError(
-                #         err
-                #     ).with_traceback(sys.exc_info()[2])
                 study._tell(trial, state, values)
-                # except Exception as e:
-                #     state = optuna.trial.TrialState.FAIL
-                #     study._tell(trial, state, values)
-                #     log.error(f"Error, could not execute trial with parameters {trial.params}")
-                #     log.error("For debugging this error, we recommend to disable the joblib multiprocessing launcher "
-                #               "and use the standard single processing launcher. This will point you to where the error "
-                #               "occurred. You can disable the joblib launcher "
-                #               "and enable the single processing launcher by commenting out the respective override "
-                #               "line in conf/main.yaml ")
-
 
             self.plot_study_summary(study)
             n_trials_to_go -= batch_size
-            current_time = time.time()
-
-            self.try_upload_to_cometml() #Run upload to cometml if possible.
+            current_time = time.perf_counter()
 
         results_to_serialize: Dict[str, Any]
         assert len(directions) < 2, "Multi objective optimization is not implemented"
@@ -340,10 +304,6 @@ class CustomOptunaSweeperImpl(Sweeper):
         )
         df = study.trials_dataframe()
         df.to_csv("tmp_trials.csv", index=False)
-        # try:
-        #     os.remove(self.del_to_stop_fname)
-        # except:
-        #     pass # Already deleted
 
     def smoke_test(self, args):
         other_args = []
@@ -371,7 +331,6 @@ class CustomOptunaSweeperImpl(Sweeper):
             configs = configs[batch_size:]
 
     def plot_study_summary(self, study):
-
         try:
             fig = plot_optimization_history(study)
             fig.write_image(f"{self.sweep_dir}/hyperopt_history.png")

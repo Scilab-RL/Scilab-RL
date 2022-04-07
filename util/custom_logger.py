@@ -1,49 +1,40 @@
+from typing import Any, Dict, List, TextIO, Tuple, Union
+import warnings
 import matplotlib
+from stable_baselines3.common.logger import KVWriter
+from stable_baselines3.common.logger import Video, FormatUnsupportedError, SeqWriter
+import mlflow
+
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
-import os
-from stable_baselines3.common import logger
-from stable_baselines3.common.logger import KVWriter
-import matplotlib.pyplot as plt
-from collections import OrderedDict
-import csv
-import numpy as np
-from util.util import print_dict, check_all_dict_values_equal, interpolate_data
-from typing import Any, Dict, List, Optional, Sequence, TextIO, Tuple, Union
-from stable_baselines3.common.logger import Video, FormatUnsupportedError, SeqWriter
-import warnings
-import time
-from cycler import cycler
-import mlflow
-import hydra
-import omegaconf
-from omegaconf import DictConfig, ListConfig
 
 
 class MLFlowOutputFormat(KVWriter, SeqWriter):
 
     def __init__(self):
         self.log_txt = ''
-        return
 
-    def write(self, key_values: Dict[str, Any], key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
+    def write(self,
+              key_values: Dict[str, Any],
+              key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
         kvs = key_values.copy()
-        for k,v in kvs.items():
+        for k, v in kvs.items():
             mlflow.log_metric(k, v, step=step)
 
     def write_sequence(self, sequence: List) -> None:
         sequence = list(sequence)
-        for i, elem in enumerate(sequence):
+        for elem in sequence:
             self.log_txt += elem + '\n'
-        mlflow.log_text(self.log_txt, f"log.txt")
+        mlflow.log_text(self.log_txt, "log.txt")
 
     def close(self) -> None:
         return
 
+
 class FixedHumanOutputFormat(KVWriter, SeqWriter):
     def __init__(self, filename_or_file: Union[str, TextIO]):
         """
-        log to a file, in a human readable format
+        log to a file, in a human-readable format
 
         :param filename_or_file: the file to write the log to
         """
@@ -59,9 +50,7 @@ class FixedHumanOutputFormat(KVWriter, SeqWriter):
         # Create strings for printing
         kv_list = {}
         # key2str = {}
-        tag = None
         for (key, value), (_, excluded) in zip(sorted(key_values.items()), sorted(key_excluded.items())):
-
             if excluded is not None and ("stdout" in excluded or "log" in excluded):
                 continue
 
@@ -79,7 +68,6 @@ class FixedHumanOutputFormat(KVWriter, SeqWriter):
             else:
                 tag = ''
             if tag not in kv_list.keys():
-                # key2str[self._truncate(tag)] = ""
                 kv_list[self._truncate(tag)] = {}
 
             key = str("   " + key[len(tag):])
@@ -90,13 +78,12 @@ class FixedHumanOutputFormat(KVWriter, SeqWriter):
         if len(kv_list.keys()) == 0:
             warnings.warn("Tried to write empty key-value dict")
             return
-        else:
-            key_width = 0
-            val_width = 0
-            for tag, vlist in kv_list.items():
-                for k,v in vlist.items():
-                    key_width = max(key_width, len(k))
-                    val_width = max(val_width, len(v))
+        key_width = 0
+        val_width = 0
+        for tag, vlist in kv_list.items():
+            for k, v in vlist.items():
+                key_width = max(key_width, len(k))
+                val_width = max(val_width, len(v))
 
         # Write out the data
         dashes = "-" * (key_width + val_width + 7)
@@ -105,7 +92,7 @@ class FixedHumanOutputFormat(KVWriter, SeqWriter):
             key_space = " " * (key_width - len(tag))
             val_space = " " * (val_width)
             lines.append(f"| {tag}{key_space} | {val_space} |")
-            for k,v in vlist.items():
+            for k, v in vlist.items():
                 val_space = " " * (val_width - len(v))
                 key_space = " " * (key_width - len(k))
                 lines.append(f"| {k}{key_space} | {v}{val_space} |")
@@ -132,9 +119,3 @@ class FixedHumanOutputFormat(KVWriter, SeqWriter):
         """
         if self.own_file:
             self.file.close()
-
-
-# def mlflow_log_text(self, run_id, text, artifact_file):
-#     with self._log_artifact_helper(run_id, artifact_file) as tmp_path:
-#         with open(tmp_path, "a") as f: ## Here is the change: map "w" to "a"
-#             f.write(text)
