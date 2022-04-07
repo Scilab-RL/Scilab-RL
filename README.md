@@ -54,10 +54,9 @@ The framework is tailored towards the rapid prototyping and development and eval
 
 
 ## Start training manually
-
+Assuming you have installed MuJoCo, you can run a first training with the following command:
 ```bash
-python3 experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.time_scales=[5,-1]
-python experiment/train.py env=FetchReach-v1 algorithm=hac algorithm.layer_classes=['sacvg','ddpg']
+python experiment/train.py env=FetchReach-v1
 ```
 
 [comment]: <> (```bash)
