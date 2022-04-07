@@ -120,16 +120,16 @@ Please see the installation instructions on RL_Bench environment [below](#instal
 
 ##### Installation Instructions on MuJoCo
 
-1. Download [MuJoCo](https://mujoco.org/) 
+1. Download [MuJoCo version 2.1.2](https://github.com/deepmind/mujoco/releases/tag/2.1.2) 
    Copy the *mujoco210* folder from the downloaded archive
-      to folders of your choice (We recommend `/home/USERNAME/`).  Note that we recommend using Mujoco2.1.2 because newer versions use GLAD instead of GLEW and currently mujoco-py is not yet adapted to GLAD. Hence, if you use Mujoco 2.1.4, you'll get an error message saying something like "cannot find libGLEW, did you mean libGL"? 
+      to folders of your choice (We recommend `/home/USERNAME/`).  Note that we recommend using MuJoCo 2.1.2 because newer versions use GLAD instead of GLEW, and currently mujoco-py is not yet adapted to GLAD. Hence, if you use MuJoCo 2.1.4, you'll get an error message saying something like "cannot find libGLEW, did you mean libGL"? 
 
 1. Set the environment variables in `set_paths.sh` according to the
    locations where you saved the *mujoco210* folder.
    Run `source ./set_paths.sh`
    If you are using an IDE, set the variables there as well.
 
-1. Install python interface. For mujoco 2.1, use `pip install 'mujoco-py<2.2,>=2.1'`. In case there is an error during compilation, try `sudo apt install libpython3.X-dev` (where `X` is to be replaced with the appropriate version), and `sudo apt-get install libosmesa6-dev`
+1. Install python interface. For mujoco 2.1, use `pip install 'mujoco-py=2.1.2.14'`. In case there is an error during compilation, try `sudo apt install libpython3.X-dev` (where `X` is to be replaced with the appropriate version), and `sudo apt-get install libosmesa6-dev`
 
 1. MuJoCo uses **GLEW** graphics library for rendering with the viewer. When we render an environment using MuJoCo on **Ubuntu**, we get `GLEW initialization error: Missing GL version.` error. To solve this, we need to set the **LD_PRELOAD** environment variable below:
 
