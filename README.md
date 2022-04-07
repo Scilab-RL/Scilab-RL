@@ -121,7 +121,7 @@ Please see the installation instructions on RL_Bench environment [below](#instal
 
 ##### Installation Instructions on MuJoCo
 
-1. Download [MuJoCo](mujoco.org) 
+1. Download [MuJoCo](https://mujoco.org/) 
    Copy the *mujoco210* folder from the downloaded archive
       to folders of your choice (We recommend `/home/USERNAME/`).
 
