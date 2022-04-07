@@ -122,7 +122,7 @@ Please see the installation instructions on RL_Bench environment [below](#instal
 
 1. Download [MuJoCo](https://mujoco.org/) 
    Copy the *mujoco210* folder from the downloaded archive
-      to folders of your choice (We recommend `/home/USERNAME/`).
+      to folders of your choice (We recommend `/home/USERNAME/`).  Note that we recommend using Mujoco2.1.2 because newer versions use GLAD instead of GLEW and currently mujoco-py is not yet adapted to GLAD. Hence, if you use Mujoco 2.1.4, you'll get an error message saying something like "cannot find libGLEW, did you mean libGL"? 
 
 1. Set the environment variables in `set_paths.sh` according to the
    locations where you saved the *mujoco210* folder.
