@@ -152,10 +152,7 @@ If you'd also like to use the [RL Bench](https://github.com/stepjam/RLBench) env
 An example for an RL Bench environment is *reach_target-state-v0*.
 
 ## Hyperparameter optimization and management
-The framework has a sophisticated hyperparameter management and optimization pipeline.
-To start the hyperparameter optimization start `experiment/train.py --multirun`. The `--multirun` flag starts the hyperparameter optimization mode.
-
-The hyperparameter management and optimization builds on the following four tools:
+The framework has a sophisticated hyperparameter management and optimization pipeline, based on the following four tools:
 
 ### Optuna & Hydra
 Optuna is a framework to perform the hyperparameter optimization algorithm (e.g. TPE).
@@ -171,9 +168,9 @@ The sweeper stops after the set number of trials or the specified duration, as s
 For convenience, the sweeper also creates a file `delete_me_to_stop_hyperopt`, which you just need to delete to soft-stop the hyperopting after the current batch of jobs.
 
 #### Hyperparameter tuning
-We configure the hyperparameter tuning with hydra. The configurations are stored in `conf/performance/<env_name>/<algo_name>-opti.yaml`. For example, to optimize `sac` with `her` for the RLBench reacher environment, run
+We configure the hyperparameter tuning with hydra. The configurations are stored in `conf/performance/<env_name>/<algo_name>-opti.yaml`. For example, to optimize `sac` with `her` for the FetchReach environment, run
 ```bash
-python experiment/train.py +performance=RLB_reach_target/sac_her-opti.yaml --multirun
+python experiment/train.py +performance=FetchReach/sac_her-opti.yaml --multirun
 ```
 We use theses files to specify the algorithm (e.g. `override /algorithm: sac`) and its parameters, the environment (e.g. `env: reach_target-state-v0`), and the search space for the optimization. If you copy and change a config to optimize for a different environment or algorithm, it is also important to change `hydra:sweeper:study_name` and `hydra:sweeper:storage` accordingly.
 
