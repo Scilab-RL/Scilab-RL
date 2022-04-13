@@ -172,7 +172,8 @@ We configure the hyperparameter tuning with hydra. The configurations are stored
 ```bash
 python experiment/train.py +performance=FetchReach/sac_her-opti.yaml --multirun
 ```
-We use theses files to specify the algorithm (e.g. `override /algorithm: sac`) and its parameters, the environment (e.g. `env: reach_target-state-v0`), and the search space for the optimization. If you copy and change a config to optimize for a different environment or algorithm, it is also important to change `hydra:sweeper:study_name` and `hydra:sweeper:storage` accordingly.
+We use these files to specify the algorithm (e.g. `override /algorithm: sac`) and its parameters, the environment (e.g. `env: reach_target-state-v0`), and the search space for the optimization. 
+If you copy and change a config to optimize for a different environment or algorithm, it is also important to change `hydra:sweeper:study_name` and `hydra:sweeper:storage` accordingly.
 
 #### Testing functionality (smoke test)
 Simply execute
