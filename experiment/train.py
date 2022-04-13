@@ -146,15 +146,16 @@ def main(cfg: DictConfig) -> (float, int):
     with mlflow.start_run(run_name=run_name) as mlflow_run:
         if run_dir is not None:
             mlflow.log_param('log_dir', run_dir)
-        os.environ["WANDB_START_METHOD"] = "thread"
-        wandb.init(project=run_name)
 
         # Output will only be logged appropriately after configuring the logger in the following lines:
         logger = configure(folder=run_dir, format_strings=[])
         logger.output_formats.append(FixedHumanOutputFormat(sys.stdout))
         logger.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
         logger.output_formats.append(MLFlowOutputFormat())
-        logger.output_formats.append(WandBOutputFormat())
+        if cfg["wandb"]:
+            os.environ["WANDB_START_METHOD"] = "thread"
+            wandb.init(project=run_name)
+            logger.output_formats.append(WandBOutputFormat())
         logger.info("Starting training with the following configuration:")
         logger.info(OmegaConf.to_yaml(cfg))
         logger.info(f"Log directory: {run_dir}")
@@ -183,8 +184,9 @@ def main(cfg: DictConfig) -> (float, int):
         else:
             hyperopt_score, n_epochs = 0, cfg["n_epochs"]
         mlflow.log_metric("hyperopt_score", hyperopt_score)
-        wandb.log({"hyperopt_score": hyperopt_score})
-        wandb.finish()
+        if cfg["wandb"]:
+            wandb.log({"hyperopt_score": hyperopt_score})
+            wandb.finish()
         logger.info(f"Hyperopt score: {hyperopt_score}, epochs: {n_epochs}.")
         try:
             with open(os.path.join(run_dir, 'train.log'), 'r') as logfile:

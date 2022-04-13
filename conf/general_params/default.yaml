@@ -50,6 +50,9 @@ save_model_freq: 0
 # Example: [['display',1],['record',10]] means that we display every training and record every 10th testing run.
 render_args: [['none',1],['none',1]]
 
+# Whether to use Weights and Biases. 1=use, 0=disable
+wandb: 1
+
 hydra:
   run:
     dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S}
