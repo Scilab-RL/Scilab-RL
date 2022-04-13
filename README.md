@@ -129,7 +129,7 @@ Please see the installation instructions on RL_Bench environment [below](#instal
    Run `source ./set_paths.sh`
    If you are using an IDE, set the variables there as well.
 
-1. Install python interface. For mujoco 2.1, use `pip install 'mujoco-py=2.1.2.14'`. In case there is an error during compilation, try `sudo apt install libpython3.X-dev` (where `X` is to be replaced with the appropriate version), and `sudo apt-get install libosmesa6-dev`
+1. Install python interface. For mujoco 2.1, use `pip install 'mujoco-py==2.1.2.14'`. In case there is an error during compilation, try `sudo apt install libpython3.X-dev` (where `X` is to be replaced with the appropriate version), and `sudo apt-get install libosmesa6-dev`, possibly also `sudo apt-get install patchelf`
 
 1. MuJoCo uses **GLEW** graphics library for rendering with the viewer. When we render an environment using MuJoCo on **Ubuntu**, we get `GLEW initialization error: Missing GL version.` error. To solve this, we need to set the **LD_PRELOAD** environment variable below:
 
