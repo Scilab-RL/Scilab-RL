@@ -56,17 +56,19 @@ def train(baseline, train_env, eval_env, cfg, logger):
                                            logger=logger)
     # Create the callback list
     callback.append(eval_callback)
+    training_finished = False
     try:
         baseline.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
+        training_finished = True
     except ValueError as e:
         logger.error(f"The experiment failed with error {e}")
         logger.error("If this error happened because of a tensor with NaNs in it, that is probably because the chosen "
                      "hyperparameters made the algorithm unstable.")
-        with open_dict(cfg):
-            cfg["experiment_crashed"] = True
     train_env.close()
     eval_env.close()
-    logger.info("Training finished!")
+    if training_finished:
+        logger.info("Training finished!")
+    return training_finished
 
 
 def convert_alg_cfg(cfg):
@@ -125,7 +127,7 @@ def launch(cfg, logger, kwargs):
                                   **cfg.algorithm, **alg_kwargs, **kwargs)
     baseline.set_logger(logger)
     logger.info("Launching training")
-    train(baseline, train_env, eval_env, cfg, logger)
+    return train(baseline, train_env, eval_env, cfg, logger)
 
 
 @hydra.main(config_name="main", config_path="../conf")
@@ -168,16 +170,14 @@ def main(cfg: DictConfig) -> (float, int):
         custom_envs.wrappers.utils.goal_viz_for_gym_robotics()
 
         kwargs = {}
-        launch(cfg, logger, kwargs)
+        training_finished = launch(cfg, logger, kwargs)
 
         logger.info("Finishing main training function.")
         logger.info(f"MLflow run: {mlflow_run}.")
-        if "experiment_crashed" not in cfg:
+        if training_finished:
             hyperopt_score, n_epochs = get_hyperopt_score(cfg, mlflow_run)
         else:
             hyperopt_score, n_epochs = 0, cfg["n_epochs"]
-            with open_dict(cfg):
-                del cfg["experiment_crashed"]
         mlflow.log_metric("hyperopt_score", hyperopt_score)
         logger.info(f"Hyperopt score: {hyperopt_score}, epochs: {n_epochs}.")
         try:
