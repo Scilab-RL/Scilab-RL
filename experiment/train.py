@@ -9,6 +9,7 @@ import matplotlib
 import mlflow
 import hydra
 import gym
+import wandb
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
 from omegaconf import DictConfig, OmegaConf, open_dict
@@ -18,7 +19,7 @@ from custom_algorithms.hac.util import configure
 from custom_algorithms.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.util import get_git_label, set_global_seeds
-from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
+from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat, WandBOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 
 matplotlib.use('Agg')
@@ -145,12 +146,14 @@ def main(cfg: DictConfig) -> (float, int):
     with mlflow.start_run(run_name=run_name) as mlflow_run:
         if run_dir is not None:
             mlflow.log_param('log_dir', run_dir)
+        wandb.init(project=run_name)
 
         # Output will only be logged appropriately after configuring the logger in the following lines:
         logger = configure(folder=run_dir, format_strings=[])
         logger.output_formats.append(FixedHumanOutputFormat(sys.stdout))
         logger.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
         logger.output_formats.append(MLFlowOutputFormat())
+        logger.output_formats.append(WandBOutputFormat())
         logger.info("Starting training with the following configuration:")
         logger.info(OmegaConf.to_yaml(cfg))
         logger.info(f"Log directory: {run_dir}")
