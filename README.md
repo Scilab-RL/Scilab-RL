@@ -43,7 +43,6 @@ The framework is tailored towards the rapid prototyping and development and eval
 
 1. upgrade the version of pip
 
-
     `pip install --upgrade pip`
 
 1. install required python libraries with
@@ -51,6 +50,8 @@ The framework is tailored towards the rapid prototyping and development and eval
     `pip install -r requirements.txt`
 
 1. Install one or both simulators from the [environments section](#environments).
+
+1. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiment with `wandb=0`.
 
 
 ## Start training manually
