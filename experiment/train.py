@@ -9,6 +9,7 @@ import matplotlib
 import mlflow
 import hydra
 import gym
+import wandb
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
 from omegaconf import DictConfig, OmegaConf, open_dict
@@ -18,7 +19,7 @@ from custom_algorithms.hac.util import configure
 from custom_algorithms.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.util import get_git_label, set_global_seeds
-from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat
+from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat, WandBOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 
 matplotlib.use('Agg')
@@ -151,6 +152,10 @@ def main(cfg: DictConfig) -> (float, int):
         logger.output_formats.append(FixedHumanOutputFormat(sys.stdout))
         logger.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
         logger.output_formats.append(MLFlowOutputFormat())
+        if cfg["wandb"]:
+            os.environ["WANDB_START_METHOD"] = "thread"
+            wandb.init(project=run_name)
+            logger.output_formats.append(WandBOutputFormat())
         logger.info("Starting training with the following configuration:")
         logger.info(OmegaConf.to_yaml(cfg))
         logger.info(f"Log directory: {run_dir}")
@@ -179,6 +184,9 @@ def main(cfg: DictConfig) -> (float, int):
         else:
             hyperopt_score, n_epochs = 0, cfg["n_epochs"]
         mlflow.log_metric("hyperopt_score", hyperopt_score)
+        if cfg["wandb"]:
+            wandb.log({"hyperopt_score": hyperopt_score})
+            wandb.finish()
         logger.info(f"Hyperopt score: {hyperopt_score}, epochs: {n_epochs}.")
         try:
             with open(os.path.join(run_dir, 'train.log'), 'r') as logfile:

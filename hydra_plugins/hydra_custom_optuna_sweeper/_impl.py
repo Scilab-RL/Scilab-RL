@@ -17,7 +17,7 @@ from hydra.core.override_parser.types import (
 )
 from hydra.core.plugins import Plugins
 from hydra.plugins.sweeper import Sweeper
-from hydra.types import TaskFunction
+from hydra.types import TaskFunction, HydraContext
 from omegaconf import DictConfig, OmegaConf
 from optuna.distributions import (
     BaseDistribution,
@@ -157,14 +157,14 @@ class CustomOptunaSweeperImpl(Sweeper):
     def setup(
         self,
         config: DictConfig,
-        config_loader: ConfigLoader,
+        hydra_context: HydraContext,
         task_function: TaskFunction,
     ) -> None:
         self.job_idx = 0
         self.config = config
-        self.config_loader = config_loader
+        self.config_loader = hydra_context.config_loader
         self.launcher = Plugins.instance().instantiate_launcher(
-            config=config, config_loader=config_loader, task_function=task_function
+            config=config, config_loader=hydra_context.config_loader, task_function=task_function
         )
         self.sweep_dir = config.hydra.sweep.dir
 
@@ -238,7 +238,7 @@ class CustomOptunaSweeperImpl(Sweeper):
             if max_n_epochs is not None:
                 fixed_params['n_epochs'] = max_n_epochs
             while len(overrides) < batch_size:
-                trial = study._ask()
+                trial = study.ask()
                 for param_name, distribution in search_space.items():
                     trial._suggest(param_name, distribution)
                 params = dict(trial.params)
@@ -251,12 +251,13 @@ class CustomOptunaSweeperImpl(Sweeper):
                         f"Parameters {params} have been tested or pruned {total_param_runs} times in "
                         f"trial {repeated_trial_idx} already, pruning this trial.")
                     state = optuna.trial.TrialState.PRUNED
-                    study._tell(trial, state, None)
+                    study.tell(trial, None, state)
                     continue
                 overrides.append(tuple(f"{name}={val}" for name, val in params.items()))
                 trials.append(trial)
 
-                if total_and_enqueued_param_runs < self.min_trials_per_param: # Add repetition of the same trial for next study._ask()
+                # Add repetition of the same trial for next study.ask()
+                if total_and_enqueued_param_runs < self.min_trials_per_param:
                     study.enqueue_trial(params)
                     enqueued_param_runs += 1
                 else:
@@ -282,7 +283,7 @@ class CustomOptunaSweeperImpl(Sweeper):
                                  f"New upper limit for max. epochs is now {new_max_epochs}. ")
                         study.set_user_attr("max_n_epochs", new_max_epochs)
 
-                study._tell(trial, state, values)
+                study.tell(trial, values, state)
 
             self.plot_study_summary(study)
             n_trials_to_go -= batch_size
