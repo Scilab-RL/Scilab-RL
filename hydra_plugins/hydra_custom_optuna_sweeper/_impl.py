@@ -17,7 +17,7 @@ from hydra.core.override_parser.types import (
 )
 from hydra.core.plugins import Plugins
 from hydra.plugins.sweeper import Sweeper
-from hydra.types import TaskFunction
+from hydra.types import TaskFunction, HydraContext
 from omegaconf import DictConfig, OmegaConf
 from optuna.distributions import (
     BaseDistribution,
@@ -157,14 +157,14 @@ class CustomOptunaSweeperImpl(Sweeper):
     def setup(
         self,
         config: DictConfig,
-        config_loader: ConfigLoader,
+        hydra_context: HydraContext,
         task_function: TaskFunction,
     ) -> None:
         self.job_idx = 0
         self.config = config
-        self.config_loader = config_loader
+        self.config_loader = hydra_context.config_loader
         self.launcher = Plugins.instance().instantiate_launcher(
-            config=config, config_loader=config_loader, task_function=task_function
+            config=config, config_loader=hydra_context.config_loader, task_function=task_function
         )
         self.sweep_dir = config.hydra.sweep.dir
 

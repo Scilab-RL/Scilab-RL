@@ -5,7 +5,7 @@ from typing import Any, Optional, Sequence
 from hydra.core.config_loader import ConfigLoader
 from hydra.core.utils import JobReturn
 from hydra.plugins.launcher import Launcher
-from hydra.types import TaskFunction
+from hydra.types import TaskFunction, HydraContext
 from omegaconf import DictConfig
 
 log = logging.getLogger(__name__)
@@ -29,12 +29,12 @@ class JoblibLauncher(Launcher):
 
     def setup(
         self,
+        hydra_context: HydraContext,
         config: DictConfig,
-        config_loader: ConfigLoader,
         task_function: TaskFunction,
     ) -> None:
         self.config = config
-        self.config_loader = config_loader
+        self.config_loader = hydra_context.config_loader
         self.task_function = task_function
 
     def launch(
