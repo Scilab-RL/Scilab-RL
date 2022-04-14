@@ -83,7 +83,7 @@ class CustomEvalCallback(EvalCallback):
         self.evaluations_timesteps = []
         self.evaluations_length = []
 
-        self.vid_size = 640, 360  # changing this will break RLBench recording
+        self.vid_size = None
         self.vid_fps = 25
         self.eval_count = 0
         self.train_count = 0
@@ -93,17 +93,25 @@ class CustomEvalCallback(EvalCallback):
         self.video_writer = None
 
         if self.render_train == 'record':
-            self.render_train_info = {'size': self.vid_size, 'fps': self.vid_fps, 'train_count': self.train_count,
+            self.render_train_info = {'fps': self.vid_fps, 'train_count': self.train_count,
                                       'path': self.log_path}
         elif self.render_train == 'display':
             self.render_train_info = {'mode': 'human'}
         if self.render_test == 'record':
-            self.render_test_info = {'size': self.vid_size, 'fps': self.vid_fps, 'eval_count': self.eval_count,
+            self.render_test_info = {'fps': self.vid_fps, 'eval_count': self.eval_count,
                                      'path': self.log_path, 'render_every_n_eval': self.render_every_n_eval}
         elif self.render_test == 'display':
             self.render_test_info = {'mode': 'human', 'render_every_n_eval': self.render_every_n_eval}
 
+    def get_default_vid_size(self):
+        if hasattr(self.training_env, 'venv'):
+            return 640, 360  # default width and height
+        frame = self.training_env.render(mode='rgb_array')
+        return frame.shape[1], frame.shape[0]
+
     def _on_step(self, log_prefix='') -> bool:
+        if self.render_train == 'record' or self.render_test == 'record' and self.vid_size is None:
+            self.vid_size = self.get_default_vid_size()
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             if self.video_writer is not None and self.last_step_was_train:
                 # save the training video
@@ -114,6 +122,8 @@ class CustomEvalCallback(EvalCallback):
             sync_envs_normalization(self.training_env, self.eval_env)
             if self.render_test_info is not None:
                 self.render_test_info['eval_count'] = self.eval_count
+                if not 'size' in self.render_test_info:
+                    self.render_test_info['size'] = self.vid_size
             episode_rewards, episode_lengths, episode_successes = evaluate_policy(
                 self.agent,
                 self.eval_env,
@@ -175,16 +185,16 @@ class CustomEvalCallback(EvalCallback):
                             self.video_writer = cv2.VideoWriter(
                                 self.render_train_info['path'] + f'/train_{self.train_count-1}.avi',
                                 cv2.VideoWriter_fourcc('F', 'M', 'P', '4'),
-                                self.render_train_info['fps'], self.render_train_info['size'])
+                                self.render_train_info['fps'], self.vid_size)
                         except:
                             self.logger.info("Error creating video writer")
                     else:
                         if hasattr(self.training_env, 'venv'):
                             frame = self.training_env.venv.envs[0].render(mode='rgb_array',
                                                                           width=self.render_train_info['size'][0],
-                                                                          height=self.render_train_info['size'][1])
+                                                                          height=self.render_train_info['size'][1])[..., ::-1]
                         else:
-                            frame = self.training_env.render(mode='rgb_array')
+                            frame = self.training_env.render(mode='rgb_array')[..., ::-1]
                         self.video_writer.write(frame)
             self.last_step_was_train = True
         return True
