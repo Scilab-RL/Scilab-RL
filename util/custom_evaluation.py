@@ -72,9 +72,9 @@ def evaluate_policy(
                 if video_writer is not None:
                     if hasattr(env, 'venv'):
                         frame = env.venv.envs[0].render(mode='rgb_array', width=render_info['size'][0],
-                                                                height=render_info['size'][1])
+                                                                height=render_info['size'][1])[..., ::-1]
                     else:
-                        frame = env.render(mode='rgb_array')
+                        frame = env.render(mode='rgb_array')[..., ::-1]
                     video_writer.write(frame)
                 elif render_info is not None and 'mode' in render_info:
                     if hasattr(env, 'venv'):
