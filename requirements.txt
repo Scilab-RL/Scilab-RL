@@ -3,7 +3,7 @@ cloudpickle==2.0.0
 Cython==0.29.28
 glfw==2.5.2
 gym==0.21.0
-hydra-core==1.1.1
+hydra-core==1.1.2
 joblib==1.1.0
 matplotlib==3.5.1
 mlflow==1.24.0
@@ -12,6 +12,7 @@ optuna==2.10.0
 stable-baselines3==1.1.0
 torch==1.11.0
 tqdm==4.63.1
+wandb==0.12.14
 # mujoco-py
 # git+https://github.com/stepjam/PyRep.git
 # git+https://github.com/stepjam/RLBench.git

@@ -4,6 +4,7 @@ import matplotlib
 from stable_baselines3.common.logger import KVWriter
 from stable_baselines3.common.logger import Video, FormatUnsupportedError, SeqWriter
 import mlflow
+import wandb
 
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
@@ -26,6 +27,19 @@ class MLFlowOutputFormat(KVWriter, SeqWriter):
         for elem in sequence:
             self.log_txt += elem + '\n'
         mlflow.log_text(self.log_txt, "log.txt")
+
+    def close(self) -> None:
+        return
+
+
+class WandBOutputFormat(KVWriter, SeqWriter):
+    def write(self,
+              key_values: Dict[str, Any],
+              key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
+        wandb.log(key_values, step=step)
+
+    def write_sequence(self, sequence: List) -> None:
+        pass
 
     def close(self) -> None:
         return
