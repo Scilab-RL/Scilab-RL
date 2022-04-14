@@ -251,7 +251,7 @@ class CustomOptunaSweeperImpl(Sweeper):
                         f"Parameters {params} have been tested or pruned {total_param_runs} times in "
                         f"trial {repeated_trial_idx} already, pruning this trial.")
                     state = optuna.trial.TrialState.PRUNED
-                    study.tell(trial, state, None)
+                    study.tell(trial, None, state)
                     continue
                 overrides.append(tuple(f"{name}={val}" for name, val in params.items()))
                 trials.append(trial)
@@ -283,7 +283,7 @@ class CustomOptunaSweeperImpl(Sweeper):
                                  f"New upper limit for max. epochs is now {new_max_epochs}. ")
                         study.set_user_attr("max_n_epochs", new_max_epochs)
 
-                study.tell(trial, state, values)
+                study.tell(trial, values, state)
 
             self.plot_study_summary(study)
             n_trials_to_go -= batch_size
