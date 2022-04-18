@@ -15,8 +15,6 @@ The framework is tailored towards the rapid prototyping and development and eval
 
 ## Table of Contents
 
-- [Installation](#installation)
-  * [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
 - [Supported Environments](#supported-environments)
   * [OpenAI Gym](#openai-gym)
@@ -24,11 +22,8 @@ The framework is tailored towards the rapid prototyping and development and eval
 - [Supported Algorithms](#supported-algorithms)
   * [Stable Baselines3 (SB3)](#stable-baselines3-(sb3))
   * [Custom Algorithms](#custom-algorithms)
+- [Known Issues](#known-issues)
 
-## Installation
-
-### Prerequisites:
-- ideas_deep_rl3 requires python 3.6 or python 3.7. (python 3.8 is not recommended because it may throw [this error](https://github.com/openai/mujoco-py/issues/544) when debugging).
 
 ## Getting Started
 
@@ -204,3 +199,8 @@ Mlflow collects studies and logs data of all runs.
 The information about all runs is stored in a subfolder called `mlruns`.
 You can watch the mlflow runs by executing `mlflow ui --host 0.0.0.0` in the root folder of this project, which will call a web server that you can access via port 5000 (by default).
 The `--host` tells the server to allow connections from all machines.
+
+
+## Known Issues:
+- Mujoco may fail due to [this error](https://github.com/openai/mujoco-py/issues/544) when debugging. If it happens with PyCharm, you can unset "Attach to subprocess automatically while debugging" in the Python Debugger Settings (File | Settings | Build, Execution, Deployment | Python Debugger) to avoid this error.
+
