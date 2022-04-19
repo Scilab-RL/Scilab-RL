@@ -1,4 +1,6 @@
 from gym.core import Wrapper
+# During hyperopt, this module is reimported after env-registration. Therefore, the env-registration has to be repeated:
+import custom_envs.register_envs
 
 SITE_COLORS = [1, 0, 0, 0.2,
                0, 1, 0, 0.2,
