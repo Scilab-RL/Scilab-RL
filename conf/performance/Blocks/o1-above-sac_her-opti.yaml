@@ -1,0 +1,38 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  # access algorithm config group to get the default parameters of sac
+  - override /algorithm: sac
+
+# overwrite default parameters.
+env: 'Blocks-o1-gripper_above-v1'
+
+# use HER
+using_her: true
+algorithm:
+  replay_buffer_kwargs:
+    n_sampled_goal: 4
+    goal_selection_strategy: 'future'
+    online_sampling: True
+
+hydra:
+  sweeper:
+    study_name: sac_her_Blocks_o1_above
+    storage: sqlite:///sac_her_Blocks_o1_above.db
+    max_trials: 60
+    n_jobs: 3
+    direction: maximize
+    max_duration_minutes: 600
+    min_trials_per_param: 3
+    max_trials_per_param: 6
+    search_space:
+      +algorithm.learning_rate:
+        type: float
+        low: 1e-4
+        high: 1e-2
+        log: true
+      ++algorithm.replay_buffer_kwargs.n_sampled_goal:
+        type: int
+        low: 1
+        high: 6
+        step: 1
