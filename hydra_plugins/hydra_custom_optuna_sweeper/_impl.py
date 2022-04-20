@@ -233,11 +233,12 @@ class CustomOptunaSweeperImpl(Sweeper):
             enqueued_param_runs = 0
             batch_size = min(n_trials_to_go, self.n_jobs)
             overrides = []
+            runs_in_batch = 0
             trials = []
             max_n_epochs = min(study.user_attrs['max_n_epochs'], self.config.n_epochs)
             if max_n_epochs is not None:
                 fixed_params['n_epochs'] = max_n_epochs
-            while len(overrides) < batch_size:
+            while runs_in_batch < batch_size:
                 trial = study.ask()
                 for param_name, distribution in search_space.items():
                     trial._suggest(param_name, distribution)
@@ -254,6 +255,7 @@ class CustomOptunaSweeperImpl(Sweeper):
                     study.tell(trial, None, state)
                     continue
                 overrides.append(tuple(f"{name}={val}" for name, val in params.items()))
+                runs_in_batch = len(overrides)
                 trials.append(trial)
 
                 # Add repetition of the same trial for next study.ask()
