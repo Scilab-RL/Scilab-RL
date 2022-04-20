@@ -22,7 +22,6 @@ algorithm:
 hydra:
   sweeper:
     study_name: hac_2_layer_RLB_close_drawer
-    storage: sqlite:///hac_2_layer_RLB_close_drawer.db
     max_trials: 40
     n_jobs: 4
     direction: maximize

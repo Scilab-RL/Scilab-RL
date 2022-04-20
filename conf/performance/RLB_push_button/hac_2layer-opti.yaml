@@ -21,7 +21,6 @@ algorithm:
 hydra:
   sweeper:
     study_name: hac_2_layer_RLB_push_button
-    storage: sqlite:///hac_2_layer_RLB_push_button.db
     search_space:
       algorithm.learning_rates.0:
         type: float
