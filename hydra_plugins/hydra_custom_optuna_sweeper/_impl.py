@@ -129,7 +129,10 @@ class CustomOptunaSweeperImpl(Sweeper):
     ) -> None:
         self.sampler = sampler
         self.direction = direction
-        self.storage = storage
+        if storage is None:
+            self.storage = f"sqlite:///{study_name}.db"
+        else:
+            self.storage = storage
         self.study_name = study_name
         self.max_trials = max_trials
         self.n_jobs = n_jobs

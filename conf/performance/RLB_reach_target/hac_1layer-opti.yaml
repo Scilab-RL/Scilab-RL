@@ -36,7 +36,6 @@ hydra:
     n_jobs: 6
     max_trials: 120
     study_name: hac_1layer-reach_target-state-v0-opt
-    storage: sqlite:///hac_1layer-reach_target-state-v0-opt.db
     direction: maximize
     min_trials_per_param: 3
     max_trials_per_param: 6
