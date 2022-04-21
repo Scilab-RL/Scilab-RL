@@ -119,7 +119,7 @@ def launch(cfg, logger, kwargs):
     else:
         with open_dict(cfg):
             cfg.algorithm.learning_starts = train_env._max_episode_steps
-    if 'using_her' in cfg and cfg.using_her:  # enable with +replay_buffer=her
+    if 'using_her' in cfg and cfg.using_her:
         rep_buf = HerReplayBuffer
     if cfg.restore_policy is not None:
         baseline = baseline_class.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
