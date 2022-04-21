@@ -8,7 +8,7 @@ for n_objects in range(5):
     for gripper_goal in ['gripper_none', 'gripper_random', 'gripper_above']:
         if gripper_goal != 'gripper_random' and n_objects == 0:  # Disallow because there would be no goal
             continue
-        distance_threshold = 0.15 # was originally 0.05
+        distance_threshold = 0.05 # was originally 0.05
         register(id=f'Blocks-o{n_objects}-{gripper_goal}-v1',
                  entry_point='custom_envs.blocks.blocks_env:BlocksEnv',
                  kwargs={'n_objects': n_objects, 'gripper_goal': gripper_goal, 'distance_threshold': distance_threshold},
