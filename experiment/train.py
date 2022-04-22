@@ -16,7 +16,6 @@ from stable_baselines3.her.her import HerReplayBuffer
 from omegaconf import DictConfig, OmegaConf, open_dict
 import custom_envs.register_envs
 import custom_envs.wrappers.utils
-from custom_algorithms.hac.hierarchical_eval_callback import HierarchicalEvalCallback
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.util import get_git_label, set_global_seeds, flatten_dictConf
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat, WandBOutputFormat
@@ -34,27 +33,16 @@ def train(baseline, train_env, eval_env, cfg, logger):
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir())
         callback.append(checkpoint_callback)
-    if hasattr(baseline, 'time_scales'):
-        eval_callback = HierarchicalEvalCallback(eval_env,
-                                                 log_path=logger.get_dir(),
-                                                 eval_freq=cfg.eval_after_n_steps,
-                                                 n_eval_episodes=cfg.n_test_rollouts,
-                                                 early_stop_last_n=cfg.early_stop_last_n,
-                                                 early_stop_data_column=cfg.early_stop_data_column,
-                                                 early_stop_threshold=cfg.early_stop_threshold,
-                                                 top_level_layer=baseline,
-                                                 logger=logger)
-    else:
-        eval_callback = CustomEvalCallback(eval_env,
-                                           agent=baseline,
-                                           log_path=logger.get_dir(),
-                                           render_args=cfg.render_args,
-                                           eval_freq=cfg.eval_after_n_steps,
-                                           n_eval_episodes=cfg.n_test_rollouts,
-                                           early_stop_last_n=cfg.early_stop_last_n,
-                                           early_stop_data_column=cfg.early_stop_data_column,
-                                           early_stop_threshold=cfg.early_stop_threshold,
-                                           logger=logger)
+    eval_callback = CustomEvalCallback(eval_env,
+                                       agent=baseline,
+                                       log_path=logger.get_dir(),
+                                       render_args=cfg.render_args,
+                                       eval_freq=cfg.eval_after_n_steps,
+                                       n_eval_episodes=cfg.n_test_rollouts,
+                                       early_stop_last_n=cfg.early_stop_last_n,
+                                       early_stop_data_column=cfg.early_stop_data_column,
+                                       early_stop_threshold=cfg.early_stop_threshold,
+                                       logger=logger)
     # Create the callback list
     callback.append(eval_callback)
     training_finished = False
@@ -72,24 +60,11 @@ def train(baseline, train_env, eval_env, cfg, logger):
     return training_finished
 
 
-def convert_alg_cfg(cfg):
-    """
-    This function converts kwargs for the algorithms if necessary.
-    """
-    alg_dict = {}
-    with open_dict(cfg):
-        if cfg['algorithm']['name'] == 'hac':
-            alg_dict['render_args'] = cfg['render_args']
-        # remove name as we pass all arguments to the model constructor
-        if 'name' in cfg['algorithm']:
-            del cfg['algorithm']['name']
-    return alg_dict
-
-
 def launch(cfg, logger, kwargs):
     set_global_seeds(cfg.seed)
     algo_name = cfg['algorithm'].name
-    alg_kwargs = convert_alg_cfg(cfg)
+    with open_dict(cfg):
+        del cfg['algorithm']['name']  # remove name as we pass all arguments to the model constructor
     try:
         baseline_class = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except ModuleNotFoundError:
@@ -122,10 +97,10 @@ def launch(cfg, logger, kwargs):
     if 'using_her' in cfg and cfg.using_her:  # enable with +replay_buffer=her
         rep_buf = HerReplayBuffer
     if cfg.restore_policy is not None:
-        baseline = baseline_class.load(cfg.restore_policy, **cfg.algorithm, **alg_kwargs, env=train_env, **kwargs)
+        baseline = baseline_class.load(cfg.restore_policy, **cfg.algorithm, env=train_env, **kwargs)
     else:
         baseline = baseline_class(policy='MultiInputPolicy', env=train_env, replay_buffer_class=rep_buf,
-                                  **cfg.algorithm, **alg_kwargs, **kwargs)
+                                  **cfg.algorithm, **kwargs)
     baseline.set_logger(logger)
     logger.info("Launching training")
     return train(baseline, train_env, eval_env, cfg, logger)
