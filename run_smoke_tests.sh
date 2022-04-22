@@ -29,14 +29,14 @@ main() {
   ENVS+="close_drawer-state-v0,"
   ENVS+="close_box-state-v0"
 
-  python3 experiment/train.py algorithm=$ALGS env=$ENVS ++n_epochs=1 +defaults=smoke_test --multirun;
+  python3 experiment/train.py algorithm=$ALGS env=$ENVS ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
 
   # test other Algorithms
   local ALG_TEST_ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0"
   # test HER
-  python3 experiment/train.py algorithm=sac env=$ALG_TEST_ENVS +replay_buffer=her ++n_epochs=1 +defaults=smoke_test --multirun;
+  python3 experiment/train.py algorithm=sac env=$ALG_TEST_ENVS +replay_buffer=her ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
   # test ddpg, td3 and sacvg
-  python3 experiment/train.py algorithm=ddpg,td3,sacvg env=$ALG_TEST_ENVS ++n_epochs=1 +defaults=smoke_test --multirun;
+  python3 experiment/train.py algorithm=ddpg,td3,sacvg env=$ALG_TEST_ENVS ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
 }
 
 main;
