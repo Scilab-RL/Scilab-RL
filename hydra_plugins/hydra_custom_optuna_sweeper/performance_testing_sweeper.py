@@ -20,7 +20,7 @@ class PerformanceTestingSweeper(Sweeper):
     You can for example run: "python experiment/train.py +performance=FetchReach/her-test --multirun"
     The joblib launcher allows to run n_jobs in parallel.
     YOU CANNOT run multiple performance tests by simply providing multiple configs separated by commas, for example:
-    "python experiment/train.py +performance=FetchReach/her-test,Ant/AntMaze/hac-2layer-test --multirun" does not work.
+    "python experiment/train.py +performance=FetchReach/her-test,RLB_reach_target/sac_her-test --multirun" doesn't work.
     In that case, just call experiment/train.py twice with the different performance test configs.
     """
     def __init__(self, study_name, n_jobs, **kwargs):
