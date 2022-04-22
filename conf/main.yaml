@@ -1,5 +1,5 @@
 defaults:
-  # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg', 'her2', 'hac')
+  # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg')
   # here we use hydras config group defaults
   - algorithm: 'sac'
   - default_params: 'default'
