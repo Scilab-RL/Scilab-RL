@@ -1,7 +1,8 @@
 # @package _global_
 using_her: true
-algorithm:
-  replay_buffer_kwargs:
-    n_sampled_goal: 2
-    goal_selection_strategy: 'future'
-    online_sampling: True
+#algorithm: # The config below for replay_buffer_kwargs has no effect. These data must be included in the algorithm-specific .yaml file, as I did already in sac.yaml.
+#  replay_buffer_kwargs:
+#    n_sampled_goal: 2
+#    goal_selection_strategy: 'future'
+#    online_sampling: True
+#    handle_timeout_termination: False
