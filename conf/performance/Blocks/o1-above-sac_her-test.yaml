@@ -15,6 +15,7 @@ algorithm:
     n_sampled_goal: 3
     goal_selection_strategy: 'future'
     online_sampling: True
+    handle_timeout_termination: True
 
 performance_testing_conditions:
   # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 10000 steps.
