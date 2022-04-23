@@ -47,8 +47,8 @@ save_model_freq: 0
 # The render_args specify how and when to render during training (first sublist) and testing (second sublist).
 # 'record' is for video, 'display' for direct visualization, 'none' for not rendering at all.
 # The numbers determine the number of epochs after which we render the training/testing.
-# Example: [['display',1],['record',10]] means that we display every training and record every 10th testing run.
-render_args: [['none',1],['none',1]]
+# Example: [['display',100],['record',10]] means that we display every 100th training and record every 10th testing epoch.
+render_args: [['none',100],['none',1]]
 
 # Whether to use Weights and Biases. 1=use, 0=disable
 wandb: 1

@@ -27,7 +27,6 @@ sys.path.append(os.getcwd())
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
 
-
 def train(baseline, train_env, eval_env, cfg, logger):
     total_steps = cfg.eval_after_n_steps * cfg.n_epochs
     callback = []

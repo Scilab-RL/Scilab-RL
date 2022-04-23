@@ -1,0 +1,11 @@
+name: 'sacnew'
+
+verbose: True
+
+batch_size: 8
+
+replay_buffer_kwargs:
+    n_sampled_goal: 4
+    goal_selection_strategy: 'future'
+    online_sampling: True
+    handle_timeout_termination: True
