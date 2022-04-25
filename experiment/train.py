@@ -95,11 +95,12 @@ def launch(cfg, logger, kwargs):
             cfg.algorithm.learning_starts = train_env._max_episode_steps
     if 'using_her' in cfg and cfg.using_her:  # enable with +replay_buffer=her
         rep_buf = HerReplayBuffer
+    alg_kwargs = OmegaConf.to_container(cfg.algorithm)
     if cfg.restore_policy is not None:
-        baseline = baseline_class.load(cfg.restore_policy, **cfg.algorithm, env=train_env, **kwargs)
+        baseline = baseline_class.load(cfg.restore_policy, **alg_kwargs, env=train_env, **kwargs)
     else:
         baseline = baseline_class(policy='MultiInputPolicy', env=train_env, replay_buffer_class=rep_buf,
-                                  **cfg.algorithm, **kwargs)
+                                  **alg_kwargs, **kwargs)
     baseline.set_logger(logger)
     logger.info("Launching training")
     return train(baseline, train_env, eval_env, cfg, logger)
