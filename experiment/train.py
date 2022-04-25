@@ -14,8 +14,7 @@ from stable_baselines3.common.logger import configure
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
 from omegaconf import DictConfig, OmegaConf, open_dict
-import custom_envs.register_envs
-import custom_envs.wrappers.utils
+from custom_envs.register_envs import register_custom_envs
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.util import get_git_label, set_global_seeds, flatten_dictConf
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat, WandBOutputFormat
@@ -116,6 +115,7 @@ def main(cfg: DictConfig) -> (float, int):
     if 'performance_testing_conditions' in cfg:
         cfg['n_epochs'] = int(cfg['performance_testing_conditions']['max_steps'] / cfg['eval_after_n_steps'])
 
+    register_custom_envs()
     setup_mlflow(cfg)
     run_name = cfg['algorithm']['name'] + '_' + cfg['env']
     with mlflow.start_run(run_name=run_name) as mlflow_run:
@@ -146,9 +146,6 @@ def main(cfg: DictConfig) -> (float, int):
 
         log_params_from_omegaconf_dict(cfg)
         OmegaConf.save(config=cfg, f='params.yaml')
-
-        # Prepare xmls for subgoal visualizations
-        custom_envs.wrappers.utils.goal_viz_for_gym_robotics()
 
         kwargs = {}
         training_finished = launch(cfg, logger, kwargs)
