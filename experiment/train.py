@@ -15,7 +15,6 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
 from omegaconf import DictConfig, OmegaConf, open_dict
 import custom_envs.register_envs
-import custom_envs.wrappers.utils
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.util import get_git_label, set_global_seeds, flatten_dictConf
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat, WandBOutputFormat
@@ -146,9 +145,6 @@ def main(cfg: DictConfig) -> (float, int):
 
         log_params_from_omegaconf_dict(cfg)
         OmegaConf.save(config=cfg, f='params.yaml')
-
-        # Prepare xmls for subgoal visualizations
-        custom_envs.wrappers.utils.goal_viz_for_gym_robotics()
 
         kwargs = {}
         training_finished = launch(cfg, logger, kwargs)
