@@ -144,9 +144,6 @@ def create_xml(xml_path, maze_id=None, height=0.5, size_scaling=8):
             raise Exception("Every geom of the torso must have a name "
                             "defined")
 
-    # copy subgoal_viz.xml to the /tmp folder so it is available for the created environment xml
-    copyfile(os.path.join(os.path.dirname(xml_path), 'subgoal_viz.xml'), '/tmp/subgoal_viz.xml')
-
     _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
     tree.write(file_path)
 
