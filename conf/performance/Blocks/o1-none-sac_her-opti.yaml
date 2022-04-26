@@ -4,9 +4,9 @@ defaults:
   # access algorithm config group to get the default parameters of sac
   - override /algorithm: sac
 
-n_epochs: 100
+n_epochs: 150
 
-env: 'Blocks-o1-gripper_above-v1'
+env: 'Blocks-o1-gripper_none-v1'
 
 using_her: true
 algorithm:
@@ -25,7 +25,7 @@ algorithm:
 
 hydra:
   sweeper:
-    study_name: sac_her_Blocks_o1_above
+    study_name: sac_her_Blocks_o1_none
     max_trials: 32
     n_jobs: 8
     direction: maximize
