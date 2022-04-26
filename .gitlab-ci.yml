@@ -7,7 +7,7 @@ stages:
     - smoke_test
     - performance_test
 
-perpare-job:
+prepare-job:
     stage: prepare
     script:
         - echo "Didn't crash yet"
