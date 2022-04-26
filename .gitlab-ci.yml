@@ -1,0 +1,13 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+
+stages:
+    - prepare
+    - smoke_test
+    - performance_test
+
+perpare-job:
+    stage: prepare
+    script:
+        - echo "Didn't crash yet"
