@@ -1,7 +1,6 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  # access algorithm config group to get the default parameters of sac
   - override /algorithm: sac
 
 n_epochs: 10
@@ -13,7 +12,6 @@ algorithm:
   buffer_size: 1000000
   learning_rate: 0.001
   policy_kwargs:
-    n_critics: 2
     net_arch:
       - 256
       - 256
