@@ -1,0 +1,35 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  - override /algorithm: sac
+
+env: 'AntReacher-v1'
+
+# use HER
+using_her: true
+algorithm:
+  replay_buffer_kwargs:
+    n_sampled_goal: 4
+    goal_selection_strategy: 'future'
+    online_sampling: True
+
+hydra:
+  sweeper:
+    study_name: sac_her_AntReacher
+    max_trials: 40
+    n_jobs: 8
+    direction: maximize
+    max_duration_minutes: 600
+    min_trials_per_param: 2
+    max_trials_per_param: 4
+    search_space:
+      +algorithm.learning_rate:
+        type: float
+        low: 6e-4
+        high: 3e-2
+        log: true
+      ++algorithm.replay_buffer_kwargs.n_sampled_goal:
+        type: int
+        low: 1
+        high: 8
+        step: 1
