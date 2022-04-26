@@ -3,6 +3,8 @@
 defaults:
   - override /algorithm: sac
 
+n_epochs: 100
+
 env: 'AntReacher-v1'
 
 using_her: true
@@ -10,7 +12,6 @@ algorithm:
   buffer_size: 1000000
   learning_rate: 0.001
   policy_kwargs:
-    n_critics: 2
     net_arch:
       - 256
       - 256
