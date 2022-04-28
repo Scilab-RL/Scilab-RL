@@ -14,6 +14,7 @@ algorithm:
   batch_size: 2048
   learning_rate: 0.001
   tau: 0.05
+  gamma: 0.95
   policy_kwargs:
     n_critics: 2
     net_arch:
@@ -36,7 +37,7 @@ performance_testing_conditions:
 
   eval_value: 0.9 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
-  max_steps: 10000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+  max_steps: 200_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:
   sweeper:

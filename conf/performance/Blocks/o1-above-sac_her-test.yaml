@@ -5,23 +5,22 @@ defaults:
   - override /algorithm: sac
 
 # overwrite parameters of main.yaml
-env: 'FetchPush-v1'
+env: 'Blocks-o1-gripper_above-v1'
 
-# use HER
-using_her: true
 algorithm:
   buffer_size: 1000000
   learning_rate: 0.001
-  batch_size: 512
-  gamma: 0.95
+  batch_size: 256
   ent_coef: 0.01
-  tau: 0.02
+  gamma: 0.95
+  tau: 0.05
   policy_kwargs:
-    n_critics: 1
-    net_arch:
-      - 400
-      - 300
+    n_critics: 2
     use_sde: False
+    net_arch:
+      - 256
+      - 256
+      - 256
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'
@@ -36,7 +35,7 @@ performance_testing_conditions:
 
   eval_columns: test/success_rate # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
 
-  eval_value: 0.7 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
+  eval_value: 0.8 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
   max_steps: 200_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
@@ -44,4 +43,4 @@ hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: sac_her_FetchPush-test
+    study_name: sac_her_Blocks_o1_above-test
