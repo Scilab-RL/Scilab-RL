@@ -2,6 +2,8 @@ workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
 
+image: ubuntu:22.04
+
 stages:
     - prepare
     - smoke_test
