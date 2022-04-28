@@ -131,7 +131,15 @@ def main(cfg: DictConfig) -> (float, int):
         if cfg["wandb"]:
             non_nested_cfg = flatten_dictConf(cfg)
             os.environ["WANDB_START_METHOD"] = "thread"
-            wandb.init(project=run_name, config=non_nested_cfg)
+            wandb_args = dict(project=cfg.project_name if cfg.project_name else run_name,
+                    config=non_nested_cfg)
+            if 'entity' in cfg:
+                wandb_args['entity'] = cfg['entity']
+            if 'group' in cfg:
+                wandb_args['group'] = cfg['group']
+            if 'tags' in cfg:
+                wandb_args['tags'] = cfg['tags']
+            wandb.init(**wandb_args)
             logger.output_formats.append(WandBOutputFormat())
         logger.info("Starting training with the following configuration:")
         logger.info(OmegaConf.to_yaml(cfg))
