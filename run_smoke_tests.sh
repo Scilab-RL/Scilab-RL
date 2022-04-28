@@ -19,7 +19,7 @@ main() {
   ENVS+="Blocks-o3-gripper_none-v1,"
   #RLBench
   ENVS+="reach_target-state-v0,"
-  ENVS+="close_drawer-state-v0,"
+  ENVS+="close_drawer-state-v0"
 
   FAILED_RUNS=0
 
