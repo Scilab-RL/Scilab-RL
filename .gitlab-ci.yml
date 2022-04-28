@@ -33,12 +33,13 @@ set-up-project:
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$COPPELIASIM_ROOT
         - export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
         - pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
+        - python3 experiment/train.py wandb=0 n_epochs=1
+        - python3 experiment/train.py wandb=0 n_epochs=1 env=reach_target-state-v0
 
 run-smoke-test:
     stage: smoke_test
     script:
-      - python3 experiment/train.py wandb=0 n_epochs=1
-      - python3 experiment/train.py wandb=0 n_epochs=1 env=reach_target-state-v0
+      - exit 0
 
 run-performance-test:
     stage: performance_test
