@@ -18,6 +18,7 @@ stages:
 
 set-up-project:
     stage: prepare
+    # cache the pip cache
     cache:
       key: $CI_COMMIT_REF_SLUG
       paths:
