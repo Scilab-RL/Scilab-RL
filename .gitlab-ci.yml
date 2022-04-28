@@ -11,3 +11,13 @@ prepare-job:
     stage: prepare
     script:
         - echo "Didn't crash yet"
+
+run-smoke-test:
+    stage: smoke_test
+    script:
+      - exit 1
+
+run-performance-test:
+    stage: performance_test
+    script:
+      - exit 0
