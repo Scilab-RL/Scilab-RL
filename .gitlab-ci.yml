@@ -15,9 +15,9 @@ prepare-job:
 run-smoke-test:
     stage: smoke_test
     script:
-      - exit 1
+      - exit 0
 
 run-performance-test:
     stage: performance_test
     script:
-      - exit 0
+      - exit 1
