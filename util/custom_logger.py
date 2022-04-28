@@ -1,13 +1,9 @@
 from typing import Any, Dict, List, TextIO, Tuple, Union
 import warnings
-import matplotlib
 from stable_baselines3.common.logger import KVWriter
 from stable_baselines3.common.logger import Video, FormatUnsupportedError, SeqWriter
 import mlflow
 import wandb
-
-# Force matplotlib to not use any Xwindows backend.
-matplotlib.use('Agg')
 
 
 class MLFlowOutputFormat(KVWriter, SeqWriter):

@@ -5,7 +5,6 @@ import os
 import sys
 import time
 import importlib
-import matplotlib
 import mlflow
 import hydra
 import gym
@@ -20,7 +19,6 @@ from util.util import get_git_label, set_global_seeds, flatten_dictConf
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat, WandBOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 
-matplotlib.use('Agg')
 sys.path.append(os.getcwd())
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
