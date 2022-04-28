@@ -1,18 +1,29 @@
+# Only run the pipeline for merge-requests
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
 
+# Use our custom Docker image with Ubuntu 22.04, MuJoCo and CoppeliaSim
 image: collaborating.tuhh.de:5005/ckv0173/scilab-rl/scilabrl
+
+# Change pip's cache directory to be inside the project directory since we can
+# only cache local items.
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 stages:
     - prepare
     - smoke_test
     - performance_test
 
-prepare-job:
+set-up-project:
     stage: prepare
+    cache:
+      key: $CI_COMMIT_REF_SLUG
+      paths:
+        - .cache/pip
     script:
-        - echo "Didn't crash yet"
+        - pip install -r requirements.txt
 
 run-smoke-test:
     stage: smoke_test
