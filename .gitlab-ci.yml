@@ -11,7 +11,7 @@ image: collaborating.tuhh.de:5005/ckv0173/scilab-rl/scilabrl
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-set-up-project:
+run-smoke-and-performance-tests:
     # cache the pip cache for every branch
     cache:
       key: $CI_COMMIT_REF_SLUG
