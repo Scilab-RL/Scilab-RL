@@ -30,3 +30,5 @@ run-smoke-and-performance-tests:
         - pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
         - echo "running smoke tests"
         - ./run_smoke_tests.sh
+        - echo "running performance tests"
+        - ./run_performance_tests.sh
