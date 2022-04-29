@@ -11,13 +11,11 @@ using_her: true
 algorithm:
   buffer_size: 1000000
   learning_rate: 0.001
-  batch_size: 512
+  batch_size: 256
   gamma: 0.98
   tau: 0.005
-  ent_coef: 0.01
   policy_kwargs:
     n_critics: 2
-    use_sde: False
     net_arch:
       - 256
       - 256

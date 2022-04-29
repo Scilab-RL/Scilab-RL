@@ -10,13 +10,11 @@ env: 'Blocks-o1-gripper_none-v1'
 algorithm:
   buffer_size: 1000000
   learning_rate: 0.001
-  batch_size: 512
-  ent_coef: 0.1
+  batch_size: 256
   gamma: 0.95
   tau: 0.05
   policy_kwargs:
     n_critics: 1
-    use_sde: False
     net_arch:
       - 256
       - 256
