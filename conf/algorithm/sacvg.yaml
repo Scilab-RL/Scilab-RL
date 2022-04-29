@@ -1,4 +1,0 @@
-name: 'sacvg'
-
-verbose: True
-set_fut_ret_zero_if_done: False
