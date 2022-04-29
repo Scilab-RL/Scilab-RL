@@ -6,7 +6,7 @@ import time
 from typing import Any, Dict, List, MutableMapping, MutableSequence, Optional
 
 import optuna
-from hydra.core.config_loader import ConfigLoader
+from hydra.core.utils import JobStatus
 from hydra.core.override_parser.overrides_parser import OverridesParser
 from hydra.core.override_parser.types import (
     ChoiceSweep,
@@ -332,11 +332,12 @@ class CustomOptunaSweeperImpl(Sweeper):
             batch_size = min(len(configs), self.n_jobs)
             results = self.launcher.launch(configs[:batch_size], initial_job_idx=job_idx)
             for r in results:
-                if type(r.return_value) is not tuple:
+                if r.status == JobStatus.FAILED:
                     all_passed = False
             job_idx += batch_size
             configs = configs[batch_size:]
-        return all_passed
+        if not all_passed:
+            assert False, "Not all smoke tests passed."
 
     def plot_study_summary(self, study):
         try:
