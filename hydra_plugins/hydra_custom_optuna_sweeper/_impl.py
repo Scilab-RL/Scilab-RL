@@ -6,7 +6,7 @@ import time
 from typing import Any, Dict, List, MutableMapping, MutableSequence, Optional
 
 import optuna
-from hydra.core.config_loader import ConfigLoader
+from hydra.core.utils import JobStatus
 from hydra.core.override_parser.overrides_parser import OverridesParser
 from hydra.core.override_parser.types import (
     ChoiceSweep,
@@ -177,8 +177,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         assert self.job_idx is not None
 
         if 'defaults' in self.config and self.config['defaults'] == 'smoke_test':
-            self.smoke_test(arguments)
-            return
+            return self.smoke_test(arguments)
 
         parser = OverridesParser.create()
         parsed = parser.parse_overrides(arguments)
@@ -328,11 +327,17 @@ class CustomOptunaSweeperImpl(Sweeper):
                 configs.append(tuple(args_for_this_conf))
 
         job_idx = 0
+        all_passed = True
         while configs:
             batch_size = min(len(configs), self.n_jobs)
             results = self.launcher.launch(configs[:batch_size], initial_job_idx=job_idx)
+            for r in results:
+                if r.status == JobStatus.FAILED:
+                    all_passed = False
             job_idx += batch_size
             configs = configs[batch_size:]
+        if not all_passed:
+            assert False, "Not all smoke tests passed."
 
     def plot_study_summary(self, study):
         try:
