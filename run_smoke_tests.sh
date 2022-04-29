@@ -33,8 +33,8 @@ main() {
   xvfb-run -a python3 experiment/train.py algorithm=sac env=$ALG_TEST_ENVS +replay_buffer=her ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
   (( FAILED_RUNS+= $? ))
 
-  # test ddpg, td3 and sacvg
-  xvfb-run -a python3 experiment/train.py algorithm=ddpg,td3,sacvg env=$ALG_TEST_ENVS ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
+  # test ddpg, and td3
+  xvfb-run -a python3 experiment/train.py algorithm=ddpg,td3 env=$ALG_TEST_ENVS ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
   (( FAILED_RUNS+= $? ))
 }
 
