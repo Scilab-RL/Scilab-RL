@@ -104,8 +104,6 @@ class CustomEvalCallback(EvalCallback):
             self.render_test_info = {'mode': 'human', 'render_every_n_eval': self.render_every_n_eval}
 
     def get_default_vid_size(self):
-        if hasattr(self.training_env, 'venv'):
-            return 640, 360  # default width and height
         frame = self.training_env.render(mode='rgb_array')
         return frame.shape[1], frame.shape[0]
 
@@ -189,12 +187,7 @@ class CustomEvalCallback(EvalCallback):
                         except:
                             self.logger.info("Error creating video writer")
                     else:
-                        if hasattr(self.training_env, 'venv'):
-                            frame = self.training_env.venv.envs[0].render(mode='rgb_array',
-                                                                          width=self.render_train_info['size'][0],
-                                                                          height=self.render_train_info['size'][1])[..., ::-1]
-                        else:
-                            frame = self.training_env.render(mode='rgb_array')[..., ::-1]
+                        frame = self.training_env.render(mode='rgb_array')[..., ::-1]
                         self.video_writer.write(frame)
             self.last_step_was_train = True
         return True

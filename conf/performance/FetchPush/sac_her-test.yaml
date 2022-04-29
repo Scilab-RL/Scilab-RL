@@ -10,9 +10,19 @@ env: 'FetchPush-v1'
 # use HER
 using_her: true
 algorithm:
-  learning_rate: 0.0017
+  buffer_size: 1000000
+  batch_size: 2048
+  learning_rate: 0.001
+  tau: 0.05
+  gamma: 0.95
+  policy_kwargs:
+    n_critics: 2
+    net_arch:
+      - 400
+      - 300
+    use_sde: false
   replay_buffer_kwargs:
-    n_sampled_goal: 1
+    n_sampled_goal: 4
     goal_selection_strategy: 'future'
     online_sampling: True
 
@@ -27,11 +37,10 @@ performance_testing_conditions:
 
   eval_value: 0.9 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
-  max_steps: 10000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+  max_steps: 200_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: sac_her_FetchReach-test
-    storage: sqlite:///sac_her_FetchReach-test.db
+    study_name: sac_her_FetchPush-test

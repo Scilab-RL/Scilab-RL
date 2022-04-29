@@ -9,7 +9,7 @@ def get_hyperopt_score(cfg, current_run):
     data_key = cfg.early_stop_data_column
     client = mlflow.tracking.MlflowClient()
     hist = client.get_metric_history(current_run.info.run_id, data_key)
-    data_val_hist  = [h.value for h in hist]
+    data_val_hist = [h.value for h in hist]
     epochs = len(hist)
     hyperopt_score = 0
     if epochs > 0:

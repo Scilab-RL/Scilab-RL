@@ -18,7 +18,6 @@
         <material name='geom' texture="texgeom" texuniform="true"/>
     </asset>
     <worldbody>
-        <include file="subgoal_viz.xml"/>
         <light directional="true" cutoff="100" exponent="1" diffuse="1 1 1" specular=".1 .1 .1" pos="0 0 1.3"
                dir="-0 0 -1.3"/>
         <geom name='floor' pos='0 0 0' size='40 40 40' type='plane' conaffinity='1' rgba='0.8 0.9 0.8 1' condim='3'/>

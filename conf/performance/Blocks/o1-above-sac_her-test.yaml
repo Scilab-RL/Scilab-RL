@@ -7,15 +7,24 @@ defaults:
 # overwrite parameters of main.yaml
 env: 'Blocks-o1-gripper_above-v1'
 
-# use HER
-using_her: true
 algorithm:
-  learning_rate: 0.005
+  buffer_size: 1000000
+  learning_rate: 0.001
+  batch_size: 256
+  ent_coef: 0.01
+  gamma: 0.95
+  tau: 0.05
+  policy_kwargs:
+    n_critics: 2
+    use_sde: False
+    net_arch:
+      - 256
+      - 256
+      - 256
   replay_buffer_kwargs:
-    n_sampled_goal: 3
+    n_sampled_goal: 4
     goal_selection_strategy: 'future'
     online_sampling: True
-    handle_timeout_termination: True
 
 performance_testing_conditions:
   # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 10000 steps.
@@ -26,13 +35,12 @@ performance_testing_conditions:
 
   eval_columns: test/success_rate # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
 
-  eval_value: 0.9 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
+  eval_value: 0.8 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
-  max_steps: 140000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+  max_steps: 200_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: sac_her_Blocks_o1_above
-    storage: sqlite:///sac_her_Blocks_o1_above.db
+    study_name: sac_her_Blocks_o1_above-test

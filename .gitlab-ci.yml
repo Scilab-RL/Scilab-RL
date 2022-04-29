@@ -1,0 +1,34 @@
+# Only run the pipeline for merge-requests
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+
+# Use our custom Docker image with Ubuntu 22.04, MuJoCo and CoppeliaSim
+image: collaborating.tuhh.de:5005/ckv0173/scilab-rl/scilabrl
+
+# Change pip's cache directory to be inside the project directory since we can
+# only cache local items.
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+run-smoke-and-performance-tests:
+    # cache the pip cache for every branch
+    cache:
+      key: $CI_COMMIT_REF_SLUG
+      paths:
+        - .cache/pip
+    script:
+        - echo "Installing python libraries"
+        - pip install -r requirements.txt
+        - export PYTHONPATH=$PYTHONPATH:$(pwd)
+        - export MUJOCO_PY_MUJOCO_PATH=/mujoco210
+        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
+        - pip install mujoco-py
+        - export COPPELIASIM_ROOT=/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
+        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$COPPELIASIM_ROOT
+        - export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
+        - pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
+        - echo "running smoke tests"
+        - ./run_smoke_tests.sh
+        - echo "running performance tests"
+        - ./run_performance_tests.sh

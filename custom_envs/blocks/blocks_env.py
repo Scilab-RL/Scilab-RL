@@ -79,16 +79,14 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
 
     def _render_callback(self):
         # visualize the desired positions of the blocks and the gripper
-        # We don't need this any more.
-        # start_idx = 0
-        # if self.gripper_goal != 'gripper_none':
-        #     start_idx = 3
-        #     site_id = self.sim.model.site_name2id('gripper_goal')
-        #     self.sim.model.site_pos[site_id] = self.goal[:3].copy()
-        # for i in range(self.n_objects):
-        #     site_id = self.sim.model.site_name2id('object{}_goal'.format(i))
-        #     self.sim.model.site_pos[site_id] = self.goal[start_idx + 3 * i:start_idx + 3 * i + 3].copy()
-        pass
+        start_idx = 0
+        if self.gripper_goal != 'gripper_none':
+            start_idx = 3
+            site_id = self.sim.model.site_name2id('gripper_goal')
+            self.sim.model.site_pos[site_id] = self.goal[:3].copy()
+        for i in range(self.n_objects):
+            site_id = self.sim.model.site_name2id('object{}_goal'.format(i))
+            self.sim.model.site_pos[site_id] = self.goal[start_idx + 3 * i:start_idx + 3 * i + 3].copy()
 
     def _reset_sim(self):
         self.sim.set_state(self.initial_state)

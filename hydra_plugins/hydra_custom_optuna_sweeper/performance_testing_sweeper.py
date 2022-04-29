@@ -20,7 +20,7 @@ class PerformanceTestingSweeper(Sweeper):
     You can for example run: "python experiment/train.py +performance=FetchReach/her-test --multirun"
     The joblib launcher allows to run n_jobs in parallel.
     YOU CANNOT run multiple performance tests by simply providing multiple configs separated by commas, for example:
-    "python experiment/train.py +performance=FetchReach/her-test,Ant/AntMaze/hac-2layer-test --multirun" does not work.
+    "python experiment/train.py +performance=FetchReach/her-test,RLB_reach_target/sac_her-test --multirun" doesn't work.
     In that case, just call experiment/train.py twice with the different performance test configs.
     """
     def __init__(self, study_name, n_jobs, **kwargs):
@@ -81,14 +81,17 @@ class PerformanceTestingSweeper(Sweeper):
             if succ_runs >= needed_succ_runs:
                 log.info(f"Performance test {p_test_name} successful! The value for {eval_col} "
                          f"was at least {eval_val} in {succ_runs} runs.")
-                break
+                return
             if n_runs_left < needed_succ_runs - succ_runs:
-                log.info(f"Performance test {p_test_name} failed. "
-                         "The needed number of successful runs could not be achieved.")
-                break
+                message = f"Performance test {p_test_name} failed. "\
+                          "The needed number of successful runs could not be achieved."
+                log.info(message)
+                assert False, message
 
             current_time = time.perf_counter()
 
         if needed_succ_runs > succ_runs and (start_time + self.max_duration) < current_time:
-            log.info("The needed number of successful runs could not be achieved within "
-                     f"{int(self.max_duration/60)} minutes for performance test {p_test_name}.")
+            message = "The needed number of successful runs could not be achieved within "\
+                      f"{int(self.max_duration/60)} minutes for performance test {p_test_name}."
+            log.info(message)
+            assert False, message
