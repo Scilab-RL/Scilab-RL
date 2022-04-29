@@ -11,7 +11,7 @@ env: 'FetchPush-v1'
 using_her: true
 algorithm:
   buffer_size: 1000000
-  batch_size: 2048
+  batch_size: 256
   learning_rate: 0.001
   tau: 0.05
   policy_kwargs:
@@ -19,7 +19,6 @@ algorithm:
     net_arch:
       - 400
       - 300
-    use_sde: false
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'

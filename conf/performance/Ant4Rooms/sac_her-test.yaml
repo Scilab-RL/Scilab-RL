@@ -11,6 +11,7 @@ env: 'Ant4Rooms-v1'
 using_her: true
 algorithm:
   learning_rate: 0.002
+  batch_size: 256
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'
