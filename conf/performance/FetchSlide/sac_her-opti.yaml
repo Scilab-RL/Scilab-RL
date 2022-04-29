@@ -3,9 +3,9 @@
 defaults:
   - override /algorithm: sac
 
-n_epochs: 100
+n_epochs: 200
 
-env: 'AntReacher-v1'
+env: 'FetchSlide-v1'
 
 using_her: true
 algorithm:
@@ -23,11 +23,11 @@ algorithm:
 
 hydra:
   sweeper:
-    study_name: sac_her_AntReacher
+    study_name: sac_her_FetchSlide
     max_trials: 32
     n_jobs: 8
     direction: maximize
-    max_duration_minutes: 28000
+    max_duration_minutes: 36000
     min_trials_per_param: 2
     max_trials_per_param: 3
     search_space:
