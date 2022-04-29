@@ -1,8 +1,8 @@
 defaults:
-  # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg', 'her2', 'hac')
+  # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg')
   # here we use hydras config group defaults
   - algorithm: 'sac'
-  - general_params: 'default'
+  - default_params: 'default'
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
   - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time. The standard launcher is much better for debugging.

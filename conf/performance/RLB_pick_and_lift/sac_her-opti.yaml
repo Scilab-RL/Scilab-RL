@@ -18,7 +18,6 @@ algorithm:
 hydra:
   sweeper:
     study_name: sac_her_RLB_pick_and_lift
-    storage: sqlite:///sac_her_RLB_pick_and_lift.db
     max_trials: 24
     n_jobs: 6
     search_space:
