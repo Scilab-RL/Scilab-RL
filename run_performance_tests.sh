@@ -2,7 +2,7 @@ RUN_ALL_TESTS="false" # set to "true" to run all tests
 
 if [ $RUN_ALL_TESTS != "true" ]
 then  # run only these performance tests:
-  for config in "FetchReach/sac_her-test" "RLB_reach_target/sac_her-test"
+  for config in "FetchReach/sac_her-test" # "RLB_reach_target/sac_her-test"
   do
     if ! xvfb-run -a python3 experiment/train.py +performance=$config wandb=0 --multirun;
     then
