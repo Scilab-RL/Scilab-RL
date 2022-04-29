@@ -1,15 +1,21 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  # access algorithm config group to get the default parameters of sac
   - override /algorithm: sac
 
-# overwrite default parameters.
+n_epochs: 10
+
 env: 'FetchReach-v1'
 
-# use HER
 using_her: true
 algorithm:
+  buffer_size: 1000000
+  learning_rate: 0.001
+  policy_kwargs:
+    net_arch:
+      - 256
+      - 256
+      - 256
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'
@@ -18,20 +24,43 @@ algorithm:
 hydra:
   sweeper:
     study_name: sac_her_FetchReach
-    max_trials: 60
-    n_jobs: 4
+    max_trials: 32
+    n_jobs: 8
     direction: maximize
-    max_duration_minutes: 600
-    min_trials_per_param: 3
-    max_trials_per_param: 6
+    max_duration_minutes: 6000
+    min_trials_per_param: 2
+    max_trials_per_param: 3
     search_space:
-      +algorithm.learning_rate:
+      ++algorithm.gamma:
         type: float
-        low: 6e-4
-        high: 3e-2
+        low: 0.9
+        high: 0.99
         log: true
-      ++algorithm.replay_buffer_kwargs.n_sampled_goal:
+      ++algorithm.tau:
+        type: float
+        low: 0.005
+        high: 0.1
+        log: true
+      ++algorithm.policy_kwargs.n_critics:
         type: int
         low: 1
-        high: 8
-        step: 1
+        high: 4
+      ++algorithm.policy_kwargs.use_sde:
+        type: categorical
+        choices:
+        - True
+        - False
+      ++algorithm.batch_size:
+        type: categorical
+        choices:
+        - 256
+        - 512
+        - 1024
+        - 2048
+      ++algorithm.ent_coef:
+        type: categorical
+        choices:
+        - 'auto'
+        - 0.01
+        - 0.1
+        - 0.2
