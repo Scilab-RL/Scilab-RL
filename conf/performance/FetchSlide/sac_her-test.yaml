@@ -12,16 +12,14 @@ using_her: true
 algorithm:
   buffer_size: 1000000
   learning_rate: 0.001
-  batch_size: 512
+  batch_size: 256
   gamma: 0.95
-  ent_coef: 0.01
   tau: 0.02
   policy_kwargs:
     n_critics: 1
     net_arch:
       - 400
       - 300
-    use_sde: False
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'

@@ -10,7 +10,7 @@ env: 'AntReacher-v1'
 using_her: true
 algorithm:
   buffer_size: 1000000
-  learning_rate: 0.001
+  batch_size: 256
   policy_kwargs:
     net_arch:
       - 256
@@ -31,6 +31,11 @@ hydra:
     min_trials_per_param: 2
     max_trials_per_param: 3
     search_space:
+      ++algorithm.learning_rate:
+        type: float
+        low: 0.0001
+        high: 0.005
+        log: true
       ++algorithm.gamma:
         type: float
         low: 0.9
@@ -45,22 +50,3 @@ hydra:
         type: int
         low: 1
         high: 4
-      ++algorithm.policy_kwargs.use_sde:
-        type: categorical
-        choices:
-        - True
-        - False
-      ++algorithm.batch_size:
-        type: categorical
-        choices:
-        - 256
-        - 512
-        - 1024
-        - 2048
-      ++algorithm.ent_coef:
-        type: categorical
-        choices:
-        - 'auto'
-        - 0.01
-        - 0.1
-        - 0.2
