@@ -23,6 +23,7 @@ sys.path.append(os.getcwd())
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
 
+
 def train(baseline, train_env, eval_env, cfg, logger):
     total_steps = cfg.eval_after_n_steps * cfg.n_epochs
     callback = []
@@ -90,7 +91,7 @@ def launch(cfg, logger, kwargs):
     else:
         with open_dict(cfg):
             cfg.algorithm.learning_starts = train_env._max_episode_steps
-    if 'using_her' in cfg and cfg.using_her:
+    if 'using_her' in cfg and cfg.using_her:  # enable with +replay_buffer=her
         rep_buf = HerReplayBuffer
     alg_kwargs = OmegaConf.to_container(cfg.algorithm)
     if cfg.restore_policy is not None:
