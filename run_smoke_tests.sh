@@ -43,5 +43,5 @@ if (($FAILED_RUNS < 1)); then
   printf "All smoke tests passed successfully."
   exit 0
 fi
-printf "At least one smoke test failed."
+printf "At least one smoke test failed. Scroll up to see which experiments failed with which errors."
 exit 1

@@ -1,22 +1,19 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  # access algorithm config group to get the default parameters of her
   - override /algorithm: sac
 
-# overwrite parameters of main.yaml
 env: 'Blocks-o1-gripper_random-v1'
 
+using_her: true
 algorithm:
   buffer_size: 1000000
+  batch_size: 256
   learning_rate: 0.001
-  batch_size: 512
-  ent_coef: 0.1
-  gamma: 0.95
-  tau: 0.05
+  gamma: 0.9
+  tau: 0.005
   policy_kwargs:
-    n_critics: 1
-    use_sde: False
+    n_critics: 2
     net_arch:
       - 256
       - 256
@@ -37,6 +34,7 @@ performance_testing_conditions:
 
   eval_value: 0.8 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
+  # ca. 2 hours with GPU
   max_steps: 150_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:
