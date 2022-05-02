@@ -117,6 +117,7 @@ def main(cfg: DictConfig) -> (float, int):
     register_custom_envs()
     setup_mlflow(cfg)
     run_name = cfg['algorithm']['name'] + '_' + cfg['env']
+    run_name*=None
     with mlflow.start_run(run_name=run_name) as mlflow_run:
         if run_dir is not None:
             mlflow.log_param('log_dir', run_dir)
