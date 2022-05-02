@@ -133,7 +133,6 @@ class RLBenchWrapper(Wrapper):
         if mode in ['none', 'human']:
             return
         frame = self.env.unwrapped.render(mode='rgb_array')
-        frame = (frame*255).astype(np.uint8)[:, :, ::-1]  # convert to int and change color order
         return frame
 
     def compute_reward(self, achieved_goal, desired_goal, info):
