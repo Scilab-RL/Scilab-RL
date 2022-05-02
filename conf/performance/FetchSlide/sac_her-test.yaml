@@ -1,32 +1,30 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  # access algorithm config group to get the default parameters of her
   - override /algorithm: sac
 
-# overwrite parameters of main.yaml
-env: 'FetchPush-v1'
+env: 'FetchSlide-v1'
 
-# use HER
 using_her: true
 algorithm:
   buffer_size: 1000000
-  learning_rate: 0.001
   batch_size: 256
+  learning_rate: 0.001
   gamma: 0.95
   tau: 0.02
   policy_kwargs:
-    n_critics: 1
+    n_critics: 2
     net_arch:
-      - 400
-      - 300
+      - 256
+      - 256
+      - 256
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'
     online_sampling: True
 
 performance_testing_conditions:
-  # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 10000 steps.
+  # In 2 out of 3 tests, the test/success rate should be at least 0.7 after 250K steps.
 
   total_runs: 3 # How many runs in total:
 
@@ -36,10 +34,11 @@ performance_testing_conditions:
 
   eval_value: 0.7 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
-  max_steps: 200_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+  # ca. 3 hours with GPU
+  max_steps: 250_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: sac_her_FetchPush-test
+    study_name: sac_her_FetchSlide-test
