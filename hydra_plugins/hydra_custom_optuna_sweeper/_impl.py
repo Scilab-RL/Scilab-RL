@@ -327,17 +327,20 @@ class CustomOptunaSweeperImpl(Sweeper):
                 configs.append(tuple(args_for_this_conf))
 
         job_idx = 0
-        all_passed = True
+        failed_configs = {}
         while configs:
             batch_size = min(len(configs), self.n_jobs)
             results = self.launcher.launch(configs[:batch_size], initial_job_idx=job_idx)
             for r in results:
                 if r.status == JobStatus.FAILED:
-                    all_passed = False
+                    failed_configs[r.overrides.__str__()] = r._return_value
             job_idx += batch_size
             configs = configs[batch_size:]
-        if not all_passed:
-            assert False, "Not all smoke tests passed."
+        if failed_configs:
+            for k, v in failed_configs.items():
+                log.error(f"\033[94m Experiment with overrides: {k} failed: \033[0m")
+                log.error(v)
+            assert False, "Not all smoke tests passed. See the configurations that failed above."
 
     def plot_study_summary(self, study):
         try:
