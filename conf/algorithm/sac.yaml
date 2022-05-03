@@ -3,5 +3,3 @@ name: 'sac'
 verbose: True
 
 batch_size: 256
-
-moin: 3
