@@ -6,7 +6,7 @@ This is the Scilab-RL repository focusing on (hierarchical) goal-conditioned rei
 ![](overview.svg)
 
 The framework is tailored towards the rapid prototyping and development and evaluation of new RL algorithms and methods. It has the following unique selling-points compared to others, like spinning up and stable baselines:
-* Built-in data visualization for fast and efficient debugging using MLFLow (and possibly weights n biases).
+* Built-in data visualization for fast and efficient debugging using MLFLow and Weights & Biases.
 * Support for many state-of-the-art algorithms via stable baselines 3 and extensible to others. 
 * Built-in hyperparameter optimization using Optuna
 * Easy development of new robotic simulation and real robot environments based on MuJoCo, CoppeliaSim, and PyBullet. 
@@ -18,7 +18,7 @@ The framework is tailored towards the rapid prototyping and development and eval
 - [Getting Started](#getting-started)
 - [Supported Environments](#supported-environments)
   * [OpenAI Gym](#openai-gym)
-  * [CoppeliaSim and RL_Bench](#coppeliasim-and-rl_bench)
+  * [CoppeliaSim and RLBench](#coppeliasim-and-rl_bench)
 - [Supported Algorithms](#supported-algorithms)
   * [Stable Baselines3 (SB3)](#stable-baselines3-(sb3))
 - [Known Issues](#known-issues)
@@ -26,82 +26,50 @@ The framework is tailored towards the rapid prototyping and development and eval
 
 ## Getting Started
 
+### With the setup script
+
+1. run `./setup.sh -m -r`. `-m` is for installing MuJoCo and `-r` is for installing RLBench.
+2. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiments with `wandb=0`.
+3. Check your installation with
+   - `python3 experiment/train.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
+   - `python3 experiment/train.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
+4. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home).
+
+### Manually
+
 1. generate a virtual python3 environment with
 
     `virtualenv -p python3 venv` or
     `python3 -m venv venv`
 
-1. load the environment with
+2. load the environment with
 
     `source venv/bin/activate`
 
-1. upgrade the version of pip
+3. upgrade the version of pip
 
     `pip install --upgrade pip`
 
-1. install required python libraries with
+4. install required python libraries with
 
     `pip install -r requirements.txt`
 
-1. Install one or both simulators from the [environments section](#environments).
+5. Install one or both simulators from the [environments section](#supported-environments).
 
-1. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiment with `wandb=0`.
+6. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiment with `wandb=0`.
 
+7. Check your installation with
+   - `python3 experiment/train.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
+   - `python3 experiment/train.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
 
-## Start training manually
-Assuming you have installed MuJoCo, you can run a first training with the following command:
-```bash
-python experiment/train.py env=FetchReach-v1
-```
-
-## Configure the training parameters
-We use [hydra](https://hydra.cc/docs/next/intro) to manage the command-line parameters and configuration options.
-The command line parameters are set in the `conf/main.yaml` file. 
-It specifies that the default parameters are retrieved from `conf/exp_params/default.yaml`.
-All algorithm-specific parameters are set in the `conf/algorithm/<alg_name>.yaml` file.
-Parameters can be removed `~`, added `+` or overridden `++`.
-
-## Load a stored policy
-By default, the script stores the latest policy, the best policy (the best is the one with the highest value in `early_stop_data_column`), and it stores policies regularly in an interval of `save_model_freq` steps. To restore a saved policy, use the `restore_policy` commandline parameter. For example, say the best model is stored under the following directory:
-`/home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v1/15-26-33/best_model.zip`
-Then you can restore that policy by starting the script with 
-`python experiment/train.py +restore_policy=/home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v1/15-26-33/best_model.zip`
-
-## File structure
-* The main script from which all algorithms are started is `train.py`.
-* The root directory contains shell scripts for automated testing and data generation.
-* The folder `experiment` contains `train.py` and `plot.py`, which can plot data generated during the training.
-
-* The folder `custom_algorithms` contains SACVG (a version of SAC with variable gamma).
-  Other new algorithms should be added here, too. For details on the specific algorithms, see below.
-* The folder `custom_envs` contains new environments.
-* The folder `conf/default_params` contains general configurations for the experiment parameters.
-* The folder `conf/algorithm` contains configurations for each algorithm, both stable-baselines3 algorithms and the algorithms here.
-  It determines the kwargs passed on to the model (SAC, TD3, etc).
-  These are also overridable as command-line options, e.g. `algorithm.verbose=False`.
-* The folder `conf/performance` contains optimization and performance-testing scripts for different environments.
-* The folder `util` contains some misc utilities.
-* The folder `hydra_plugins` contains some customized plugins for our hyperparameter management system.
-
-## Supported Algorithms
-
-### Stable Baselines3 (SB3)
-We currently support the _Stable Baselines 3_ goal-conditioned off-policy algorithms: DDPG, TD3, SAC and HER
-
-### Limitations
-> :warning: PPO is not yet supported but it should not be too hard to enable it.
+8. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home).
 
 ## Supported Environments
-Currently, all goal-conditioned gym environments are supported. A list of tested environments can be found in `run_testing.sh`.
+Currently, all goal-conditioned gym environments are supported.
 You can use MuJoCo, CoppeliaSim or both. The following sections show you how to install them.
 
-### OpenAI Gym
-Currently, MuJoCo and Robotics environements are supported. Please see the installation instructions on MuJoCo environment [below](#installation-instructions-on-mujoco).
-
-### CoppeliaSim and RL_Bench
-Please see the installation instructions on RL_Bench environment [below](#installation-instructions-on-coppeliasim-and-rl_bench).
-
-##### Installation Instructions on MuJoCo
+### Installation Instructions on MuJoCo
+Currently, _OpenAI Gym_ MuJoCo and Robotics environments and our custom MuJoCo environments are supported. Please see the installation instructions on MuJoCo environments below.
 
 1. Download [MuJoCo version 2.1.0](https://github.com/deepmind/mujoco/releases/tag/2.1.0) 
    Copy the *mujoco210* folder from the downloaded archive
@@ -117,8 +85,11 @@ Please see the installation instructions on RL_Bench environment [below](#instal
 1. MuJoCo uses **GLEW** graphics library for rendering with the viewer. When we render an environment using MuJoCo on **Ubuntu**, we get `GLEW initialization error: Missing GL version.` error. To solve this, we need to set the **LD_PRELOAD** environment variable below:
 
     `export LD_PRELOAD=$LD_PRELOAD:/usr/lib/x86_64-linux-gnu/libGLEW.so`
+
+### CoppeliaSim and RLBench
+Please see the installation instructions on RLBench environment below.
     
-##### Installation Instructions on CoppeliaSim and RL_Bench
+##### Installation Instructions on CoppeliaSim and RLBench
 If you'd like to use environments simulated with CoppeliaSim,
 [download CoppeliaSim Edu 4.1.0](https://www.coppeliarobotics.com/previousVersions) (4.2.0 causes problems with some environments)
 and set the following paths accordingly.
@@ -134,59 +105,14 @@ If you'd also like to use the [RL Bench](https://github.com/stepjam/RLBench) env
 `pip install git+https://github.com/stepjam/RLBench.git pyquaternion natsort`.
 An example for an RL Bench environment is *reach_target-state-v0*.
 
+## Supported Algorithms
+
+### Stable Baselines3 (SB3)
+We currently support the _Stable Baselines 3_ goal-conditioned off-policy algorithms: DDPG, TD3, SAC and HER
+
 ## Hyperparameter optimization and management
-The framework has a sophisticated hyperparameter management and optimization pipeline, based on the following four tools:
-
-### Optuna & Hydra
-Optuna is a framework to perform the hyperparameter optimization algorithm (e.g. TPE).
-Optuna integrates flawlessly with hydra.
-The default optuna launcher for hyperopting is the joblib launcher which spawns several loky processes.
-A disadvantage of this approach is that the logging to stdout is disabled.
-However, you will be able to read all console outputs produced by `logger.info()` in the log folder.
-The hyperparameter search is implemented via a customized sweeper plugin located in the `hydra_plugins` subfolder.
-By default, the sweeper uses the TPE optimizer.
-The sweeper automatically learns when to early stop trials by remembering past trials.
-It sets the max. number of epochs for a new trial to 1.5 times the number of epochs of the so-far fastest trial (when terminated by early stopping).
-The sweeper stops after the set number of trials or the specified duration, as specified in the config file.
-For convenience, the sweeper also creates a file `delete_me_to_stop_hyperopt`, which you just need to delete to soft-stop the hyperopting after the current batch of jobs.
-
-#### Hyperparameter tuning
-We configure the hyperparameter tuning with hydra. The configurations are stored in `conf/performance/<env_name>/<algo_name>-opti.yaml`. For example, to optimize `sac` with `her` for the FetchReach environment, run
-```bash
-python experiment/train.py +performance=FetchReach/sac_her-opti.yaml --multirun
-```
-We use these files to specify the algorithm (e.g. `override /algorithm: sac`) and its parameters, the environment (e.g. `env: reach_target-state-v0`), and the search space for the optimization. 
-If you copy and change a config to optimize for a different environment or algorithm, it is also important to change `hydra:sweeper:study_name` and `hydra:sweeper:storage` accordingly.
-
-#### Testing functionality (smoke test)
-Simply execute
-```bash
-python experiment/train.py algorithm=sac,ddpg env=FetchReach-v1,AntReacher-v1 ++n_epochs=2 +defaults=smoke_test --multirun
-```
-, to run experiments for sac and ddpg for two epochs (here we use `++` to override the amount of epochs).
-With `+defaults=smoke_test` we are loading the sweeper parameters from `conf/smoke_test.yaml`.
-Crashed experiments can be found in mlflow, having a red cross symbol.
-
-#### Performance testing
-Run a performance test for an environment-algorithm combination. The conditions for a performance test are stored in
-`conf/performance/<env_name>/<algo_name>-test.yaml`.
-You can for example run:
-```bash
-python experiment/train.py +performance=FetchReach/sac_her-test.yaml --multirun
-```
-to test the performance of the current hyperparameters.
-The joblib launcher allows to run `n_jobs` in parallel.
-
-> :warning: **You cannot** run multiple performance tests by simply providing multiple configs separated by commas, for example:
-`python experiment/train.py +performance=FetchReach/her-test,RLB_reach_target/sac_her-test --multirun` does not work.
-In that case, just call `experiment/train.py` twice with the different performance test configs.
-
-### Mlflow
-Mlflow collects studies and logs data of all runs.
-The information about all runs is stored in a subfolder called `mlruns`.
-You can watch the mlflow runs by executing `mlflow ui --host 0.0.0.0` in the root folder of this project, which will call a web server that you can access via port 5000 (by default).
-The `--host` tells the server to allow connections from all machines.
-
+The framework has a sophisticated hyperparameter management and optimization pipeline, based on Hydra, Optuna, MLFlow and Weights & Biases.
+The tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home) explain how to use it.
 
 ## Known Issues:
 - Mujoco may fail due to [this error](https://github.com/openai/mujoco-py/issues/544) when debugging. If it happens with PyCharm, you can unset "Attach to subprocess automatically while debugging" in the Python Debugger Settings (File | Settings | Build, Execution, Deployment | Python Debugger) to avoid this error.
