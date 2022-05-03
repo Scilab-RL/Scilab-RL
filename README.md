@@ -17,10 +17,11 @@ The framework is tailored towards the rapid prototyping and development and eval
 
 - [Getting Started](#getting-started)
 - [Supported Environments](#supported-environments)
-  * [OpenAI Gym](#openai-gym)
-  * [CoppeliaSim and RLBench](#coppeliasim-and-rl_bench)
+  * [OpenAI Gym / MuJoCo](#installation-instructions-on-mujoco)
+  * [CoppeliaSim and RLBench](#installation-instructions-on-coppeliasim-and-rlbench)
 - [Supported Algorithms](#supported-algorithms)
   * [Stable Baselines3 (SB3)](#stable-baselines3-(sb3))
+- [Hyperparameter optimization and management](#hyperparameter-optimization-and-management)
 - [Known Issues](#known-issues)
 
 
@@ -85,9 +86,6 @@ Currently, _OpenAI Gym_ MuJoCo and Robotics environments and our custom MuJoCo e
 1. MuJoCo uses **GLEW** graphics library for rendering with the viewer. When we render an environment using MuJoCo on **Ubuntu**, we get `GLEW initialization error: Missing GL version.` error. To solve this, we need to set the **LD_PRELOAD** environment variable below:
 
     `export LD_PRELOAD=$LD_PRELOAD:/usr/lib/x86_64-linux-gnu/libGLEW.so`
-
-### CoppeliaSim and RLBench
-Please see the installation instructions on RLBench environment below.
     
 ##### Installation Instructions on CoppeliaSim and RLBench
 If you'd like to use environments simulated with CoppeliaSim,
