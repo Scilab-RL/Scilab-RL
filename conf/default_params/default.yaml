@@ -4,7 +4,7 @@
 env: 'FetchReach-v1'
 
 # keyword arguments for the environment
-env_kwargs: null
+env_kwargs: {}
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
