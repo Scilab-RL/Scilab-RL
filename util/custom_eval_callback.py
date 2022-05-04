@@ -112,85 +112,93 @@ class CustomEvalCallback(EvalCallback):
         if self.render_train == 'record' or self.render_test == 'record' and self.vid_size is None:
             self.vid_size = self.get_default_vid_size()
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
-            if self.video_writer is not None and self.last_step_was_train:
-                # save the training video
-                self.video_writer.release()
-                self.video_writer = None
-            self.last_step_was_train = False
-            # Sync training and eval env if there is VecNormalize
-            sync_envs_normalization(self.training_env, self.eval_env)
-            if self.render_test_info is not None:
-                self.render_test_info['eval_count'] = self.eval_count
-                if not 'size' in self.render_test_info:
-                    self.render_test_info['size'] = self.vid_size
-            episode_rewards, episode_lengths, episode_successes = evaluate_policy(
-                self.agent,
-                self.eval_env,
-                n_eval_episodes=self.n_eval_episodes,
-                deterministic=self.deterministic,
-                return_episode_rewards=True,
-                render_info=self.render_test_info,
-                logger=self.logger
-            )
-            mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
-            mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
-            mean_success, std_success = np.mean(episode_successes), np.std(episode_successes)
-
-            if self.verbose > 0:
-                self.logger.info(f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
-                self.logger.info(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
-
-            self.logger.record("test/mean_reward", float(mean_reward))
-            self.logger.record("test/std_reward", float(std_reward))
-            self.logger.record("test/mean_ep_length", mean_ep_length)
-            self.logger.record("test/success_rate", mean_success)
-
-            self.eval_histories['test/success_rate'].append(mean_success)
-            self.eval_histories['test/mean_reward'].append(mean_reward)
-
-            if mean_success > self.best_mean_success:
-                if self.verbose > 0:
-                    self.logger.info("New best mean success rate!")
-                if self.log_path is not None:
-                    self.agent.save(os.path.join(self.log_path, "best_agent"))
-                self.best_mean_success = mean_success
-            if self.agent is not None and isinstance(self.agent, OffPolicyAlgorithm):
-                self.agent._dump_logs()
-            elif self.agent is not None and isinstance(self.agent, OnPolicyAlgorithm):
-                self.agent.logger.dump()
-            if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
-                mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
-                if mean_val >= self.early_stop_threshold:
-                    self.logger.info(f"Early stop threshold for {self.early_stop_data_column} met: "
-                                     f"Average over last {self.early_stop_last_n} evaluations is {mean_val} "
-                                     f"and threshold is {self.early_stop_threshold}. Stopping training.")
-                    if self.log_path is not None:
-                        self.agent.save(os.path.join(self.log_path, "early_stop_agent"))
-                    return False
-            self.eval_count += 1
+            return self._evaluate_policy()
         else:
-            if not self.last_step_was_train:
-                self.train_count += 1
-            if (self.train_count-1) % self.render_every_n_train == 0:
-                if self.render_train == 'display':
-                    if hasattr(self.training_env, 'venv'):
-                        env = self.training_env.venv.envs[0]
-                    else:
-                        env = self.training_env
-                    env.render(mode=self.render_train_info['mode'])
-                elif self.render_train == 'record':
-                    if not self.last_step_was_train:
-                        self.render_train_info['train_count'] = self.train_count
-                        # create a new VideoWriter for each episode
-                        try:
-                            self.video_writer = cv2.VideoWriter(
-                                self.render_train_info['path'] + f'/train_{self.train_count-1}.avi',
-                                cv2.VideoWriter_fourcc('F', 'M', 'P', '4'),
-                                self.render_train_info['fps'], self.vid_size)
-                        except:
-                            self.logger.info("Error creating video writer")
-                    else:
-                        frame = self.training_env.render(mode='rgb_array')[..., ::-1]
-                        self.video_writer.write(frame)
-            self.last_step_was_train = True
+            self._on_train_step()
+            return True
+
+    def _on_train_step(self):
+        if not self.last_step_was_train:
+            self.train_count += 1
+        if (self.train_count-1) % self.render_every_n_train == 0:
+            if self.render_train == 'display':
+                if hasattr(self.training_env, 'venv'):
+                    env = self.training_env.venv.envs[0]
+                else:
+                    env = self.training_env
+                env.render(mode=self.render_train_info['mode'])
+            elif self.render_train == 'record':
+                if not self.last_step_was_train:
+                    self.render_train_info['train_count'] = self.train_count
+                    # create a new VideoWriter for each episode
+                    try:
+                        self.video_writer = cv2.VideoWriter(
+                            self.render_train_info['path'] + f'/train_{self.train_count-1}.avi',
+                            cv2.VideoWriter_fourcc('F', 'M', 'P', '4'),
+                            self.render_train_info['fps'], self.vid_size)
+                    except:
+                        self.logger.info("Error creating video writer")
+                else:
+                    frame = self.training_env.render(mode='rgb_array')[..., ::-1]
+                    self.video_writer.write(frame)
+        self.last_step_was_train = True
+
+    def _evaluate_policy(self) -> bool:
+        if self.video_writer is not None and self.last_step_was_train:
+            # save the training video
+            self.video_writer.release()
+            self.video_writer = None
+        self.last_step_was_train = False
+        # Sync training and eval env if there is VecNormalize
+        sync_envs_normalization(self.training_env, self.eval_env)
+        if self.render_test_info is not None:
+            self.render_test_info['eval_count'] = self.eval_count
+            if not 'size' in self.render_test_info:
+                self.render_test_info['size'] = self.vid_size
+        episode_rewards, episode_lengths, episode_successes = evaluate_policy(
+            self.agent,
+            self.eval_env,
+            n_eval_episodes=self.n_eval_episodes,
+            deterministic=self.deterministic,
+            return_episode_rewards=True,
+            render_info=self.render_test_info,
+            logger=self.logger
+        )
+        mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
+        mean_ep_length, std_ep_length = np.mean(episode_lengths), np.std(episode_lengths)
+        mean_success, std_success = np.mean(episode_successes), np.std(episode_successes)
+
+        if self.verbose > 0:
+            self.logger.info(
+                f"Eval num_timesteps={self.num_timesteps}, " f"episode_reward={mean_reward:.2f} +/- {std_reward:.2f}")
+            self.logger.info(f"Episode length: {mean_ep_length:.2f} +/- {std_ep_length:.2f}")
+
+        self.logger.record("test/mean_reward", float(mean_reward))
+        self.logger.record("test/std_reward", float(std_reward))
+        self.logger.record("test/mean_ep_length", mean_ep_length)
+        self.logger.record("test/success_rate", mean_success)
+
+        self.eval_histories['test/success_rate'].append(mean_success)
+        self.eval_histories['test/mean_reward'].append(mean_reward)
+
+        if mean_success > self.best_mean_success:
+            if self.verbose > 0:
+                self.logger.info("New best mean success rate!")
+            if self.log_path is not None:
+                self.agent.save(os.path.join(self.log_path, "best_agent"))
+            self.best_mean_success = mean_success
+        if self.agent is not None and isinstance(self.agent, OffPolicyAlgorithm):
+            self.agent._dump_logs()
+        elif self.agent is not None and isinstance(self.agent, OnPolicyAlgorithm):
+            self.agent.logger.dump()
+        if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
+            mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
+            if mean_val >= self.early_stop_threshold:
+                self.logger.info(f"Early stop threshold for {self.early_stop_data_column} met: "
+                                 f"Average over last {self.early_stop_last_n} evaluations is {mean_val} "
+                                 f"and threshold is {self.early_stop_threshold}. Stopping training.")
+                if self.log_path is not None:
+                    self.agent.save(os.path.join(self.log_path, "early_stop_agent"))
+                return False
+        self.eval_count += 1
         return True
