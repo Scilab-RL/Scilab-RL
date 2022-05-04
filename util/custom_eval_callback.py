@@ -7,6 +7,7 @@ from stable_baselines3.common.logger import Logger
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
+from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
 from stable_baselines3.common.vec_env import VecEnv, sync_envs_normalization
 from util.custom_evaluation import evaluate_policy
 
@@ -153,8 +154,10 @@ class CustomEvalCallback(EvalCallback):
                 if self.log_path is not None:
                     self.agent.save(os.path.join(self.log_path, "best_agent"))
                 self.best_mean_success = mean_success
-            if self.agent is not None:
+            if self.agent is not None and isinstance(self.agent, OffPolicyAlgorithm):
                 self.agent._dump_logs()
+            elif self.agent is not None and isinstance(self.agent, OnPolicyAlgorithm):
+                self.agent.logger.dump()
             if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
                 mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
                 if mean_val >= self.early_stop_threshold:
