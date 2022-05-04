@@ -3,6 +3,9 @@
 # The name of the OpenAI Gym environment that you want to train on.
 env: 'FetchReach-v1'
 
+# keyword arguments for the environment
+env_kwargs: null
+
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
 
