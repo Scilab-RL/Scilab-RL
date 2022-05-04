@@ -78,12 +78,12 @@ def launch(cfg, logger, kwargs):
         if cfg.render_args[0][0] == 'record' or cfg.render_args[1][0] == 'record':
             render_mode = 'rgb_array'
         # there can be only one PyRep instance per process, therefore train_env == eval_env
-        rlbench_env = gym.make(cfg.env, render_mode=render_mode)
+        rlbench_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
         train_env = RLBenchWrapper(rlbench_env, "train")
         eval_env = RLBenchWrapper(rlbench_env, "eval")
     else:
-        train_env = gym.make(cfg.env)
-        eval_env = gym.make(cfg.env)
+        train_env = gym.make(cfg.env, **cfg.env_kwargs)
+        eval_env = gym.make(cfg.env, **cfg.env_kwargs)
     alg_kwargs = OmegaConf.to_container(cfg.algorithm)
     if cfg.restore_policy is not None:
         baseline = baseline_class.load(cfg.restore_policy, **alg_kwargs, env=train_env, **kwargs)
