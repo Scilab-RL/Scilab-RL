@@ -21,27 +21,27 @@ main() {
   # ENVS+="reach_target-state-v0,"
   ENVS+="close_drawer-state-v0"
 
-  FAILED_RUNS=0
-
   # Don't have xvfb? install it with sudo apt-get install xvfb
-  xvfb-run -a python3 experiment/train.py algorithm=$ALGS env=$ENVS ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
-  (( FAILED_RUNS+= $? ))
+  if ! xvfb-run -a python3 experiment/train.py algorithm=$ALGS env=$ENVS ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
+  then
+    exit 1
+  fi
 
   # test other Algorithms
   local ALG_TEST_ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0"
   # test HER
-  xvfb-run -a python3 experiment/train.py algorithm=sac env=$ALG_TEST_ENVS +replay_buffer=her ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
-  (( FAILED_RUNS+= $? ))
+  if ! xvfb-run -a python3 experiment/train.py algorithm=sac env=$ALG_TEST_ENVS +replay_buffer=her ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
+  then
+    exit 1
+  fi
 
-  # test ddpg, td3 and sacvg
-  xvfb-run -a python3 experiment/train.py algorithm=ddpg,td3,sacvg env=$ALG_TEST_ENVS ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
-  (( FAILED_RUNS+= $? ))
+  # test ddpg and td3
+  if ! xvfb-run -a python3 experiment/train.py algorithm=ddpg,td3 env=$ALG_TEST_ENVS ++n_epochs=1 ++wandb=0 +defaults=smoke_test --multirun;
+  then
+    exit 1
+  fi
+
+  echo "All smoke tests passed successfully."
 }
 
 main
-if (($FAILED_RUNS < 1)); then
-  printf "All smoke tests passed successfully."
-  exit 0
-fi
-printf "At least one smoke test failed. Scroll up to see which experiments failed with which errors."
-exit 1
