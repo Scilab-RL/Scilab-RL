@@ -1,3 +1,5 @@
 name: 'sac'
 
 verbose: True
+
+batch_size: 256
