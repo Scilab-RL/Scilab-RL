@@ -235,11 +235,12 @@ class CustomOptunaSweeperImpl(Sweeper):
             enqueued_param_runs = 0
             batch_size = min(n_trials_to_go, self.n_jobs)
             overrides = []
+            runs_in_batch = 0
             trials = []
             max_n_epochs = min(study.user_attrs['max_n_epochs'], self.config.n_epochs)
             if max_n_epochs is not None:
                 fixed_params['n_epochs'] = max_n_epochs
-            while len(overrides) < batch_size:
+            while runs_in_batch < batch_size:
                 trial = study.ask()
                 for param_name, distribution in search_space.items():
                     trial._suggest(param_name, distribution)
@@ -256,6 +257,7 @@ class CustomOptunaSweeperImpl(Sweeper):
                     study.tell(trial, None, state)
                     continue
                 overrides.append(tuple(f"{name}={val}" for name, val in params.items()))
+                runs_in_batch = len(overrides)
                 trials.append(trial)
 
                 # Add repetition of the same trial for next study.ask()
@@ -327,20 +329,15 @@ class CustomOptunaSweeperImpl(Sweeper):
                 configs.append(tuple(args_for_this_conf))
 
         job_idx = 0
-        failed_configs = {}
         while configs:
             batch_size = min(len(configs), self.n_jobs)
             results = self.launcher.launch(configs[:batch_size], initial_job_idx=job_idx)
             for r in results:
                 if r.status == JobStatus.FAILED:
-                    failed_configs[r.overrides.__str__()] = r._return_value
+                    assert False, f"Experiment with overrides {r.overrides.__str__()} " \
+                                  f"failed with {r._return_value}"
             job_idx += batch_size
             configs = configs[batch_size:]
-        if failed_configs:
-            for k, v in failed_configs.items():
-                log.error(f"\033[94m Experiment with overrides: {k} failed: \033[0m")
-                log.error(v)
-            assert False, "Not all smoke tests passed. See the configurations that failed above."
 
     def plot_study_summary(self, study):
         try:
