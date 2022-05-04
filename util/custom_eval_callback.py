@@ -190,7 +190,7 @@ class CustomEvalCallback(EvalCallback):
         if self.agent is not None and isinstance(self.agent, OffPolicyAlgorithm):
             self.agent._dump_logs()
         elif self.agent is not None and isinstance(self.agent, OnPolicyAlgorithm):
-            self.agent.logger.dump()
+            self.agent.logger.dump(step=self.num_timesteps)
         if len(self.eval_histories[self.early_stop_data_column]) >= self.early_stop_last_n:
             mean_val = np.mean(self.eval_histories[self.early_stop_data_column][-self.early_stop_last_n:])
             if mean_val >= self.early_stop_threshold:
