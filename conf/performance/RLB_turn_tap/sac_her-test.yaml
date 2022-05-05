@@ -8,8 +8,8 @@ defaults:
 env: 'turn_tap-state-v0'
 
 # use HER
-using_her: true
 algorithm:
+  replay_buffer_class: HerReplayBuffer
   learning_rate: 0.00052
   replay_buffer_kwargs:
     n_sampled_goal: 2
