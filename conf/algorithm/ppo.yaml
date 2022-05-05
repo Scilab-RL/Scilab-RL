@@ -1,3 +1,10 @@
-name: 'ppo'
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+# We do this here to be able to set the environment reward_type
 
-verbose: True
+algorithm:
+  name: 'ppo'
+  verbose: True
+
+env_kwargs:
+  reward_type: dense
