@@ -7,8 +7,8 @@ n_epochs: 200
 
 env: 'Ant4Rooms-v1'
 
-using_her: true
 algorithm:
+  replay_buffer_class: HerReplayBuffer
   buffer_size: 1000000
   batch_size: 256
   policy_kwargs:
