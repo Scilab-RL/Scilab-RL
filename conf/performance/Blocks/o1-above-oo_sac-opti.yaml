@@ -1,0 +1,36 @@
+# @package _global_
+#############################################################
+## The performance for this environment is still quite bad ##
+## Maybe works better with single layer approach           ##
+#############################################################
+
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  # access algorithm config group to get the default parameters of hac
+  - override /algorithm: oo_sac
+
+env: 'Blocks-o1-gripper_above-v1'
+
+# The n last epochs over which to average for determining early stopping condition.
+early_stop_last_n: 4
+
+algorithm:
+  learning_rate: 2e-4
+
+hydra:
+  sweeper:
+    study_name: oo-sac_Blocks-o1-gripper_above-v1-long
+    storage: sqlite:///oo-sac_Blocks-o1-gripper_above-v1.db
+    max_trials: 3
+    n_jobs: 9
+    direction: maximize
+    max_duration_minutes: 1000
+    min_trials_per_param: 3
+    max_trials_per_param: 9
+    search_space:
+      algorithm.learning_rate:
+        type: float
+        low: 1.5e-4
+        high: 3.5e-4
+        step: 0.5e-4
+
