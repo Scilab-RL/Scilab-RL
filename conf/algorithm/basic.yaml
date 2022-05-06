@@ -1,1 +1,4 @@
 name: 'basic'
+
+net_arch:
+  - 32
