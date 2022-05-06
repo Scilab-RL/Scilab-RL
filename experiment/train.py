@@ -47,7 +47,7 @@ def train(baseline, train_env, eval_env, cfg, logger):
                                                  top_level_layer=baseline,
                                                  logger=logger)
     else:
-        eval_callback = CustomOOEvalCallback(eval_env,
+        eval_callback = CustomEvalCallback(eval_env,
                                            agent=baseline,
                                            log_path=logger.get_dir(),
                                            render_args=cfg.render_args,
