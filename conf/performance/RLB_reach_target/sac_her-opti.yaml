@@ -8,8 +8,8 @@ defaults:
 env: 'reach_target-state-v0'
 
 # use HER
-using_her: true
 algorithm:
+  replay_buffer_class: HerReplayBuffer
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'

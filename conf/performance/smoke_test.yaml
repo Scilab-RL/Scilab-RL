@@ -1,0 +1,11 @@
+# @package _global_
+
+smoke_test: True
+n_epochs: 1
+wandb: 0
+
+hydra:
+  sweeper:
+    _target_: hydra_plugins.hydra_custom_optuna_sweeper.custom_optuna_sweeper.CustomOptunaSweeper
+    study_name: smoke_test
+    n_jobs: 8

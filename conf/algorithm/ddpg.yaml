@@ -2,4 +2,6 @@ name: 'ddpg'
 
 verbose: True
 
+replay_buffer_class: HerReplayBuffer  # ++algorithm.replay_buffer_class=null to not use HER
+
 policy: 'MultiInputPolicy'
