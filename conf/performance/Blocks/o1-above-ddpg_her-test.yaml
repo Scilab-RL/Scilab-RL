@@ -8,8 +8,8 @@ defaults:
 env: 'Blocks-o1-gripper_above-v1'
 
 # use HER
-using_her: true
 algorithm:
+  replay_buffer_class: HerReplayBuffer
   learning_rate: 0.005
   replay_buffer_kwargs:
     n_sampled_goal: 3
