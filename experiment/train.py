@@ -60,8 +60,8 @@ def train(baseline, train_env, eval_env, cfg, logger):
 def launch(cfg, logger, kwargs):
     set_global_seeds(cfg.seed)
     algo_name = cfg['algorithm'].name
-    with open_dict(cfg):
-        del cfg['algorithm']['name']  # remove name as we pass all arguments to the model constructor
+    alg_kwargs = OmegaConf.to_container(cfg.algorithm)
+    del alg_kwargs['name']  # remove name as we pass all arguments to the model constructor
     try:
         baseline_class = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except ModuleNotFoundError:
@@ -84,7 +84,6 @@ def launch(cfg, logger, kwargs):
     else:
         train_env = gym.make(cfg.env, **cfg.env_kwargs)
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
-    alg_kwargs = OmegaConf.to_container(cfg.algorithm)
     if cfg.restore_policy is not None:
         baseline = baseline_class.load(cfg.restore_policy, **alg_kwargs, env=train_env, **kwargs)
     elif 'using_her' in cfg and cfg.using_her:  # enable with +replay_buffer=her
@@ -93,10 +92,10 @@ def launch(cfg, logger, kwargs):
            alg_kwargs['learning_starts'] = max(alg_kwargs['learning_starts'], train_env._max_episode_steps)
         else:
            alg_kwargs['learning_starts'] = train_env._max_episode_steps
-        baseline = baseline_class(policy='MultiInputPolicy', env=train_env, replay_buffer_class=HerReplayBuffer,
+        baseline = baseline_class(env=train_env, replay_buffer_class=HerReplayBuffer,
                                   **alg_kwargs, **kwargs)
     else:
-        baseline = baseline_class(policy='MultiInputPolicy', env=train_env, **alg_kwargs, **kwargs)
+        baseline = baseline_class(env=train_env, **alg_kwargs, **kwargs)
     baseline.set_logger(logger)
     logger.info("Launching training")
     return train(baseline, train_env, eval_env, cfg, logger)
