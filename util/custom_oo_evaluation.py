@@ -7,6 +7,7 @@ import random
 
 from stable_baselines3.common import base_class
 from stable_baselines3.common.vec_env import VecEnv
+from ideas_baselines.oo_sac.oo_blocks_adapter import OO_Blocks_Adapter
 
 
 def get_success(info_list):
@@ -65,7 +66,7 @@ def evaluate_oo_policy(
     """
     global threshold
     threshold = distance_threshold
-    env.envs[0].env.env._is_success = _is_success
+    #env.envs[0].env.env._is_success = _is_success
 
     global obj_idx
 
@@ -81,8 +82,14 @@ def evaluate_oo_policy(
 
     info_list = []
     episode_rewards, episode_lengths, episode_successes = [], [], []
+    tries_per_object = np.zeros(env.envs[0].n_objects + 1)  # + gripper
+    success_per_object = np.zeros(env.envs[0].n_objects + 1)
+
+    env.envs[0].__class__ = OO_Blocks_Adapter
+
     for i in range(n_eval_episodes):
         obj_idx = random.randint(1, env.envs[0].n_objects)
+        tries_per_object[obj_idx] += 1
         # Avoid double reset, as VecEnv are reset automatically
         if not isinstance(env, VecEnv) or i == 0:
             obs = env.reset()
@@ -109,6 +116,10 @@ def evaluate_oo_policy(
             action, state = agent.predict(obs, state=state, deterministic=deterministic)
             obs, reward, done, _info = env.step(action)
             this_episode_success = get_success(_info)
+
+            if this_episode_success > 0:
+                success_per_object[obj_idx] += this_episode_success
+
             if not episode_success or episode_success == np.nan:
                 episode_success = this_episode_success
             episode_reward += reward
@@ -128,11 +139,12 @@ def evaluate_oo_policy(
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
     mean_length = np.mean(episode_lengths)
+    success_per_object = success_per_object / tries_per_object
     if reward_threshold is not None:
         assert mean_reward > reward_threshold, "Mean reward below threshold: " f"{mean_reward:.2f} < {reward_threshold:.2f}"
     if return_episode_rewards:
-        return episode_rewards, episode_lengths, episode_successes
-    return mean_reward, std_reward, mean_length, mean_success
+        return episode_rewards, episode_lengths, episode_successes, success_per_object
+    return mean_reward, std_reward, mean_length, mean_success, success_per_object
 
 
 def _is_one_hot(vec):
