@@ -88,7 +88,7 @@ class CustomEvalCallback(EvalCallback):
         self.evaluations_timesteps = []
         self.evaluations_length = []
 
-        self.vid_size = 640, 360  # changing this will break RLBench recording
+        self.vid_size = 500, 500  # changing this will break RLBench recording
         self.vid_fps = 25
         self.eval_count = 0
         self.train_count = 0
@@ -119,7 +119,7 @@ class CustomEvalCallback(EvalCallback):
             sync_envs_normalization(self.training_env, self.eval_env)
             if self.render_test_info is not None:
                 self.render_test_info['eval_count'] = self.eval_count
-            episode_rewards, episode_lengths, episode_successes = evaluate_policy(
+            episode_rewards, episode_lengths, episode_successes, success_per_object = evaluate_policy(
                 self.agent,
                 self.eval_env,
                 n_eval_episodes=self.n_eval_episodes,
@@ -140,6 +140,9 @@ class CustomEvalCallback(EvalCallback):
             self.logger.record("test/std_reward", float(std_reward))
             self.logger.record("test/mean_ep_length", mean_ep_length)
             self.logger.record("test/success_rate", mean_success)
+
+            for i in range(success_per_object.shape[0]):
+                self.logger.record("test/success_per_obj_" + str(i), success_per_object[i])
 
             self.eval_histories['test/success_rate'].append(mean_success)
             self.eval_histories['test/mean_reward'].append(mean_reward)
