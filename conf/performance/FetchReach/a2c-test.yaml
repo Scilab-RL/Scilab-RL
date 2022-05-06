@@ -1,24 +1,17 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  # access algorithm config group to get the default parameters of her
-  - override /algorithm: ddpg
+  - override /algorithm: a2c
 
-# overwrite parameters of main.yaml
-env: 'Blocks-o1-gripper_above-v1'
+env: 'FetchReach-v1'
+env_kwargs:
+  reward_type: 'dense'
 
-# use HER
-using_her: true
 algorithm:
-  learning_rate: 0.005
-  replay_buffer_kwargs:
-    n_sampled_goal: 3
-    goal_selection_strategy: 'future'
-    online_sampling: True
-    handle_timeout_termination: True
+  learning_rate: 0.000381
 
 performance_testing_conditions:
-  # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 10000 steps.
+  # In 2 out of 3 tests, the test/success rate should be at least 0.99 after 120K steps.
 
   total_runs: 3 # How many runs in total:
 
@@ -28,10 +21,10 @@ performance_testing_conditions:
 
   eval_value: 0.9 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
-  max_steps: 140000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+  max_steps: 120000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: sac_her_Blocks_o1_above
+    study_name: a2c_FetchReach-test
