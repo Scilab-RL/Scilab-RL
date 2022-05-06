@@ -8,6 +8,7 @@ import random
 from stable_baselines3.common import base_class
 from stable_baselines3.common.vec_env import VecEnv
 from ideas_baselines.oo_sac.oo_blocks_adapter import OO_Blocks_Adapter
+from ideas_envs.blocks.blocks_env import BlocksEnv
 
 
 def get_success(info_list):
@@ -85,7 +86,8 @@ def evaluate_policy(
 
     info_list = []
     episode_rewards, episode_lengths, episode_successes = [], [], []
-    env.envs[0].env.env.__class__ = OO_Blocks_Adapter
+    if env.envs[0].env.env.__class__ == BlocksEnv:
+        env.envs[0].env.env.__class__ = OO_Blocks_Adapter
     tries_per_object = np.zeros(env.envs[0].n_objects + 1)  # + gripper
     success_per_object = np.zeros(env.envs[0].n_objects + 1)
 
