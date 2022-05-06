@@ -1,3 +1,5 @@
 name: 'td3'
 
 verbose: True
+
+policy: 'MultiInputPolicy'
