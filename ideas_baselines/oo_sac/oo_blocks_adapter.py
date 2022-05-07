@@ -122,7 +122,7 @@ class OO_Blocks_Adapter(BlocksEnv):
         # Then if you randomly decide to choose a goal for the block: oogoal = (0, 1, x,y,z)
         # obj_idx = 1
         #self.full_goal = full_goal
-        obj_idx = random.randint(2, self.n_objects)
+        obj_idx = random.randint(1, self.n_objects)
         # Number of objects + 1 (gripper) to get one-hot representation of object in env
         oneHot_idx = np.eye(self.n_objects + 1)[obj_idx]
         oo_values = list(full_goal[obj_idx * 3: obj_idx * 3 + 3])
