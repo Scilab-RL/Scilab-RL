@@ -130,9 +130,13 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
             else:
                 start_idx = 3
             # set goal positions for the blocks
+            z += self.object_height
             for i in range(self.n_objects):
-                z += self.object_height
-                pos = np.concatenate([lowest_block_xy, z])
+                # z += self.object_height
+                # pos = np.concatenate([lowest_block_xy, z])
+                block_xy = self.initial_gripper_xpos[:2] \
+                           + self.np_random.uniform(-self.target_range, self.target_range, size=2)
+                pos = np.concatenate([block_xy, z])
                 goal[start_idx + i * 3:start_idx + i * 3 + 3] = pos
 
             # set the gripper_goal, if there is any
