@@ -176,7 +176,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         assert self.launcher is not None
         assert self.job_idx is not None
 
-        if 'defaults' in self.config and self.config['defaults'] == 'smoke_test':
+        if 'smoke_test' in self.config and self.config.smoke_test:
             return self.smoke_test(arguments)
 
         parser = OverridesParser.create()
@@ -311,7 +311,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         df.to_csv("tmp_trials.csv", index=False)
 
     def smoke_test(self, args):
-        other_args = []
+        algos, envs, other_args = [], [], []
         for arg in args:
             if arg.startswith('algorithm='):
                 algos = arg[10:].split(',')
@@ -320,6 +320,10 @@ class CustomOptunaSweeperImpl(Sweeper):
             else:
                 other_args.append(arg)
 
+        if not algos:
+            algos = ['sac']
+        if not envs:
+            envs = ['FetchReach-v1']
         configs = []
         for a in algos:
             for e in envs:
@@ -356,4 +360,3 @@ class CustomOptunaSweeperImpl(Sweeper):
             fig.write_image(f"{self.sweep_dir}/hyperopt_param_importances.png")
         except:
             pass
-

@@ -5,8 +5,8 @@ defaults:
 
 env: 'Blocks-o1-gripper_none-v1'
 
-using_her: true
 algorithm:
+  replay_buffer_class: HerReplayBuffer
   buffer_size: 1000000
   batch_size: 256
   learning_rate: 0.0003

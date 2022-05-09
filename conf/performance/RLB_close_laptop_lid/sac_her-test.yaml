@@ -8,8 +8,8 @@ defaults:
 env: 'close_laptop_lid-state-v0'
 
 # use HER
-using_her: true
 algorithm:
+  replay_buffer_class: HerReplayBuffer
   learning_rate: 0.00091
   replay_buffer_kwargs:
     n_sampled_goal: 2
