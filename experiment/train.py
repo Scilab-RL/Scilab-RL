@@ -87,15 +87,14 @@ def launch(cfg, logger, kwargs):
     alg_kwargs = OmegaConf.to_container(cfg.algorithm)
     if cfg.restore_policy is not None:
         baseline = baseline_class.load(cfg.restore_policy, **alg_kwargs, env=train_env, **kwargs)
-    elif 'using_her' in cfg and cfg.using_her:  # enable with +replay_buffer=her
-        # if learning_starts < max_episode_steps, learning starts before the first episode is stored
-        if 'learning_starts' in alg_kwargs:
-           alg_kwargs['learning_starts'] = max(alg_kwargs['learning_starts'], train_env._max_episode_steps)
-        else:
-           alg_kwargs['learning_starts'] = train_env._max_episode_steps
-        baseline = baseline_class(policy='MultiInputPolicy', env=train_env, replay_buffer_class=HerReplayBuffer,
-                                  **alg_kwargs, **kwargs)
     else:
+        if 'replay_buffer_class' in alg_kwargs and alg_kwargs['replay_buffer_class'] == 'HerReplayBuffer':
+            alg_kwargs['replay_buffer_class'] = HerReplayBuffer
+            # if learning_starts < max_episode_steps, learning starts before the first episode is stored
+            if 'learning_starts' in alg_kwargs:
+               alg_kwargs['learning_starts'] = max(alg_kwargs['learning_starts'], train_env._max_episode_steps)
+            else:
+               alg_kwargs['learning_starts'] = train_env._max_episode_steps
         baseline = baseline_class(policy='MultiInputPolicy', env=train_env, **alg_kwargs, **kwargs)
     baseline.set_logger(logger)
     logger.info("Launching training")

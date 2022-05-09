@@ -9,8 +9,8 @@ env: 'close_laptop_lid-state-v0'
 n_epochs: 100
 
 # use HER
-using_her: true
 algorithm:
+  replay_buffer_class: HerReplayBuffer
   replay_buffer_kwargs:
     n_sampled_goal: 2
     goal_selection_strategy: 'future'
