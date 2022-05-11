@@ -3,7 +3,7 @@ import numpy as np
 
 
 def prepare_obs(obs):
-    return th.cat([th.tensor(o.flatten(), dtype=th.float32) for o in obs.values()])
+    return th.cat([th.tensor(o.copy().flatten(), dtype=th.float32) for o in obs.values()])
 
 
 class BASIC:
@@ -15,7 +15,7 @@ class BASIC:
     # TODO policy saving and loading
     # TODO nn backprop
     # TODO do not use the callback AT ALL (modify train.py)
-    def __init__(self, env, net_arch=None, noise_factor=0.3, learning_rate=0.1):
+    def __init__(self, env, net_arch=None, noise_factor=0.3, learning_rate=0.0003):
         self.env = env
         self.logger = None
         self.num_timesteps = 0
@@ -25,8 +25,10 @@ class BASIC:
         self.gamma = 0.95
         self.lr = learning_rate
         self.loss_fn = th.nn.MSELoss(reduction='sum')
-        self.nn = self._setup_nn(net_arch)
+        self.actor = self._setup_nn(net_arch)
         self.critic = self._setup_critic(net_arch)
+        self.target = self._setup_critic(net_arch)
+        self.target.load_state_dict(self.critic.state_dict())
         self.noise_factor = noise_factor
         self.eval_freq = 0
         self.n_eval_episodes = 0
@@ -54,19 +56,27 @@ class BASIC:
 
     def _train(self, last_obs, obs, reward):
         self.logger.record_mean('reward', reward)
-        q_last = self.critic(th.cat([self.nn(prepare_obs(last_obs)), prepare_obs(last_obs)]))
-        q_now = self.critic(th.cat([self.nn(prepare_obs(obs)), prepare_obs(obs)]))
+        q_last = self.critic(th.cat([self.actor(prepare_obs(last_obs)), prepare_obs(last_obs)]))
+        q_now = self.target(th.cat([self.actor(prepare_obs(obs)), prepare_obs(obs)]))
         self.logger.record_mean('q', q_now.item())
-        loss = self.loss_fn(q_last, (reward + self.gamma * q_now))
-        self.logger.record_mean('loss', loss.item())
-        self.nn.zero_grad()
+        critic_loss = self.loss_fn(q_last, (reward + self.gamma * q_now))
+        actor_loss = q_last
+        self.logger.record_mean('critic_loss', critic_loss.item())
+        self.logger.record_mean('actor_loss', actor_loss.item())
         self.critic.zero_grad()
-        loss.backward()
-        with th.no_grad():
-            for param in self.critic.parameters():
-                param -= self.lr * param.grad
-            for param in self.nn.parameters():
-                param -= self.lr * param.grad
+        self.actor.zero_grad()
+        if np.random.rand() > 0.5:
+            actor_loss.backward()
+            with th.no_grad():
+                for param in self.actor.parameters():
+                    param -= self.lr * param.grad
+        else:
+            critic_loss.backward()
+            with th.no_grad():
+                for param in self.critic.parameters():
+                    param -= self.lr * param.grad
+        if self.num_timesteps % 50 == 0:
+            self.target.load_state_dict(self.critic.state_dict())
 
     def evaluate(self):
         successful_episodes = 0
@@ -85,7 +95,7 @@ class BASIC:
                     self.env.reset()
         self.logger.record('test/success_rate', successful_episodes / self.n_eval_episodes)
         self.logger.dump(step=self.num_timesteps)
-        #print([p for p in self.nn.parameters()][0])
+        #print([p for p in self.actor.parameters()][0])
         # TODO early stopping
 
     def load(self, path):
@@ -97,7 +107,7 @@ class BASIC:
     def _get_action(self, obs, deterministic):
         obs = prepare_obs(obs)
         with th.no_grad():
-            action = self.nn(obs).detach().numpy()
+            action = self.actor(obs).detach().numpy()
         if not deterministic:
             action += self.noise_factor * (np.random.normal(size=len(action))-0.5)
         action = np.clip(action, -1, 1)
