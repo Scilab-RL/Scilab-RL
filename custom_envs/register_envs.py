@@ -15,6 +15,10 @@ def register_custom_envs():
                      kwargs={'n_objects': n_objects, 'gripper_goal': gripper_goal, 'distance_threshold': distance_threshold},
                      max_episode_steps=max(50, 50*n_objects))
 
+    register(id='Reach1DOF-v0',
+             entry_point='custom_envs.reach1dof.reach1dof_env:Reach1DOFEnv',
+             max_episode_steps=50)
+
     for n_objects in range(3):
         register(id=f'Hook-o{n_objects}-v1',
                  entry_point='custom_envs.hook.hook_env:HookEnv',
