@@ -24,7 +24,7 @@ algorithm:
     online_sampling: True
 
 performance_testing_conditions:
-  # In 2 out of 3 tests, the test/success rate should be at least 0.99 after 10_000 steps.
+  # In 2 out of 3 tests, the test/success rate should be at least 0.9 after 10k steps.
 
   total_runs: 3 # How many runs in total:
 
@@ -32,7 +32,7 @@ performance_testing_conditions:
 
   eval_columns: test/success_rate # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
 
-  eval_value: 0.99 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
+  eval_value: 0.9 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
   # ca. 10 minutes with GPU
   max_steps: 10_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
