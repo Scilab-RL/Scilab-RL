@@ -2,6 +2,7 @@ import os
 import numpy as np
 from gym.utils import EzPickle
 from gym.envs.robotics import fetch_env, rotations, utils
+from gym import spaces
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'blocks.xml')
 
@@ -42,6 +43,7 @@ class Reach1DOFEnv(fetch_env.FetchEnv, EzPickle):
                          gripper_extra_height=0.2, target_in_the_air=True, target_offset=0.0,
                          obj_range=0.15, target_range=0.14, distance_threshold=distance_threshold,
                          initial_qpos=initial_qpos, reward_type=reward_type)
+        self.action_space = spaces.Box(-1.0, 1.0, shape=(1,), dtype="float32")
         EzPickle.__init__(self)
 
     def _get_obs(self):
@@ -113,3 +115,7 @@ class Reach1DOFEnv(fetch_env.FetchEnv, EzPickle):
         goal = np.array([self.initial_gripper_xpos[0]])
         goal[0] += self.np_random.uniform(-self.target_range, self.target_range)
         return goal.copy()
+
+    def _set_action(self, action):
+        action = np.concatenate([action, np.zeros(3)])
+        super()._set_action(action)
