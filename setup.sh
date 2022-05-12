@@ -20,6 +20,8 @@ get_mujoco() {
     echo "Skipping MuJoCo as it is already installed."
     return
   fi
+  echo "Installing dependencies for MuJoCo"
+  sudo apt-get install libosmesa6-dev libgl1-mesa-glx patchelf
   # Get MuJoCo
   echo "Getting MuJoCo"
   wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz -O "${HOME}/mujoco.tar.gz"
