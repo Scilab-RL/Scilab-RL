@@ -1,4 +1,5 @@
 name: 'basic'
 
 net_arch:
-  - 32
+  - 16
+  - 16
