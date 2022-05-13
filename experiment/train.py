@@ -12,7 +12,7 @@ import wandb
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
-from omegaconf import DictConfig, OmegaConf, open_dict
+from omegaconf import DictConfig, OmegaConf
 from custom_envs.register_envs import register_custom_envs
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.util import get_git_label, set_global_seeds, flatten_dictConf
