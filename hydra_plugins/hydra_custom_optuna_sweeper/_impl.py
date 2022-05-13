@@ -144,7 +144,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         self.param_repeat_pruner = None
         self.pruners = []
         if search_space:
-            assert isinstance(search_space, DictConfig)
+            search_space = OmegaConf.to_container(search_space)
             self.search_space = {
                 str(x): create_optuna_distribution_from_config(y)
                 for x, y in search_space.items()
