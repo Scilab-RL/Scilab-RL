@@ -6,41 +6,61 @@ def prepare_obs(obs):
     return th.cat([th.tensor(o.copy().flatten(), dtype=th.float32) for o in obs.values()])
 
 
+mae = th.nn.L1Loss(reduction='sum')
+
+
 class BASIC:
     """
     This is the most basic algorithm that works with our framework.
     """
     # possible todos:
-    # TODO use separate env for evaluation
+    # TODO use separate env for evaluation?
     # TODO policy saving and loading
     # TODO nn backprop
     # TODO do not use the callback AT ALL (modify train.py)
-    def __init__(self, env, net_arch=None, noise_factor=0.3, learning_rate=0.0003):
+    def __init__(self, env, net_arch=None, noise_factor=0.1, learning_rate=0.001):
         self.env = env
         self.logger = None
         self.num_timesteps = 0
         self.observation_space = env.observation_space
         self.action_space = env.action_space
         self._last_obs = self.env.reset()
-        self.gamma = 0.95
+
+        # For Deep-q-learning:
         self.lr = learning_rate
-        self.loss_fn = th.nn.MSELoss(reduction='sum')
+        self.noise_factor = noise_factor
+        self.gamma = 0.95
+
+        # Networks
         self.actor = self._setup_nn(net_arch)
+        self.a_opt = th.optim.Adam(self.actor.parameters(), lr=learning_rate)
         self.critic = self._setup_critic(net_arch)
+        self.c_opt = th.optim.Adam(self.critic.parameters(), lr=learning_rate)
         self.target = self._setup_critic(net_arch)
         self.target.load_state_dict(self.critic.state_dict())
-        self.noise_factor = noise_factor
+
+        # To get from callback
         self.eval_freq = 0
         self.n_eval_episodes = 0
         self.render = False
+        self.early_stop_last_n = 1
+        self.early_stop_threshold = 1
+        self.history = []
 
     def set_logger(self, logger):
         self.logger = logger
 
-    def learn(self, total_timesteps, callback, log_interval):
-        callback = callback[0]
+    def get_settings_from_callback(self, callback):
         self.eval_freq = callback.eval_freq
         self.n_eval_episodes = callback.n_eval_episodes
+        self.render = callback.render_train == 'display' or callback.render_test == 'display'  # TODO more sophisticated rendering
+        assert callback.early_stop_data_column == 'test/success_rate', "early_stop_data_column has to be test/" \
+                                                                       "success_rate. It is the only one available."
+        self.early_stop_last_n = callback.early_stop_last_n
+        self.early_stop_threshold = callback.early_stop_threshold
+
+    def learn(self, total_timesteps, callback, log_interval):
+        self.get_settings_from_callback(callback[0])
         while self.num_timesteps < total_timesteps:
             action = self._get_action(self._last_obs, deterministic=False)
             obs, rewards, done, info = self.env.step(action)
@@ -50,32 +70,31 @@ class BASIC:
             self._last_obs = obs
             self.num_timesteps += 1
             if done:
-                self.env.reset()
+                self._last_obs = self.env.reset()
             if self.eval_freq > 0 and self.num_timesteps % self.eval_freq == 0:
-                self.evaluate()
+                if self.evaluate():
+                    return
 
     def _train(self, last_obs, obs, reward):
+        reward = abs(reward) * 10  # Net minimizes reward, reward closer to 0 is better
         self.logger.record_mean('reward', reward)
+        # critic loss
         q_last = self.critic(th.cat([self.actor(prepare_obs(last_obs)), prepare_obs(last_obs)]))
         q_now = self.target(th.cat([self.actor(prepare_obs(obs)), prepare_obs(obs)]))
-        self.logger.record_mean('q', q_now.item())
-        critic_loss = self.loss_fn(q_last, (reward + self.gamma * q_now))
-        actor_loss = q_last
+        critic_loss = mae(q_last, (reward + self.gamma * q_now))
         self.logger.record_mean('critic_loss', critic_loss.item())
-        self.logger.record_mean('actor_loss', actor_loss.item())
-        self.critic.zero_grad()
-        self.actor.zero_grad()
-        if np.random.rand() > 0.5:
-            actor_loss.backward()
-            with th.no_grad():
-                for param in self.actor.parameters():
-                    param -= self.lr * param.grad
-        else:
-            critic_loss.backward()
-            with th.no_grad():
-                for param in self.critic.parameters():
-                    param -= self.lr * param.grad
-        if self.num_timesteps % 50 == 0:
+        # optimize critic
+        self.c_opt.zero_grad()
+        critic_loss.backward()
+        self.c_opt.step()
+        # actor loss
+        actor_loss = self.critic(th.cat([self.actor(prepare_obs(last_obs)), prepare_obs(last_obs)]))  # q_last
+        self.logger.record_mean('actor_loss', actor_loss.item()) # same as q
+        # optimize actor
+        self.a_opt.zero_grad()
+        actor_loss.backward()
+        self.a_opt.step()
+        if self.num_timesteps % 10 == 0:
             self.target.load_state_dict(self.critic.state_dict())
 
     def evaluate(self):
@@ -93,10 +112,19 @@ class BASIC:
                     successful_episodes += 1
                     done = True
                     self.env.reset()
-        self.logger.record('test/success_rate', successful_episodes / self.n_eval_episodes)
+        succ_rate = successful_episodes / self.n_eval_episodes
+        self.logger.record('test/success_rate', succ_rate)
         self.logger.dump(step=self.num_timesteps)
-        #print([p for p in self.actor.parameters()][0])
-        # TODO early stopping
+        # early stopping
+        self.history.append(succ_rate)
+        if len(self.history) >= self.early_stop_last_n:
+            avg = sum(self.history[:-self.early_stop_last_n])/self.early_stop_last_n
+            if avg >= self.early_stop_threshold:
+                self.logger.info(f"Early stop threshold for test/success_rate met: "
+                                 f"Average over last {self.early_stop_last_n} evaluations is {avg} "
+                                 f"and threshold is {self.early_stop_threshold}. Stopping training.")
+                return True
+        return False
 
     def load(self, path):
         pass
