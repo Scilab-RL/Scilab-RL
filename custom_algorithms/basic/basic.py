@@ -1,3 +1,4 @@
+import pickle
 import torch as th
 import numpy as np
 
@@ -173,14 +174,36 @@ class BASIC:
                 self.logger.info(f"Early stop threshold for test/success_rate met: "
                                  f"Average over last {self.early_stop_last_n} evaluations is {avg} "
                                  f"and threshold is {self.early_stop_threshold}. Stopping training.")
+                p = self.logger.get_dir() + "/best.zip"
+                self.logger.info(f"Saving policy to {p}")
+                self.save(path=p)
                 return True
         return False
 
-    def load(self, path):
-        pass
+    @classmethod
+    def load(cls, path, env, **kwargs):
+        model = cls(env=env, **kwargs)
+        loaded_dict = pickle.load(open(path, "rb"))
+        for k in loaded_dict:
+            if k not in ["actor_state", "critic_state"]:
+                model.__dict__[k] = loaded_dict[k]
+        # load network states
+        model.actor.load_state_dict(loaded_dict["actor_state"])
+        model.critic.load_state_dict(loaded_dict["critic_state"])
+        model.target.load_state_dict(loaded_dict["critic_state"])
+        return model
 
     def save(self, path):
-        pass
+        # Copy parameter list, so we don't mutate the original dict
+        data = self.__dict__.copy()
+        for to_exclude in ["logger", "env", "n_steps", "history", "_last_obs", "render",
+                           "actor", "critic", "target"]:
+            del data[to_exclude]
+        # save network parameters
+        data["actor_state"] = self.actor.state_dict()
+        data["critic_state"] = self.critic.state_dict()
+        # no need to save the target-network state, because it is a copy of the critic network
+        pickle.dump(data, open(path, "wb"))
 
     def _get_action(self, obs, deterministic):
         """
