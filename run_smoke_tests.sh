@@ -32,8 +32,10 @@ test_envs() {
   ENVS+="ButtonUnlock-o2-v1,"
   # ENVS+="AntReacher-v1,"
   ENVS+="AntMaze-v0,"
+  ENVs+="AntButtonUnlock-o2-v1,"
   ENVS+="Blocks-o0-gripper_random-v1,"
   ENVS+="Blocks-o3-gripper_none-v1,"
+  ENVS+="Reach1DOF-v0,"
   #RLBench
   # ENVS+="reach_target-state-v0,"
   ENVS+="close_box-state-v0"
