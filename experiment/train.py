@@ -12,7 +12,7 @@ import wandb
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
-from omegaconf import DictConfig, OmegaConf, open_dict
+from omegaconf import DictConfig, OmegaConf
 from custom_envs.register_envs import register_custom_envs
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.util import get_git_label, set_global_seeds, flatten_dictConf
@@ -60,8 +60,8 @@ def train(baseline, train_env, eval_env, cfg, logger):
 def launch(cfg, logger, kwargs):
     set_global_seeds(cfg.seed)
     algo_name = cfg['algorithm'].name
-    with open_dict(cfg):
-        del cfg['algorithm']['name']  # remove name as we pass all arguments to the model constructor
+    alg_kwargs = OmegaConf.to_container(cfg.algorithm)
+    del alg_kwargs['name']  # remove name as we pass all arguments to the model constructor
     try:
         baseline_class = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except ModuleNotFoundError:
@@ -84,7 +84,6 @@ def launch(cfg, logger, kwargs):
     else:
         train_env = gym.make(cfg.env, **cfg.env_kwargs)
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
-    alg_kwargs = OmegaConf.to_container(cfg.algorithm)
     if cfg.restore_policy is not None:
         baseline = baseline_class.load(cfg.restore_policy, **alg_kwargs, env=train_env, **kwargs)
     else:
@@ -95,7 +94,7 @@ def launch(cfg, logger, kwargs):
                alg_kwargs['learning_starts'] = max(alg_kwargs['learning_starts'], train_env._max_episode_steps)
             else:
                alg_kwargs['learning_starts'] = train_env._max_episode_steps
-        baseline = baseline_class(policy='MultiInputPolicy', env=train_env, **alg_kwargs, **kwargs)
+        baseline = baseline_class(env=train_env, **alg_kwargs, **kwargs)
     baseline.set_logger(logger)
     logger.info("Launching training")
     return train(baseline, train_env, eval_env, cfg, logger)

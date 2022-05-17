@@ -1,0 +1,36 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  - override /algorithm: basic
+
+env: 'Reach1DOF-v0'
+env_kwargs:
+  reward_type: 'dense'
+
+hydra:
+  sweeper:
+    study_name: basic_Reach1DOF
+    max_trials: 128
+    n_jobs: 8
+    direction: maximize
+    max_duration_minutes: 600
+    min_trials_per_param: 2
+    max_trials_per_param: 3
+    search_space:
+      ++algorithm.learning_rate:
+        type: float
+        low: 1e-4
+        high: 1e-2
+        log: true
+      ++algorithm.noise_factor:
+        type: float
+        low: 0.0
+        high: 0.5
+        step: 0.1
+      ++algorithm.net_arch:
+        type: categorical
+        choices:
+          - [8]
+          - [16]
+          - [8,8]
+          - [16,16]
