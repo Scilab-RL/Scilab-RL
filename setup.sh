@@ -15,6 +15,15 @@ setup_venv() {
 }
 
 get_mujoco() {
+  pkgs='libosmesa6-dev libgl1-mesa-glx patchelf'
+  for pkg in $pkgs; do
+    status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
+    if [ ! $? = 0 ] || [ ! "$status" = installed ]; then
+      echo "You appear to be missing dependencies for MuJoCo. Install them with"
+      echo "sudo apt-get install libosmesa6-dev patchelf"
+      return
+    fi
+  done
   # Check if MuJoCo is already installed
   if [ -d "${HOME}/mujoco210" ]; then
     echo "Skipping MuJoCo as it is already installed."
