@@ -25,7 +25,7 @@ def get_hyperopt_score(cfg, current_run):
     return hyperopt_score, epochs
 
 
-def setup_mlflow(cfg: str):
+def setup_mlflow(cfg: DictConfig):
     orig_path = hydra.utils.get_original_cwd()
     mlflow.set_tracking_uri('file://' + orig_path + '/mlruns')
     experiment_name = 'Default'
