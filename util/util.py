@@ -3,15 +3,17 @@ import subprocess
 import numpy as np
 from omegaconf import DictConfig
 
+
 def flatten_dictConf(cfg, prefix=""):
     flat_cfg = {}
     for k, v in cfg.items():
         if type(v) == DictConfig:
-            sub_dict = flatten_dictConf(v, prefix=k+".")
+            sub_dict = flatten_dictConf(v, prefix=k + ".")
             flat_cfg.update(sub_dict)
         else:
-            flat_cfg[prefix+k] = v
+            flat_cfg[prefix + k] = v
     return flat_cfg
+
 
 def get_git_label():
     try:
