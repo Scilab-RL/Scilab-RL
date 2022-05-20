@@ -9,6 +9,9 @@ import mlflow
 import hydra
 import gym
 import wandb
+
+sys.path.append(os.getcwd())
+
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.her.her import HerReplayBuffer
@@ -19,7 +22,7 @@ from util.util import get_git_label, set_global_seeds, flatten_dictConf
 from util.custom_logger import FixedHumanOutputFormat, MLFlowOutputFormat, WandBOutputFormat
 from util.custom_eval_callback import CustomEvalCallback
 
-sys.path.append(os.getcwd())
+
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
 
