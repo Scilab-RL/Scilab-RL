@@ -119,8 +119,8 @@ def main(cfg: DictConfig) -> (float, int):
     with mlflow.start_run(run_name=run_name) as mlflow_run:
         mlflow.log_param('log_dir', run_dir)
         logger = setup_logger(run_dir, run_name, cfg)
-        run_id = mlflow.active_run().info.run_id  # TODO delete if not used in hyperopt
-        print(f"Active mlflow run_id: {run_id}")  # this too
+        run_id = mlflow.active_run().info.run_id
+        print(f"Active mlflow run_id: {run_id}")
         log_params_from_omegaconf_dict(cfg)
         OmegaConf.save(config=cfg, f='params.yaml')
 
@@ -171,7 +171,7 @@ def main(cfg: DictConfig) -> (float, int):
             wandb.log({"hyperopt_score": hyperopt_score})
             wandb.finish()
 
-    return hyperopt_score, n_epochs, run_id  # TODO run_id probably not needed
+    return hyperopt_score, n_epochs, run_id
 
 
 if __name__ == '__main__':
