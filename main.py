@@ -18,60 +18,23 @@ from util.custom_callbacks import EarlyStopCallback
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
 
-"""
-Callbacks:
-class CustomCallback(BaseCallback):
-    def __init__(self, verbose=0):
-    def _on_training_start(self) -> None:
-    def _on_rollout_start(self) -> None:
-    def _on_step(self) -> bool:
-    def _on_rollout_end(self) -> None:
-    def _on_training_end(self) -> None:
-
-    saving the model periodically (CheckpointCallback)
-
-    evaluating the model periodically and saving the best one (EvalCallback)
-
-    chaining callbacks (CallbackList)
-
-    triggering callback on events (Event Callback, EveryNTimesteps)
-
-    stopping the training early based on a reward threshold (StopTrainingOnRewardThreshold)
-"""
-
-"""
-Wrappers:
-look at gym/wrappers
-Wrappers for video recording, time-limit, etc.
-
-and at sb3/common/
-
-What is the VecEnv? The VecEnv is a way to train on multiple environments at once.
-
-
-Idea: Decide on wrappers and callbacks with the hydra parameters.
-"""
-
-"""
-Framework functionality:
-"""
-# TODO train with MuJoCo Envs
+# DONE train with MuJoCo Envs
 # TODO train with RLBench Envs
 # TODO train with custom Envs
-# TODO train with SB3 algorithms
-# - on policy
-# - off policy
+# train with SB3 algorithms
+# - TODO on policy
+# - DONE off policy
 # TODO train with custom algorithms
 # TODO configure with hydra
-# TODO hyperopt-score
-# TODO render
-# - display
-# - record
-# TODO restore
+# DONE hyperopt-score
+# render
+# - TODO display
+# - TODO record
+# DONE restore
 # TODO wandb
 # TODO mlflow
-# TODO early stopping
-# TODO evaluation
+# DONE early stopping
+# DONE evaluation
 #
 # TODO hyperopt should not fail when experiment fails
 #
@@ -97,7 +60,7 @@ def get_env_instance(cfg):
         # there can be only one PyRep instance per process, therefore train_env == eval_env
         rlbench_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
         train_env = RLBenchWrapper(rlbench_env, "train")
-        eval_env = RLBenchWrapper(rlbench_env, "eval")  # TODO maybe only train_env
+        eval_env = RLBenchWrapper(rlbench_env, "eval")  # TODO maybe only train_env, worth a try as evaluation.py resets at the start.
     else:
         train_env = gym.make(cfg.env, **cfg.env_kwargs)
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
@@ -112,22 +75,22 @@ def get_algo_instance(cfg, logger, env):
         baseline_class = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except ModuleNotFoundError:
         baseline_class = getattr(importlib.import_module('custom_algorithms.' + algo_name), algo_name.upper())
+    if 'replay_buffer_class' in alg_kwargs and alg_kwargs['replay_buffer_class'] == 'HerReplayBuffer':
+        alg_kwargs['replay_buffer_class'] = HerReplayBuffer
+        # if learning_starts < max_episode_steps, learning starts before the first episode is stored
+        if 'learning_starts' in alg_kwargs:
+            alg_kwargs['learning_starts'] = max(alg_kwargs['learning_starts'], env._max_episode_steps)
+        else:
+            alg_kwargs['learning_starts'] = env._max_episode_steps
     if cfg.restore_policy is not None:
-        baseline = baseline_class.load(cfg.restore_policy, **alg_kwargs, env=env)
+        baseline = baseline_class.load(cfg.restore_policy, env=env, **alg_kwargs)
     else:
-        if 'replay_buffer_class' in alg_kwargs and alg_kwargs['replay_buffer_class'] == 'HerReplayBuffer':
-            alg_kwargs['replay_buffer_class'] = HerReplayBuffer
-            # if learning_starts < max_episode_steps, learning starts before the first episode is stored
-            if 'learning_starts' in alg_kwargs:
-                alg_kwargs['learning_starts'] = max(alg_kwargs['learning_starts'], env._max_episode_steps)
-            else:
-                alg_kwargs['learning_starts'] = env._max_episode_steps
         baseline = baseline_class(env=env, **alg_kwargs)
     baseline.set_logger(logger)
     return baseline
 
 
-def create_callbacks(cfg, logger, baseline, eval_env):
+def create_callbacks(cfg, logger, eval_env):
     callback = []
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
@@ -172,7 +135,7 @@ def main(cfg: DictConfig) -> (float, int):
         logger.info("Launching training")
         total_steps = cfg.eval_after_n_steps * cfg.n_epochs
 
-        callback = create_callbacks(cfg, logger, baseline, eval_env)
+        callback = create_callbacks(cfg, logger, eval_env)
 
         training_finished = False
         try:
