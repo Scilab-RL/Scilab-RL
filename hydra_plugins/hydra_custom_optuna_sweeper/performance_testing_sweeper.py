@@ -54,10 +54,12 @@ class PerformanceTestingSweeper(Sweeper):
         succ_runs = 0
         eval_col = p_test_cond['eval_columns']
         eval_val = p_test_cond['eval_value']
+        self.config['n_epochs'] = int(p_test_cond['max_steps'] / self.config['eval_after_n_steps'])
 
         job_idx = 0
         start_time = time.perf_counter()
         current_time = start_time
+
         # The following is the main loop that starts all runs
         while n_runs_left > 0 and (start_time + self.max_duration) > current_time:
             running_duration = (current_time - start_time)
