@@ -1,44 +1,44 @@
-from typing import Union, Optional
-import gym
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-from stable_baselines3.common.vec_env import VecEnv
+from stable_baselines3.common.callbacks import BaseCallback
+import mlflow
 
 
-class EarlyStopEvalCallback(EvalCallback):
+class EarlyStopCallback(BaseCallback):
     """
-    Adds the functionality of early stopping dependent on the eval/success_rate to the EvalCallback.
-    :param threshold: threshold
+    This callback checks whether to stop the experiment early because the agent is already good enough.
+    If the agent achieved an average value better than *threshold* for the *metric* over the last *n_episodes*,
+    it ends the training and saves an early-stopping agent.
+    param metric: The metric to consider for early stopping.
+    param eval_freq: The frequency of evaluation, so that this callback is only called after each evaluation.
+    param threshold: The early-stopping-threshold for the metric-average value.
+    param n_episodes: The number of episodes over which to average the metric.
     """
 
     def __init__(
             self,
-            eval_env: Union[gym.Env, VecEnv],
+            metric: str = 'eval/success_rate',
+            eval_freq: int = 2000,
             threshold: float = 0.9,
-            n_episodes: int = 3,
-            callback_on_new_best: Optional[BaseCallback] = None,
-            n_eval_episodes: int = 5,
-            eval_freq: int = 10000,
-            log_path: str = None,
-            best_model_save_path: str = None,
-            deterministic: bool = True,
-            render: bool = False,
-            verbose: int = 1,
-            warn: bool = True,
+            n_episodes: int = 3
     ):
-        super(EarlyStopEvalCallback, self).__init__(eval_env=eval_env, callback_on_new_best=callback_on_new_best,
-                                                    n_eval_episodes=n_eval_episodes, eval_freq=eval_freq,
-                                                    log_path=log_path, best_model_save_path=best_model_save_path,
-                                                    deterministic=deterministic, render=render, verbose=verbose,
-                                                    warn=warn)
+        super(EarlyStopCallback, self).__init__(verbose=0)
+        self.metric = metric
+        self.eval_freq = eval_freq
         self.threshold = threshold
         self.n_episodes = n_episodes
 
     def _on_step(self) -> bool:
-        assert self.parent is not None, "``StopTrainingOnMinimumReward`` callback must be used with an ``EvalCallback``"
-        continue_training = bool(self.parent.best_mean_reward < self.reward_threshold)
-        if self.verbose > 0 and not continue_training:
-            print(
-                f"Stopping training because the mean reward {self.parent.best_mean_reward:.2f} "
-                f" is above the threshold {self.reward_threshold}"
-            )
-        return continue_training
+        if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
+            client = mlflow.tracking.MlflowClient()
+            hist = client.get_metric_history(mlflow.active_run().info.run_id, self.metric)
+            data_val_hist = [h.value for h in hist]
+            if len(data_val_hist) >= self.n_episodes:
+                avg = sum(data_val_hist[-self.n_episodes:])/self.n_episodes
+                if avg >= self.threshold:
+                    self.logger.info(f"Early stop threshold for {self.metric} met: "
+                                     f"Average over last {self.n_episodes} evaluations is {avg} "
+                                     f"and threshold is {self.threshold}. Stopping training.")
+                    p = self.logger.get_dir() + "/early_stop_agent.zip"
+                    self.logger.info(f"Saving policy to {p}")
+                    self.model.save(path=p)
+                    return False
+        return True
