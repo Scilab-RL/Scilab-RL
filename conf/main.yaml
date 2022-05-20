@@ -5,6 +5,7 @@ defaults:
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
   - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time. The standard launcher is much better for debugging.
+  - _self_
 
 # The name of the OpenAI Gym environment that you want to train on.
 env: 'FetchReach-v1'
@@ -44,7 +45,7 @@ early_stop_last_n: 3
 early_stop_threshold: 0.9
 
 # The data column on which early stopping is based.
-early_stop_data_column: 'test/success_rate'
+early_stop_data_column: 'eval/success_rate'
 
 # A command line comment that will be integrated in the folder where the results
 # are stored. Useful for debugging and addressing temporary changes to the code.
