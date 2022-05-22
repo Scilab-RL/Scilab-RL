@@ -43,3 +43,15 @@ def set_global_seeds(i):
         pass
     np.random.seed(myseed)
     random.seed(myseed)
+
+
+def get_train_video_schedule(every_n_steps):
+    def train_schedule(step_id):
+        return step_id % every_n_steps == 1
+    return train_schedule
+
+
+def get_eval_video_schedule(every_n_epochs, n_eval_episodes):
+    def eval_schedule(episode_id):
+        return episode_id % (every_n_epochs * n_eval_episodes) == 1
+    return eval_schedule
