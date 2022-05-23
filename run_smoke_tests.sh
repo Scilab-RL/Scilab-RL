@@ -16,7 +16,7 @@ test_algos() {
   local ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0"
 
   # Don't have xvfb? install it with sudo apt-get install xvfb
-  if ! xvfb-run -a python3 experiment/train.py env=$ENVS algorithm=$ALGOS +performance=smoke_test --multirun;
+  if ! xvfb-run -a python3 main.py env=$ENVS algorithm=$ALGOS +performance=smoke_test --multirun;
   then
     exit 1
   fi
@@ -44,7 +44,7 @@ test_envs() {
   echo "Smoke-testing environments $ENVS"
 
   # Don't have xvfb? install it with sudo apt-get install xvfb
-  if ! xvfb-run -a python3 experiment/train.py algorithm=sac env=$ENVS +performance=smoke_test --multirun;
+  if ! xvfb-run -a python3 main.py algorithm=sac env=$ENVS +performance=smoke_test --multirun;
   then
     exit 1
   fi
