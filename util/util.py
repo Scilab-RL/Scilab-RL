@@ -55,3 +55,17 @@ def get_eval_video_schedule(every_n_epochs, n_eval_episodes):
     def eval_schedule(episode_id):
         return episode_id % (every_n_epochs * n_eval_episodes) == 1
     return eval_schedule
+
+
+def avoid_start_learn_before_first_episode_finishes(alg_kwargs, env):
+    max_ep_steps = None
+    while max_ep_steps is None:  # go through the wrappers to find the TimeLimit wrapper
+        if hasattr(env, '_max_episode_steps'):
+            max_ep_steps = env._max_episode_steps
+        else:
+            env = env.env
+    if 'learning_starts' in alg_kwargs:
+        alg_kwargs['learning_starts'] = max(alg_kwargs['learning_starts'], max_ep_steps)
+    else:
+        alg_kwargs['learning_starts'] = max_ep_steps
+    return alg_kwargs
