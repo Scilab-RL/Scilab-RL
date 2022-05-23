@@ -10,49 +10,51 @@ from stable_baselines3.her.her import HerReplayBuffer
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 
 from custom_envs.register_envs import register_custom_envs
-from util.util import get_git_label, set_global_seeds
+from util.util import get_git_label, set_global_seeds, get_train_video_schedule, get_eval_video_schedule, \
+    avoid_start_learn_before_first_episode_finishes
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.custom_logger import setup_logger
 from util.custom_callbacks import EarlyStopCallback
+from util.custom_wrappers import DisplayWrapper
 
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
 
 # DONE train with MuJoCo Envs
-# TODO train with RLBench Envs
-# TODO train with custom Envs
+# DONE train with RLBench Envs
+# DONE train with custom Envs
 # train with SB3 algorithms
-# - TODO on policy
+# - DONE on policy
 # - DONE off policy
 # TODO train with custom algorithms
 # TODO configure with hydra
 # DONE hyperopt-score
 # render
-# - TODO display
-# - TODO record
+# - DONE display
+# - DONE record
 # DONE restore
-# TODO wandb
-# TODO mlflow
+# DONE wandb
+# DONE mlflow
 # DONE early stopping
 # DONE evaluation
 #
-# TODO hyperopt should not fail when experiment fails
+# DONE hyperopt should not fail when experiment fails
 #
 # LATER
-# adjust scripts
-# adjust hyperopt
-# adjust smoke and performance tests
-# adjust wiki
+# TODO adjust scripts
+# TODO adjust hyperopt
+# TODO adjust smoke and performance tests
+# TODO adjust wiki
 
 
-def get_env_instance(cfg):
+def get_env_instance(cfg, logger):
     if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an RLBench env
         from custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
-        render_mode = None  # TODO change this whole render Extrawurst if possible
         # For RLBench envs, we can either not render at all, display train AND test, or record train or test or both
         # record will overwrite display
         # e.g. render_args=[['display',1],['record',1]] will have the same effect
         # as render_args=[['none',1],['record',1]]
+        render_mode = None
         if cfg.render_args[0][0] == 'display' or cfg.render_args[1][0] == 'display':
             render_mode = 'human'
         if cfg.render_args[0][0] == 'record' or cfg.render_args[1][0] == 'record':
@@ -60,10 +62,29 @@ def get_env_instance(cfg):
         # there can be only one PyRep instance per process, therefore train_env == eval_env
         rlbench_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
         train_env = RLBenchWrapper(rlbench_env, "train")
-        eval_env = RLBenchWrapper(rlbench_env, "eval")  # TODO maybe only train_env, worth a try as evaluation.py resets at the start.
+        eval_env = RLBenchWrapper(rlbench_env, "eval")
     else:
         train_env = gym.make(cfg.env, **cfg.env_kwargs)
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
+
+    # wrappers for rendering
+    if cfg.render_args[0][0] == 'display':
+        train_env = DisplayWrapper(train_env, cfg.render_args[0][1], epoch_steps=cfg.eval_after_n_steps)
+    if cfg.render_args[1][0] == 'display':
+        eval_env = DisplayWrapper(eval_env, cfg.render_args[1][1], epoch_episodes=cfg.n_test_rollouts)
+    if cfg.render_args[0][0] == 'record':
+        train_env = gym.wrappers.RecordVideo(env=train_env,
+                                             video_folder=logger.get_dir() + "/videos",
+                                             name_prefix="train",
+                                             step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
+                                                                                   * cfg.render_args[0][1]))
+    if cfg.render_args[1][0] == 'record':
+        eval_env = gym.wrappers.RecordVideo(env=eval_env,
+                                            video_folder=logger.get_dir() + "/videos",
+                                            name_prefix="eval",
+                                            episode_trigger=get_eval_video_schedule(cfg.render_args[1][1],
+                                                                                    cfg.n_test_rollouts))
+    # todo optional flatten observation wrapper
     return train_env, eval_env
 
 
@@ -77,11 +98,7 @@ def get_algo_instance(cfg, logger, env):
         baseline_class = getattr(importlib.import_module('custom_algorithms.' + algo_name), algo_name.upper())
     if 'replay_buffer_class' in alg_kwargs and alg_kwargs['replay_buffer_class'] == 'HerReplayBuffer':
         alg_kwargs['replay_buffer_class'] = HerReplayBuffer
-        # if learning_starts < max_episode_steps, learning starts before the first episode is stored
-        if 'learning_starts' in alg_kwargs:
-            alg_kwargs['learning_starts'] = max(alg_kwargs['learning_starts'], env._max_episode_steps)
-        else:
-            alg_kwargs['learning_starts'] = env._max_episode_steps
+        alg_kwargs = avoid_start_learn_before_first_episode_finishes(alg_kwargs, env)
     if cfg.restore_policy is not None:
         baseline = baseline_class.load(cfg.restore_policy, env=env, **alg_kwargs)
     else:
@@ -97,7 +114,7 @@ def create_callbacks(cfg, logger, eval_env):
         callback.append(checkpoint_callback)
     # Create the callback list
     eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                 log_path=logger.get_dir(), best_model_save_path=None)
+                                 log_path=logger.get_dir(), best_model_save_path=None, render=False)
     callback.append(eval_callback)
     early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
                                             threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
@@ -128,16 +145,15 @@ def main(cfg: DictConfig) -> (float, int):
             cfg['seed'] = int(time.time())
         set_global_seeds(cfg.seed)
 
-        train_env, eval_env = get_env_instance(cfg)
+        train_env, eval_env = get_env_instance(cfg, logger)
 
         baseline = get_algo_instance(cfg, logger, train_env)
 
-        logger.info("Launching training")
-        total_steps = cfg.eval_after_n_steps * cfg.n_epochs
-
         callback = create_callbacks(cfg, logger, eval_env)
 
+        logger.info("Launching training")
         training_finished = False
+        total_steps = cfg.eval_after_n_steps * cfg.n_epochs
         try:
             baseline.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
             training_finished = True
@@ -152,16 +168,11 @@ def main(cfg: DictConfig) -> (float, int):
         train_env.close()
         eval_env.close()
 
-        # TODO Use different wrappers and callbacks
-        # custom wrapper for early stopping
-        # vec_video_recorder for recording
-        # what for display?
-
         # after training
         if training_finished:
             hyperopt_score, n_epochs = get_hyperopt_score(cfg, mlflow_run)
         else:
-            hyperopt_score, n_epochs = 0, cfg["n_epochs"]
+            hyperopt_score, n_epochs = -1, cfg["n_epochs"]
         logger.info(f"Hyperopt score: {hyperopt_score}, epochs: {n_epochs}.")
         mlflow.log_metric("hyperopt_score", hyperopt_score)
         with open(os.path.join(run_dir, 'train.log'), 'r') as logfile:
