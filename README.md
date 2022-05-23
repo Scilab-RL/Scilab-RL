@@ -35,8 +35,8 @@ The framework is designed to run on Linux, best compatibility with Ubuntu 22. Ho
 1. run `./setup.sh -m -r`. `-m` is for installing MuJoCo and `-r` is for installing RLBench.
 2. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiments with `wandb=0`.
 3. Check your installation with
-   - `python3 experiment/train.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
-   - `python3 experiment/train.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
+   - `python3 main.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
+   - `python3 main.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
 4. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home).
 
 ### Manually
@@ -63,8 +63,8 @@ The framework is designed to run on Linux, best compatibility with Ubuntu 22. Ho
 6. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiment with `wandb=0`.
 
 7. Check your installation with
-   - `python3 experiment/train.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
-   - `python3 experiment/train.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
+   - `python3 main.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
+   - `python3 main.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
 
 8. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home).
 
