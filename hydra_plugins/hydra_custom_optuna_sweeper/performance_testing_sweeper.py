@@ -54,7 +54,7 @@ class PerformanceTestingSweeper(Sweeper):
         succ_runs = 0
         eval_col = p_test_cond['eval_columns']
         eval_val = p_test_cond['eval_value']
-        self.config['n_epochs'] = int(p_test_cond['max_steps'] / self.config['eval_after_n_steps'])
+        arguments.append(f"n_epochs={int(p_test_cond['max_steps'] / self.config['eval_after_n_steps'])}")
 
         job_idx = 0
         start_time = time.perf_counter()
