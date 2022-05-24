@@ -32,12 +32,6 @@ n_epochs: 60
 # The number of testing rollouts.
 n_test_rollouts: 10
 
-# Max. number of tries for this training config.
-max_try_idx: 199
-
-# Index for first try.
-try_start_idx: 0
-
 # The n last epochs over which to average for determining early stopping condition.
 early_stop_last_n: 3
 
