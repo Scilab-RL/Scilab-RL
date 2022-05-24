@@ -7,13 +7,6 @@ import numpy as np
 mae = th.nn.L1Loss(reduction='sum')
 
 
-def prepare_obs(obs):
-    """
-    Creates a flat tensor from the observation dictionary
-    """
-    return th.cat([th.tensor(o.copy().flatten(), dtype=th.float32) for o in obs.values()])
-
-
 def create_nn(net_arch, input_dim, output_dim):
     """
     Creates a sequential neural network
@@ -60,7 +53,7 @@ class BASIC:
         self.gamma = 0.95
 
         # Networks
-        n_obs = np.sum([space.shape for space in self.observation_space.spaces.values()])
+        n_obs = self.observation_space.shape[0]
         n_actions = self.action_space.shape[0]
         self.actor = create_nn(net_arch, n_obs, n_actions)
         self.a_opt = th.optim.Adam(self.actor.parameters(), lr=learning_rate)
@@ -99,8 +92,8 @@ class BASIC:
         reward = abs(reward[0]) * 10  # reward closer to 0 is better
         self.logger.record_mean('reward', -reward)
         # critic loss
-        q_last = self.critic(th.cat([self.actor(prepare_obs(last_obs)), prepare_obs(last_obs)]))
-        q_now = self.target(th.cat([self.actor(prepare_obs(obs)), prepare_obs(obs)]))
+        q_last = self.critic(th.cat([self.actor(th.tensor(last_obs.flatten())), th.tensor(last_obs.flatten())]))
+        q_now = self.target(th.cat([self.actor(th.tensor(obs.flatten())), th.tensor(obs.flatten())]))
         critic_loss = mae(q_last, (reward + self.gamma * q_now))  # temporal difference error
         self.logger.record_mean('critic_loss', critic_loss.item())
         # optimize critic
@@ -108,7 +101,7 @@ class BASIC:
         critic_loss.backward()
         self.c_opt.step()
         # actor loss
-        actor_loss = self.critic(th.cat([self.actor(prepare_obs(last_obs)), prepare_obs(last_obs)]))  # q_last
+        actor_loss = self.critic(th.cat([self.actor(th.tensor(last_obs.flatten())), th.tensor(last_obs.flatten())]))
         self.logger.record_mean('actor_loss', actor_loss.item())
         # optimize actor
         self.a_opt.zero_grad()
@@ -146,13 +139,13 @@ class BASIC:
         Get action from the actor network.
         If the action should not be deterministic, add noise with intensity self.noise_factor.
         """
-        obs = prepare_obs(obs)
+        obs = th.tensor(obs.flatten())
         with th.no_grad():
             action = self.actor(obs).detach().numpy()
         if not deterministic:
             action += self.noise_factor * (np.random.normal(size=len(action))-0.5)
         action = np.clip(action, -1, 1)
-        return [action]  # DummyVecEnv expects actions in a list
+        return action  # DummyVecEnv expects actions in a list
 
     def predict(self, obs, state=None, deterministic=True):
         return self._get_action(obs, deterministic), state
