@@ -58,12 +58,19 @@ def get_eval_video_schedule(every_n_epochs, n_eval_episodes):
 
 
 def avoid_start_learn_before_first_episode_finishes(alg_kwargs, env):
-    max_ep_steps = None
-    while max_ep_steps is None:  # go through the wrappers to find the TimeLimit wrapper
-        if hasattr(env, '_max_episode_steps'):
-            max_ep_steps = env._max_episode_steps
-        else:
-            env = env.env
+    try:
+        max_ep_steps = env.get_attr("spec")[0].max_episode_steps
+        # Raise the error because the attribute is present but is None
+        if max_ep_steps is None:
+            raise AttributeError
+    # if not available check if a valid value was passed as an argument
+    except AttributeError:
+        raise ValueError(
+            "The max episode length could not be inferred.\n"
+            "You must specify a `max_episode_steps` when registering the environment,\n"
+            "use a `gym.wrappers.TimeLimit` wrapper "
+            "or pass `max_episode_length` to the model constructor"
+        )
     if 'learning_starts' in alg_kwargs:
         alg_kwargs['learning_starts'] = max(alg_kwargs['learning_starts'], max_ep_steps)
     else:
