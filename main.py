@@ -7,7 +7,8 @@ import mlflow
 import gym
 import wandb
 from stable_baselines3.her.her import HerReplayBuffer
-from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 from custom_envs.register_envs import register_custom_envs
 from util.util import get_git_label, set_global_seeds, get_train_video_schedule, get_eval_video_schedule, \
@@ -84,7 +85,15 @@ def get_env_instance(cfg, logger):
                                             name_prefix="eval",
                                             episode_trigger=get_eval_video_schedule(cfg.render_args[1][1],
                                                                                     cfg.n_test_rollouts))
-    # todo optional flatten observation wrapper
+
+    if 'flatten_obs' in cfg and cfg.flatten_obs:
+        train_env = gym.wrappers.FlattenObservation(train_env)
+        eval_env = gym.wrappers.FlattenObservation(eval_env)
+
+    # At last, wrap in DummyVecEnv. This has to be the last wrapper, because it breaks the .unwrapped attribute.
+    train_env = DummyVecEnv([lambda: train_env])
+    eval_env = DummyVecEnv([lambda: eval_env])
+
     return train_env, eval_env
 
 
@@ -114,11 +123,12 @@ def create_callbacks(cfg, logger, eval_env):
         callback.append(checkpoint_callback)
     # Create the callback list
     eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                 log_path=logger.get_dir(), best_model_save_path=None, render=False)
+                                 log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False)
     callback.append(eval_callback)
     early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
                                             threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
     callback.append(early_stop_callback)
+    callback = CallbackList(callback)
     return callback
 
 
