@@ -24,7 +24,7 @@ algorithm:
     online_sampling: True
 
 performance_testing_conditions:
-  # In 2 out of 8 tests, the test/success rate should be at least 0.65 after 500k steps.
+  # In 2 out of 8 tests, the eval/success rate should be at least 0.65 after 500k steps.
 
   total_runs: 8 # How many runs in total:
 

@@ -15,7 +15,7 @@ algorithm:
 wandb: 0
 
 performance_testing_conditions:
-  # In 1 out of 3 tests, the test/success rate should be at least 0.9 after 60K steps.
+  # In 1 out of 3 tests, the eval/success rate should be at least 0.9 after 60K steps.
 
   total_runs: 3 # How many runs in total:
 
