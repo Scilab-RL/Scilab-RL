@@ -4,7 +4,7 @@ if [ $RUN_ALL_TESTS != "true" ]
 then  # run only these performance tests:
   for config in "FetchReach/sac_her-test" # "RLB_reach_target/sac_her-test"
   do
-    if ! xvfb-run -a python3 experiment/train.py +performance=$config wandb=0 --multirun;
+    if ! xvfb-run -a python3 main.py +performance=$config wandb=0 --multirun;
     then
       exit 1
     fi
@@ -21,7 +21,7 @@ do
     then
       config=${config:17}
       config=${config%.*}
-      if ! xvfb-run -a python3 experiment/train.py +performance=$config wandb=0 --multirun;
+      if ! xvfb-run -a python3 main.py +performance=$config wandb=0 --multirun;
       then
         echo "Performance-test $config failed."
         exit 1
