@@ -21,32 +21,6 @@ from util.custom_wrappers import DisplayWrapper
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
 
-# DONE train with MuJoCo Envs
-# DONE train with RLBench Envs
-# DONE train with custom Envs
-# train with SB3 algorithms
-# - DONE on policy
-# - DONE off policy
-# TODO train with custom algorithms
-# TODO configure with hydra
-# DONE hyperopt-score
-# render
-# - DONE display
-# - DONE record
-# DONE restore
-# DONE wandb
-# DONE mlflow
-# DONE early stopping
-# DONE evaluation
-#
-# DONE hyperopt should not fail when experiment fails
-#
-# LATER
-# TODO adjust scripts
-# TODO adjust hyperopt
-# TODO adjust smoke and performance tests
-# TODO adjust wiki
-
 
 def get_env_instance(cfg, logger):
     if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an RLBench env
@@ -86,9 +60,27 @@ def get_env_instance(cfg, logger):
                                             episode_trigger=get_eval_video_schedule(cfg.render_args[1][1],
                                                                                     cfg.n_test_rollouts))
 
+    # The following gym wrappers can be added via commandline parameters,
+    # e.g. use +flatten_obs to use the FlattenObservation wrapper
     if 'flatten_obs' in cfg and cfg.flatten_obs:
         train_env = gym.wrappers.FlattenObservation(train_env)
         eval_env = gym.wrappers.FlattenObservation(eval_env)
+
+    if 'clip_action' in cfg and cfg.clip_action:
+        train_env = gym.wrappers.ClipAction(train_env)
+        eval_env = gym.wrappers.ClipAction(eval_env)
+
+    if 'normalize_obs' in cfg and cfg.normalize_obs:
+        train_env = gym.wrappers.NormalizeObservation(train_env)
+        eval_env = gym.wrappers.NormalizeReward(eval_env)
+
+    if 'normalize_reward' in cfg and cfg.normalize_reward:
+        train_env = gym.wrappers.NormalizeReward(train_env)
+        eval_env = gym.wrappers.NormalizeReward(eval_env)
+
+    if 'time_aware_observation' in cfg and cfg.time_aware_observation:
+        train_env = gym.wrappers.TimeAwareObservation(train_env)
+        eval_env = gym.wrappers.TimeAwareObservation(eval_env)
 
     # At last, wrap in DummyVecEnv. This has to be the last wrapper, because it breaks the .unwrapped attribute.
     train_env = DummyVecEnv([lambda: train_env])
