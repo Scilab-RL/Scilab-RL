@@ -1,9 +1,37 @@
 from typing import Any, Dict, List, TextIO, Tuple, Union
 import warnings
-from stable_baselines3.common.logger import KVWriter
-from stable_baselines3.common.logger import Video, FormatUnsupportedError, SeqWriter
+import os
+import sys
+from stable_baselines3.common.logger import KVWriter, Video, FormatUnsupportedError, SeqWriter, configure
 import mlflow
 import wandb
+from omegaconf import OmegaConf
+from util.util import flatten_dictConf
+
+
+def setup_logger(run_dir, run_name, cfg):
+    logger = configure(folder=run_dir, format_strings=[])
+    logger.output_formats.append(FixedHumanOutputFormat(sys.stdout))
+    logger.output_formats.append(FixedHumanOutputFormat(os.path.join(run_dir, "train.log")))
+    logger.output_formats.append(MLFlowOutputFormat())
+    if cfg['wandb']:
+        non_nested_cfg = flatten_dictConf(cfg)
+        os.environ['WANDB_START_METHOD'] = "thread"
+        wandb_args = dict(project=cfg.project_name if cfg.project_name else run_name,
+                          config=non_nested_cfg)
+        if 'entity' in cfg:
+            wandb_args['entity'] = cfg['entity']
+        if 'group' in cfg:
+            wandb_args['group'] = cfg['group']
+        if 'tags' in cfg:
+            wandb_args['tags'] = cfg['tags']
+        wandb.init(**wandb_args)
+        logger.output_formats.append(WandBOutputFormat())
+    logger.info("Starting training with the following configuration:")
+    logger.info(OmegaConf.to_yaml(cfg))
+    logger.info(f"Log directory: {run_dir}")
+    logger.info(f"Starting process id: {os.getpid()}")
+    return logger
 
 
 class MLFlowOutputFormat(KVWriter, SeqWriter):

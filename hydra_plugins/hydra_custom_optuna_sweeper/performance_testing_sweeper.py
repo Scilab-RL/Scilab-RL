@@ -17,11 +17,11 @@ class PerformanceTestingSweeper(Sweeper):
     """
     Run performance testing for an environment-algorithm combination. The conditions for a performance test are stored
     in conf/performance/<ENV>/<OPTIONAL_ENV_SUBTYPE>/<OPTIONAL_ENV_CONFIG>-<ALGO>-test.yaml
-    You can for example run: "python experiment/train.py +performance=FetchReach/her-test --multirun"
+    You can for example run: "python main.py +performance=FetchReach/her-test --multirun"
     The joblib launcher allows to run n_jobs in parallel.
     YOU CANNOT run multiple performance tests by simply providing multiple configs separated by commas, for example:
-    "python experiment/train.py +performance=FetchReach/her-test,RLB_reach_target/sac_her-test --multirun" doesn't work.
-    In that case, just call experiment/train.py twice with the different performance test configs.
+    "python main.py +performance=FetchReach/her-test,RLB_reach_target/sac_her-test --multirun" doesn't work.
+    In that case, just call main.py twice with the different performance test configs.
     """
     def __init__(self, study_name, n_jobs, **kwargs):
         self.study_name = study_name
@@ -54,10 +54,12 @@ class PerformanceTestingSweeper(Sweeper):
         succ_runs = 0
         eval_col = p_test_cond['eval_columns']
         eval_val = p_test_cond['eval_value']
+        arguments.append(f"n_epochs={int(p_test_cond['max_steps'] / self.config['eval_after_n_steps'])}")
 
         job_idx = 0
         start_time = time.perf_counter()
         current_time = start_time
+
         # The following is the main loop that starts all runs
         while n_runs_left > 0 and (start_time + self.max_duration) > current_time:
             running_duration = (current_time - start_time)
