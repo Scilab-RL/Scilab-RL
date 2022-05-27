@@ -17,7 +17,7 @@ algorithm:
     online_sampling: True
 
 performance_testing_conditions:
-  # In 1 out of 3 tests, the test/success rate should be at least 0.3 after 100.000 steps.
+  # In 1 out of 3 tests, the eval/success rate should be at least 0.3 after 100.000 steps.
 
   total_runs: 3 # How many runs in total:
 
