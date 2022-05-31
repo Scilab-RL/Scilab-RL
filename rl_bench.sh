@@ -113,5 +113,5 @@ open_box"
 for ENV in $DetectedConditionEnvs
 do
   ENV="$ENV-state-v0"
-  python main.py env=$ENV algorithm=sac +replay_buffer=her render_args=[['display',1],['none',1]] n_epochs=1 eval_after_n_steps=100 n_test_rollouts=1 wandb=0
+  python main.py env=$ENV render_args=[['display',1],['none',1]] n_epochs=1 eval_after_n_steps=10 n_test_rollouts=1 wandb=0
 done
