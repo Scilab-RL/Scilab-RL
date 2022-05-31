@@ -23,7 +23,9 @@ OmegaConf.register_new_resolver("git_label", get_git_label)
 
 
 def get_env_instance(cfg, logger):
-    if cfg.env.endswith('-state-v0') or cfg.env.endswith('-vision-v0'):  # if the environment is an RLBench env
+    def is_rlbench_env(env_name):
+        return env_name.endswith('-state-v0') or cfg.env.endswith('-vision-v0')
+    if is_rlbench_env(cfg.env):  # if the environment is an RLBench env
         from custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
         # For RLBench envs, we can either not render at all, display train AND test, or record train or test or both
         # record will overwrite display
