@@ -1,6 +1,7 @@
 # This list contains all RLBench environments sorted by their goal-conditions.
 
-DetectedConditionEnvs="close_grill
+DetectedConditionEnvs="basketball_in_hoop
+close_grill
 reach_target
 place_shape_in_shape_sorter
 put_rubbish_in_bin
@@ -19,6 +20,7 @@ open_grill"
 
 DetectedAndNothingGraspedConditionEnvs="take_cup_out_from_cabinet
 setup_checkers
+setup_chess
 play_jenga
 light_bulb_out
 meat_on_grill
@@ -73,6 +75,7 @@ close_microwave
 change_channel
 lamp_off
 pick_and_lift
+pick_and_lift_small
 push_buttons
 take_lid_off_saucepan
 close_fridge
@@ -83,7 +86,6 @@ turn_tap
 press_switch
 open_microwave
 push_button
-tv_off
 stack_blocks
 pick_up_cup
 empty_container
@@ -94,7 +96,7 @@ wipe_desk
 screw_nail
 close_drawer
 tv_on
-hannoi_square
+insert_onto_square_peg
 hit_ball_with_queue
 close_laptop_lid
 open_drawer
@@ -107,7 +109,10 @@ open_window
 close_box
 block_pyramid
 pour_from_cup_to_cup
-open_box"
+open_box
+lift_numbered_block
+open_washing_machine"
+# stack_chairs is currently not supported
 # Could not place the task put_plate_in_colored_dish_rack in the scene. This should not happen, please raise an issues on this task.
 # pour_from_cup_to_cup also failed with the same error.
 for ENV in $DetectedConditionEnvs
