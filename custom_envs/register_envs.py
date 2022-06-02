@@ -55,7 +55,7 @@ def register_custom_envs():
 
     # ReacherEnv using CoppeliaSim
     for IK in [0, 1]:  # whether to use inverse kinematics
-        kwargs = {'ik': IK, 'render': 1}
+        kwargs = {'ik': IK}
         register(id=f'CopReach-ik{kwargs["ik"]}-v0',
                  entry_point='custom_envs.cop_reach.cop_reach_env:ReacherEnvMaker',
                  kwargs=kwargs,
