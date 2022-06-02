@@ -1,7 +1,9 @@
 from pyrep import PyRep
+from pyrep.const import PrimitiveShape, ObjectType, RenderMode
 from pyrep.robots.arms.arm import Arm
 from pyrep.objects.shape import Shape
-from pyrep.const import PrimitiveShape, ObjectType
+from pyrep.objects.dummy import Dummy
+from pyrep.objects.vision_sensor import VisionSensor
 from pyrep.errors import IKError, PyRepError
 import numpy as np
 from os.path import dirname, join, abspath
@@ -38,16 +40,16 @@ class ReacherEnvMaker:
 
 class ReacherEnv(gym.GoalEnv):
     """
-    Environment with Reacher tasks that uses CoppeliaSim and the ManipulatorPro robotic arm.
+    Environment with Reacher task that uses CoppeliaSim and the ManipulatorPro robotic arm.
     Args:
-        render: If render=0, CoppeliaSim will run in headless mode. TODO right now, we always render. Add an option!
+        render_mode: If render_mode != 'human', CoppeliaSim will run in headless mode.
         ik: whether to use inverse kinematics. If not, the actuators will be controlled directly.
             Note, that also the observation changes, when ik is set.
             !!!The IK can not always be computed. In that case, the action is not carried out!!!
     """
-    def __init__(self, render=1, ik=1, reward_type='sparse'):
+    def __init__(self, render_mode='none', ik=1, reward_type='sparse'):
         print('\033[92m' + 'Creating new Env' + '\033[0m')
-        render = bool(render)
+        render = render_mode == 'human'
         self.ik = bool(ik)
         self.reward_type = reward_type
         self.seed()
@@ -56,6 +58,13 @@ class ReacherEnv(gym.GoalEnv):
         self.pr = PyRep()
         self.pr.launch(SCENE_FILE, headless=not render)
         self.pr.start()
+
+        self.metadata['render.modes'] = ['human', 'rgb_array']
+        if render_mode == 'rgb_array':
+            cam_placeholder = Dummy('cam_placeholder')
+            self.cam = VisionSensor.create([640, 360])
+            self.cam.set_pose(cam_placeholder.get_pose())
+            self.cam.set_render_mode(RenderMode.OPENGL3)
 
         # load robot and set position
         self.agent = ManipulatorPro()
@@ -101,8 +110,12 @@ class ReacherEnv(gym.GoalEnv):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def render(self, mode='human', **kwargs):
-        pass
+    def render(self, mode='none', **kwargs):
+        if mode in ['none', 'human']:
+            return
+        frame = self.cam.capture_rgb()
+        frame = np.clip((frame * 255.).astype(np.uint8), 0, 255)
+        return frame
 
     def _get_obs(self):
         achieved_goal = self.agent_ee_tip.get_position()
@@ -180,9 +193,9 @@ class ReacherEnv(gym.GoalEnv):
     def step(self, action):
         self._set_action(action)
         self.pr.step()  # Step the physics simulation
-        done = False
         obs = self._get_obs()
         is_success = self._is_success(obs['achieved_goal'], obs['desired_goal'])
+        done = bool(is_success)
         info = {'is_success': is_success}
 
         r = self.compute_reward(obs['achieved_goal'], obs['desired_goal'], {})

@@ -23,12 +23,16 @@ OmegaConf.register_new_resolver("git_label", get_git_label)
 
 
 def get_env_instance(cfg, logger):
+
     def is_rlbench_env(env_name):
         return env_name.endswith('-state-v0') or cfg.env.endswith('-vision-v0')
-    if is_rlbench_env(cfg.env):  # if the environment is an RLBench env
-        from custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
-        # For RLBench envs, we can either not render at all, display train AND test, or record train or test or both
-        # record will overwrite display
+
+    def is_coppelia_env(env_name):
+        return env_name.startswith('Cop')
+
+    if is_rlbench_env(cfg.env) or is_coppelia_env(cfg.env):
+        # For envs based on CoppeliaSim, we can either not render at all, display train AND test,
+        # or record train or test or both. 'record' will overwrite 'display'
         # e.g. render_args=[['display',1],['record',1]] will have the same effect
         # as render_args=[['none',1],['record',1]]
         render_mode = None
@@ -37,9 +41,14 @@ def get_env_instance(cfg, logger):
         if cfg.render_args[0][0] == 'record' or cfg.render_args[1][0] == 'record':
             render_mode = 'rgb_array'
         # there can be only one PyRep instance per process, therefore train_env == eval_env
-        rlbench_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
-        train_env = RLBenchWrapper(rlbench_env, "train")
-        eval_env = RLBenchWrapper(rlbench_env, "eval")
+        if is_rlbench_env(cfg.env):
+            from custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
+            rlbench_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
+            train_env = RLBenchWrapper(rlbench_env, "train")
+            eval_env = RLBenchWrapper(rlbench_env, "eval")
+        else:
+            train_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
+            eval_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
     else:
         train_env = gym.make(cfg.env, **cfg.env_kwargs)
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
