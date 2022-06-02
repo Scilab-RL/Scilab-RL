@@ -38,7 +38,8 @@ test_envs() {
   ENVS+="Reach1DOF-v0,"
   #RLBench
   # ENVS+="reach_target-state-v0,"
-  ENVS+="close_box-state-v0"
+  ENVS+="close_box-state-v0,"
+  ENVS+="CopReach-ik1-v0"
   # ADD NEW ENVIRONMENTS HERE
 
   echo "Smoke-testing environments $ENVS"
