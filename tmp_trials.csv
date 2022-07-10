@@ -1,0 +1,3 @@
+number,value,datetime_start,datetime_complete,duration,params_++algorithm.critic_select,system_attrs_fixed_params,state
+0,0.22244897959183674,2022-05-22 15:36:46.094991,2022-05-22 15:44:48.439616,0 days 00:08:02.344625,max,,COMPLETE
+1,0.24722222222222223,2022-05-22 15:36:46.566593,2022-05-22 15:44:48.917156,0 days 00:08:02.350563,max,"{'++algorithm.critic_select': 'max', '+performance': 'FetchReach/sac_mod-opti', 'n_epochs': 60}",COMPLETE

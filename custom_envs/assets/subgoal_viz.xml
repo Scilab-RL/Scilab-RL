@@ -1,0 +1,36 @@
+<mujoco>
+    <body>
+        <site name="subgoal_sphere0" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0 0 0" type="sphere"/>
+        <site name="subgoal_sphere1" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 1 0 0" type="sphere"/>
+        <site name="subgoal_sphere2" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 0 1 0" type="sphere"/>
+        <site name="subgoal_sphere3" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 1 0 0" type="sphere"/>
+        <site name="subgoal_sphere4" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0 1 0" type="sphere"/>
+        <site name="subgoal_sphere5" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 1 1 0" type="sphere"/>
+        <site name="subgoal_sphere6" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0.5 0 0" type="sphere"/>
+        <site name="subgoal_sphere7" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0 0.5 0" type="sphere"/>
+        <site name="subgoal_sphere8" pos="0 0 7" size="0.025 0.025 0.025" rgba="0.5 1 0.5 0" type="sphere"/>
+        <site name="subgoal_sphere9" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 0.5 1 0" type="sphere"/>
+
+        <site name="subgoal_box0" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0 0 0" type="box"/>
+        <site name="subgoal_box1" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 1 0 0" type="box"/>
+        <site name="subgoal_box2" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 0 1 0" type="box"/>
+        <site name="subgoal_box3" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 1 0 0" type="box"/>
+        <site name="subgoal_box4" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0 1 0" type="box"/>
+        <site name="subgoal_box5" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 1 1 0" type="box"/>
+        <site name="subgoal_box6" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0.5 0 0" type="box"/>
+        <site name="subgoal_box7" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0 0.5 0" type="box"/>
+        <site name="subgoal_box8" pos="0 0 7" size="0.025 0.025 0.025" rgba="0.5 1 0.5 0" type="box"/>
+        <site name="subgoal_box9" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 0.5 1 0" type="box"/>
+
+        <site name="subgoal_cylinder0" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0 0 0" type="cylinder"/>
+        <site name="subgoal_cylinder1" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 1 0 0" type="cylinder"/>
+        <site name="subgoal_cylinder2" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 0 1 0" type="cylinder"/>
+        <site name="subgoal_cylinder3" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 1 0 0" type="cylinder"/>
+        <site name="subgoal_cylinder4" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0 1 0" type="cylinder"/>
+        <site name="subgoal_cylinder5" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 1 1 0" type="cylinder"/>
+        <site name="subgoal_cylinder6" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0.5 0 0" type="cylinder"/>
+        <site name="subgoal_cylinder7" pos="0 0 7" size="0.025 0.025 0.025" rgba="1 0 0.5 0" type="cylinder"/>
+        <site name="subgoal_cylinder8" pos="0 0 7" size="0.025 0.025 0.025" rgba="0.5 1 0.5 0" type="cylinder"/>
+        <site name="subgoal_cylinder9" pos="0 0 7" size="0.025 0.025 0.025" rgba="0 0.5 1 0" type="cylinder"/>
+    </body>
+</mujoco>

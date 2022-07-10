@@ -15,6 +15,7 @@ setup_venv() {
 }
 
 get_mujoco() {
+
   pkgs='libosmesa6-dev libgl1-mesa-glx patchelf'
   for pkg in $pkgs; do
     status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
@@ -24,6 +25,7 @@ get_mujoco() {
       return
     fi
   done
+
   # Check if MuJoCo is already installed
   if [ -d "${HOME}/mujoco210" ]; then
     echo "Skipping MuJoCo as it is already installed."

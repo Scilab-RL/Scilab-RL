@@ -6,6 +6,9 @@ from omegaconf import DictConfig, OmegaConf
 import mlflow
 import gym
 import wandb
+
+
+
 from stable_baselines3.her.her import HerReplayBuffer
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -17,13 +20,13 @@ from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_o
 from util.custom_logger import setup_logger
 from util.custom_callbacks import EarlyStopCallback
 from util.custom_wrappers import DisplayWrapper
+from util.custom_callback_metric_step_values import DisplayMetricCallBack
 
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
 
 
 def get_env_instance(cfg, logger):
-
     def is_rlbench_env(env_name):
         return env_name.endswith('-state-v0') or cfg.env.endswith('-vision-v0')
 
@@ -130,6 +133,13 @@ def create_callbacks(cfg, logger, eval_env):
     callback.append(eval_callback)
     early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
                                             threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
+    # For this you MUST be using a custom algorithm that has defined a
+    # 'val_to_record' state_variable!
+    print(isinstance(cfg.render_args[0][2], bool))
+    if isinstance(cfg.render_args[0][2], bool) and cfg.render_args[0][2]:
+        display_metric_callback = DisplayMetricCallBack(logger)
+        callback.append(display_metric_callback)
+
     callback.append(early_stop_callback)
     callback = CallbackList(callback)
     return callback
@@ -153,7 +163,6 @@ def main(cfg: DictConfig) -> (float, int):
         print(f"Active mlflow run_id: {run_id}")
         log_params_from_omegaconf_dict(cfg)
         OmegaConf.save(config=cfg, f='params.yaml')
-
         if cfg['seed'] == 0:
             cfg['seed'] = int(time.time())
         set_global_seeds(cfg.seed)
