@@ -7,7 +7,7 @@
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
   # access algorithm config group to get the default parameters of hac
-  - override /algorithm: oo_sac
+  - override /algorithm: sac
 
 env: 'Blocks-o1-gripper_above-v1'
 
@@ -19,8 +19,8 @@ algorithm:
 
 hydra:
   sweeper:
-    study_name: oo-sac_Blocks-o1-gripper_above-v1
-    storage: sqlite:///oo-sac_Blocks-o1-gripper_above-v1.db
+    study_name: sac_Blocks-o1-gripper_above-v1
+    storage: sqlite:///sac_Blocks-o1-gripper_above-v1.db
     max_trials: 3
     n_jobs: 9
     direction: maximize
