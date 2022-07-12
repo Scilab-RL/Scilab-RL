@@ -15,11 +15,11 @@ env: 'Blocks-o2-gripper_above-v1'
 early_stop_last_n: 4
 
 algorithm:
-  learning_rate: 2e-3
+  learning_rate: 2e-4
 
 hydra:
   sweeper:
-    study_name: oo-sac_Blocks-o2-gripper_above-v1-(v2)
+    study_name: oo-sac_Blocks-o2-gripper_above-v1
     storage: sqlite:///oo-sac_Blocks-o2-gripper_above-v1.db
     max_trials: 3
     n_jobs: 3
@@ -30,7 +30,7 @@ hydra:
     search_space:
       algorithm.learning_rate:
         type: float
-        low: 1.5e-3
-        high: 3e-3
-        step: 0.5e-3
+        low: 1.5e-4
+        high: 3e-4
+        step: 0.5e-4
 
