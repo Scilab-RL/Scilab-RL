@@ -87,6 +87,7 @@ class BASIC:
             self._last_obs = obs
             self.num_timesteps += 1
             if done:
+                callback.on_rollout_start()
                 self._last_obs = self.env.reset()
             if not callback.on_step():
                 return

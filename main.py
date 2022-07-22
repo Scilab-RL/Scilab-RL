@@ -133,11 +133,18 @@ def create_callbacks(cfg, logger, eval_env):
     callback.append(eval_callback)
     early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
                                             threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
-    # For this you MUST be using a custom algorithm that has defined a
-    # 'val_to_record' state_variable!
-    print(isinstance(cfg.render_args[0][2], bool))
-    if isinstance(cfg.render_args[0][2], bool) and cfg.render_args[0][2]:
-        display_metric_callback = DisplayMetricCallBack(logger)
+
+    # cfg.render_args[0][2] == 1 -> episodic animation with auto_close
+    # cfg.render_args[0][2] == 2 -> episodic animation with no auto_close
+    # cfg.render_args[0][2] == 3 -> one animation
+    if len(cfg.render_args[0]) > 2 and isinstance(cfg.render_args[0][2], int) and 0 < cfg.render_args[0][2] <= 3:
+        v_episodic = True
+        v_auto_close = True
+        if cfg.render_args[0][2] == 2:
+            v_auto_close = False
+        if cfg.render_args[0][2] == 3:
+            v_episodic = False
+        display_metric_callback = DisplayMetricCallBack(logger,episodic=v_episodic,auto_close=v_auto_close)
         callback.append(display_metric_callback)
 
     callback.append(early_stop_callback)

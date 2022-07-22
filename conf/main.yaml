@@ -9,15 +9,22 @@ defaults:
 
 # The name of the OpenAI Gym environment that you want to train on.
 env: 'FetchReach-v1'
-#env: 'Ant-v2'
+
 # keyword arguments for the environment
 env_kwargs: {}
 
 # The render_args specify how and when to render during training (first sublist) and testing (second sublist).
 # 'record' is for video, 'display' for direct visualization, 'none' for not rendering at all.
 # The numbers determine the number of epochs after which we render the training/testing.
-# Example: [['display',100],['record',10]] means that we display every 100th training and record every 10th testing epoch.
-render_args: [['none',100,'False'],['none',1,'False']]
+# The last number determines whether metric visalization takes place:
+# 0 -> no metric animation
+# 1 -> episodic metric animation with auto_close
+# 2 -> episodic metric animation with no auto_close
+# 3 -> one metric animation for all training
+# Example: [['display',100,'1'],['record',10]] means that we display every 100th training and record every 10th testing epoch
+# and animate a metric and automatically close the generated figures
+
+render_args: [['none',100,'0'],['none',1,]]
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
