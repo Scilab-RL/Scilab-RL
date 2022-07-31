@@ -6,3 +6,8 @@ tau: 0.005
 gamma: 0.99
 
 verbose: True
+
+replay_buffer_class: HerReplayBuffer  # ++algorithm.replay_buffer_class=null to not use HER
+
+policy: 'MultiInputPolicy'
+

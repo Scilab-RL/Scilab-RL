@@ -1,3 +1,5 @@
-name: 'dqn'
+name: 'ppo'
 
 verbose: True
+
+policy: 'MultiInputPolicy'
