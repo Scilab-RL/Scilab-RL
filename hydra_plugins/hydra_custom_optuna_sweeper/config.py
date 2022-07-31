@@ -121,7 +121,7 @@ class DistributionConfig:
     # Valid for int or float distribution
     log: bool = False
 
-    # Discritization step
+    # Discretization step
     # Valid for int or float distribution
     step: Optional[float] = None
 
@@ -147,12 +147,14 @@ class OptunaSweeperConf:
     # For example, you can use SQLite if you set 'sqlite:///example.db'
     # Please refer to the reference for further details
     # https://optuna.readthedocs.io/en/stable/reference/storages.html
+    # if no storage name is provided, it defaults to 'sqlite:///study_name.db'
     storage: Optional[str] = None
 
     # Name of study to persist optimization results
     study_name: Optional[str] = None
 
-    # Max number of function evaluations. There may be less function evaluations when trials are pruned because the parameterization has already been tested (see max_repeats_prune parameter below).
+    # Max number of function evaluations. There may be less function evaluations when trials are pruned
+    # because the parameterization has already been tested (see max_trials_per_param below).
     max_trials: int = 20
 
     # Number of parallel workers
@@ -161,10 +163,8 @@ class OptunaSweeperConf:
     # Max. duration in minutes for hyperopt
     max_duration_minutes: int = 1440
 
-    # After how many repeats of the same parameterization will the trial be pruned? 0 means there can be no repeats.
-#    max_repeats_prune: int = 0
-
-    # Min and max. number of trials per parameterization. min_trials is important for non-deterministic processes, max_trials is to prune parameterizations if they occur too often.
+    # Min and max. number of trials per parameterization. min_trials is important for non-deterministic processes,
+    # max_trials is to prune parameterizations if they occur too often.
     min_trials_per_param: int = 1
     max_trials_per_param: int = 3
 

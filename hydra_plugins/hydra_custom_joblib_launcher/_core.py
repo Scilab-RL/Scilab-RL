@@ -5,6 +5,7 @@ import os
 import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Optional
+import time
 
 from hydra.core.config_loader import ConfigLoader
 from hydra.core.hydra_config import HydraConfig
@@ -179,7 +180,7 @@ def launch(
     singleton_state = Singleton.get_state()
 
     runs = Parallel(**joblib_cfg)(
-        delayed(execute_job)(
+        delayed(get_staggered_func(execute_job))(
             initial_job_idx + idx,
             overrides,
             launcher.config_loader,
@@ -194,3 +195,14 @@ def launch(
     for run in runs:
         assert isinstance(run, JobReturn)
     return runs
+
+
+def get_staggered_func(func):
+    """
+    Wrapper to start all the processes with a slight temporal difference to avoid
+    problems with WandB server communication.
+    """
+    def staggered_func(_id, *args, **kwargs):
+        time.sleep(_id*0.1)
+        return func(_id, *args, **kwargs)
+    return staggered_func

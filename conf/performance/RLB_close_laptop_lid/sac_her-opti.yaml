@@ -9,19 +9,21 @@ env: 'close_laptop_lid-state-v0'
 n_epochs: 100
 
 # use HER
-using_her: true
 algorithm:
+  replay_buffer_class: HerReplayBuffer
   replay_buffer_kwargs:
-    n_sampled_goal: 1
+    n_sampled_goal: 2
     goal_selection_strategy: 'future'
     online_sampling: True
 
 hydra:
   sweeper:
-    study_name: sac_her_RLB_close_laptop_lid
-    storage: sqlite:///sac_her_RLB_close_laptop_lid.db
-    max_trials: 12
+    study_name: sac_her_RLB_close_laptop_lid-opt
+    max_trials: 30
     n_jobs: 6
+    direction: maximize
+    min_trials_per_param: 3
+    max_trials_per_param: 6
     search_space:
       +algorithm.learning_rate:
         type: float

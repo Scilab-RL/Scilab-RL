@@ -3,10 +3,11 @@ from typing import Any, List, Optional
 
 from hydra.core.config_loader import ConfigLoader
 from hydra.plugins.sweeper import Sweeper
-from hydra.types import TaskFunction
+from hydra.types import TaskFunction, HydraContext
 from omegaconf import DictConfig
 
 from .config import SamplerConfig
+from ._impl import CustomOptunaSweeperImpl
 
 
 class CustomOptunaSweeper(Sweeper):
@@ -26,19 +27,19 @@ class CustomOptunaSweeper(Sweeper):
         max_trials_per_param: int,
         search_space: Optional[DictConfig],
     ) -> None:
-        from ._impl import CustomOptunaSweeperImpl
 
         self.sweeper = CustomOptunaSweeperImpl(
-            sampler, direction, storage, study_name, max_trials, n_jobs, max_duration_minutes, min_trials_per_param, max_trials_per_param, search_space
+            sampler, direction, storage, study_name, max_trials, n_jobs, max_duration_minutes,
+            min_trials_per_param, max_trials_per_param, search_space
         )
 
     def setup(
         self,
-        config: DictConfig,
-        config_loader: ConfigLoader,
+        hydra_context: HydraContext,
         task_function: TaskFunction,
+        config: DictConfig,
     ) -> None:
-        self.sweeper.setup(config, config_loader, task_function)
+        self.sweeper.setup(config, hydra_context, task_function)
 
     def sweep(self, arguments: List[str]) -> None:
         return self.sweeper.sweep(arguments)
