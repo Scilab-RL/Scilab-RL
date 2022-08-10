@@ -5,7 +5,7 @@ import numpy as np
 from gym.utils import EzPickle
 from gym.envs.robotics import fetch_env, rotations, utils
 
-from ideas_envs.blocks.blocks_env import BlocksEnv
+from custom_envs.blocks.blocks_env import BlocksEnv
 
 
 class OO_Blocks_Adapter(BlocksEnv):

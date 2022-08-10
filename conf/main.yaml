@@ -17,7 +17,7 @@ env_kwargs: {}
 # 'record' is for video, 'display' for direct visualization, 'none' for not rendering at all.
 # The numbers determine the number of epochs after which we render the training/testing.
 # Example: [['display',100],['record',10]] means that we display every 100th training and record every 10th testing epoch.
-render_args: [['none',100],['none',1]]
+render_args: [['none',100],['record',15]]
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
@@ -33,7 +33,7 @@ restore_policy: null
 eval_after_n_steps: 2000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 60
+n_epochs: 100
 
 # The number of testing rollouts.
 n_test_rollouts: 10

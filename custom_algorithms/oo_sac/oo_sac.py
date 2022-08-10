@@ -1,22 +1,19 @@
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, Optional, Tuple, Type, Union
 
-import random
 import numpy as np
 import torch as th
 from stable_baselines3.common.buffers import ReplayBuffer
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.noise import ActionNoise
 from stable_baselines3.common.type_aliases import RolloutReturn, TrainFreq
-from stable_baselines3.common.utils import polyak_update
 from stable_baselines3.sac.policies import SACPolicy
-from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
+from stable_baselines3.common.type_aliases import GymEnv, Schedule
 from stable_baselines3.common.utils import should_collect_more_steps
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.sac import SAC
-from torch.nn import functional as F
 
-from ideas_baselines.oo_sac.oo_blocks_adapter import OO_Blocks_Adapter
-from ideas_envs.blocks.blocks_env import BlocksEnv
+from custom_algorithms.oo_sac.oo_blocks_adapter import OO_Blocks_Adapter
+from custom_envs.blocks.blocks_env import BlocksEnv
 
 
 def _get_idx(obs, n_obj):
@@ -28,8 +25,8 @@ def _get_idx(obs, n_obj):
 class OO_SAC(SAC):
     def __init__(
             self,
-            policy: Union[str, Type[SACPolicy]],
             env: Union[GymEnv, str],
+            policy: Union[str, Type[SACPolicy]],
             learning_rate: Union[float, Schedule] = 3e-4,
             buffer_size: int = 1000000,  # 1e6
             learning_starts: int = 100,
@@ -86,8 +83,8 @@ class OO_SAC(SAC):
             _init_setup_model=_init_setup_model
         )
 
-        if env.env.__class__ == BlocksEnv:
-            env.env.__class__ = OO_Blocks_Adapter
+        if env.envs[0].env.__class__ == BlocksEnv:
+            env.envs[0].env.__class__ = OO_Blocks_Adapter
         # elif env.env.__class__ == AnotherEnv:
         #     env.env.__class__ = AnotherEnv
         # elif ...
