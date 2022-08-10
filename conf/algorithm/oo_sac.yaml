@@ -6,3 +6,18 @@ tau: 0.005
 gamma: 0.99
 
 verbose: True
+
+replay_buffer_class: HerReplayBuffer  # ++algorithm.replay_buffer_class=null to not use HER
+
+buffer_size: 1000000
+policy_kwargs:
+  net_arch:
+    - 256
+    - 256
+    - 256
+replay_buffer_kwargs:
+  n_sampled_goal: 4
+  goal_selection_strategy: 'future'
+  online_sampling: True
+
+policy: 'MultiInputPolicy'
