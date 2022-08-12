@@ -62,8 +62,6 @@ class BASIC:
         self.target = create_nn(net_arch, n_obs + n_actions, 1)
         self.target.load_state_dict(self.critic.state_dict())
 
-        # Value to record and (optionally) display after each step
-        self.val_to_record = None
 
     def set_logger(self, logger):
         self.logger = logger
@@ -81,8 +79,8 @@ class BASIC:
             obs, rewards, done, info = self.env.step(action)
             q = self.target(
                 th.cat([self.actor(th.tensor(self._last_obs.flatten())), th.tensor(self._last_obs.flatten())]))
-            self.val_to_record = float(th.mean(q.detach()))
-            self.logger.record('val_to_record', self.val_to_record)
+            q_value= float(th.mean(q.detach()))
+            self.logger.record('q_val',q_value)
             self._train(self._last_obs, obs, rewards)
             self._last_obs = obs
             self.num_timesteps += 1
