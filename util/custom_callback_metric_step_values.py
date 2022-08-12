@@ -16,6 +16,7 @@ class DisplayMetricCallBack(BaseCallback):
 
     def __init__(
             self,
+            metric_key,
             logger,
             episodic=True,
             auto_close=True
@@ -28,6 +29,7 @@ class DisplayMetricCallBack(BaseCallback):
         self.logger = logger
         self.auto_close = auto_close
         self.episodic = episodic
+        self.metric_key = metric_key
 
         self.animation = LiveAnimationPlot()
 
@@ -45,7 +47,7 @@ class DisplayMetricCallBack(BaseCallback):
             self.animation.y_data = []
 
     def _on_step(self) -> bool:
-        self.curr_recorded_value = self.logger.name_to_value['val_to_record']
+        self.curr_recorded_value = self.logger.name_to_value[self.metric_key]
         self.animation.x_data.append(self.num_iteration)
         self.animation.y_data.append(self.curr_recorded_value)
         self.animation.start_animation()
