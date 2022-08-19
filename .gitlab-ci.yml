@@ -19,6 +19,7 @@ run-smoke-and-performance-tests:
         - .cache/pip
     script:
         - nvidia-smi
+        - conda init bash
         - conda activate runner-env
         - which python3
         - which pip
