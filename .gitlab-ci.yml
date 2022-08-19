@@ -20,15 +20,15 @@ run-smoke-and-performance-tests:
     script:
         - nvidia-smi
         - echo "Installing python libraries"
-        - /root/miniconda3/bin/pip install -r requirements.txt
+        - pip install -r requirements.txt
         - export PYTHONPATH=$PYTHONPATH:$(pwd)
         - export MUJOCO_PY_MUJOCO_PATH=/mujoco210
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
-        - /root/miniconda3/bin/pip install mujoco-py
+        - pip install mujoco-py
         - export COPPELIASIM_ROOT=/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$COPPELIASIM_ROOT
         - export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
-        - /root/miniconda3/bin/pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
+        - pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
         - echo "running smoke tests"
         - ./run_smoke_tests.sh
         - echo "running performance tests"

@@ -54,7 +54,9 @@ RUN wget \
     https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
     && mkdir /root/.conda \
     && bash Miniconda3-latest-Linux-x86_64.sh -b \
-    && rm -f Miniconda3-latest-Linux-x86_64.sh \
-    && echo PATH="/root/miniconda3/bin":$PATH >> .bashrc
+    && rm -f Miniconda3-latest-Linux-x86_64.sh
 
-RUN /root/miniconda3/bin/conda install cudatoolkit=11.3 -c pytorch
+ENV PATH=/root/miniconda3/bin:${PATH}
+RUN conda update -y conda
+RUN conda init
+RUN conda install cudatoolkit=11.3 -c pytorch
