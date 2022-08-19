@@ -24,10 +24,10 @@ run-smoke-and-performance-tests:
         - conda activate runner-env
         - which python3
         - which pip
-        - conda install cudatoolkit=11.3 -c pytorch
-        - conda install libgcc
+        - conda install libgcc -y
         - echo "Installing python libraries"
         - pip install -r requirements.txt
+        - conda install pytorch cudatoolkit=11.3 -c pytorch -y
         - export PYTHONPATH=$PYTHONPATH:$(pwd)
         - export MUJOCO_PY_MUJOCO_PATH=/mujoco210
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
