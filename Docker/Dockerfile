@@ -21,6 +21,9 @@ RUN apt-get update -q \
     libgl1-mesa-glx \
     libglew-dev \
     libosmesa6-dev \
+    software-properties-common \
+    net-tools \
+    xpra \
     wget \
     curl \
     python3-pip \
@@ -56,7 +59,11 @@ RUN wget \
     && bash Miniconda3-latest-Linux-x86_64.sh -b \
     && rm -f Miniconda3-latest-Linux-x86_64.sh
 
-ENV PATH=/root/miniconda3/bin:${PATH}
-RUN conda update -y conda
-RUN conda init
-RUN conda install cudatoolkit=11.3 -c pytorch
+ENV PATH="/root/miniconda3/bin:${PATH}"
+RUN conda init bash \
+  && . ~/.bashrc \
+  && conda create --name runner-env python=3.7 \
+  && conda activate runner-env \
+  && echo "source activate runner-env" > ~/.bashrc \
+  && conda install cudatoolkit=11.3 -c pytorch \
+  && conda install libgcc
