@@ -64,6 +64,4 @@ RUN conda init bash \
   && . ~/.bashrc \
   && conda create --name runner-env python=3.7 \
   && conda activate runner-env \
-  && echo "source activate runner-env" > ~/.bashrc \
-  && conda install cudatoolkit=11.3 -c pytorch \
-  && conda install libgcc
+  && echo "source activate runner-env" > ~/.bashrc
