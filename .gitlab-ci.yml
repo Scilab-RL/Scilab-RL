@@ -26,12 +26,12 @@ run-smoke-and-performance-tests:
         - which pip
         - conda install libgcc -y
         - echo "Installing python libraries"
-        - pip install -r requirements.txt
+        - pip install --no-cache-dir -r requirements.txt
         - conda install pytorch cudatoolkit=11.3 -c pytorch -y
         - export PYTHONPATH=$PYTHONPATH:$(pwd)
         - export MUJOCO_PY_MUJOCO_PATH=/mujoco210
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
-        - pip install mujoco-py
+        - pip install --no-cache-dir mujoco-py
         - export COPPELIASIM_ROOT=/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$COPPELIASIM_ROOT
         - export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
