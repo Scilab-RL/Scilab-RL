@@ -31,6 +31,7 @@ run-smoke-and-performance-tests:
         - export PYTHONPATH=$PYTHONPATH:$(pwd)
         - export MUJOCO_PY_MUJOCO_PATH=/mujoco210
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
+        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/.conda/lib/
         - pip install --no-cache-dir mujoco-py
         - export COPPELIASIM_ROOT=/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$COPPELIASIM_ROOT

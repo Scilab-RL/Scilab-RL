@@ -33,7 +33,6 @@ RUN apt-get update -q \
     libxau6  \
     xvfb  \
     dbus-x11  \
-    libstdc++6 \
     x11-utils  \
     libxkbcommon-x11-0 \
     libavcodec-dev  \
@@ -63,6 +62,4 @@ RUN wget \
 ENV PATH="/root/miniconda3/bin:${PATH}"
 RUN conda init bash \
   && . ~/.bashrc \
-  && conda create --name runner-env python=3.7 \
-  && conda activate runner-env \
-  && echo "source activate runner-env" > ~/.bashrc
+  && conda create --name runner-env python=3.7
