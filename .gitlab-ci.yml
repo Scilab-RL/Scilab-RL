@@ -23,7 +23,7 @@ run-smoke-and-performance-tests:
         - conda activate runner-env
         - which python3
         - which pip
-        - conda install libgcc=5.2.0 -y
+        - conda install -c anaconda libstdcxx-ng -y
         - echo "Installing python libraries"
         - pip install --no-cache-dir -r requirements.txt
         - conda install pytorch cudatoolkit=11.3 -c pytorch -y
