@@ -33,6 +33,7 @@ RUN apt-get update -q \
     libxau6  \
     xvfb  \
     dbus-x11  \
+    libstdc++6 \
     x11-utils  \
     libxkbcommon-x11-0 \
     libavcodec-dev  \
