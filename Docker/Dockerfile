@@ -29,7 +29,9 @@ RUN apt-get update -q \
     python3-pip \
     patchelf \
     libx11-6  \
+    libglfw3 \
     libxcb1  \
+    libstdc++6 \
     libxau6  \
     xvfb  \
     dbus-x11  \
@@ -55,7 +57,6 @@ RUN wget http://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_1_0_Ubuntu20_0
 
 RUN wget \
     https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-    && mkdir /root/.conda \
     && bash Miniconda3-latest-Linux-x86_64.sh -b \
     && rm -f Miniconda3-latest-Linux-x86_64.sh
 
