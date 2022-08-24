@@ -21,17 +21,12 @@ RUN apt-get update -q \
     libgl1-mesa-glx \
     libglew-dev \
     libosmesa6-dev \
-    software-properties-common \
-    net-tools \
-    xpra \
     wget \
-    curl \
     python3-pip \
     patchelf \
-    libx11-6  \
-    libglfw3 \
-    libxcb1  \
     libstdc++6 \
+    libx11-6  \
+    libxcb1  \
     libxau6  \
     xvfb  \
     dbus-x11  \
@@ -55,12 +50,12 @@ RUN wget http://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_1_0_Ubuntu20_0
     && tar -xf CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
     && rm CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz
 
+# Install miniconda
 RUN wget \
     https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
     && bash Miniconda3-latest-Linux-x86_64.sh -b \
     && rm -f Miniconda3-latest-Linux-x86_64.sh
 
 ENV PATH="/root/miniconda3/bin:${PATH}"
-RUN conda init bash \
-  && . ~/.bashrc \
-  && conda create --name runner-env python=3.7
+RUN . $(conda info --base)/etc/profile.d/conda.sh \
+	&& conda create --name runner-env python=3.7

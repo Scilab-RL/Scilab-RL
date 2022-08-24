@@ -18,21 +18,17 @@ run-smoke-and-performance-tests:
       paths:
         - .cache/pip
     script:
-        - nvidia-smi
         - source $(conda info --base)/etc/profile.d/conda.sh
-        - conda activate runner-env
-        - which python3
-        - which pip
-        - conda install -c anaconda libstdcxx-ng -y
-        - conda install libgcc -y
+        - conda activate runner_env
+        - nvidia-smi
         - echo "Installing python libraries"
-        - pip install --no-cache-dir -r requirements.txt
-        - conda install pytorch cudatoolkit=11.3 -c pytorch -y
+        - pip install -r requirements.txt
+        - conda install pytorch cudatoolkit=11.3 -c pytorch -y;
+        - conda install -c conda-forge ncurses
         - export PYTHONPATH=$PYTHONPATH:$(pwd)
         - export MUJOCO_PY_MUJOCO_PATH=/mujoco210
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
-        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(conda info --base)/lib/
-        - pip install --no-cache-dir mujoco-py
+        - pip install mujoco-py
         - export COPPELIASIM_ROOT=/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$COPPELIASIM_ROOT
         - export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
