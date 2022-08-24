@@ -137,6 +137,8 @@ def create_callbacks(cfg, logger, eval_env):
     # cfg.render_args[0][3] == 1 -> episodic animation with auto_close
     # cfg.render_args[0][3] == 2 -> episodic animation with no auto_close
     # cfg.render_args[0][3] == 3 -> one animation
+
+    # for training
     if len(cfg.render_args[0]) > 3 and isinstance(cfg.render_args[0][3], int) and 0 < cfg.render_args[0][3] <= 3:
         v_episodic = True
         v_auto_close = True
@@ -147,6 +149,18 @@ def create_callbacks(cfg, logger, eval_env):
         display_metric_callback = DisplayMetricCallBack(cfg.render_args[0][2],logger,episodic=v_episodic,auto_close=v_auto_close)
         callback.append(display_metric_callback)
 
+    # for testing
+    '''
+    if len(cfg.render_args[1]) > 3 and isinstance(cfg.render_args[1][3], int) and 0 < cfg.render_args[1][3] <= 3:
+        v_episodic = True
+        v_auto_close = True
+        if cfg.render_args[1][3] == 2:
+            v_auto_close = False
+        if cfg.render_args[1][3] == 3:
+            v_episodic = False
+        display_metric_callback = DisplayMetricCallBack(cfg.render_args[1][2],logger,episodic=v_episodic,auto_close=v_auto_close)
+        callback.append(display_metric_callback)
+    '''
     callback.append(early_stop_callback)
     callback = CallbackList(callback)
     return callback
