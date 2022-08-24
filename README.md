@@ -39,8 +39,7 @@ The framework is designed to run on Linux, best compatibility with Ubuntu 22. Ho
    - `python3 main.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
 4. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home).
 
-### Manually
-
+### Manually with virtualenv
 1. generate a virtual python3 environment with
 
     `virtualenv -p python3 venv` or
@@ -58,15 +57,25 @@ The framework is designed to run on Linux, best compatibility with Ubuntu 22. Ho
 
     `pip install -r requirements.txt`
 
-5. Install one or both simulators from the [environments section](#supported-environments).
+### Manually with conda
+In certain cases, it is necessary to install different cuda or compiler versions.
+Therfore, we recommend to use conda (anaconda,miniconda or miniforge).
 
-6. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiment with `wandb=0`.
+1. [install conda](https://conda.io/docs/user-guide/install/index.html) if it is not part of your system
+2. `conda env create -f environment.yml`
+3. `conda install cudatoolkit=11.3 pytorch -c pytorch -y`
 
-7. Check your installation with
+### Logging and training
+
+1. Install one or both simulators from the [environments section](#supported-environments).
+
+2. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiment with `wandb=0`.
+
+3. Check your installation with
    - `python3 main.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
    - `python3 main.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
 
-8. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home).
+4. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home).
 
 ## Supported Environments
 Currently, all goal-conditioned gym environments are supported.
