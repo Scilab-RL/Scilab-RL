@@ -14,16 +14,29 @@ setup_venv() {
   pip install -r requirements.txt
 }
 
+setup_conda() {
+  source $(conda info --base)/etc/profile.d/conda.sh
+  conda env create -f environment.yml
+  conda install cudatoolkit=11.3 pytorch -c pytorch -y
+  conda activate scilabrl
+}
+
 get_mujoco() {
-  pkgs='libosmesa6-dev libgl1-mesa-glx patchelf'
-  for pkg in $pkgs; do
-    status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
-    if [ ! $? = 0 ] || [ ! "$status" = installed ]; then
+  PKGS='libosmesa6-dev libgl1-mesa-glx'
+  for PKG in $PKGS; do
+    STATUS=$(dpkg-query -W --showformat='${Status}\n' $PKG | grep "install ok installed")
+    if [ "" = "$STATUS" ]; then
       echo "You appear to be missing dependencies for MuJoCo. Install them with"
-      echo "sudo apt-get install libosmesa6-dev patchelf"
+      echo "sudo apt-get install libosmesa6-dev"
       return
     fi
   done
+
+	if [ ! -x "$(command -v patchelf)" ]; then
+		echo "You appear to be missing patchelf"
+		return
+  fi
+
   # Check if MuJoCo is already installed
   if [ -d "${HOME}/mujoco210" ]; then
     echo "Skipping MuJoCo as it is already installed."
@@ -59,7 +72,13 @@ get_rlbench() {
   pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
 }
 
-setup_venv
+
+# check if conda is installed
+if [ ! -x "$(command -v conda)" ]; then
+  setup_venv
+else
+  setup_conda
+fi
 
 while getopts 'mr' OPTION; do
   case "$OPTION" in
