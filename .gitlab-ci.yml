@@ -19,7 +19,7 @@ run-smoke-and-performance-tests:
         - .cache/pip
     script:
         - source $(conda info --base)/etc/profile.d/conda.sh
-        - conda activate runner_env
+        - conda activate runner-env
         - nvidia-smi
         - echo "Installing python libraries"
         - pip install -r requirements.txt
