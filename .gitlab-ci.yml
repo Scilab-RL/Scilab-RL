@@ -12,7 +12,7 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 conda-setup:
-    stage: setup
+    stage: build
     # cache the pip cache for every branch
     cache:
       key: $CI_COMMIT_REF_SLUG
@@ -37,11 +37,11 @@ conda-setup:
         - pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
 
 run-smoke-tests:
-    stage: smoke
+    stage: test
     script:
         - ./run_smoke_tests.sh
 
 run-performance-tests:
-    stage: performance
+    stage: .post
     script:
         - ./run_performance_tests.sh
