@@ -11,8 +11,7 @@ image: collaborating.tuhh.de:5005/ckv0173/scilab-rl/scilabrl
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-conda-setup:
-    stage: build
+run-smoke-and-performance-tests:
     # cache the pip cache for every branch
     cache:
       key: $CI_COMMIT_REF_SLUG
@@ -35,13 +34,7 @@ conda-setup:
         - export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
         - export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
         - pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
-
-run-smoke-tests:
-    stage: test
-    script:
+        - echo "running smoke tests"
         - ./run_smoke_tests.sh
-
-run-performance-tests:
-    stage: .post
-    script:
+        - echo "running performance tests"
         - ./run_performance_tests.sh
