@@ -59,7 +59,7 @@ The framework is designed to run on Linux, best compatibility with Ubuntu 22. Ho
 
 ### Manually with conda
 In certain cases, it is necessary to install different cuda or compiler versions.
-Therfore, we recommend to use conda (anaconda,miniconda or miniforge).
+Therefore, we recommend to use conda (anaconda, miniconda or miniforge).
 
 1. [install conda](https://conda.io/docs/user-guide/install/index.html) if it is not part of your system
 2. `conda env create -f environment.yml`
