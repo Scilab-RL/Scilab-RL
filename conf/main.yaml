@@ -25,10 +25,10 @@ env_kwargs: {}
 # 1 -> episodic metric animation with auto_close
 # 2 -> episodic metric animation with no auto_close
 # 3 -> one metric animation for all training
-# Example: [['display',100,'q_val,'1'],['record',10]] means that we display every 100th training and record every 10th testing epoch
-# and animate the q_val metric and automatically close the generated figures
+# Example: [['display',100,'q_val,'1'],['record',10, 'none', 0]] means that we display every 100th training and record every 10th testing episode
+# and animate the q_val metric and automatically close the generated figures for each episode/rollout.
 
-render_args: [['none',100,'metric_name',0],['none','metric_name',0]]
+render_args: [['none',100,'metric_name',0],['none',10,'metric_name',0]]
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
@@ -41,7 +41,7 @@ base_logdir: 'data'
 restore_policy: null
 
 # The number of training steps after which to evaluate the policy.
-eval_after_n_steps: 2000
+eval_after_n_steps: 500
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
 n_epochs: 60

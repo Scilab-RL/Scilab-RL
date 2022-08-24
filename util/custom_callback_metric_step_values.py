@@ -1,7 +1,7 @@
 from stable_baselines3.common.callbacks import BaseCallback
 from util.plot_animation_episode import LiveAnimationPlot
 import matplotlib.pyplot as plt
-
+import inspect
 import mlflow
 
 
@@ -25,13 +25,13 @@ class DisplayMetricCallBack(BaseCallback):
         self.animation_started = False,
         self.curr_recorded_value = None
         self.new_animation = False
-        self.num_iteration = 0
         self.logger = logger
+        self.num_iteration = 0
         self.auto_close = auto_close
         self.episodic = episodic
         self.metric_key = metric_key
 
-        self.animation = LiveAnimationPlot()
+        self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
 
     def _on_training_start(self) -> None:
         pass
@@ -40,13 +40,19 @@ class DisplayMetricCallBack(BaseCallback):
         if self.episodic:
             if self.auto_close:
                 plt.close()
-            self.animation = LiveAnimationPlot()
+            self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
 
             # reset data
             self.animation.x_data = []
             self.animation.y_data = []
 
     def _on_step(self) -> bool:
+        '''
+        curframe = inspect.currentframe()
+        calframe = inspect.getouterframes(curframe, 2)
+        caller = calframe[4].function
+        print('caller name:', caller)
+        '''
         self.curr_recorded_value = self.logger.name_to_value[self.metric_key]
         self.animation.x_data.append(self.num_iteration)
         self.animation.y_data.append(self.curr_recorded_value)
