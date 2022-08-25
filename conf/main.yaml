@@ -41,7 +41,7 @@ base_logdir: 'data'
 restore_policy: null
 
 # The number of training steps after which to evaluate the policy.
-eval_after_n_steps: 500
+eval_after_n_steps: 2000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
 n_epochs: 60
