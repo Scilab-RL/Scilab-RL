@@ -22,20 +22,16 @@ setup_conda() {
 }
 
 get_mujoco() {
-  PKGS='libosmesa6-dev libgl1-mesa-glx'
-  for PKG in $PKGS; do
-    STATUS=$(dpkg-query -W --showformat='${Status}\n' $PKG | grep "install ok installed")
-    if [ "" = "$STATUS" ]; then
+
+  pkgs='libosmesa6-dev libgl1-mesa-glx patchelf'
+  for pkg in $pkgs; do
+    status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
+    if [ ! $? = 0 ] || [ ! "$status" = installed ]; then
       echo "You appear to be missing dependencies for MuJoCo. Install them with"
       echo "sudo apt-get install libosmesa6-dev"
       return
     fi
   done
-
-	if [ ! -x "$(command -v patchelf)" ]; then
-		echo "You appear to be missing patchelf"
-		return
-  fi
 
   # Check if MuJoCo is already installed
   if [ -d "${HOME}/mujoco210" ]; then
