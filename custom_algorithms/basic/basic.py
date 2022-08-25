@@ -2,7 +2,6 @@ import pickle
 import torch as th
 import numpy as np
 
-
 # mean absolute error
 mae = th.nn.L1Loss(reduction='sum')
 
@@ -39,6 +38,7 @@ class BASIC:
     - a critic-network, which provides a score for the action given the action and observation
     - a target-network, which is a copy of the critic network for learning stability
     """
+
     def __init__(self, env, net_arch=None, noise_factor=0.1, learning_rate=0.001):
         self.env = env
         self.logger = None
@@ -62,6 +62,7 @@ class BASIC:
         self.target = create_nn(net_arch, n_obs + n_actions, 1)
         self.target.load_state_dict(self.critic.state_dict())
 
+
     def set_logger(self, logger):
         self.logger = logger
 
@@ -76,6 +77,10 @@ class BASIC:
         while self.num_timesteps < total_timesteps:
             action = self._get_action(self._last_obs, deterministic=False)
             obs, rewards, done, info = self.env.step(action)
+            q = self.target(
+                th.cat([self.actor(th.tensor(self._last_obs.flatten())), th.tensor(self._last_obs.flatten())]))
+            q_value= float(th.mean(q.detach()))
+            self.logger.record('q_val',q_value)
             self._train(self._last_obs, obs, rewards)
             self._last_obs = obs
             self.num_timesteps += 1
@@ -144,7 +149,7 @@ class BASIC:
         with th.no_grad():
             action = self.actor(obs).detach().numpy()
         if not deterministic:
-            action += self.noise_factor * (np.random.normal(size=len(action))-0.5)
+            action += self.noise_factor * (np.random.normal(size=len(action)) - 0.5)
         action = np.clip(action, -1, 1)
         return [action]  # DummyVecEnv expects actions in a list
 
