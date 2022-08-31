@@ -1,6 +1,9 @@
 # With this Dockerfile we create the Docker image with which we run our pipeline
 # To create the image, navigate to this folder and
 # docker build -t collaborating.tuhh.de:5005/ckv0173/scilab-rl/scilabrl .
+# or
+# docker buildx build --platform linux/amd64 -t collaborating.tuhh.de:5005/ckv0173/scilab-rl/scilabrl .
+# on an ARM device
 # To push it to the repo, create a GitLab Personal Access Token and login with
 # docker login collaborating.tuhh.de:5005
 # then push the image to the repo with
@@ -21,6 +24,7 @@ RUN apt-get update -q \
     wget \
     python3-pip \
     patchelf \
+    libstdc++6 \
     libx11-6  \
     libxcb1  \
     libxau6  \
@@ -45,3 +49,13 @@ RUN mkdir -p /root/.mujoco \
 RUN wget http://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
     && tar -xf CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
     && rm CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz
+
+# Install miniconda
+RUN wget \
+    https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    && bash Miniconda3-latest-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-latest-Linux-x86_64.sh
+
+ENV PATH="/root/miniconda3/bin:${PATH}"
+RUN . $(conda info --base)/etc/profile.d/conda.sh \
+	&& conda create --name runner-env python=3.7
