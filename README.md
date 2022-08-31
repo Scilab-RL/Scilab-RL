@@ -28,6 +28,8 @@ The framework is tailored towards the rapid prototyping and development and eval
 ## Requirements
 The framework is designed to run on Linux, best compatibility with Ubuntu 22. However, it is also reported to run on MacOS and WSL2 (see [this](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/Running-on-Windows-with-WSL2) tutorial). The preferred Python version is 3.10, but it is likely to run also with less recent versions >= v3.8. A GPU is not required, but it will speed up the training significantly. 
 
+For visualization with matplotlib it is important to have the GUI-backend tkinter installed (see [this](https://stackoverflow.com/questions/56656777/userwarning-matplotlib-is-currently-using-agg-which-is-a-non-gui-backend-so) for more information).
+
 ## Getting Started
 
 ### With the setup script
