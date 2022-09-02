@@ -50,7 +50,7 @@ test_envs() {
     exit 1
   fi
 }
-
+export CUDA_VISIBLE_DEVICES=""
 test_algos
 test_envs
 echo "All smoke tests passed successfully."
