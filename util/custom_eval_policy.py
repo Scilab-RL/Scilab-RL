@@ -84,7 +84,7 @@ def evaluate_policy(
     observations = env.reset()
     states = None
     while (episode_counts < episode_count_targets).any():
-        actions, states = model.predict(observations, state=states, deterministic=deterministic, eval_policy = True)
+        actions, states = model.predict(observations, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
         metric_viz._on_step()
         current_rewards += rewards

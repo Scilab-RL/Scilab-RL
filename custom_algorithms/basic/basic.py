@@ -8,6 +8,7 @@ import numpy as np
 mae = th.nn.L1Loss(reduction='sum')
 
 
+
 def create_nn(net_arch, input_dim, output_dim):
     """
     Creates a sequential neural network
@@ -144,9 +145,9 @@ class BASIC:
         # no need to save the target-network state, because it is a copy of the critic network
         pickle.dump(data, open(path, "wb"))
 
-    #eval_policy is true when the policy is being evaluated
+    #deterministic is true when the policy is being evaluated
     #this is requred for viz during eval
-    def _get_action(self, obs, deterministic, eval_policy = False):
+    def _get_action(self, obs, deterministic):
         """
         Get action from the actor network.
         If the action should not be deterministic, add noise with intensity self.noise_factor.
@@ -158,14 +159,14 @@ class BASIC:
             action += self.noise_factor * (np.random.normal(size=len(action)) - 0.5)
         action = np.clip(action, -1, 1)
 
-        if eval_policy:
+        if deterministic:
             rand_eval = np.random.random_sample()
             self.logger.record('rand_eval', rand_eval)
 
         return [action]  # DummyVecEnv expects actions in a list
 
     def predict(self, obs, state=None, deterministic=True, eval_policy = False):
-        return self._get_action(obs, deterministic,eval_policy=eval_policy), state
+        return self._get_action(obs, deterministic), state
 
     def get_env(self):
         return self.env
