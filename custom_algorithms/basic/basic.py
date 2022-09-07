@@ -159,9 +159,9 @@ class BASIC:
             action += self.noise_factor * (np.random.normal(size=len(action)) - 0.5)
         action = np.clip(action, -1, 1)
 
-        if deterministic:
-            rand_eval = np.random.random_sample()
-            self.logger.record('rand_eval', rand_eval)
+        #if deterministic:
+        rand_eval = np.random.random_sample()
+        self.logger.record('rand_eval', rand_eval)
 
         return [action]  # DummyVecEnv expects actions in a list
 

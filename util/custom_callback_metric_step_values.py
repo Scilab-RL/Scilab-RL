@@ -31,20 +31,24 @@ class DisplayMetricCallBack(BaseCallback):
         self.episodic = episodic
         self.metric_key = metric_key
         self.animation = None
+        self.first_iter = True
         #self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
 
     def _on_training_start(self) -> None:
         pass
 
     def _on_rollout_start(self) -> None:
-        if self.episodic and self.num_iteration > 0:
+        if self.episodic and not self.first_iter:
             plt.close()
             # reset data
             self.animation.x_data = []
             self.animation.y_data = []
+            self.num_iteration = 0
         self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
 
     def _on_step(self) -> bool:
+        self.first_iter = False
+
         self.curr_recorded_value = self.logger.name_to_value[self.metric_key]
         self.animation.x_data.append(self.num_iteration)
         self.animation.y_data.append(self.curr_recorded_value)
