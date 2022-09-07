@@ -1,4 +1,6 @@
 import pickle
+
+
 import torch as th
 import numpy as np
 
@@ -74,12 +76,14 @@ class BASIC:
         Every self.eval_freq steps, the policy is evaluated.
         """
         callback.init_callback(model=self)
+        if self.num_timesteps == 0:
+            callback.on_rollout_start()
         while self.num_timesteps < total_timesteps:
             action = self._get_action(self._last_obs, deterministic=False)
             obs, rewards, done, info = self.env.step(action)
             q = self.target(
                 th.cat([self.actor(th.tensor(self._last_obs.flatten())), th.tensor(self._last_obs.flatten())]))
-            q_value= float(th.mean(q.detach()))
+            q_value = float(th.mean(q.detach()))
             self.logger.record('q_val',q_value)
             self._train(self._last_obs, obs, rewards)
             self._last_obs = obs
@@ -140,7 +144,9 @@ class BASIC:
         # no need to save the target-network state, because it is a copy of the critic network
         pickle.dump(data, open(path, "wb"))
 
-    def _get_action(self, obs, deterministic):
+    #eval_policy is true when the policy is being evaluated
+    #this is requred for viz during eval
+    def _get_action(self, obs, deterministic, eval_policy = False):
         """
         Get action from the actor network.
         If the action should not be deterministic, add noise with intensity self.noise_factor.
@@ -151,10 +157,15 @@ class BASIC:
         if not deterministic:
             action += self.noise_factor * (np.random.normal(size=len(action)) - 0.5)
         action = np.clip(action, -1, 1)
+
+        if eval_policy:
+            rand_eval = np.random.random_sample()
+            self.logger.record('rand_eval', rand_eval)
+
         return [action]  # DummyVecEnv expects actions in a list
 
-    def predict(self, obs, state=None, deterministic=True):
-        return self._get_action(obs, deterministic), state
+    def predict(self, obs, state=None, deterministic=True, eval_policy = False):
+        return self._get_action(obs, deterministic,eval_policy=eval_policy), state
 
     def get_env(self):
         return self.env

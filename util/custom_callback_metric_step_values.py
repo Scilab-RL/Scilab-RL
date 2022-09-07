@@ -30,29 +30,21 @@ class DisplayMetricCallBack(BaseCallback):
         self.auto_close = auto_close
         self.episodic = episodic
         self.metric_key = metric_key
-
-        self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
+        self.animation = None
+        #self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
 
     def _on_training_start(self) -> None:
         pass
 
     def _on_rollout_start(self) -> None:
-        if self.episodic:
-            if self.auto_close:
-                plt.close()
-            self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
-
+        if self.episodic and self.num_iteration > 0:
+            plt.close()
             # reset data
             self.animation.x_data = []
             self.animation.y_data = []
+        self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
 
     def _on_step(self) -> bool:
-        '''
-        curframe = inspect.currentframe()
-        calframe = inspect.getouterframes(curframe, 2)
-        caller = calframe[4].function
-        print('caller name:', caller)
-        '''
         self.curr_recorded_value = self.logger.name_to_value[self.metric_key]
         self.animation.x_data.append(self.num_iteration)
         self.animation.y_data.append(self.curr_recorded_value)
