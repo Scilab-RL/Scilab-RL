@@ -7,8 +7,6 @@ import mlflow
 import gym
 import wandb
 
-
-
 from stable_baselines3.her.her import HerReplayBuffer
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -21,6 +19,7 @@ from util.custom_logger import setup_logger
 from util.custom_callbacks import EarlyStopCallback
 from util.custom_wrappers import DisplayWrapper
 from util.custom_callback_metric_step_values import DisplayMetricCallBack
+from util.custom_callback_eval_viz import EvalCallback2
 
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
@@ -124,15 +123,10 @@ def get_algo_instance(cfg, logger, env):
 
 def create_callbacks(cfg, logger, eval_env):
     callback = []
-    if cfg.save_model_freq > 0:
-        checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
-        callback.append(checkpoint_callback)
-    # Create the callback list
-    eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                 log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False)
-    callback.append(eval_callback)
-    early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
-                                            threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
+
+    # custom callback necessary for eval metric viz
+    flag_custom_eval_callback = False
+    display_metric_callback_test, eval_callback = None, None
 
     # cfg.render_args[0][3] == 1 -> episodic animation with auto_close
     # cfg.render_args[0][3] == 2 -> episodic animation with no auto_close
@@ -146,21 +140,37 @@ def create_callbacks(cfg, logger, eval_env):
             v_auto_close = False
         if cfg.render_args[0][3] == 3:
             v_episodic = False
-        display_metric_callback = DisplayMetricCallBack(cfg.render_args[0][2],logger,episodic=v_episodic,auto_close=v_auto_close)
-        callback.append(display_metric_callback)
-
+        display_metric_callback_train = DisplayMetricCallBack(cfg.render_args[0][2], logger, episodic=v_episodic,
+                                                              auto_close=v_auto_close)
+        callback.append(display_metric_callback_train)
     # for testing
-    '''
+
     if len(cfg.render_args[1]) > 3 and isinstance(cfg.render_args[1][3], int) and 0 < cfg.render_args[1][3] <= 3:
+        flag_custom_eval_callback = True
         v_episodic = True
         v_auto_close = True
         if cfg.render_args[1][3] == 2:
             v_auto_close = False
         if cfg.render_args[1][3] == 3:
             v_episodic = False
-        display_metric_callback = DisplayMetricCallBack(cfg.render_args[1][2],logger,episodic=v_episodic,auto_close=v_auto_close)
-        callback.append(display_metric_callback)
-    '''
+        display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2],logger,episodic=v_episodic,auto_close=v_auto_close)
+
+
+    if cfg.save_model_freq > 0:
+        checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
+        callback.append(checkpoint_callback)
+    # Create the callback list
+
+    if flag_custom_eval_callback:
+        eval_callback = EvalCallback2(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
+                                      log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False,
+                                      metric_viz_callback=display_metric_callback_test)
+    else:
+        eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
+                                     log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False)
+    callback.append(eval_callback)
+    early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
+                                            threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
     callback.append(early_stop_callback)
     callback = CallbackList(callback)
     return callback
