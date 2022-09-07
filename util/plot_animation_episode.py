@@ -11,8 +11,8 @@ class LiveAnimationPlot:
     ):
         self.x_axis_label = x_axis_label
         self.y_axis_label = y_axis_label
-        self.x_data = [0]
-        self.y_data = [0]
+        self.x_data = []
+        self.y_data = []
         self.fig, self.ax = plt.subplots()
         self.line = plt.plot([])[0]
         self.animation = None
