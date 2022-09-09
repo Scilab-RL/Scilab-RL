@@ -128,33 +128,34 @@ def create_callbacks(cfg, logger, eval_env):
     flag_custom_eval_callback = False
     display_metric_callback_test, eval_callback = None, None
 
-    # cfg.render_args[0][3] == 1 -> episodic animation with auto_close
-    # cfg.render_args[0][3] == 2 -> episodic animation with no auto_close
-    # cfg.render_args[0][3] == 3 -> one animation
+    # cfg.render_args[0][3] == 1 -> episodic animation without saving animations
+    # cfg.render_args[0][3] == 2 -> episodic animation with saving animations
+    # cfg.render_args[0][3] == 3 -> one animation without saving animations
+    # cfg.render_args[0][4] == 4 -> one animation with saving animations
 
     # for training
-    if len(cfg.render_args[0]) > 3 and isinstance(cfg.render_args[0][3], int) and 0 < cfg.render_args[0][3] <= 3:
+    if len(cfg.render_args[0]) > 3 and isinstance(cfg.render_args[0][3], int) and 0 < cfg.render_args[0][3] <= 4:
         v_episodic = True
-        v_auto_close = True
-        if cfg.render_args[0][3] == 2:
-            v_auto_close = False
-        if cfg.render_args[0][3] == 3:
+        v_save_anim = False
+        if cfg.render_args[0][3] == 2 or cfg.render_args[0][3] == 4:
+            v_save_anim = True
+        if cfg.render_args[0][3] == 3 or cfg.render_args[0][3] == 4:
             v_episodic = False
         display_metric_callback_train = DisplayMetricCallBack(cfg.render_args[0][2], logger, episodic=v_episodic,
-                                                              auto_close=v_auto_close)
+                                                              save_anim=v_save_anim)
         callback.append(display_metric_callback_train)
     # for testing
 
-    if len(cfg.render_args[1]) > 3 and isinstance(cfg.render_args[1][3], int) and 0 < cfg.render_args[1][3] <= 3:
+    if len(cfg.render_args[1]) > 3 and isinstance(cfg.render_args[1][3], int) and 0 < cfg.render_args[1][3] <= 4:
         flag_custom_eval_callback = True
         v_episodic = True
-        v_auto_close = True
-        if cfg.render_args[1][3] == 2:
-            v_auto_close = False
-        if cfg.render_args[1][3] == 3:
+        v_save_anim = False
+        if cfg.render_args[0][3] == 2 or cfg.render_args[0][3] == 4:
+            v_save_anim = True
+        if cfg.render_args[0][3] == 3 or cfg.render_args[0][3] == 4:
             v_episodic = False
-        display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2],logger,episodic=v_episodic,auto_close=v_auto_close)
-
+        display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2], logger, episodic=v_episodic,
+                                                             save_anim=v_save_anim)
 
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
