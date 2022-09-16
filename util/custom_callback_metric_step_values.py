@@ -33,23 +33,25 @@ class DisplayMetricCallBack(BaseCallback):
         self.animation = None
         self.curr_rollout = 0
         self.save_anim = save_anim
-        #self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
+        self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
 
     def _on_training_start(self) -> None:
         pass
 
     def _on_rollout_start(self) -> None:
+        '''
         if not self.curr_rollout:
             self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
+        '''
         if self.episodic and self.curr_rollout:
             if self.save_anim:
                 self.animation.save_animation('metric_anim_' + str(self.curr_rollout))
-            plt.close()
+            self.animation.reset_fig()
             # reset data
             self.animation.x_data = []
             self.animation.y_data = []
             self.num_iteration = 0
-            self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
+            #self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
         self.curr_rollout = self.curr_rollout + 1
 
     def _on_step(self) -> bool:
