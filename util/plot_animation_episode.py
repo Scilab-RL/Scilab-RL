@@ -28,8 +28,9 @@ class LiveAnimationPlot:
         return self.line
 
     def reset_fig(self):
-        plt.close(self.fig)
-        self.fig, self.ax = plt.subplots()
+        plt.clf()
+        #plt.close(self.fig)
+        #self.fig, self.ax = plt.subplots()
         self.line = plt.plot([])[0]
         self.animation = None
 
