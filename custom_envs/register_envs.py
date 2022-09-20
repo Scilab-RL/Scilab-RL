@@ -6,7 +6,7 @@ from gym.envs.registration import register
 
 def register_custom_envs():
     for n_objects in range(5):
-        for gripper_goal in ['gripper_none', 'gripper_random', 'gripper_above']:
+        for gripper_goal in ['gripper_none', 'gripper_random', 'gripper_above', 'object_move']:
             if gripper_goal != 'gripper_random' and n_objects == 0:  # Disallow because there would be no goal
                 continue
             distance_threshold = 0.05  # was originally 0.05

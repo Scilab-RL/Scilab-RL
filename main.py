@@ -18,6 +18,9 @@ from util.custom_logger import setup_logger
 from util.custom_callbacks import EarlyStopCallback
 from util.custom_wrappers import DisplayWrapper
 
+from custom_algorithms.oo_sac.oo_blocks_adapter import OOBlocksAdapter
+from custom_callbacks.oo_eval_callback import OOEvalCallback
+
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
 
@@ -52,6 +55,10 @@ def get_env_instance(cfg, logger):
     else:
         train_env = gym.make(cfg.env, **cfg.env_kwargs)
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
+
+    if cfg.algorithm.name.startswith('oo_'):
+        train_env.env.__class__ = OOBlocksAdapter
+        eval_env.env.__class__ = OOBlocksAdapter
 
     # wrappers for rendering
     if cfg.render_args[0][0] == 'display':
@@ -125,8 +132,12 @@ def create_callbacks(cfg, logger, eval_env):
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
         callback.append(checkpoint_callback)
     # Create the callback list
-    eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                 log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False)
+    if cfg.algorithm.name.startswith("oo_"):
+        eval_callback = OOEvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
+                                     log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False)
+    else:
+        eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
+                                     log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False)
     callback.append(eval_callback)
     early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
                                             threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
