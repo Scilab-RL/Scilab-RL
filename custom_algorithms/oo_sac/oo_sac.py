@@ -12,7 +12,7 @@ from stable_baselines3.common.utils import should_collect_more_steps
 from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.sac import SAC
 
-from custom_algorithms.oo_sac.oo_blocks_adapter import OO_Blocks_Adapter
+from custom_algorithms.oo_sac.oo_blocks_adapter import OOBlocksAdapter
 from custom_envs.blocks.blocks_env import BlocksEnv
 
 
@@ -82,9 +82,6 @@ class OO_SAC(SAC):
             device=device,
             _init_setup_model=_init_setup_model
         )
-
-        if env.envs[0].env.__class__ == BlocksEnv:
-            env.envs[0].env.__class__ = OO_Blocks_Adapter
         # elif env.env.__class__ == AnotherEnv:
         #     env.env.__class__ = AnotherEnv
         # elif ...

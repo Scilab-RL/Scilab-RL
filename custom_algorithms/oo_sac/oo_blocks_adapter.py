@@ -8,7 +8,7 @@ from gym.envs.robotics import fetch_env, rotations, utils
 from custom_envs.blocks.blocks_env import BlocksEnv
 
 
-class OO_Blocks_Adapter(BlocksEnv):
+class OOBlocksAdapter(BlocksEnv):
     """
     Adapter enables use of OO_SAC with Blocks environment
     """
@@ -98,7 +98,7 @@ class OO_Blocks_Adapter(BlocksEnv):
 
             # set the gripper_goal, if there is any
             if not self.gripper_goal == 'gripper_none':
-                if self.gripper_goal == 'gripper_above':
+                if self.gripper_goal == 'gripper_above' or self.gripper_goal == 'object_move':
                     #z += 2 * self.object_height
                     full_goal[:3] = self.initial_gripper_xpos[:3] \
                               + self.np_random.uniform(-self.target_range, self.target_range, size=3)#np.concatenate([lowest_block_xy, z])
@@ -122,7 +122,10 @@ class OO_Blocks_Adapter(BlocksEnv):
         # Then if you randomly decide to choose a goal for the block: oogoal = (0, 1, x,y,z)
         # obj_idx = 1
         #self.full_goal = full_goal
-        obj_idx = random.randint(1, self.n_objects)
+        if self.gripper_goal == 'object_move' or self.gripper_goal == 'gripper_above':
+            obj_idx = random.randint(1, self.n_objects)
+        else:
+            obj_idx = random.randint(0, self.n_objects)
         # Number of objects + 1 (gripper) to get one-hot representation of object in env
         oneHot_idx = np.eye(self.n_objects + 1)[obj_idx]
         oo_values = list(full_goal[obj_idx * 3: obj_idx * 3 + 3])
