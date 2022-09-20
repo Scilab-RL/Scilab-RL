@@ -15,10 +15,18 @@ setup_venv() {
 }
 
 setup_conda() {
-  source $(conda info --base)/etc/profile.d/conda.sh
-  conda env create -f environment.yml
-  conda install cudatoolkit=11.3 pytorch -c pytorch -y
-  conda activate scilabrl
+	source $(conda info --base)/etc/profile.d/conda.sh
+	if [  $(uname -s) == "Linux" ]; then
+		conda env create -f linux_environment.yaml
+		conda install cudatoolkit=11.3 pytorch -c pytorch -y
+	elif [ $(uname -s) == "Darwin" ]; then
+		if [ $(uname -m) =~ "arm" ]; then
+			conda env create -f macos_arm_environment.yaml
+		elif [ $(uname -m) =~ "x86" ]; then
+			conda env create -f macos_x86_environment.yaml
+		fi
+	fi
+	conda activate scilabrl
 }
 
 get_mujoco() {
