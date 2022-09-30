@@ -31,7 +31,7 @@ setup_conda() {
 
 get_mujoco() {
 
-  pkgs='libosmesa6-dev libgl1-mesa-glx patchelf'
+  pkgs='libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf'
   for pkg in $pkgs; do
     status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
     if [ ! $? = 0 ] || [ ! "$status" = installed ]; then
