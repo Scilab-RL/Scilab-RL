@@ -36,7 +36,7 @@ get_mujoco() {
     status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
     if [ ! $? = 0 ] || [ ! "$status" = installed ]; then
       echo "You appear to be missing dependencies for MuJoCo. Install them with"
-      echo "sudo apt-get install libosmesa6-dev"
+      echo "sudo apt-get install libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf"
       return
     fi
   done
