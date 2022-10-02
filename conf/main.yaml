@@ -17,18 +17,20 @@ env_kwargs: {}
 # 'record' is for video, 'display' for direct visualization, 'none' for not rendering at all.
 # The numbers determine the number of epochs after which we render the training/testing.
 #
-# The third argument is the name of the metric (given as a string) to visualize
-# It is necessary to ensure that the algorithms logs the metric and
-# complies with the stable baselines standard
-# The fourth argument determines which form of metric visualization takes place:
+# The third argument is a list of sublists containing two positional arguments
+# 0: the name of the metric to be visualized and
+# 1: the visualization mode (see below)
+# It is necessary to ensure that the algorithms logs the metric using the logger
+# (see the learn method of basic.py which saves the q_val in the logger)
+# The different visualization modes are:
 # 0 -> no metric animation
 # 1 -> episodic metric animation with auto close (metric display window closes when episode ends)
-# 2 -> episodic metric animation with no auto close (metric display window does not close when episode ends, but a new windows is opened when new episode starts)
-# 3 -> one metric animation for all training (metric display window never closes, and data is appended after each rollout to the same plot)
-# Example: [['display',100,'q_val,'1'],['record',10, 'none', 0]] means that we display every 100th training and record every 10th testing episode
+# 2 -> one metric animation for all training (metric display window never closes, and data is appended after each rollout to the same plot)
+# Example: [['display',100,[['q_val',1]]],['record',10]]
+# means that we display every 100th training and record every 10th testing episode
 # and animate the q_val metric and automatically close the generated figures for each episode/rollout.
 
-render_args: [['none',1,'q_val',0],['none',10,'metric_name',0]]
+render_args: [['none',1,[['q_val',0],['q_val',0]]],['none',10,[['q_val',0],['q_val',0]]]]
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
