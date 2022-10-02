@@ -9,9 +9,9 @@ class DisplayMetricCallBack(BaseCallback):
     """
     This callback
     param logger: THe logger in which the recorded value can be accessed.
-    param auto_close: Automatically generated Plots
     param episodic: visualize episodic metric values
-    param n_episodes: The number of episodes over which to average the metric.
+    param save_anim: bool indicating whether to save the animation
+
     """
 
     def __init__(
@@ -19,7 +19,8 @@ class DisplayMetricCallBack(BaseCallback):
             metric_key,
             logger,
             episodic=True,
-            auto_close=True
+            save_anim=False
+
     ):
         super(DisplayMetricCallBack, self).__init__(verbose=0)
         self.animation_started = False,
@@ -27,35 +28,40 @@ class DisplayMetricCallBack(BaseCallback):
         self.new_animation = False
         self.logger = logger
         self.num_iteration = 0
-        self.auto_close = auto_close
         self.episodic = episodic
         self.metric_key = metric_key
-
+        self.animation = None
+        self.curr_rollout = 0
+        self.save_anim = save_anim
         self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
 
     def _on_training_start(self) -> None:
         pass
 
     def _on_rollout_start(self) -> None:
-        if self.episodic:
-            if self.auto_close:
-                plt.close()
+        '''
+        if not self.curr_rollout:
             self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
-
+        '''
+        if self.episodic and self.curr_rollout:
+            if self.save_anim:
+                self.animation.save_animation('metric_anim_' + str(self.curr_rollout))
+            self.animation.reset_fig()
             # reset data
             self.animation.x_data = []
             self.animation.y_data = []
+            self.num_iteration = 0
+            #self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
+        self.curr_rollout = self.curr_rollout + 1
 
     def _on_step(self) -> bool:
-        '''
-        curframe = inspect.currentframe()
-        calframe = inspect.getouterframes(curframe, 2)
-        caller = calframe[4].function
-        print('caller name:', caller)
-        '''
         self.curr_recorded_value = self.logger.name_to_value[self.metric_key]
         self.animation.x_data.append(self.num_iteration)
         self.animation.y_data.append(self.curr_recorded_value)
         self.animation.start_animation()
         self.num_iteration = self.num_iteration + 1
         return True
+
+    def _on_training_end(self) -> None:
+        if not self.episodic and self.save_anim:
+            self.animation.save_animation('metric_anim_all_rollouts')

@@ -1,4 +1,5 @@
 import pickle
+
 import torch as th
 import numpy as np
 
@@ -62,7 +63,6 @@ class BASIC:
         self.target = create_nn(net_arch, n_obs + n_actions, 1)
         self.target.load_state_dict(self.critic.state_dict())
 
-
     def set_logger(self, logger):
         self.logger = logger
 
@@ -74,13 +74,15 @@ class BASIC:
         Every self.eval_freq steps, the policy is evaluated.
         """
         callback.init_callback(model=self)
+        if self.num_timesteps == 0:
+            callback.on_rollout_start()
         while self.num_timesteps < total_timesteps:
             action = self._get_action(self._last_obs, deterministic=False)
             obs, rewards, done, info = self.env.step(action)
             q = self.target(
                 th.cat([self.actor(th.tensor(self._last_obs.flatten())), th.tensor(self._last_obs.flatten())]))
-            q_value= float(th.mean(q.detach()))
-            self.logger.record('q_val',q_value)
+            q_value = float(th.mean(q.detach()))
+            self.logger.record('q_val', q_value)
             self._train(self._last_obs, obs, rewards)
             self._last_obs = obs
             self.num_timesteps += 1
@@ -89,7 +91,7 @@ class BASIC:
                 self._last_obs = self.env.reset()
             if not callback.on_step():
                 return
-
+        callback.on_training_end()
     def _train(self, last_obs, obs, reward):
         """
         Train the network with the new reward and observation from the environment.
@@ -140,6 +142,8 @@ class BASIC:
         # no need to save the target-network state, because it is a copy of the critic network
         pickle.dump(data, open(path, "wb"))
 
+    # deterministic is true when the policy is being evaluated
+    # this is requred for viz during eval
     def _get_action(self, obs, deterministic):
         """
         Get action from the actor network.
@@ -151,9 +155,14 @@ class BASIC:
         if not deterministic:
             action += self.noise_factor * (np.random.normal(size=len(action)) - 0.5)
         action = np.clip(action, -1, 1)
+
+        # if deterministic:
+        rand_eval = np.random.random_sample()
+        self.logger.record('rand_eval', rand_eval)
+
         return [action]  # DummyVecEnv expects actions in a list
 
-    def predict(self, obs, state=None, deterministic=True):
+    def predict(self, obs, state=None, deterministic=True, eval_policy=False):
         return self._get_action(obs, deterministic), state
 
     def get_env(self):
