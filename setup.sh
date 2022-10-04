@@ -8,7 +8,11 @@ setup_venv() {
   fi
   # Set up the venv
   echo "Setting up venv"
-  virtualenv -p python3 venv
+  if [ ! -x "$(command -v virtualenv )" ]; then
+    virtualenv -p python3 venv;
+  else
+    python3 -m venv venv;
+  fi
   source venv/bin/activate
   pip install --upgrade pip
   pip install -r requirements.txt
@@ -16,49 +20,72 @@ setup_venv() {
 
 setup_conda() {
 	source $(conda info --base)/etc/profile.d/conda.sh
-	if [  $(uname -s) == "Linux" ]; then
-		conda env create -f linux_environment.yaml
-		conda install cudatoolkit=11.3 pytorch -c pytorch -y
-	elif [ $(uname -s) == "Darwin" ]; then
-		if [ $(uname -m) =~ "arm" ]; then
-			conda env create -f macos_arm_environment.yaml
-		elif [ $(uname -m) =~ "x86" ]; then
-			conda env create -f macos_x86_environment.yaml
-		fi
-	fi
-	conda activate scilabrl
+	if [ conda env list | grep "scilabrl*" >/dev/null 2>&1 ]; then
+    conda activate scilabrl
+    pip install -r requirements.txt
+  else
+    if [ $(uname -s) == "Linux" ]; then
+      conda env create -f linux_environment.yaml
+      conda install cudatoolkit=11.3 pytorch -c pytorch -y
+    elif [ $(uname -s) == "Darwin" ]; then
+      if [ $(uname -m) =~ "arm" ]; then
+        conda env create -f macos_arm_environment.yaml
+      elif [ $(uname -m) =~ "x86" ]; then
+        conda env create -f macos_x86_environment.yaml
+      fi
+    fi
+    conda activate scilabrl
+  fi
 }
 
 get_mujoco() {
-
-  pkgs='libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf'
-  for pkg in $pkgs; do
-    status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
-    if [ ! $? = 0 ] || [ ! "$status" = installed ]; then
-      echo "You appear to be missing dependencies for MuJoCo. Install them with"
-      echo "sudo apt-get install libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf"
-      return
-    fi
-  done
-
   # Check if MuJoCo is already installed
-  if [ -d "${HOME}/mujoco210" ]; then
+  if [ -d "${HOME}/.mujoco/mujoco210" ]; then
     echo "Skipping MuJoCo as it is already installed."
     return
   fi
   # Get MuJoCo
   echo "Getting MuJoCo"
-  wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz -O "${HOME}/mujoco.tar.gz"
-  tar -xf "${HOME}/mujoco.tar.gz" -C "${HOME}"
-  rm "${HOME}/mujoco.tar.gz"
+  MUJOCO_VERSION="2.1.1"
+  if [ $(uname -s) == "Linux" ]; then
+    MUJOCO_DISTRO="linux-x86_64.tar.gz"
+    wget "https://github.com/deepmind/mujoco/releases/download/$MUJOCO_VERSION/mujoco-$MUJOCO_VERSION-linux-x86_64.tar.gz" -O "${HOME}/mujoco.tar.gz"
+    tar -xf "${HOME}/mujoco.tar.gz" -C "${HOME}/.mujoco/mujoco210"
+    rm "${HOME}/mujoco.tar.gz"
+  elif [ $(uname -s) == "Darwin" ]; then
+    MUJOCO_DISTRO="macos-universal2.dmg"
+    wget "https://github.com/deepmind/mujoco/releases/download/$MUJOCO_VERSION/mujoco-$MUJOCO_VERSION-macos-universal2.dmg"
+    VOLUME=`hdiutil attach mujoco-2.1.1-macos-universal2.dmg | grep Volumes | awk '{print $3}'`
+    cp -rf $VOLUME/*.app /Applications
+    hdiutil detach $VOLUME
+    mkdir -p $HOME/.mujoco/mujoco210
+    ln -sf /Applications/MuJoCo.app/Contents/Frameworks/MuJoCo.framework/Versions/Current/Headers/ $HOME/.mujoco/mujoco210/include
+    mkdir -p $HOME/.mujoco/mujoco210/bin
+    ln -sf /Applications/MuJoCo.app/Contents/Frameworks/MuJoCo.framework/Versions/Current/libmujoco.2.1.1.dylib $HOME/.mujoco/mujoco210/bin/libmujoco210.dylib
+    ln -sf /Applications/MuJoCo.app/Contents/Frameworks/MuJoCo.framework/Versions/Current/libmujoco.2.1.1.dylib /usr/local/lib/
+    # For M1 (arm64) mac users:
+    if [ $(uname -m) =~ "arm" ]; then
+      conda install -y glfw
+      rm -rfiv $CONDA_PREFIX/lib/python3.*/site-packages/glfw/libglfw.3.dylib
+      ln -sf $CONDA_PREFIX/lib/libglfw.3.dylib $HOME/.mujoco/mujoco210/bin
+      if [ ! -x "$(command -v gcc-12)" ]; then
+        brew install gcc
+      fi
+      export CC=/opt/homebrew/bin/gcc-12
+    fi
+    rm -rf mujoco-2.1.1-macos-universal2.dmg
+  fi
   # Install mujoco-py
-  echo "Installing mujoco-py"
-  source venv/bin/activate
+  echo "Installing mujoco-py and testing import"
   source set_paths.sh
-  pip install mujoco-py
+  pip install mujoco-py && python -c 'import mujoco_py'
 }
 
 get_rlbench() {
+  if [ $(uname -s) == "Darwin" ]; then
+    echo "There is no PyRep support for macos"
+    return
+  fi
   # Check if CoppeliaSim is already installed
   if [ -d "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04" ]; then
     echo "Skipping CoppeliaSim as it is already installed."

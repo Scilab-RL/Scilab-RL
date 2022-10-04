@@ -2,7 +2,7 @@
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 #For MuJoCo
-export MUJOCO_PY_MUJOCO_PATH=${HOME}/mujoco210
+export MUJOCO_PY_MUJOCO_PATH=${HOME}/.mujoco/mujoco210
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
 
 #For CoppeliaSim
@@ -18,4 +18,3 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia-$nv_version
 #export LD_PRELOAD=$LD_PRELOAD:/usr/lib/x86_64-linux-gnu/libGLEW.so # Had to comment this out with NVIDIA driver 460 version.
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia-000
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-
