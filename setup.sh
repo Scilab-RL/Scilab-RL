@@ -142,3 +142,5 @@ main() {
 }
 
 main "$@"
+
+echo "Installation complete. You must now run source ~/.bashrc to activate conda. Alternatively, you can just resturt this shell"
