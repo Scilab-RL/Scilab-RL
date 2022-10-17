@@ -18,8 +18,10 @@ setup_venv() {
     fi
   fi
   source venv/bin/activate
-  pip install --upgrade pip
-  pip install -r requirements.txt
+	echo "Current pip3 $(which pip3)"
+	echo "Current python3 $(which python3)"
+  pip3 install --upgrade pip
+  pip3 install -r requirements.txt
 }
 
 setup_conda() {
@@ -52,7 +54,7 @@ get_mujoco() {
     echo "Skipping MuJoCo as it is already installed."
     return
   else
-    mkdir -p $HOME/.mujoco/mujoco210
+    mkdir -p $HOME/.mujoco/
   fi
   # Get MuJoCo
   echo "Getting MuJoCo"
@@ -60,7 +62,8 @@ get_mujoco() {
   if [ $(uname -s) == "Linux" ]; then
     MUJOCO_DISTRO="linux-x86_64.tar.gz"
     wget "https://github.com/deepmind/mujoco/releases/download/$MUJOCO_VERSION/mujoco-$MUJOCO_VERSION-linux-x86_64.tar.gz" -O "${HOME}/mujoco.tar.gz"
-    tar -xf "${HOME}/mujoco.tar.gz" -C "${HOME}/.mujoco/mujoco210"
+    tar -xf "${HOME}/mujoco.tar.gz"
+		mv "${PWD}/mujoco-${MUJOCO_VERSION}" "${HOME}/.mujoco/mujoco210"
     rm "${HOME}/mujoco.tar.gz"
   elif [ $(uname -s) == "Darwin" ]; then
     MUJOCO_DISTRO="macos-universal2.dmg"
