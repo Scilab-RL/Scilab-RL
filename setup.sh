@@ -31,7 +31,6 @@ setup_conda() {
   else
     if [ $(uname -s) == "Linux" ]; then
       conda env create -f conda/linux_environment.yaml
-      conda activate scilabrl
 			_conda_cuda_pytorch
     elif [ $(uname -s) == "Darwin" ]; then
       if [ $(uname -m) =~ "arm" ]; then
@@ -42,6 +41,7 @@ setup_conda() {
         # conda env create -f macos_x86_environment.yaml
       fi
     fi
+		conda activate scilabrl
   fi
 }
 
