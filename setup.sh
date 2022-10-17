@@ -129,6 +129,7 @@ install_conda() {
   bash "$CONDA_RELEASE.sh" -b -p $CONDA_HOME
   rm "$CONDA_RELEASE.sh"
   conda init "$(basename $SHELL)"
+  . $(conda info --base)/etc/profile.d/conda.sh
 }
 
 read -p "Would you like to use conda over python-venv (y/n)? " answer
