@@ -34,38 +34,12 @@ For visualization with matplotlib, it is important to have the GUI-backend tkint
 
 ### With the setup script
 
-1. run `./setup.sh -m -r`. `-m` is for installing MuJoCo and `-r` is for installing RLBench.
+1. run `./setup.sh`
 2. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiments with `wandb=0`.
 3. Check your installation with
    - `python3 main.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
    - `python3 main.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
 4. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home).
-
-### Manually with virtualenv
-1. generate a virtual python3 environment with
-
-    `virtualenv -p python3 venv` or
-    `python3 -m venv venv`
-
-2. load the environment with
-
-    `source venv/bin/activate`
-
-3. upgrade the version of pip
-
-    `pip install --upgrade pip`
-
-4. install required python libraries with
-
-    `pip install -r requirements.txt`
-
-### Manually with conda
-In certain cases, it is necessary to install different cuda or compiler versions.
-Therefore, we recommend to use conda (anaconda, miniconda or miniforge).
-
-1. [install conda](https://conda.io/docs/user-guide/install/index.html) if it is not part of your system
-2. `conda env create -f conda/linux_environment.yaml`
-3. `conda install cudatoolkit=11.3 pytorch -c pytorch -y`
 
 ### Logging and training
 
