@@ -6,12 +6,15 @@ setup_venv() {
     echo "Skipping venv setup as there is already a venv."
     return
   fi
-  # Set up the venv
-  echo "Setting up venv"
-  if [ ! -x "$(command -v virtualenv )" ]; then
-    virtualenv -p python3 venv;
-  else
-    python3 -m venv venv;
+  # check if venv directory is already present
+  if [ ! -d "$PWD/venv" ]; then
+    # Set up the venv
+    echo "Setting up venv"
+    if [ ! -x "$(command -v virtualenv )" ]; then
+      virtualenv -p python3 venv;
+    else
+      python3 -m venv venv;
+    fi
   fi
   source venv/bin/activate
   pip install --upgrade pip
@@ -19,19 +22,23 @@ setup_venv() {
 }
 
 setup_conda() {
+  printf "Setup conda"
 	source $(conda info --base)/etc/profile.d/conda.sh
+  # check if scilabrl already exists
 	if [ conda env list | grep "scilabrl*" >/dev/null 2>&1 ]; then
     conda activate scilabrl
     pip install -r requirements.txt
   else
     if [ $(uname -s) == "Linux" ]; then
-      conda env create -f linux_environment.yaml
+      conda env create -f conda/linux_environment.yaml
       conda install cudatoolkit=11.3 pytorch -c pytorch -y
     elif [ $(uname -s) == "Darwin" ]; then
       if [ $(uname -m) =~ "arm" ]; then
-        conda env create -f macos_arm_environment.yaml
+        conda env create -f conda/macos_arm_environment.yaml
       elif [ $(uname -m) =~ "x86" ]; then
-        conda env create -f macos_x86_environment.yaml
+        printf "Intel Macs are currently not supported"
+        exit 1
+        # conda env create -f macos_x86_environment.yaml
       fi
     fi
     conda activate scilabrl
@@ -104,11 +111,11 @@ get_rlbench() {
 }
 
 
-# check if conda is installed
-if [ ! -x "$(command -v conda)" ]; then
-  setup_venv
-else
+# check if conda is available
+if [ -x "$(command -v conda)" ]; then
   setup_conda
+else
+  setup_venv
 fi
 
 while getopts 'mr' OPTION; do

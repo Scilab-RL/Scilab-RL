@@ -64,7 +64,7 @@ In certain cases, it is necessary to install different cuda or compiler versions
 Therefore, we recommend to use conda (anaconda, miniconda or miniforge).
 
 1. [install conda](https://conda.io/docs/user-guide/install/index.html) if it is not part of your system
-2. `conda env create -f environment.yml`
+2. `conda env create -f conda/linux_environment.yaml`
 3. `conda install cudatoolkit=11.3 pytorch -c pytorch -y`
 
 ### Logging and training
