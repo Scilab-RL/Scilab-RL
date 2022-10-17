@@ -121,7 +121,7 @@ install_conda() {
   elif [ $(uname -s) == "Darwin" ]; then
     PYOS=MacOSX
   fi
-  ARCHITECTURE=$(shell uname -m)
+  ARCHITECTURE=$(uname -m)
   CONDA_RELEASE="Miniforge3-$(PYOS)-$(ARCHITECTURE)"
   CONDA_HOME="$HOME/miniforge3"
   export PATH="$CONDA_HOME/bin:$PATH"
