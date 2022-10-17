@@ -125,7 +125,7 @@ install_conda() {
 	CONDA_RELEASE="Miniforge3-$PYOS-$ARCHITECTURE"
   CONDA_HOME="$HOME/miniforge3"
   export PATH="$CONDA_HOME/bin:$PATH"
-  curl -fsSLO https://github.com/conda-forge/miniforge/releases/latest/download/$(CONDA_RELEASE).sh
+  curl -fsSLO https://github.com/conda-forge/miniforge/releases/latest/download/$CONDA_RELEASE.sh
   bash "$CONDA_RELEASE.sh" -b -p $CONDA_HOME
   rm "$CONDA_RELEASE.sh"
   conda init "$(shell basename $SHELL)"
