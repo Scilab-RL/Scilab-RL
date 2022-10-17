@@ -1,14 +1,26 @@
 #!/bin/bash
 
+info () {
+  printf "\r  [ \033[00;34m..\033[0m ] $1\n"
+}
+
+success () {
+  printf "\r\033[2K  [ \033[00;32mOK\033[0m ] $1\n"
+}
+
+warn () {
+  printf "\r\033[2K  [\033[0;31mFAIL\033[0m] $1\n"
+  echo ''
+}
+
 _conda_cuda_pytorch() {
-	# reinstall gpu specific tools
+	# install gpu specific tools
 	if [ -x "$(command -v nvidia-smi)" ]; then
 		conda install cudatoolkit=11.3 pytorch -c pytorch -y
 	fi
 }
 
 setup_conda() {
-  echo "Setup conda"
 	source $(conda info --base)/etc/profile.d/conda.sh
   # check if scilabrl already exists
   if [ -n "$(conda env list | grep 'scilabrl*')" ]; then
@@ -24,7 +36,7 @@ setup_conda() {
       if [ $(uname -m) =~ "arm" ]; then
         conda env create -f conda/macos_arm_environment.yaml
       elif [ $(uname -m) =~ "x86" ]; then
-        printf "Intel Macs are currently not supported"
+        warn "Intel Macs are currently not supported"
         exit 1
         # conda env create -f macos_x86_environment.yaml
       fi
@@ -32,12 +44,10 @@ setup_conda() {
   fi
 }
 
-get_mujoco() {
-  # Check if MuJoCo is already installed
+install_mujoco() {
   if ! [ -d "${HOME}/.mujoco/mujoco210" ]; then
     mkdir -p $HOME/.mujoco/
-    # Get MuJoCo
-    echo "Getting MuJoCo"
+    info "Getting MuJoCo"
     MUJOCO_VERSION="2.1.1"
     if [ $(uname -s) == "Linux" ]; then
       MUJOCO_DISTRO="linux-x86_64.tar.gz"
@@ -73,19 +83,19 @@ get_mujoco() {
     fi
   fi
   # Install mujoco-py
-  echo "Installing mujoco-py and testing import"
+  info "Installing mujoco-py and testing import"
   source set_paths.sh
   pip3 install mujoco-py && python3 -c 'import mujoco_py'
 }
 
-get_rlbench() {
+install_rlbench() {
   if [ $(uname -s) == "Darwin" ]; then
-    echo "There is no PyRep support for macos"
+    warn "There is no PyRep support for macos"
     return
   fi
   # Check if CoppeliaSim is already installed
   if [ -d "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04" ]; then
-    echo "Skipping CoppeliaSim as it is already installed."
+    warn "Skipping CoppeliaSim as it is already installed."
     return
   fi
   # Get CoppeliaSim
@@ -95,9 +105,8 @@ get_rlbench() {
   rm "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz"
   # Get RLBench
   echo "Getting RLBench"
-  source venv/bin/activate
   source set_paths.sh
-  pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
+  pip3 install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
 }
 
 
@@ -120,27 +129,19 @@ install_conda() {
 
 
 main() {
-	if ! [ -x "$(command -v conda)" ]; then
-		echo "Installing conda"
-		install_conda
-	fi
-	setup_conda
-	while getopts 'mr' OPTION; do
-		case "$OPTION" in
-			m)
-				get_mujoco
-				;;
-			r)
-				get_rlbench
-				;;
-			?)
-				echo "Use -m to install MuJoCo and -r to install RLBench"
-				exit 1
-				;;
-		esac
-	done
+  if ! [ -x "$(command -v conda)" ]; then
+    info "Installing conda"
+    install_conda
+		success "Conda installed"
+  fi
+  setup_conda
+	success "SciLab-RL environment created/updated"
+  install_mujoco
+	success "Mujoco installed/updated"
+  install_rlbench
+	success "RLBench installed/updated"
+  success "Installation complete."
+	info "You must now run source ~/.bashrc to activate conda. Alternatively, you can just restart this shell"
 }
 
 main "$@"
-
-echo "Installation complete. You must now run source ~/.bashrc to activate conda. Alternatively, you can just resturt this shell"
