@@ -41,16 +41,16 @@ RUN apt-get update -q \
 
 # # Get mujoco
 # # adapted from https://github.com/openai/mujoco-py/issues/676#issuecomment-1107798580
-# RUN mkdir -p /root/.mujoco \
-#     && wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz -O mujoco.tar.gz \
-#     && tar -xf mujoco.tar.gz \
-#     && rm mujoco.tar.gz
-#
+RUN mkdir -p /root/.mujoco \
+    && wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz -O mujoco.tar.gz \
+    && tar -xf mujoco.tar.gz -C /root/.mujoco/ \
+    && rm mujoco.tar.gz
+
 # # Get CoppeliaSim
-# RUN wget http://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
-#     && tar -xf CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
-#     && rm CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz
-#
+RUN wget http://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
+    && tar -xf CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
+    && rm CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz
+
 # # Install miniconda
 RUN wget \
     https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \

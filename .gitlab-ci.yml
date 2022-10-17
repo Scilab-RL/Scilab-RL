@@ -28,9 +28,9 @@ run-smoke-and-performance-tests:
         # - conda install pytorch cudatoolkit=11.3 -c pytorch -y;
         - conda install -c conda-forge ncurses
         - export PYTHONPATH=$PYTHONPATH:$(pwd)
-        - export MUJOCO_PY_MUJOCO_PATH=/.mujoco/mujoco210
+        - export MUJOCO_PY_MUJOCO_PATH=/root/.mujoco/mujoco210
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
-        - export COPPELIASIM_ROOT=/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
+        - export COPPELIASIM_ROOT=/root/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
         - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$COPPELIASIM_ROOT
         - export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
         - export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
