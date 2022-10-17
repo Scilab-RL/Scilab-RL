@@ -25,9 +25,9 @@ setup_venv() {
 }
 
 setup_conda() {
-  printf "Setup conda"
+	printf "Setup conda"
 	source $(conda info --base)/etc/profile.d/conda.sh
-  # check if scilabrl already exists
+	# check if scilabrl already exists
 	if [ conda env list | grep "scilabrl*" >/dev/null 2>&1 ]; then
     conda activate scilabrl
     pip install -r requirements.txt
