@@ -128,7 +128,7 @@ install_conda() {
   curl -fsSLO https://github.com/conda-forge/miniforge/releases/latest/download/$CONDA_RELEASE.sh
   bash "$CONDA_RELEASE.sh" -b -p $CONDA_HOME
   rm "$CONDA_RELEASE.sh"
-  conda init "$(shell basename $SHELL)"
+  conda init "$(basename $SHELL)"
 }
 
 read -p "Would you like to use conda over python-venv (y/n)? " answer
