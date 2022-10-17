@@ -1,11 +1,6 @@
 #!/bin/bash
 
 setup_venv() {
-  # Check if there is already a venv
-  if [ -d "venv" ]; then
-    echo "Skipping venv setup as there is already a venv."
-    return
-  fi
   # check if venv directory is already present
   if [ ! -d "$PWD/venv" ]; then
     # Set up the venv
