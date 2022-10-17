@@ -13,6 +13,7 @@ setup_venv() {
     if [ ! -x "$(command -v virtualenv )" ]; then
       virtualenv -p python3 venv;
     else
+      # check if python3-venv is installed
       python3 -m venv venv;
     fi
   fi
@@ -50,6 +51,8 @@ get_mujoco() {
   if [ -d "${HOME}/.mujoco/mujoco210" ]; then
     echo "Skipping MuJoCo as it is already installed."
     return
+  else
+    mkdir -p $HOME/.mujoco/mujoco210
   fi
   # Get MuJoCo
   echo "Getting MuJoCo"
@@ -85,7 +88,7 @@ get_mujoco() {
   # Install mujoco-py
   echo "Installing mujoco-py and testing import"
   source set_paths.sh
-  pip install mujoco-py && python -c 'import mujoco_py'
+  pip3 install mujoco-py && python3 -c 'import mujoco_py'
 }
 
 get_rlbench() {
