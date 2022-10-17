@@ -25,10 +25,10 @@ setup_venv() {
 }
 
 setup_conda() {
-	printf "Setup conda"
+  echo "Setup conda"
 	source $(conda info --base)/etc/profile.d/conda.sh
-	# check if scilabrl already exists
-	if [ conda env list | grep "scilabrl*" >/dev/null 2>&1 ]; then
+  # check if scilabrl already exists
+  if [ -n "$(conda env list | grep 'scilabrl*')" ]; then
     conda activate scilabrl
     pip install -r requirements.txt
   else
@@ -61,9 +61,12 @@ get_mujoco() {
   MUJOCO_VERSION="2.1.1"
   if [ $(uname -s) == "Linux" ]; then
     MUJOCO_DISTRO="linux-x86_64.tar.gz"
-    wget "https://github.com/deepmind/mujoco/releases/download/$MUJOCO_VERSION/mujoco-$MUJOCO_VERSION-linux-x86_64.tar.gz" -O "${HOME}/mujoco.tar.gz"
-    tar -xf "${HOME}/mujoco.tar.gz"
-		mv "${PWD}/mujoco-${MUJOCO_VERSION}" "${HOME}/.mujoco/mujoco210"
+    wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz -O "${HOME}/mujoco.tar.gz"
+    tar -xf "${HOME}/mujoco.tar.gz" -C "${HOME}/.mujoco/"
+    # NOTE: If we move to a newer version for linux
+    # wget "https://github.com/deepmind/mujoco/releases/download/$MUJOCO_VERSION/mujoco-$MUJOCO_VERSION-linux-x86_64.tar.gz" -O "${HOME}/mujoco.tar.gz"
+    # tar -xf "${HOME}/mujoco.tar.gz"
+		# mv "${PWD}/mujoco-${MUJOCO_VERSION}" "${HOME}/.mujoco/mujoco210"
     rm "${HOME}/mujoco.tar.gz"
   elif [ $(uname -s) == "Darwin" ]; then
     MUJOCO_DISTRO="macos-universal2.dmg"
