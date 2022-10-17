@@ -68,7 +68,7 @@ get_mujoco() {
   elif [ $(uname -s) == "Darwin" ]; then
     MUJOCO_DISTRO="macos-universal2.dmg"
     wget "https://github.com/deepmind/mujoco/releases/download/$MUJOCO_VERSION/mujoco-$MUJOCO_VERSION-macos-universal2.dmg"
-    VOLUME=`hdiutil attach mujoco-2.1.1-macos-universal2.dmg | grep Volumes | awk '{print $3}'`
+    VOLUME=`hdiutil attach mujoco-${MUJOCO_VERSION}-macos-universal2.dmg | grep Volumes | awk '{print $3}'`
     cp -rf $VOLUME/*.app /Applications
     hdiutil detach $VOLUME
     mkdir -p $HOME/.mujoco/mujoco210
