@@ -21,6 +21,7 @@ run-smoke-and-performance-tests:
         - export PATH="/root/miniconda3/bin:$PATH"
         - bash setup.sh
         - bash set_paths.sh
+        - source $HOME/.bashrc
         - source $(conda info --base)/etc/profile.d/conda.sh
         - conda activate scilabrl
         - nvidia-smi
