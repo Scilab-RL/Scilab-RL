@@ -110,4 +110,3 @@ dependencies:
     - websocket-client==1.4.1
     - werkzeug==2.2.2
     - zipp==3.9.0
-prefix: /home/fr/miniforge3/envs/scilabrl
