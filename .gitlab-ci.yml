@@ -18,6 +18,7 @@ run-smoke-and-performance-tests:
       paths:
         - .cache/pip
     script:
+        - export PATH="/root/miniconda3/bin:$PATH"
         - bash setup.sh
         - bash set_paths.sh
         - source $(conda info --base)/etc/profile.d/conda.sh

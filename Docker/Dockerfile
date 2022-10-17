@@ -17,6 +17,7 @@ FROM ubuntu:22.04
 RUN apt-get update -q \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
+    curl \
     libgl1-mesa-dev \
     libgl1-mesa-glx \
     libglew-dev \
