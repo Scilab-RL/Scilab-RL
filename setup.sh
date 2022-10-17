@@ -115,6 +115,33 @@ get_rlbench() {
 }
 
 
+install_conda() {
+  if [ $(uname -s) == "Linux" ]; then
+    PYOS="Linux"
+  elif [ $(uname -s) == "Darwin" ]; then
+    PYOS=MacOSX
+  fi
+  ARCHITECTURE=$(shell uname -m)
+  CONDA_RELEASE="Miniforge3-$(PYOS)-$(ARCHITECTURE)"
+  CONDA_HOME="$HOME/miniforge3"
+  export PATH="$CONDA_HOME/bin:$PATH"
+  curl -fsSLO https://github.com/conda-forge/miniforge/releases/latest/download/$(CONDA_RELEASE).sh
+  bash "$CONDA_RELEASE.sh" -b -p $CONDA_HOME
+  rm "$CONDA_RELEASE.sh"
+  conda init "$(shell basename $SHELL)"
+}
+
+read -p "Would you like to use conda over python-venv (y/n)? " answer
+case ${answer:0:1} in
+    y|Y )
+        echo "Installing conda"; install_conda
+    ;;
+    * )
+        echo "Skipping installation of conda";
+    ;;
+esac
+
+
 # check if conda is available
 if [ -x "$(command -v conda)" ]; then
   setup_conda
