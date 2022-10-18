@@ -21,13 +21,18 @@ run-smoke-and-performance-tests:
     script:
         - source $(conda info --base)/etc/profile.d/conda.sh
         - echo "Installing python libraries"
+        # - bash set_paths.sh
+        - export PYTHONPATH=$PYTHONPATH:$(pwd)
+        - export MUJOCO_PY_MUJOCO_PATH=/root/.mujoco/mujoco210
+        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
+        - export COPPELIASIM_ROOT=/root/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
+        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$COPPELIASIM_ROOT
+        - export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
         - bash setup.sh
-        - bash set_paths.sh
         - conda activate scilabrl
         - nvidia-smi
         - conda install -c conda-forge ncurses
         - export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
-        - env
         - pip install "importlib-metadata~=4.13" # bug fix for gym issues/3122
         - echo "running smoke tests"
         - ./run_smoke_tests.sh
