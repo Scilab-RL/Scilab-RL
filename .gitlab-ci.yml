@@ -27,6 +27,7 @@ run-smoke-and-performance-tests:
         - nvidia-smi
         - conda install -c conda-forge ncurses
         - export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
+        - env
         - pip install "importlib-metadata~=4.13" # bug fix for gym issues/3122
         - echo "running smoke tests"
         - ./run_smoke_tests.sh
