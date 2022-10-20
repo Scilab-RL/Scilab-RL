@@ -22,8 +22,8 @@ run-smoke-and-performance-tests:
         - source $(conda info --base)/etc/profile.d/conda.sh
         - echo "Installing python libraries"
         - bash setup.sh
+        - source ~/.bashrc
         - conda activate scilabrl
-        - source set_paths.sh
         - nvidia-smi
         - conda install -c conda-forge ncurses -y
         - export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
