@@ -137,15 +137,15 @@ main() {
   # conda update conda --name base --yes;
   setup_conda
 
-  info "Adding source $PWD/set_path.sh to rc file of the current shell"
+  info "Adding source $PWD/set_paths.sh to rc file of the current shell"
   if [ -n "$ZSH_VERSION" ]; then
-    grep -qxF "source $PWD/set_path.sh" $HOME/.zshrc || echo "source $PWD/set_path.sh" >> $HOME/.zshrc
+    grep -qxF "source $PWD/set_paths.sh" $HOME/.zshrc || echo "source $PWD/set_paths.sh" >> $HOME/.zshrc
     source $HOME/.zshrc
   elif [ -n "$BASH_VERSION" ]; then
-    grep -qxF "source $PWD/set_path.sh" $HOME/.bashrc || echo "source $PWD/set_path.sh" >> $HOME/.bashrc
+    grep -qxF "source $PWD/set_paths.sh" $HOME/.bashrc || echo "source $PWD/set_paths.sh" >> $HOME/.bashrc
     source $HOME/.bashrc
   else
-    warn "Unknown shell, could not setup set_path.sh script correctly"
+    warn "Unknown shell, could not setup set_paths.sh script correctly"
   fi
 
   success "SciLab-RL environment created/updated"
