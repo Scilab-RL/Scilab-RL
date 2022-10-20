@@ -149,6 +149,7 @@ main() {
   info "You must now run source ~/.bashrc to activate conda. Alternatively, you can just restart this shell"
   info "Then, activate the created environment with conda activate scilabrl"
   info "Additionally run source set_paths.sh or copy the relevant environment variables into your .bashrc or IDE."
+  info "You may check the installation (MuJoCo) via python3 main.py n_epochs=1 wandb=0 env=FetchReach-v1"
 }
 
 main "$@"
