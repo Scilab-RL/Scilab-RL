@@ -22,6 +22,7 @@ run-smoke-and-performance-tests:
         - echo "Installing python libraries"
         - bash setup.sh
         - source ~/.bashrc
+        - source /root/miniforge3/etc/profile.d/conda.sh
         - conda activate scilabrl
         - nvidia-smi
         - conda install -c conda-forge ncurses -y
