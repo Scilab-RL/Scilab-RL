@@ -13,10 +13,12 @@ warn () {
   echo ''
 }
 
-_conda_cuda_pytorch() {
+_conda_install_pytorch() {
   # install gpu specific tools
   if [ -x "$(command -v nvidia-smi)" ]; then
     conda install cudatoolkit=11.3 pytorch -c pytorch -y
+  else
+    conda install pytorch==1.11.0
   fi
 }
 
@@ -38,7 +40,7 @@ setup_conda() {
   fi
   conda activate scilabrl
   pip install -r requirements.txt
-  _conda_cuda_pytorch
+  _conda_install_pytorch
 }
 
 install_mujoco() {
