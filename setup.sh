@@ -84,7 +84,7 @@ install_mujoco() {
     # Install mujoco-py
     info "Installing mujoco-py and testing import"
     source set_paths.sh
-    pip3 install mujoco-py && python3 -c 'import mujoco_py'
+    pip install mujoco-py && python -c 'import mujoco_py'
 }
 
 install_rlbench() {
@@ -105,7 +105,7 @@ install_rlbench() {
   # Get RLBench
   echo "Getting RLBench"
   source set_paths.sh
-  pip3 install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
+  pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
 }
 
 
@@ -156,7 +156,7 @@ main() {
   success "Installation complete."
   info "You must now run 'source ~/.bashrc' to activate conda. Alternatively, you can just restart this shell"
   info "Then, activate the created environment with 'conda activate scilabrl'"
-  info "You may check the installation (MuJoCo) via python3 main.py n_epochs=1 wandb=0 env=FetchReach-v1"
+  info "You may check the installation (MuJoCo) via python main.py n_epochs=1 wandb=0 env=FetchReach-v1"
 }
 
 main "$@"
