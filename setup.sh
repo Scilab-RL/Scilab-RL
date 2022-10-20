@@ -138,6 +138,7 @@ main() {
     install_conda
     success "Conda installed"
   fi
+  conda update conda --name base --yes;
   setup_conda
   success "SciLab-RL environment created/updated"
   install_mujoco
