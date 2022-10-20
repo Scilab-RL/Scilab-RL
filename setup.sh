@@ -23,9 +23,7 @@ _conda_cuda_pytorch() {
 setup_conda() {
   source $(conda info --base)/etc/profile.d/conda.sh
   # check if scilabrl already exists
-  if [ -n "$(conda env list | grep 'scilabrl*')" ]; then
-    conda activate scilabrl
-  else
+  if ! [ -n "$(conda env list | grep 'scilabrl*')" ]; then
     if [ $(uname -s) == "Linux" ]; then
       conda env create -f conda/linux_environment.yaml
     elif [ $(uname -s) == "Darwin" ]; then
@@ -37,8 +35,8 @@ setup_conda() {
         # conda env create -f macos_x86_environment.yaml
       fi
     fi
-    conda activate scilabrl
   fi
+  conda activate scilabrl
   pip install -r requirements.txt
   _conda_cuda_pytorch
 }
