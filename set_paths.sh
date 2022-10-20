@@ -1,6 +1,3 @@
-# General
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-
 #For MuJoCo
 export MUJOCO_PY_MUJOCO_PATH=${HOME}/.mujoco/mujoco210
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
