@@ -147,6 +147,7 @@ main() {
   success "RLBench installed/updated"
   success "Installation complete."
   info "You must now run source ~/.bashrc to activate conda. Alternatively, you can just restart this shell"
+  info "Then, activate the created environment with conda activate scilabrl"
   info "Additionally run source set_paths.sh or copy the relevant environment variables into your .bashrc or IDE."
 }
 
