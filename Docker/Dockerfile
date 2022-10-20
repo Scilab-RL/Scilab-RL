@@ -59,4 +59,4 @@ RUN wget \
 #
 ENV PATH="/root/miniconda3/bin:${PATH}"
 RUN . $(conda info --base)/etc/profile.d/conda.sh \
-	&& conda create --name scilabrl python=3.7
+	&& conda create --name scilabrl python=3.8
