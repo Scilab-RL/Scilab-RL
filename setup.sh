@@ -124,13 +124,6 @@ install_conda() {
   rm "$CONDA_RELEASE.sh"
   conda init "$(basename $SHELL)"
   . $(conda info --base)/etc/profile.d/conda.sh
-  if [ -n "$ZSH_VERSION" ]; then
-    source $HOME/.zshrc
-  elif [ -n "$BASH_VERSION" ]; then
-    source $HOME/.bashrc
-  else
-    warn "Unknown shell"
-  fi
 }
 
 
@@ -143,15 +136,26 @@ main() {
 	# TODO: update conda
   # conda update conda --name base --yes;
   setup_conda
+
+  info "Adding source $PWD/set_path.sh to rc file of the current shell"
+  if [ -n "$ZSH_VERSION" ]; then
+    grep -qxF "source $PWD/set_path.sh" $HOME/.zshrc || echo "source $PWD/set_path.sh" >> $HOME/.zshrc
+    source $HOME/.zshrc
+  elif [ -n "$BASH_VERSION" ]; then
+    grep -qxF "source $PWD/set_path.sh" $HOME/.bashrc || echo "source $PWD/set_path.sh" >> $HOME/.bashrc
+    source $HOME/.bashrc
+  else
+    warn "Unknown shell, could not setup set_path.sh script correctly"
+  fi
+
   success "SciLab-RL environment created/updated"
   install_mujoco
   success "Mujoco installed/updated"
   install_rlbench
   success "RLBench installed/updated"
   success "Installation complete."
-  info "You must now run source ~/.bashrc to activate conda. Alternatively, you can just restart this shell"
-  info "Then, activate the created environment with conda activate scilabrl"
-  info "Additionally run source set_paths.sh or copy the relevant environment variables into your .bashrc or IDE."
+  info "You must now run 'source ~/.bashrc' to activate conda. Alternatively, you can just restart this shell"
+  info "Then, activate the created environment with 'conda activate scilabrl'"
   info "You may check the installation (MuJoCo) via python3 main.py n_epochs=1 wandb=0 env=FetchReach-v1"
 }
 
