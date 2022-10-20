@@ -12,6 +12,7 @@ The framework is tailored towards the rapid prototyping and development and eval
 * Easy development of new robotic simulation and real robot environments based on MuJoCo, CoppeliaSim, and PyBullet. 
 * Smoke and performance testing
 * Compatibility between a multitude of state-of-the-art algorithms for quick empirical comparison and evaluation. 
+* A focus on goal-conditioned reinforcement learning with hindsight experience replay to avoid environment-specific reward shaping. 
 
 ## Table of Contents
 
@@ -30,42 +31,19 @@ The framework is designed to run on Linux, best compatibility with Ubuntu 22. Ho
 
 For visualization with matplotlib, it is important to have the GUI-backend tkinter installed (see [this](https://stackoverflow.com/questions/56656777/userwarning-matplotlib-is-currently-using-agg-which-is-a-non-gui-backend-so) for more information).
 
-## Getting Started
+## Getting started using the setup script
 
-### With the setup script
-
-1. run `./setup.sh -m -r`. `-m` is for installing MuJoCo and `-r` is for installing RLBench.
-2. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiments with `wandb=0`.
+1. run `./setup.sh`. This will automatically install the Conda Python interpreter, along with all required packages. It will also install the robotic simulators MuJoCo and 
+ CoppeliaSim.
+2. source your ~/.bashrc: `source ~/.bashrc`
+3. activate the conda python environment: `conda activate scilabrl`
+2. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiments with the command line parameter `wandb=0`.
 3. Check your installation with
    - `python3 main.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
    - `python3 main.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
-4. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home).
+4. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home) for more details.
 
-### Manually with virtualenv
-1. generate a virtual python3 environment with
-
-    `virtualenv -p python3 venv` or
-    `python3 -m venv venv`
-
-2. load the environment with
-
-    `source venv/bin/activate`
-
-3. upgrade the version of pip
-
-    `pip install --upgrade pip`
-
-4. install required python libraries with
-
-    `pip install -r requirements.txt`
-
-### Manually with conda
-In certain cases, it is necessary to install different cuda or compiler versions.
-Therefore, we recommend to use conda (anaconda, miniconda or miniforge).
-
-1. [install conda](https://conda.io/docs/user-guide/install/index.html) if it is not part of your system
-2. `conda env create -f environment.yml`
-3. `conda install cudatoolkit=11.3 pytorch -c pytorch -y`
+You can also install all dependencies manually, but we do not recommend this. 
 
 ### Logging and training
 
