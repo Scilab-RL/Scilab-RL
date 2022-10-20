@@ -18,7 +18,7 @@ _conda_install_pytorch() {
   if [ -x "$(command -v nvidia-smi)" ]; then
     conda install cudatoolkit=11.3 pytorch -c pytorch -y
   else
-    conda install pytorch==1.11.0
+    conda install pytorch==1.11.0 -y
   fi
 }
 
