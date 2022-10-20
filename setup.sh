@@ -50,7 +50,7 @@ install_mujoco() {
     MUJOCO_VERSION="2.1.1"
     if [ $(uname -s) == "Linux" ]; then
       MUJOCO_DISTRO="linux-x86_64.tar.gz"
-      wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz -O "${HOME}/mujoco.tar.gz"
+      wget -q https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz -O "${HOME}/mujoco.tar.gz"
       tar -xf "${HOME}/mujoco.tar.gz" -C "${HOME}/.mujoco/"
       # NOTE: If we move to a newer version for linux
       # wget "https://github.com/deepmind/mujoco/releases/download/$MUJOCO_VERSION/mujoco-$MUJOCO_VERSION-linux-x86_64.tar.gz" -O "${HOME}/mujoco.tar.gz"
@@ -59,7 +59,7 @@ install_mujoco() {
       rm "${HOME}/mujoco.tar.gz"
     elif [ $(uname -s) == "Darwin" ]; then
       MUJOCO_DISTRO="macos-universal2.dmg"
-      wget "https://github.com/deepmind/mujoco/releases/download/$MUJOCO_VERSION/mujoco-$MUJOCO_VERSION-macos-universal2.dmg"
+      wget -q "https://github.com/deepmind/mujoco/releases/download/$MUJOCO_VERSION/mujoco-$MUJOCO_VERSION-macos-universal2.dmg"
       VOLUME=`hdiutil attach mujoco-${MUJOCO_VERSION}-macos-universal2.dmg | grep Volumes | awk '{print $3}'`
       cp -rf $VOLUME/*.app /Applications
       hdiutil detach $VOLUME
@@ -99,7 +99,7 @@ install_rlbench() {
   fi
   # Get CoppeliaSim
   echo "Getting CoppeliaSim"
-  wget http://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz -O "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz"
+  wget -q http://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz -O "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz"
   tar -xf "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz" -C "$HOME"
   rm "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz"
   # Get RLBench
