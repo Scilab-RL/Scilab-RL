@@ -134,7 +134,7 @@ main() {
     success "Conda installed"
   fi
 	# TODO: update conda
-  # conda update conda --name base --yes;
+	# conda update -n base -c conda-forge conda
   setup_conda
 
   info "Adding source $PWD/set_paths.sh to rc file of the current shell"
