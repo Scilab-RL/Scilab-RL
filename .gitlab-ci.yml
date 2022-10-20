@@ -19,10 +19,11 @@ run-smoke-and-performance-tests:
       paths:
         - .cache/pip
     script:
+        - source ~/.bashrc
+        - ls -la $HOME
         - source $(conda info --base)/etc/profile.d/conda.sh
         - echo "Installing python libraries"
         - bash setup.sh
-        - source ~/.bashrc
         - conda activate scilabrl
         - nvidia-smi
         - conda install -c conda-forge ncurses -y
