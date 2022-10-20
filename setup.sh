@@ -123,7 +123,7 @@ install_conda() {
   bash "$CONDA_RELEASE.sh" -b -p $CONDA_HOME
   rm "$CONDA_RELEASE.sh"
   conda init "$(basename $SHELL)"
-  . $(conda info --base)/etc/profile.d/conda.sh
+  source $(conda info --base)/etc/profile.d/conda.sh
 }
 
 
@@ -147,6 +147,8 @@ main() {
   else
     warn "Unknown shell, could not setup set_paths.sh script correctly"
   fi
+
+  conda activate scilabrl
 
   success "SciLab-RL environment created/updated"
   install_mujoco
