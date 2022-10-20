@@ -122,6 +122,13 @@ install_conda() {
   rm "$CONDA_RELEASE.sh"
   conda init "$(basename $SHELL)"
   . $(conda info --base)/etc/profile.d/conda.sh
+  if [ -n "$ZSH_VERSION" ]; then
+    source $HOME/.zshrc
+  elif [ -n "$BASH_VERSION" ]; then
+    source $HOME/.bashrc
+  else
+    warn "Unknown shell"
+  fi
 }
 
 
