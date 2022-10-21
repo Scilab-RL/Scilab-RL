@@ -10,11 +10,5 @@ opencv-python-headless==4.5.5.64
 optuna==2.10.0
 protobuf==3.20.1
 stable-baselines3==1.1.0
-torch==1.11.0
 tqdm==4.63.1
 wandb==0.12.14
-# mujoco-py
-# git+https://github.com/stepjam/PyRep.git
-# git+https://github.com/stepjam/RLBench.git
-# pyquaternion
-# natsort

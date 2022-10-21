@@ -10,6 +10,7 @@ image: collaborating.tuhh.de:5005/ckv0173/scilab-rl/scilabrl
 # only cache local items.
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  HOME: "/root"
 
 run-smoke-and-performance-tests:
     # cache the pip cache for every branch
@@ -18,22 +19,16 @@ run-smoke-and-performance-tests:
       paths:
         - .cache/pip
     script:
-        - source $(conda info --base)/etc/profile.d/conda.sh
-        - conda activate runner-env
-        - nvidia-smi
         - echo "Installing python libraries"
-        - pip install -r requirements.txt
-        - conda install pytorch cudatoolkit=11.3 -c pytorch -y;
-        - conda install -c conda-forge ncurses
-        - export PYTHONPATH=$PYTHONPATH:$(pwd)
-        - export MUJOCO_PY_MUJOCO_PATH=/mujoco210
-        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
-        - pip install mujoco-py
-        - export COPPELIASIM_ROOT=/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
-        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$COPPELIASIM_ROOT
+        - bash setup.sh
+        - source /root/miniforge3/etc/profile.d/conda.sh
+        - source ~/.bashrc
+        - source set_paths.sh
+        - conda activate scilabrl
+        - nvidia-smi
+        - conda install -c conda-forge ncurses -y
         - export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
-        - export QT_QPA_PLATFORM_PLUGIN_PATH=$COPPELIASIM_ROOT
-        - pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
+        - pip install "importlib-metadata~=4.13" # bug fix for gym issues/3122
         - echo "running smoke tests"
         - ./run_smoke_tests.sh
         - echo "running performance tests"
