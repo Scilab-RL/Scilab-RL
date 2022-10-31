@@ -501,7 +501,7 @@ class StopTrainingOnMaxEpisodes(BaseCallback):
     Stop the training once a maximum number of episodes are played.
 
     For multiple environments presumes that, the desired behavior is that the agent trains on each env for ``max_episodes``
-    and in total for ``max_episodes * n_envs`` episodes.
+    and in total for ``max_episodes * n_envs`` episodes.on_step
 
     :param max_episodes: Maximum number of episodes to stop training.
     :param verbose: Select whether to print information about when training ended by reaching ``max_episodes``

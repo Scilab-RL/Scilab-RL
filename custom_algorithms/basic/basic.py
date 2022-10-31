@@ -83,6 +83,9 @@ class BASIC:
                 th.cat([self.actor(th.tensor(self._last_obs.flatten())), th.tensor(self._last_obs.flatten())]))
             q_value = float(th.mean(q.detach()))
             self.logger.record('q_val', q_value)
+            #ToDo Remove
+            #for testing purposed
+            self.logger.record('rand_val', np.random.random_sample())
             self._train(self._last_obs, obs, rewards)
             self._last_obs = obs
             self.num_timesteps += 1
