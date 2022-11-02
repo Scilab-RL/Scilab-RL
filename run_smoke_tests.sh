@@ -13,7 +13,7 @@ test_algos() {
   echo "Smoke-testing algorithms $ALGOS"
 
   # environments with which to test the algorithms
-  local ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0"
+  local ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0,parking-limited-v0"
 
   # Don't have xvfb? install it with sudo apt-get install xvfb
   if ! xvfb-run -a python3 main.py env=$ENVS algorithm=$ALGOS +performance=smoke_test --multirun;
@@ -41,6 +41,7 @@ test_envs() {
   ENVS+="close_box-state-v0,"
   ENVS+="CopReach-ik1-v0"
   # ADD NEW ENVIRONMENTS HERE
+  ENVS+="parking-limited-v0"
 
   echo "Smoke-testing environments $ENVS"
 
