@@ -215,6 +215,10 @@ def main(cfg: DictConfig) -> (float, int):
             baseline.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
             training_finished = True
             logger.info("Training finished!")
+            # Save model when training is finished
+            p = logger.get_dir() + "/rl_model_finished.zip"
+            logger.info(f"Saving policy to {p}")
+            baseline.save(path=p)
         except ValueError as e:
             if e.args[0].startswith("Expected parameter loc"):
                 logger.error(f"The experiment failed with error {e}")
