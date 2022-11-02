@@ -2,7 +2,7 @@
 All custom environments must be registered here, otherwise they won't be found.
 """
 from gym.envs.registration import register
-
+import highway_env
 
 def register_custom_envs():
     for n_objects in range(5):
@@ -60,3 +60,9 @@ def register_custom_envs():
                  entry_point='custom_envs.cop_reach.cop_reach_env:ReacherEnvMaker',
                  kwargs=kwargs,
                  max_episode_steps=200)
+
+    register(
+        id='parking-limited-v0',
+        entry_point='highway_env.envs:ParkingEnv',
+        max_episode_steps=100,
+    )
