@@ -37,8 +37,5 @@ class EarlyStopCallback(BaseCallback):
                     self.logger.info(f"Early stop threshold for {self.metric} met: "
                                      f"Average over last {self.n_episodes} evaluations is {avg} "
                                      f"and threshold is {self.threshold}. Stopping training.")
-                    p = self.logger.get_dir() + "/early_stop_agent.zip"
-                    self.logger.info(f"Saving policy to {p}")
-                    self.model.save(path=p)
                     return False
         return True
