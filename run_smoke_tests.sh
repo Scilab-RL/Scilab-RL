@@ -2,7 +2,8 @@
 # We first test all the algorithms and then test a selection of environments
 
 test_algos() {
-  # test all algorithms that have a config in conf/algorithm
+  # test all algorithms that have a config in conf/algorithm.
+  # For now, we only consider algorithms with a continuous action space, so DQN will not work.
   ALGOS=""
   for config in "conf/algorithm"/*
   do
