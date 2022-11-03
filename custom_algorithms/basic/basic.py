@@ -27,7 +27,7 @@ def create_nn(net_arch, input_dim, output_dim):
         modules.append(th.nn.ReLU())
     last_layer_dim = net_arch[-1]
     modules.append(th.nn.Linear(last_layer_dim, output_dim))
-    return th.nn.Sequential(*modules).float()
+    return th.nn.Sequential(*modules)
 
 
 class BASIC:
@@ -151,7 +151,7 @@ class BASIC:
         """
         obs = th.tensor(obs.flatten()).double()
         with th.no_grad():
-            action = self.actor(obs.double()).detach().numpy()
+            action = self.actor(obs).detach().numpy()
         if not deterministic:
             action += self.noise_factor * (np.random.normal(size=len(action)) - 0.5)
         action = np.clip(action, -1, 1)
