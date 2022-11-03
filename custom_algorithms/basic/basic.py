@@ -149,7 +149,7 @@ class BASIC:
         Get action from the actor network.
         If the action should not be deterministic, add noise with intensity self.noise_factor.
         """
-        obs = th.tensor(obs.flatten())
+        obs = th.tensor(obs.flatten()).double()
         with th.no_grad():
             action = self.actor(obs).detach().numpy()
         if not deterministic:
