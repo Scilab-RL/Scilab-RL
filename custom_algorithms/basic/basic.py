@@ -151,7 +151,7 @@ class BASIC:
         """
         obs = th.tensor(obs.flatten())
         with th.no_grad():
-            action = self.actor(obs).detach().numpy()
+            action = self.actor(obs.double()).detach().numpy()
         if not deterministic:
             action += self.noise_factor * (np.random.normal(size=len(action)) - 0.5)
         action = np.clip(action, -1, 1)
