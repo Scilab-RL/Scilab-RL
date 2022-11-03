@@ -40,7 +40,7 @@ test_envs() {
   #RLBench
   # ENVS+="reach_target-state-v0,"
   ENVS+="close_box-state-v0,"
-  ENVS+="CopReach-ik1-v0"
+  ENVS+="CopReach-ik1-v0,"
   # ADD NEW ENVIRONMENTS HERE
   ENVS+="parking-limited-v0"
 
