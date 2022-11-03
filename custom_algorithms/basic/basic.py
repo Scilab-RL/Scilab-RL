@@ -151,10 +151,8 @@ class BASIC:
         If the action should not be deterministic, add noise with intensity self.noise_factor.
         """
         obs = th.tensor(obs.flatten()).double()
-        obs = obs.float()
         with th.no_grad():
-            input_obs = obs.type(th.DoubleTensor)
-            action = self.actor(input_obs).detach().numpy()
+            action = self.actor(obs).detach().numpy()
         if not deterministic:
             action += self.noise_factor * (np.random.normal(size=len(action)) - 0.5)
         action = np.clip(action, -1, 1)
