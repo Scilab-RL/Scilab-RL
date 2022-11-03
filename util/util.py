@@ -71,8 +71,6 @@ def avoid_start_learn_before_first_episode_finishes(alg_kwargs, env):
             "use a `gym.wrappers.TimeLimit` wrapper "
             "or pass `max_episode_length` to the model constructor"
         )
-    if 'learning_starts' in alg_kwargs:
-        alg_kwargs['learning_starts'] = max(alg_kwargs['learning_starts'], max_ep_steps)
-    else:
-        alg_kwargs['learning_starts'] = max_ep_steps
+    if 'learning_starts' not in alg_kwargs:
+        alg_kwargs['learning_starts'] = max_ep_steps * 20
     return alg_kwargs
