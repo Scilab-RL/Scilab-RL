@@ -16,8 +16,7 @@ warn () {
 _conda_install_pytorch() {
   # install gpu specific tools
   if [ -x "$(command -v nvidia-smi)" ]; then
-    # conda install cudatoolkit=11.3 pytorch -c pytorch -y --force-reinstall
-    conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia -y --force-reinstall
+    conda install cudatoolkit=11.3 pytorch -c pytorch -y --force-reinstall
   else
     conda install pytorch==1.11.0 -y
   fi
