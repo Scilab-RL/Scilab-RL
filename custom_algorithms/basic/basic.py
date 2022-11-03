@@ -27,7 +27,7 @@ def create_nn(net_arch, input_dim, output_dim):
         modules.append(th.nn.ReLU())
     last_layer_dim = net_arch[-1]
     modules.append(th.nn.Linear(last_layer_dim, output_dim))
-    return th.nn.Sequential(*modules)
+    return th.nn.Sequential(*modules).double()
 
 
 class BASIC:
@@ -46,7 +46,7 @@ class BASIC:
         self.num_timesteps = 0
         self.observation_space = env.observation_space
         self.action_space = env.action_space
-        self._last_obs = self.env.reset()
+        self._last_obs = self.env.reset().astype('double')
 
         # For deep-Q-learning:
         self.lr = learning_rate
@@ -79,6 +79,7 @@ class BASIC:
         while self.num_timesteps < total_timesteps:
             action = self._get_action(self._last_obs, deterministic=False)
             obs, rewards, done, info = self.env.step(action)
+            obs = obs.astype('double')
             q = self.target(
                 th.cat([self.actor(th.tensor(self._last_obs.flatten())), th.tensor(self._last_obs.flatten())]))
             q_value = float(th.mean(q.detach()))
@@ -88,7 +89,7 @@ class BASIC:
             self.num_timesteps += 1
             if done:
                 callback.on_rollout_start()
-                self._last_obs = self.env.reset()
+                self._last_obs = self.env.reset().astype('double')
             if not callback.on_step():
                 return
         callback.on_training_end()
@@ -149,7 +150,7 @@ class BASIC:
         Get action from the actor network.
         If the action should not be deterministic, add noise with intensity self.noise_factor.
         """
-        obs = th.tensor(obs.flatten())
+        obs = th.tensor(obs.flatten()).double()
         with th.no_grad():
             action = self.actor(obs).detach().numpy()
         if not deterministic:
