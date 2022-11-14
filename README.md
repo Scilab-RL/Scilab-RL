@@ -31,6 +31,10 @@ The framework is designed to run on Linux, best compatibility with Ubuntu 22. Ho
 
 For visualization with matplotlib, it is important to have the GUI-backend tkinter installed (see [this](https://stackoverflow.com/questions/56656777/userwarning-matplotlib-is-currently-using-agg-which-is-a-non-gui-backend-so) for more information).
 
+It is also important to install the following packages, if they are not yet there. On Ubuntu execute the following:
+
+`sudo apt install libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf`
+
 ## Getting started using the setup script
 
 1. run `./setup.sh`. This will automatically install the Conda Python interpreter, along with all required packages. It will also install the robotic simulators MuJoCo and 
