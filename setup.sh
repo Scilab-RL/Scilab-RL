@@ -19,6 +19,7 @@ _conda_install_pytorch() {
     # remove potential cpu versions
     conda uninstall pytorch -y
     pip uninstall torch -y
+    conda uninstall cpuonly -y 
     # install gpu version
     conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia -y --force-reinstall
   else
