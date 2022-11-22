@@ -23,7 +23,7 @@ _conda_install_pytorch() {
     # install gpu version
     conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia -y --force-reinstall
   else
-    conda install pytorch==1.11.0 -y
+    conda install pytorch=1.13.0 -c pytorch -y
   fi
 }
 
