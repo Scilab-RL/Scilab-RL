@@ -6,7 +6,7 @@ MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'asset
 
 
 class AntButtonUnlockEnv(AntEnv):
-    def __init__(self, reward_type='sparse', distance_threshold=0.06, n_buttons=1):
+    def __init__(self, reward_type='sparse', distance_threshold=0.4, n_buttons=1):
         self.n_buttons = n_buttons
         self.locked = np.ones(n_buttons - 1)
         self.sample_dist_threshold = 0.3
