@@ -143,10 +143,10 @@ main() {
   setup_conda
 
   info "Adding source $PWD/set_paths.sh to rc file of the current shell"
-  if [[ -n "$ZSH_VERSION" ]]; then
+  if [[ -n "$($SHELL -c 'echo $ZSH_VERSION')" ]]; then
     grep -qxF "source $PWD/set_paths.sh" $HOME/.zshrc || echo "source $PWD/set_paths.sh" >> $HOME/.zshrc
     source $HOME/.zshrc
-  elif [[ -n "$BASH_VERSION" ]]; then
+  elif [[ -n "$($SHELL -c 'echo $BASH_VERSION')" ]]; then
     grep -qxF "source $PWD/set_paths.sh" $HOME/.bashrc || echo "source $PWD/set_paths.sh" >> $HOME/.bashrc
     source $HOME/.bashrc
   else
