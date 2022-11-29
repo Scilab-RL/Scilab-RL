@@ -15,7 +15,7 @@ warn () {
 
 _conda_install_pytorch() {
   # install gpu specific tools
-  if [ -x "$(command -v nvidia-smi)" ]; then
+  if [[ -x "$(command -v nvidia-smi)" ]]; then
     # remove potential cpu versions
     conda uninstall pytorch -y
     pip uninstall torch -y
@@ -30,13 +30,13 @@ _conda_install_pytorch() {
 setup_conda() {
   source $(conda info --base)/etc/profile.d/conda.sh
   # check if scilabrl already exists
-  if ! [ -n "$(conda env list | grep 'scilabrl*')" ]; then
-    if [ $(uname -s) == "Linux" ]; then
+  if ! [[ -n "$(conda env list | grep 'scilabrl*')" ]]; then
+    if [[ $(uname -s) == "Linux" ]]; then
       conda env create -f conda/linux_environment.yaml
-    elif [ $(uname -s) == "Darwin" ]; then
-      if [ $(uname -m) =~ "arm" ]; then
+    elif [[ $(uname -s) == "Darwin" ]]; then
+      if [[ $(uname -m) =~ "arm" ]]; then
         conda env create -f conda/macos_arm_environment.yaml
-      elif [ $(uname -m) =~ "x86" ]; then
+      elif [[ $(uname -m) =~ "x86" ]]; then
         warn "Intel Macs are currently not supported"
         exit 1
         # conda env create -f macos_x86_environment.yaml
@@ -49,11 +49,11 @@ setup_conda() {
 }
 
 install_mujoco() {
-  if ! [ -d "${HOME}/.mujoco/mujoco210" ]; then
+  if ! [[ -d "${HOME}/.mujoco/mujoco210" ]]; then
     mkdir -p $HOME/.mujoco/
     info "Getting MuJoCo"
     MUJOCO_VERSION="2.1.1"
-    if [ $(uname -s) == "Linux" ]; then
+    if [[ $(uname -s) == "Linux" ]]; then
       MUJOCO_DISTRO="linux-x86_64.tar.gz"
       wget -q https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz -O "${HOME}/mujoco.tar.gz"
       tar -xf "${HOME}/mujoco.tar.gz" -C "${HOME}/.mujoco/"
@@ -62,7 +62,7 @@ install_mujoco() {
       # tar -xf "${HOME}/mujoco.tar.gz"
       # mv "${PWD}/mujoco-${MUJOCO_VERSION}" "${HOME}/.mujoco/mujoco210"
       rm "${HOME}/mujoco.tar.gz"
-    elif [ $(uname -s) == "Darwin" ]; then
+    elif [[ $(uname -s) == "Darwin" ]]; then
       MUJOCO_DISTRO="macos-universal2.dmg"
       wget -q "https://github.com/deepmind/mujoco/releases/download/$MUJOCO_VERSION/mujoco-$MUJOCO_VERSION-macos-universal2.dmg"
       VOLUME=`hdiutil attach mujoco-${MUJOCO_VERSION}-macos-universal2.dmg | grep Volumes | awk '{print $3}'`
@@ -74,11 +74,11 @@ install_mujoco() {
       ln -sf /Applications/MuJoCo.app/Contents/Frameworks/MuJoCo.framework/Versions/Current/libmujoco.2.1.1.dylib $HOME/.mujoco/mujoco210/bin/libmujoco210.dylib
       ln -sf /Applications/MuJoCo.app/Contents/Frameworks/MuJoCo.framework/Versions/Current/libmujoco.2.1.1.dylib /usr/local/lib/
       # For M1 (arm64) mac users:
-      if [ $(uname -m) =~ "arm" ]; then
+      if [[ $(uname -m) =~ "arm" ]]; then
         conda install -y glfw
         rm -rfiv $CONDA_PREFIX/lib/python3.*/site-packages/glfw/libglfw.3.dylib
         ln -sf $CONDA_PREFIX/lib/libglfw.3.dylib $HOME/.mujoco/mujoco210/bin
-        if [ ! -x "$(command -v gcc-12)" ]; then
+        if [[ ! -x "$(command -v gcc-12)" ]]; then
           brew install gcc
         fi
         export CC=/opt/homebrew/bin/gcc-12
@@ -93,12 +93,12 @@ install_mujoco() {
 }
 
 install_rlbench() {
-  if [ $(uname -s) == "Darwin" ]; then
+  if [[ $(uname -s) == "Darwin" ]]; then
     warn "There is no PyRep support for macos"
     return
   fi
   # Check if CoppeliaSim is already installed
-  if [ -d "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04" ]; then
+  if [[ -d "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04" ]]; then
     warn "Skipping CoppeliaSim as it is already installed."
     return
   fi
@@ -115,9 +115,9 @@ install_rlbench() {
 
 
 install_conda() {
-  if [ $(uname -s) == "Linux" ]; then
+  if [[ $(uname -s) == "Linux" ]]; then
     PYOS="Linux"
-  elif [ $(uname -s) == "Darwin" ]; then
+  elif [[ $(uname -s) == "Darwin" ]]; then
     PYOS=MacOSX
   fi
   ARCHITECTURE=$(uname -m)
@@ -133,7 +133,7 @@ install_conda() {
 
 
 main() {
-  if ! [ -x "$(command -v conda)" ]; then
+  if ! [[ -x "$(command -v conda)" ]]; then
     info "Installing conda"
     install_conda
     success "Conda installed"
@@ -143,10 +143,10 @@ main() {
   setup_conda
 
   info "Adding source $PWD/set_paths.sh to rc file of the current shell"
-  if [ -n "$ZSH_VERSION" ]; then
+  if [[ -n "$ZSH_VERSION" ]]; then
     grep -qxF "source $PWD/set_paths.sh" $HOME/.zshrc || echo "source $PWD/set_paths.sh" >> $HOME/.zshrc
     source $HOME/.zshrc
-  elif [ -n "$BASH_VERSION" ]; then
+  elif [[ -n "$BASH_VERSION" ]]; then
     grep -qxF "source $PWD/set_paths.sh" $HOME/.bashrc || echo "source $PWD/set_paths.sh" >> $HOME/.bashrc
     source $HOME/.bashrc
   else
