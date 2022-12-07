@@ -1,6 +1,6 @@
 import matplotlib
 import sys
-from math import ceil
+from math import ceil,sqrt
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import os
@@ -21,7 +21,7 @@ class LiveAnimationPlot:
         self.num_metrics = len(y_axis_labels)
         self.x_data = [[] for _ in range(self.num_metrics)]
         self.y_data = [[] for _ in range(self.num_metrics)]
-        self.fig, self.axs = plt.subplots(nrows=1 + (self.num_metrics >= 2), ncols=ceil(self.num_metrics / 2))
+        self.fig, self.axs = plt.subplots(nrows=ceil(sqrt(self.num_metrics)), ncols=ceil(sqrt(self.num_metrics)),constrained_layout=True)
 
         # for n = 1, matplotlib returns an ax object without an array
         if self.num_metrics == 1:
