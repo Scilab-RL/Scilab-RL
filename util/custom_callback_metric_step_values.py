@@ -1,5 +1,5 @@
 from stable_baselines3.common.callbacks import BaseCallback
-from util.plot_animation_episode import LiveAnimationPlot
+from util.plot_multiple_metrics_animation import LiveAnimationPlot
 import matplotlib.pyplot as plt
 import inspect
 import mlflow
@@ -16,7 +16,7 @@ class DisplayMetricCallBack(BaseCallback):
 
     def __init__(
             self,
-            metric_key,
+            metric_keys,
             logger,
             episodic=True,
             save_anim=False
@@ -24,17 +24,17 @@ class DisplayMetricCallBack(BaseCallback):
     ):
         super(DisplayMetricCallBack, self).__init__(verbose=0)
         self.animation_started = False,
-        self.curr_recorded_value = None
+        self.curr_recorded_value = []
         self.new_animation = False
         self.logger = logger
         self.num_iteration = 0
         self.episodic = episodic
-        self.metric_key = metric_key
+        self.metric_keys = metric_keys
         self.animation = None
         self.curr_rollout = 0
         self.save_anim = save_anim
-        self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
-
+        self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys)
+        self.num_metrics = len(self.metric_keys)
     def _on_training_start(self) -> None:
         pass
 
@@ -48,16 +48,18 @@ class DisplayMetricCallBack(BaseCallback):
                 self.animation.save_animation('metric_anim_' + str(self.curr_rollout))
             self.animation.reset_fig()
             # reset data
-            self.animation.x_data = []
-            self.animation.y_data = []
+            self.animation.x_data = [[] for _ in range(len(self.metric_keys))]
+            self.animation.y_data = [[] for _ in range(len(self.metric_keys))]
             self.num_iteration = 0
+
             #self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
         self.curr_rollout = self.curr_rollout + 1
 
     def _on_step(self) -> bool:
-        self.curr_recorded_value = self.logger.name_to_value[self.metric_key]
-        self.animation.x_data.append(self.num_iteration)
-        self.animation.y_data.append(self.curr_recorded_value)
+        for i in range(self.num_metrics):
+            self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
+            self.animation.x_data[i].append(self.num_iteration)
+            self.animation.y_data[i].append(self.curr_recorded_value)
         self.animation.start_animation()
         self.num_iteration = self.num_iteration + 1
         return True
