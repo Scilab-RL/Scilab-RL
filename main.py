@@ -132,33 +132,33 @@ def create_callbacks(cfg, logger, eval_env):
     # cfg.render_args[0][2][k][1] == 2 -> one animation
 
     # for training
+    metrics = []
     if len(cfg.render_args[0]) > 2:
-        for k in range(len(cfg.render_args[0][2])):
-            if (cfg.render_args[0][0] == 'display' or cfg.render_args[0][0] == 'record') and 0 < cfg.render_args[0][2][k][1] <= 2:
-                v_episodic = True
-                v_save_anim = False
-                if cfg.render_args[0][0] == 'record':
-                    v_save_anim = True
-                if cfg.render_args[0][2][k][1] == 2:
-                    v_episodic = False
-                display_metric_callback_train = DisplayMetricCallBack(cfg.render_args[0][2][k][0], logger, episodic=v_episodic,
-                                                                      save_anim=v_save_anim)
-
-                callback.append(display_metric_callback_train)
+        if (cfg.render_args[0][0] == 'display' or cfg.render_args[0][0] == 'record') and cfg.render_args[0][2][-1] != 0:
+            v_episodic = True
+            v_save_anim = False
+            if cfg.render_args[0][0] == 'record':
+                v_save_anim = True
+            if cfg.render_args[0][2][-1] == 2:
+                v_episodic = False
+            display_metric_callback_train = DisplayMetricCallBack(cfg.render_args[0][2][:len(cfg.render_args[0][2])-1], logger,
+                                                                  episodic=v_episodic,
+                                                                  save_anim=v_save_anim)
+            callback.append(display_metric_callback_train)
 
     # for testing
     if len(cfg.render_args[1]) > 2:
-        for k in range(len(cfg.render_args[1][2])):
-            if (cfg.render_args[1][0] == 'display' or cfg.render_args[1][0] == 'record') and 0 < cfg.render_args[1][2][k][1] <= 2:
-                flag_custom_eval_callback = True
-                v_episodic = True
-                v_save_anim = False
-                if cfg.render_args[1][0] == 'record':
-                    v_save_anim = True
-                if cfg.render_args[1][2][k][1] == 2:
-                    v_episodic = False
-                display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2][k][0], logger, episodic=v_episodic,
-                                                                     save_anim=v_save_anim)
+        if (cfg.render_args[1][0] == 'display' or cfg.render_args[1][0] == 'record') and cfg.render_args[1][2][-1] != 0:
+            flag_custom_eval_callback = True
+            v_episodic = True
+            v_save_anim = False
+            if cfg.render_args[1][0] == 'record':
+                v_save_anim = True
+            if cfg.render_args[1][2][-1] == 2:
+                v_episodic = False
+            display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2][:len(cfg.render_args[1][2])-1], logger, episodic=v_episodic,
+                                                                 save_anim=v_save_anim)
+
 
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
