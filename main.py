@@ -208,7 +208,7 @@ def main(cfg: DictConfig) -> (float, int):
             training_finished = True
             logger.info("Training finished!")
             # Save model when training is finished
-            p = logger.get_dir() + "/rl_model_finished.zip"
+            p = logger.get_dir() + "/rl_model_finished"
             logger.info(f"Saving policy to {p}")
             baseline.save(path=p)
         except ValueError as e:
