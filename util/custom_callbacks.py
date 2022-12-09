@@ -7,7 +7,7 @@ import numpy as np
 
 from typing import Any, Dict, Optional, Union
 from util.custom_evaluation import evaluate_policy
-from util.plot_multiple_metrics_animation import LiveAnimationPlot
+from util.animation_util import LiveAnimationPlot
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, sync_envs_normalization
 from stable_baselines3.common.callbacks import BaseCallback, EventCallback
 
