@@ -16,9 +16,8 @@ from util.util import get_git_label, set_global_seeds, get_train_video_schedule,
     avoid_start_learn_before_first_episode_finishes
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.custom_logger import setup_logger
-from util.custom_callbacks import EarlyStopCallback
+from util.custom_callbacks import EarlyStopCallback, DisplayMetricCallBack
 from util.custom_wrappers import DisplayWrapper
-from util.custom_callback_metric_step_values import DisplayMetricCallBack
 from util.custom_callback_eval_viz import EvalCallback2
 
 # make git_label available in hydra
