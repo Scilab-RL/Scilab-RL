@@ -8,7 +8,7 @@ import gym
 import wandb
 
 from stable_baselines3.her.her import HerReplayBuffer
-from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
+from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from custom_envs.register_envs import register_custom_envs
@@ -16,9 +16,8 @@ from util.util import get_git_label, set_global_seeds, get_train_video_schedule,
     avoid_start_learn_before_first_episode_finishes
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.custom_logger import setup_logger
-from util.custom_callbacks import EarlyStopCallback, DisplayMetricCallBack
+from util.custom_callbacks import EarlyStopCallback, DisplayMetricCallBack, EvalCallback
 from util.custom_wrappers import DisplayWrapper
-from util.custom_callback_eval_viz import EvalCallback2
 
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
@@ -123,10 +122,6 @@ def get_algo_instance(cfg, logger, env):
 def create_callbacks(cfg, logger, eval_env):
     callback = []
 
-    # custom callback necessary for eval metric viz
-    flag_custom_eval_callback = False
-    display_metric_callback_test, eval_callback = None, None
-
     # cfg.render_args[0][2][k][0] == 1 -> episodic animation
     # cfg.render_args[0][2][k][1] == 2 -> one animation
 
@@ -146,9 +141,13 @@ def create_callbacks(cfg, logger, eval_env):
             callback.append(display_metric_callback_train)
 
     # for testing
+
+    # custom callback necessary for eval metric viz
+    # If display_metric_callback_test stays None --> no metric visualization
+    display_metric_callback_test = None
+
     if len(cfg.render_args[1]) > 2:
         if (cfg.render_args[1][0] == 'display' or cfg.render_args[1][0] == 'record') and cfg.render_args[1][2][-1] != 0:
-            flag_custom_eval_callback = True
             v_episodic = True
             v_save_anim = False
             if cfg.render_args[1][0] == 'record':
@@ -158,19 +157,13 @@ def create_callbacks(cfg, logger, eval_env):
             display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2][:len(cfg.render_args[1][2])-1], logger, episodic=v_episodic,
                                                                  save_anim=v_save_anim)
 
-
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
         callback.append(checkpoint_callback)
-    # Create the callback list
 
-    if flag_custom_eval_callback:
-        eval_callback = EvalCallback2(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                      log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False,
-                                      metric_viz_callback=display_metric_callback_test)
-    else:
-        eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                     log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False)
+    eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
+                                 log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False,
+                                 callback_metric_viz=display_metric_callback_test)
     callback.append(eval_callback)
     early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
                                             threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
