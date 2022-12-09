@@ -221,7 +221,8 @@ class EvalCallback(EventCallback):
             self._is_success_buffer = []
 
             # Start metric visualization
-            self.callback_metric_viz._on_rollout_start()
+            if self.callback_metric_viz:
+                self.callback_metric_viz._on_rollout_start()
 
             episode_rewards, episode_lengths = evaluate_policy(
                 self.model,
