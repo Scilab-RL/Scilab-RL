@@ -65,8 +65,8 @@ class DisplayMetricCallBack(BaseCallback):
         metric_keys,
         logger,
         episodic=True,
-        save_anim=False
-
+        save_anim=False,
+        display_nth_rollout=1
     ):
         super(DisplayMetricCallBack, self).__init__(verbose=0)
         self.animation_started = False,
@@ -77,10 +77,11 @@ class DisplayMetricCallBack(BaseCallback):
         self.episodic = episodic
         self.metric_keys = metric_keys
         self.animation = None
-        self.curr_rollout = 0
+        self.curr_rollout = -1
         self.save_anim = save_anim
         self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys)
         self.num_metrics = len(self.metric_keys)
+        self.display_nth_rollout = display_nth_rollout
     def _on_training_start(self) -> None:
         pass
 
@@ -102,16 +103,17 @@ class DisplayMetricCallBack(BaseCallback):
         self.curr_rollout = self.curr_rollout + 1
 
     def _on_step(self) -> bool:
-        for i in range(self.num_metrics):
-            self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
-            self.animation.x_data[i].append(self.num_iteration)
-            self.animation.y_data[i].append(self.curr_recorded_value)
-        self.animation.start_animation()
-        self.num_iteration = self.num_iteration + 1
+        if self.curr_rollout % self.display_nth_rollout == 0:
+            for i in range(self.num_metrics):
+                self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
+                self.animation.x_data[i].append(self.num_iteration)
+                self.animation.y_data[i].append(self.curr_recorded_value)
+            self.animation.start_animation()
+            self.num_iteration = self.num_iteration + 1
         return True
 
     def _on_training_end(self) -> None:
-        if not self.episodic and self.save_anim:
+        if not self.episodic and self.save_anim and self.curr_rollout % self.display_nth_rollout == 0:
             self.animation.save_animation('metric_anim_all_rollouts')
 
 

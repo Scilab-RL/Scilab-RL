@@ -137,7 +137,7 @@ def create_callbacks(cfg, logger, eval_env):
                 v_episodic = False
             display_metric_callback_train = DisplayMetricCallBack(cfg.render_args[0][2][:len(cfg.render_args[0][2])-1], logger,
                                                                   episodic=v_episodic,
-                                                                  save_anim=v_save_anim)
+                                                                  save_anim=v_save_anim,display_nth_rollout=cfg.render_args[0][1])
             callback.append(display_metric_callback_train)
 
     # for testing
@@ -155,7 +155,7 @@ def create_callbacks(cfg, logger, eval_env):
             if cfg.render_args[1][2][-1] == 2:
                 v_episodic = False
             display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2][:len(cfg.render_args[1][2])-1], logger, episodic=v_episodic,
-                                                                 save_anim=v_save_anim)
+                                                                 save_anim=v_save_anim,display_nth_rollout=cfg.render_args[1][1])
 
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
