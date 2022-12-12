@@ -55,20 +55,20 @@ def get_env_instance(cfg, logger):
 
     # wrappers for rendering
     if cfg.render == 'display':
-        train_env = DisplayWrapper(train_env, cfg.render_args[0][1], epoch_steps=cfg.eval_after_n_steps)
+        train_env = DisplayWrapper(train_env, cfg.render_freq, epoch_steps=cfg.eval_after_n_steps)
     if cfg.render == 'display':
-        eval_env = DisplayWrapper(eval_env, cfg.render_args[1][1], epoch_episodes=cfg.n_test_rollouts)
+        eval_env = DisplayWrapper(eval_env, cfg.render_freq, epoch_episodes=cfg.n_test_rollouts)
     if cfg.render == 'record':
         train_env = gym.wrappers.RecordVideo(env=train_env,
                                              video_folder=logger.get_dir() + "/videos",
                                              name_prefix="train",
                                              step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
-                                                                                   * cfg.render_args[0][1]))
+                                                                                   * cfg.render_freq))
     if cfg.render == 'record':
         eval_env = gym.wrappers.RecordVideo(env=eval_env,
                                             video_folder=logger.get_dir() + "/videos",
                                             name_prefix="eval",
-                                            episode_trigger=get_eval_video_schedule(cfg.render_args[1][1],
+                                            episode_trigger=get_eval_video_schedule(cfg.render_freq,
                                                                                     cfg.n_test_rollouts))
 
     # The following gym wrappers can be added via commandline parameters,
@@ -137,7 +137,7 @@ def create_callbacks(cfg, logger, eval_env):
                 v_episodic = False
             display_metric_callback_train = DisplayMetricCallBack(cfg.render_args[0][2][:len(cfg.render_args[0][2])-1], logger,
                                                                   episodic=v_episodic,
-                                                                  save_anim=v_save_anim,display_nth_rollout=cfg.render_args[0][1])
+                                                                  save_anim=v_save_anim,display_nth_rollout=cfg.render_freq)
             callback.append(display_metric_callback_train)
 
     # for testing
@@ -155,7 +155,7 @@ def create_callbacks(cfg, logger, eval_env):
             if cfg.render_args[1][2][-1] == 2:
                 v_episodic = False
             display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2][:len(cfg.render_args[1][2])-1], logger, episodic=v_episodic,
-                                                                 save_anim=v_save_anim,display_nth_rollout=cfg.render_args[1][1])
+                                                                 save_anim=v_save_anim,display_nth_rollout=cfg.render_freq)
 
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
