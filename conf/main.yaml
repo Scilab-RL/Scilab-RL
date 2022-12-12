@@ -13,6 +13,8 @@ env: 'FetchReach-v1'
 # keyword arguments for the environment
 env_kwargs: {}
 
+render: 'display' # 'display', 'record', or anything else for neither one 
+
 #The render_args specify how and when to render and plot during training (first sublist) and testing (second sublist).
 # Both sublists start with the rendering mode: 'record' is for recording the rendered scene as a video file without on-screen display, 'display' for direct visualization, 'none' for not rendering at all.
 # The numbers after rendering mode determine the number of epochs after which we render the training/testing. 

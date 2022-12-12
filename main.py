@@ -36,9 +36,9 @@ def get_env_instance(cfg, logger):
         # e.g. render_args=[['display',1],['record',1]] will have the same effect
         # as render_args=[['none',1],['record',1]]
         render_mode = None
-        if cfg.render_args[0][0] == 'display' or cfg.render_args[1][0] == 'display':
+        if cfg.render == 'display':
             render_mode = 'human'
-        if cfg.render_args[0][0] == 'record' or cfg.render_args[1][0] == 'record':
+        if cfg.render == 'record':
             render_mode = 'rgb_array'
         # there can be only one PyRep instance per process, therefore train_env == eval_env
         if is_rlbench_env(cfg.env):
@@ -54,17 +54,17 @@ def get_env_instance(cfg, logger):
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
 
     # wrappers for rendering
-    if cfg.render_args[0][0] == 'display':
+    if cfg.render == 'display':
         train_env = DisplayWrapper(train_env, cfg.render_args[0][1], epoch_steps=cfg.eval_after_n_steps)
-    if cfg.render_args[1][0] == 'display':
+    if cfg.render == 'display':
         eval_env = DisplayWrapper(eval_env, cfg.render_args[1][1], epoch_episodes=cfg.n_test_rollouts)
-    if cfg.render_args[0][0] == 'record':
+    if cfg.render == 'record':
         train_env = gym.wrappers.RecordVideo(env=train_env,
                                              video_folder=logger.get_dir() + "/videos",
                                              name_prefix="train",
                                              step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
                                                                                    * cfg.render_args[0][1]))
-    if cfg.render_args[1][0] == 'record':
+    if cfg.render == 'record':
         eval_env = gym.wrappers.RecordVideo(env=eval_env,
                                             video_folder=logger.get_dir() + "/videos",
                                             name_prefix="eval",
@@ -128,10 +128,10 @@ def create_callbacks(cfg, logger, eval_env):
     # for training
     metrics = []
     if len(cfg.render_args[0]) > 2:
-        if (cfg.render_args[0][0] == 'display' or cfg.render_args[0][0] == 'record') and cfg.render_args[0][2][-1] != 0:
+        if (cfg.render == 'display' or cfg.render == 'record') and cfg.render_args[0][2][-1] != 0:
             v_episodic = True
             v_save_anim = False
-            if cfg.render_args[0][0] == 'record':
+            if cfg.render == 'record':
                 v_save_anim = True
             if cfg.render_args[0][2][-1] == 2:
                 v_episodic = False
@@ -147,10 +147,10 @@ def create_callbacks(cfg, logger, eval_env):
     display_metric_callback_test = None
 
     if len(cfg.render_args[1]) > 2:
-        if (cfg.render_args[1][0] == 'display' or cfg.render_args[1][0] == 'record') and cfg.render_args[1][2][-1] != 0:
+        if (cfg.render == 'display' or cfg.render == 'record') and cfg.render_args[1][2][-1] != 0:
             v_episodic = True
             v_save_anim = False
-            if cfg.render_args[1][0] == 'record':
+            if cfg.render == 'record':
                 v_save_anim = True
             if cfg.render_args[1][2][-1] == 2:
                 v_episodic = False
