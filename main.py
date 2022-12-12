@@ -128,15 +128,12 @@ def create_callbacks(cfg, logger, eval_env):
     # for training
     metrics = []
     if len(cfg.render_args[0]) > 2:
-        if (cfg.render == 'display' or cfg.render == 'record') and cfg.render_args[0][2][-1] != 0:
-            v_episodic = True
+        if (cfg.render == 'display' or cfg.render == 'record'):
             v_save_anim = False
             if cfg.render == 'record':
                 v_save_anim = True
-            if cfg.render_args[0][2][-1] == 2:
-                v_episodic = False
             display_metric_callback_train = DisplayMetricCallBack(cfg.render_args[0][2][:len(cfg.render_args[0][2])-1], logger,
-                                                                  episodic=v_episodic,
+                                                                  episodic=cfg.render_episodic,
                                                                   save_anim=v_save_anim,display_nth_rollout=cfg.render_freq)
             callback.append(display_metric_callback_train)
 
@@ -147,14 +144,12 @@ def create_callbacks(cfg, logger, eval_env):
     display_metric_callback_test = None
 
     if len(cfg.render_args[1]) > 2:
-        if (cfg.render == 'display' or cfg.render == 'record') and cfg.render_args[1][2][-1] != 0:
-            v_episodic = True
+        if (cfg.render == 'display' or cfg.render == 'record'):
             v_save_anim = False
             if cfg.render == 'record':
                 v_save_anim = True
-            if cfg.render_args[1][2][-1] == 2:
-                v_episodic = False
-            display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2][:len(cfg.render_args[1][2])-1], logger, episodic=v_episodic,
+            display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2][:len(cfg.render_args[1][2])-1], logger,
+                                                                 episodic=cfg.render_episodic,
                                                                  save_anim=v_save_anim,display_nth_rollout=cfg.render_freq)
 
     if cfg.save_model_freq > 0:

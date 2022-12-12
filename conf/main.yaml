@@ -15,6 +15,7 @@ env_kwargs: {}
 
 render: 'display' # 'display', 'record', or anything else for neither one 
 render_freq: 1
+render_episodic: True # reset metric visualization for each episode/rollout (True) or ongoing (False)
 
 #The render_args specify how and when to render and plot during training (first sublist) and testing (second sublist).
 # Both sublists start with the rendering mode: 'record' is for recording the rendered scene as a video file without on-screen display, 'display' for direct visualization, 'none' for not rendering at all.
