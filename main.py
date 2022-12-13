@@ -31,10 +31,6 @@ def get_env_instance(cfg, logger):
         return env_name.startswith('Cop')
 
     if is_rlbench_env(cfg.env) or is_coppelia_env(cfg.env):
-        # For envs based on CoppeliaSim, we can either not render at all, display train AND test,
-        # or record train or test or both. 'record' will overwrite 'display'
-        # e.g. render_args=[['display',1],['record',1]] will have the same effect
-        # as render_args=[['none',1],['record',1]]
         render_mode = None
         if cfg.render == 'display':
             render_mode = 'human'
