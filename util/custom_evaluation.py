@@ -19,7 +19,7 @@ def evaluate_policy(
     reward_threshold: Optional[float] = None,
     return_episode_rewards: bool = False,
     warn: bool = True,
-    metric_viz = None
+    callback_metric_viz = None
 ) -> Union[Tuple[float, float], Tuple[List[float], List[int]]]:
     """
     Runs policy for ``n_eval_episodes`` episodes and returns average reward.
@@ -86,7 +86,9 @@ def evaluate_policy(
     while (episode_counts < episode_count_targets).any():
         actions, states = model.predict(observations, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
-        metric_viz._on_step()
+        # trigger metric visualization
+        if callback_metric_viz:
+            callback_metric_viz._on_step()
         current_rewards += rewards
         current_lengths += 1
         for i in range(n_envs):
