@@ -162,7 +162,7 @@ def create_callbacks(cfg, logger, eval_env):
         callback.append(checkpoint_callback)
 
     eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                 log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False,
+                                 log_path=logger.get_dir(), best_model_save_path=logger.get_dir(), render=False, warn=False,
                                  callback_metric_viz=display_metric_callback_test)
     callback.append(eval_callback)
     early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
