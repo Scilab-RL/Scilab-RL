@@ -84,9 +84,6 @@ class DisplayMetricCallBack(BaseCallback):
         if self.num_metrics > 0:
             self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys)
 
-    def _on_training_start(self) -> None:
-        pass
-
     def _on_rollout_start(self) -> None:
         '''
         if not self.curr_rollout:
