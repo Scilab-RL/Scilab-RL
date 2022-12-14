@@ -79,42 +79,44 @@ class DisplayMetricCallBack(BaseCallback):
         self.animation = None
         self.curr_rollout = -1
         self.save_anim = save_anim
-        self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys)
         self.num_metrics = len(self.metric_keys)
         self.display_nth_rollout = display_nth_rollout
-    def _on_training_start(self) -> None:
-        pass
+        if self.num_metrics > 0:
+            self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys)
 
     def _on_rollout_start(self) -> None:
         '''
         if not self.curr_rollout:
             self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
         '''
-        if self.episodic and self.curr_rollout:
-            if self.save_anim:
-                self.animation.save_animation('metric_anim_' + str(self.curr_rollout))
-            self.animation.reset_fig()
-            # reset data
-            self.animation.x_data = [[] for _ in range(len(self.metric_keys))]
-            self.animation.y_data = [[] for _ in range(len(self.metric_keys))]
-            self.num_iteration = 0
+        if self.num_metrics > 0:
+            if self.episodic and self.curr_rollout:
+                if self.save_anim:
+                    self.animation.save_animation('metric_anim_' + str(self.curr_rollout))
+                self.animation.reset_fig()
+                # reset data
+                self.animation.x_data = [[] for _ in range(len(self.metric_keys))]
+                self.animation.y_data = [[] for _ in range(len(self.metric_keys))]
+                self.num_iteration = 0
 
-            #self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
-        self.curr_rollout = self.curr_rollout + 1
+                #self.animation = LiveAnimationPlot(y_axis_label=self.metric_key)
+            self.curr_rollout = self.curr_rollout + 1
 
     def _on_step(self) -> bool:
-        if self.curr_rollout % self.display_nth_rollout == 0:
-            for i in range(self.num_metrics):
-                self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
-                self.animation.x_data[i].append(self.num_iteration)
-                self.animation.y_data[i].append(self.curr_recorded_value)
-            self.animation.start_animation()
-            self.num_iteration = self.num_iteration + 1
+        if self.num_metrics > 0:
+            if self.curr_rollout % self.display_nth_rollout == 0:
+                for i in range(self.num_metrics):
+                    self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
+                    self.animation.x_data[i].append(self.num_iteration)
+                    self.animation.y_data[i].append(self.curr_recorded_value)
+                self.animation.start_animation()
+                self.num_iteration = self.num_iteration + 1
         return True
 
     def _on_training_end(self) -> None:
-        if not self.episodic and self.save_anim and self.curr_rollout % self.display_nth_rollout == 0:
-            self.animation.save_animation('metric_anim_all_rollouts')
+        if self.num_metrics > 0:
+            if not self.episodic and self.save_anim and self.curr_rollout % self.display_nth_rollout == 0:
+                self.animation.save_animation('metric_anim_all_rollouts')
 
 
 class EvalCallback(EventCallback):
