@@ -13,25 +13,19 @@ env: 'FetchReach-v1'
 # keyword arguments for the environment
 env_kwargs: {}
 
-#The render_args specify how and when to render and plot during training (first sublist) and testing (second sublist).
-# Both sublists start with the rendering mode: 'record' is for recording the rendered scene as a video file without on-screen display, 'display' for direct visualization, 'none' for not rendering at all.
-# The numbers after rendering mode determine the number of epochs after which we render the training/testing. 
-# This enables the user not to render/display every epoch (which slows down the performance significantly), but only some epochs. 
-#
-# The third argument is a list of sublists containing two positional arguments
-# 0: the name of the metric to be visualized and
-# 1: the visualization mode (see below)
-# It is necessary to ensure that the algorithms logs the metric using the logger
-# (see the learn method of basic.py which saves the q_val in the logger)
-# The different visualization modes are:
-# 0 -> no metric animation
-# 1 -> episodic metric animation with auto close (metric display window closes when episode ends)
-# 2 -> one metric animation for all training (metric display window never closes, and data is appended after each rollout to the same plot)
-# Example: [['display',100,[['q_val',1]]],['record',10]]
-# means that we display every 100th training and record every 10th testing episode
-# and animate the q_val metric and automatically close the generated figures for each episode/rollout.
-
-render_args: [ ['none',1,['q_val',0]],['none',10,['q_val',0]]]
+# The render* args specify how and when to render and plot during training and testing.
+# 'record' is for recording the rendered scene as a video file without on-screen display, 
+# 'display' for direct visualization, neither one, e.g. 'none' for not rendering at all.
+# render_freq determine the number of epochs after which we render the training/testing.
+# render_metrics* determine the metric values to render. They have to be provided by the 
+# learning algorithm.
+# TODO: maybe there is a better place to put render_metrics_* because they depend on the
+# algorithm. Maybe put them in the algorithm/xyz.yaml
+render: 'none' # 'display', 'record', or anything else for neither one 
+render_freq: 1
+render_episodic: True # reset metric visualization for each episode/rollout (True) or ongoing (False)
+render_metrics_train: ['q_val','q_val','q_val']
+render_metrics_test: []
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0

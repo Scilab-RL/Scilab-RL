@@ -31,14 +31,10 @@ def get_env_instance(cfg, logger):
         return env_name.startswith('Cop')
 
     if is_rlbench_env(cfg.env) or is_coppelia_env(cfg.env):
-        # For envs based on CoppeliaSim, we can either not render at all, display train AND test,
-        # or record train or test or both. 'record' will overwrite 'display'
-        # e.g. render_args=[['display',1],['record',1]] will have the same effect
-        # as render_args=[['none',1],['record',1]]
         render_mode = None
-        if cfg.render_args[0][0] == 'display' or cfg.render_args[1][0] == 'display':
+        if cfg.render == 'display':
             render_mode = 'human'
-        if cfg.render_args[0][0] == 'record' or cfg.render_args[1][0] == 'record':
+        if cfg.render == 'record':
             render_mode = 'rgb_array'
         # there can be only one PyRep instance per process, therefore train_env == eval_env
         if is_rlbench_env(cfg.env):
@@ -54,21 +50,21 @@ def get_env_instance(cfg, logger):
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
 
     # wrappers for rendering
-    if cfg.render_args[0][0] == 'display':
-        train_env = DisplayWrapper(train_env, cfg.render_args[0][1], epoch_steps=cfg.eval_after_n_steps)
-    if cfg.render_args[1][0] == 'display':
-        eval_env = DisplayWrapper(eval_env, cfg.render_args[1][1], epoch_episodes=cfg.n_test_rollouts)
-    if cfg.render_args[0][0] == 'record':
+    if cfg.render == 'display':
+        train_env = DisplayWrapper(train_env, cfg.render_freq, epoch_steps=cfg.eval_after_n_steps)
+    if cfg.render == 'display':
+        eval_env = DisplayWrapper(eval_env, cfg.render_freq, epoch_episodes=cfg.n_test_rollouts)
+    if cfg.render == 'record':
         train_env = gym.wrappers.RecordVideo(env=train_env,
                                              video_folder=logger.get_dir() + "/videos",
                                              name_prefix="train",
                                              step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
-                                                                                   * cfg.render_args[0][1]))
-    if cfg.render_args[1][0] == 'record':
+                                                                                   * cfg.render_freq))
+    if cfg.render == 'record':
         eval_env = gym.wrappers.RecordVideo(env=eval_env,
                                             video_folder=logger.get_dir() + "/videos",
                                             name_prefix="eval",
-                                            episode_trigger=get_eval_video_schedule(cfg.render_args[1][1],
+                                            episode_trigger=get_eval_video_schedule(cfg.render_freq,
                                                                                     cfg.n_test_rollouts))
 
     # The following gym wrappers can be added via commandline parameters,
@@ -121,41 +117,22 @@ def get_algo_instance(cfg, logger, env):
 
 def create_callbacks(cfg, logger, eval_env):
     callback = []
-
-    # cfg.render_args[0][2][k][0] == 1 -> episodic animation
-    # cfg.render_args[0][2][k][1] == 2 -> one animation
-
-    # for training
-    metrics = []
-    if len(cfg.render_args[0]) > 2:
-        if (cfg.render_args[0][0] == 'display' or cfg.render_args[0][0] == 'record') and cfg.render_args[0][2][-1] != 0:
-            v_episodic = True
-            v_save_anim = False
-            if cfg.render_args[0][0] == 'record':
-                v_save_anim = True
-            if cfg.render_args[0][2][-1] == 2:
-                v_episodic = False
-            display_metric_callback_train = DisplayMetricCallBack(cfg.render_args[0][2][:len(cfg.render_args[0][2])-1], logger,
-                                                                  episodic=v_episodic,
-                                                                  save_anim=v_save_anim,display_nth_rollout=cfg.render_args[0][1])
-            callback.append(display_metric_callback_train)
-
-    # for testing
-
-    # custom callback necessary for eval metric viz
-    # If display_metric_callback_test stays None --> no metric visualization
     display_metric_callback_test = None
 
-    if len(cfg.render_args[1]) > 2:
-        if (cfg.render_args[1][0] == 'display' or cfg.render_args[1][0] == 'record') and cfg.render_args[1][2][-1] != 0:
-            v_episodic = True
-            v_save_anim = False
-            if cfg.render_args[1][0] == 'record':
-                v_save_anim = True
-            if cfg.render_args[1][2][-1] == 2:
-                v_episodic = False
-            display_metric_callback_test = DisplayMetricCallBack(cfg.render_args[1][2][:len(cfg.render_args[1][2])-1], logger, episodic=v_episodic,
-                                                                 save_anim=v_save_anim,display_nth_rollout=cfg.render_args[1][1])
+    if (cfg.render == 'display' or cfg.render == 'record'):
+        save_anim = True if cfg.render == 'record' else False
+        # for training
+        display_metric_callback_train = DisplayMetricCallBack(cfg.render_metrics_train, logger,
+                                                              episodic=cfg.render_episodic,
+                                                              save_anim=save_anim,display_nth_rollout=cfg.render_freq)
+        callback.append(display_metric_callback_train)
+        # for testing
+
+        # custom callback necessary for eval metric viz
+        # If display_metric_callback_test stays None --> no metric visualization
+        display_metric_callback_test = DisplayMetricCallBack(cfg.render_metrics_test, logger,
+                                                            episodic=cfg.render_episodic,
+                                                            save_anim=save_anim,display_nth_rollout=cfg.render_freq)
 
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
