@@ -57,6 +57,18 @@ def get_eval_video_schedule(every_n_epochs, n_eval_episodes):
     return eval_schedule
 
 
+def get_train_display_schedule(every_n_epochs):
+    def train_schedule(episode_in_epoch_id, epoch_id):
+        return epoch_id % every_n_epochs == 0 and episode_in_epoch_id == 0
+    return train_schedule
+
+
+def get_eval_display_schedule(every_n_epochs, n_eval_episodes):
+    def eval_schedule(episode_id):
+        return episode_id % (every_n_epochs * n_eval_episodes) == 0
+    return eval_schedule
+
+
 def avoid_start_learn_before_first_episode_finishes(alg_kwargs, env):
     try:
         max_ep_steps = env.get_attr("spec")[0].max_episode_steps
