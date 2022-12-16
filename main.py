@@ -13,7 +13,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 
 from custom_envs.register_envs import register_custom_envs
 from util.util import get_git_label, set_global_seeds, get_train_video_schedule, get_eval_video_schedule, \
-    avoid_start_learn_before_first_episode_finishes
+    avoid_start_learn_before_first_episode_finishes, get_train_display_schedule, get_eval_display_schedule
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.custom_logger import setup_logger
 from util.custom_callbacks import EarlyStopCallback, DisplayMetricCallBack, EvalCallback
@@ -51,16 +51,18 @@ def get_env_instance(cfg, logger):
 
     # wrappers for rendering
     if cfg.render == 'display':
-        train_env = DisplayWrapper(train_env, cfg.render_freq, epoch_steps=cfg.eval_after_n_steps)
-    if cfg.render == 'display':
-        eval_env = DisplayWrapper(eval_env, cfg.render_freq, epoch_episodes=cfg.n_test_rollouts)
+        train_env = DisplayWrapper(train_env,
+                                   steps_per_epoch=cfg.eval_after_n_steps,
+                                   episode_in_epoch_trigger=get_train_display_schedule(cfg.render_freq))
+        eval_env = DisplayWrapper(eval_env,
+                                  episode_trigger=get_eval_display_schedule(cfg.render_freq, 
+                                                                          cfg.n_test_rollouts))
     if cfg.render == 'record':
         train_env = gym.wrappers.RecordVideo(env=train_env,
                                              video_folder=logger.get_dir() + "/videos",
                                              name_prefix="train",
                                              step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
                                                                                    * cfg.render_freq))
-    if cfg.render == 'record':
         eval_env = gym.wrappers.RecordVideo(env=eval_env,
                                             video_folder=logger.get_dir() + "/videos",
                                             name_prefix="eval",
