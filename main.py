@@ -53,10 +53,14 @@ def get_env_instance(cfg, logger):
     if cfg.render == 'display':
         train_env = DisplayWrapper(train_env,
                                    steps_per_epoch=cfg.eval_after_n_steps,
-                                   episode_in_epoch_trigger=get_train_display_schedule(cfg.render_freq))
+                                   episode_in_epoch_trigger=get_train_display_schedule(cfg.render_freq),
+                                   metric_keys=cfg.render_metrics_train,
+                                   logger=logger)
         eval_env = DisplayWrapper(eval_env,
                                   episode_trigger=get_eval_display_schedule(cfg.render_freq, 
-                                                                          cfg.n_test_rollouts))
+                                                                          cfg.n_test_rollouts),
+                                  metric_keys=cfg.render_metrics_test,
+                                  logger=logger)
     if cfg.render == 'record':
         train_env = gym.wrappers.RecordVideo(env=train_env,
                                              video_folder=logger.get_dir() + "/videos",
@@ -121,20 +125,20 @@ def create_callbacks(cfg, logger, eval_env):
     callback = []
     display_metric_callback_test = None
 
-    if (cfg.render == 'display' or cfg.render == 'record'):
-        save_anim = True if cfg.render == 'record' else False
-        # for training
-        display_metric_callback_train = DisplayMetricCallBack(cfg.render_metrics_train, logger,
-                                                              episodic=cfg.render_episodic,
-                                                              save_anim=save_anim,display_nth_rollout=cfg.render_freq)
-        callback.append(display_metric_callback_train)
-        # for testing
-
-        # custom callback necessary for eval metric viz
-        # If display_metric_callback_test stays None --> no metric visualization
-        display_metric_callback_test = DisplayMetricCallBack(cfg.render_metrics_test, logger,
-                                                            episodic=cfg.render_episodic,
-                                                            save_anim=save_anim,display_nth_rollout=cfg.render_freq)
+    # if (cfg.render == 'display' or cfg.render == 'record'):
+    #     save_anim = True if cfg.render == 'record' else False
+    #     # for training
+    #     display_metric_callback_train = DisplayMetricCallBack(cfg.render_metrics_train, logger,
+    #                                                           episodic=cfg.render_episodic,
+    #                                                           save_anim=save_anim,display_nth_rollout=cfg.render_freq)
+    #     callback.append(display_metric_callback_train)
+    #     # for testing
+    #
+    #     # custom callback necessary for eval metric viz
+    #     # If display_metric_callback_test stays None --> no metric visualization
+    #     display_metric_callback_test = DisplayMetricCallBack(cfg.render_metrics_test, logger,
+    #                                                         episodic=cfg.render_episodic,
+    #                                                         save_anim=save_anim,display_nth_rollout=cfg.render_freq)
 
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)

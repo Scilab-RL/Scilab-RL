@@ -1,7 +1,7 @@
 import gym
 from typing import Callable
+from util.animation_util import LiveAnimationPlot
 
-from gym import logger
 
 class DisplayWrapper(gym.Wrapper):
     """
@@ -17,6 +17,8 @@ class DisplayWrapper(gym.Wrapper):
         episode_in_epoch_trigger: Callable[[int], bool] = None,
         episode_trigger: Callable[[int], bool] = None,
         step_trigger: Callable[[int], bool] = None,
+        metric_keys = [],
+        logger = None,
     ):
         super().__init__(env)
 
@@ -29,6 +31,7 @@ class DisplayWrapper(gym.Wrapper):
         self.episode_trigger = episode_trigger
         self.step_trigger = step_trigger
 
+        self.step_in_episode_id = 0
         self.episode_in_epoch_id = 0
         self.epoch_id = 0
         self.episode_id = 0
@@ -38,6 +41,13 @@ class DisplayWrapper(gym.Wrapper):
 
         self.displaying = False
         self.is_vector_env = getattr(env, "is_vector_env", False)
+
+        self.metric_keys = metric_keys
+        self.num_metrics = len(self.metric_keys)
+        self.display_metrics = self.num_metrics > 0
+        self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys) if self.display_metrics else None
+        self.logger = logger
+
 
     def reset(self, **kwargs):
         observations = self.env.reset(**kwargs)
@@ -68,6 +78,7 @@ class DisplayWrapper(gym.Wrapper):
             if self.epoch_id > epoch_id_tmp:
                 self.episode_in_epoch_id = 0
         self.step_id += 1
+        self.step_in_episode_id +=1
         if not self.is_vector_env:
             if dones:
                 self.episode_id += 1
@@ -80,6 +91,14 @@ class DisplayWrapper(gym.Wrapper):
 
         if self.displaying:
             self.env.render(mode='human')
+            # metrics stuff
+            if self.display_metrics:
+                for i in range(self.num_metrics):
+                    self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
+                    self.animation.x_data[i].append(self.step_in_episode_id)
+                    self.animation.y_data[i].append(self.curr_recorded_value)
+                self.animation.start_animation()
+
             if not self.is_vector_env:
                 if dones:
                     self.close_displayer()
@@ -89,10 +108,20 @@ class DisplayWrapper(gym.Wrapper):
         elif self._display_enabled():
             self.start_displayer()
 
+        if not self.is_vector_env:
+            if dones:
+                self.step_in_episode_id = 0
+        elif dones[0]:
+            self.step_in_episode_id = 0
         return observations, rewards, dones, infos
 
     def close_displayer(self) -> None:
         if self.displaying:
-            pass
+            # Metric stuff
+            if self.display_metrics:
+                self.animation.reset_fig()
+                # reset data
+                self.animation.x_data = [[] for _ in range(len(self.metric_keys))]
+                self.animation.y_data = [[] for _ in range(len(self.metric_keys))]
             #close metric displayer
         self.displaying = False
