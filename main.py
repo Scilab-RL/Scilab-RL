@@ -50,38 +50,32 @@ def get_env_instance(cfg, logger):
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
 
     # wrappers for rendering
+    train_render_schedule = get_train_render_schedule(cfg.render_freq)
+    eval_render_schedule = get_eval_render_schedule(cfg.render_freq, cfg.n_test_rollouts)
     if cfg.render == 'display':
         train_env = DisplayWrapper(train_env,
                                    steps_per_epoch=cfg.eval_after_n_steps,
-                                   episode_in_epoch_trigger=get_train_render_schedule(cfg.render_freq),
+                                   episode_in_epoch_trigger=train_render_schedule,
                                    metric_keys=cfg.render_metrics_train,
                                    logger=logger)
         eval_env = DisplayWrapper(eval_env,
-                                  episode_trigger=get_eval_render_schedule(cfg.render_freq, 
-                                                                          cfg.n_test_rollouts),
+                                  episode_trigger=eval_render_schedule,
                                   metric_keys=cfg.render_metrics_test,
                                   logger=logger)
     if cfg.render == 'record':
-        # train_env = gym.wrappers.RecordVideo(env=train_env,
         train_env = RecordVideo(env=train_env,
-                                             video_folder=logger.get_dir() + "/videos",
-                                             name_prefix="train",
-                                             # step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
-                                             #                                       * cfg.render_freq),
-                                   steps_per_epoch=cfg.eval_after_n_steps,
-                                   episode_in_epoch_trigger=get_train_render_schedule(cfg.render_freq),
-                                   metric_keys=cfg.render_metrics_train,
-                                   logger=logger)
-        # eval_env = gym.wrappers.RecordVideo(env=eval_env,
+                                video_folder=logger.get_dir() + "/videos",
+                                name_prefix="train",
+                                steps_per_epoch=cfg.eval_after_n_steps,
+                                episode_in_epoch_trigger=train_render_schedule,
+                                metric_keys=cfg.render_metrics_train,
+                                logger=logger)
         eval_env = RecordVideo(env=eval_env,
-                                            video_folder=logger.get_dir() + "/videos",
-                                            name_prefix="eval",
-                                            # episode_trigger=get_eval_video_schedule(cfg.render_freq,
-                                            #                                         cfg.n_test_rollouts),
-                                  episode_trigger=get_eval_render_schedule(cfg.render_freq, 
-                                                                          cfg.n_test_rollouts),
-                                   metric_keys=cfg.render_metrics_test,
-                                   logger=logger)
+                               video_folder=logger.get_dir() + "/videos",
+                               name_prefix="eval",
+                               episode_trigger=eval_render_schedule,
+                               metric_keys=cfg.render_metrics_test,
+                               logger=logger)
 
     # The following gym wrappers can be added via commandline parameters,
     # e.g. use +flatten_obs to use the FlattenObservation wrapper
