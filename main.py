@@ -17,7 +17,7 @@ from util.util import get_git_label, set_global_seeds, get_train_video_schedule,
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.custom_logger import setup_logger
 from util.custom_callbacks import EarlyStopCallback, DisplayMetricCallBack, EvalCallback
-from util.custom_wrappers import DisplayWrapper
+from util.custom_wrappers import DisplayWrapper, RecordVideo
 
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
@@ -62,16 +62,26 @@ def get_env_instance(cfg, logger):
                                   metric_keys=cfg.render_metrics_test,
                                   logger=logger)
     if cfg.render == 'record':
-        train_env = gym.wrappers.RecordVideo(env=train_env,
+        # train_env = gym.wrappers.RecordVideo(env=train_env,
+        train_env = RecordVideo(env=train_env,
                                              video_folder=logger.get_dir() + "/videos",
                                              name_prefix="train",
-                                             step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
-                                                                                   * cfg.render_freq))
-        eval_env = gym.wrappers.RecordVideo(env=eval_env,
+                                             # step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
+                                             #                                       * cfg.render_freq),
+                                   steps_per_epoch=cfg.eval_after_n_steps,
+                                   episode_in_epoch_trigger=get_train_display_schedule(cfg.render_freq),
+                                   metric_keys=cfg.render_metrics_train,
+                                   logger=logger)
+        # eval_env = gym.wrappers.RecordVideo(env=eval_env,
+        eval_env = RecordVideo(env=eval_env,
                                             video_folder=logger.get_dir() + "/videos",
                                             name_prefix="eval",
-                                            episode_trigger=get_eval_video_schedule(cfg.render_freq,
-                                                                                    cfg.n_test_rollouts))
+                                            # episode_trigger=get_eval_video_schedule(cfg.render_freq,
+                                            #                                         cfg.n_test_rollouts),
+                                  episode_trigger=get_eval_display_schedule(cfg.render_freq, 
+                                                                          cfg.n_test_rollouts),
+                                   metric_keys=cfg.render_metrics_test,
+                                   logger=logger)
 
     # The following gym wrappers can be added via commandline parameters,
     # e.g. use +flatten_obs to use the FlattenObservation wrapper
