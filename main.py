@@ -12,8 +12,8 @@ from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from custom_envs.register_envs import register_custom_envs
-from util.util import get_git_label, set_global_seeds, get_train_video_schedule, get_eval_video_schedule, \
-    avoid_start_learn_before_first_episode_finishes, get_train_display_schedule, get_eval_display_schedule
+from util.util import get_git_label, set_global_seeds, get_train_render_schedule, get_eval_render_schedule, \
+    avoid_start_learn_before_first_episode_finishes
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.custom_logger import setup_logger
 from util.custom_callbacks import EarlyStopCallback, DisplayMetricCallBack, EvalCallback
@@ -53,11 +53,11 @@ def get_env_instance(cfg, logger):
     if cfg.render == 'display':
         train_env = DisplayWrapper(train_env,
                                    steps_per_epoch=cfg.eval_after_n_steps,
-                                   episode_in_epoch_trigger=get_train_display_schedule(cfg.render_freq),
+                                   episode_in_epoch_trigger=get_train_render_schedule(cfg.render_freq),
                                    metric_keys=cfg.render_metrics_train,
                                    logger=logger)
         eval_env = DisplayWrapper(eval_env,
-                                  episode_trigger=get_eval_display_schedule(cfg.render_freq, 
+                                  episode_trigger=get_eval_render_schedule(cfg.render_freq, 
                                                                           cfg.n_test_rollouts),
                                   metric_keys=cfg.render_metrics_test,
                                   logger=logger)
@@ -69,7 +69,7 @@ def get_env_instance(cfg, logger):
                                              # step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
                                              #                                       * cfg.render_freq),
                                    steps_per_epoch=cfg.eval_after_n_steps,
-                                   episode_in_epoch_trigger=get_train_display_schedule(cfg.render_freq),
+                                   episode_in_epoch_trigger=get_train_render_schedule(cfg.render_freq),
                                    metric_keys=cfg.render_metrics_train,
                                    logger=logger)
         # eval_env = gym.wrappers.RecordVideo(env=eval_env,
@@ -78,7 +78,7 @@ def get_env_instance(cfg, logger):
                                             name_prefix="eval",
                                             # episode_trigger=get_eval_video_schedule(cfg.render_freq,
                                             #                                         cfg.n_test_rollouts),
-                                  episode_trigger=get_eval_display_schedule(cfg.render_freq, 
+                                  episode_trigger=get_eval_render_schedule(cfg.render_freq, 
                                                                           cfg.n_test_rollouts),
                                    metric_keys=cfg.render_metrics_test,
                                    logger=logger)
