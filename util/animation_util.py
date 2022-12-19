@@ -73,6 +73,5 @@ class LiveAnimationPlot:
             ax_i.set_ylim(min(self.y_data[i]) - y_range * 0.05, max(self.y_data[i]) + y_range * 0.05)
             ax_i.set_xlabel(self.x_axis_labels[i])
             ax_i.set_ylabel(self.y_axis_labels[i])
-        self.animation = FuncAnimation(self.fig, func=self.create_to_save_anim, frames=80, interval=50, blit=False,
-                                       save_count=sys.maxsize)
-        self.animation.save(base_path + '.mp4', dpi=350, writer=FFwriter)
+        self.animation = FuncAnimation(self.fig, func=self.create_to_save_anim, blit=False, frames=len(self.x_data[0]))
+        self.animation.save(base_path + '.mp4', dpi=100, writer=FFwriter)
