@@ -1,11 +1,8 @@
 import matplotlib
-import sys
 from math import ceil,sqrt
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import os
-import numpy as np
-from pathlib import Path
 
 cwd = os.getcwd()
 
@@ -44,7 +41,6 @@ class LiveAnimationPlot:
             line.set_xdata(self.x_data[i])
             line.set_ydata(self.y_data[i])
         for ax_i in self.axs:
-            # ax_i = ax_i.gca()
             ax_i.relim()
             ax_i.autoscale()
         return self.lines
