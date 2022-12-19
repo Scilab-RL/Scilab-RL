@@ -64,8 +64,7 @@ class LiveAnimationPlot:
             line.set_ydata(self.y_data[i][0:j + 1])
         return self.lines
 
-    def save_animation(self, name=''):
-        Path(cwd + '/animations/').mkdir(parents=True, exist_ok=True)
+    def save_animation(self, base_path):
         FFwriter = matplotlib.animation.FFMpegWriter(fps=20, codec="h264")
         for i, ax_i in enumerate(self.axs):
             ax_i.set_xlim(0.0, max(self.x_data[-1]))
@@ -74,4 +73,4 @@ class LiveAnimationPlot:
             ax_i.set_ylabel(self.y_axis_labels[i])
         self.animation = FuncAnimation(self.fig, func=self.create_to_save_anim, frames=80, interval=50, blit=False,
                                        save_count=sys.maxsize)
-        self.animation.save(cwd + '/animations/' + name + '.mp4', dpi=350, writer=FFwriter)
+        self.animation.save(base_path + '.mp4', dpi=350, writer=FFwriter)
