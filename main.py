@@ -8,7 +8,7 @@ import gym
 import wandb
 
 from stable_baselines3.her.her import HerReplayBuffer
-from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
+from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList, EvalCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from custom_envs.register_envs import register_custom_envs
@@ -16,7 +16,7 @@ from util.util import get_git_label, set_global_seeds, get_train_render_schedule
     avoid_start_learn_before_first_episode_finishes
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.custom_logger import setup_logger
-from util.custom_callbacks import EarlyStopCallback, DisplayMetricCallBack, EvalCallback
+from util.custom_callbacks import EarlyStopCallback
 from util.custom_wrappers import DisplayWrapper, RecordVideo
 
 # make git_label available in hydra
@@ -133,30 +133,13 @@ def get_algo_instance(cfg, logger, env):
 
 def create_callbacks(cfg, logger, eval_env):
     callback = []
-    display_metric_callback_test = None
-
-    # if (cfg.render == 'display' or cfg.render == 'record'):
-    #     save_anim = True if cfg.render == 'record' else False
-    #     # for training
-    #     display_metric_callback_train = DisplayMetricCallBack(cfg.render_metrics_train, logger,
-    #                                                           episodic=cfg.render_episodic,
-    #                                                           save_anim=save_anim,display_nth_rollout=cfg.render_freq)
-    #     callback.append(display_metric_callback_train)
-    #     # for testing
-    #
-    #     # custom callback necessary for eval metric viz
-    #     # If display_metric_callback_test stays None --> no metric visualization
-    #     display_metric_callback_test = DisplayMetricCallBack(cfg.render_metrics_test, logger,
-    #                                                         episodic=cfg.render_episodic,
-    #                                                         save_anim=save_anim,display_nth_rollout=cfg.render_freq)
 
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
         callback.append(checkpoint_callback)
 
     eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                 log_path=logger.get_dir(), best_model_save_path=logger.get_dir(), render=False, warn=False,
-                                 callback_metric_viz=display_metric_callback_test)
+                                 log_path=logger.get_dir(), best_model_save_path=logger.get_dir(), render=False, warn=False)
     callback.append(eval_callback)
     early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
                                             threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
