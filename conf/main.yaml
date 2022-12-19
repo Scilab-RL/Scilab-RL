@@ -23,7 +23,6 @@ env_kwargs: {}
 # algorithm. Maybe put them in the algorithm/xyz.yaml
 render: 'none' # 'display', 'record', or anything else for neither one 
 render_freq: 1
-render_episodic: True # reset metric visualization for each episode/rollout (True) or ongoing (False)
 render_metrics_train: ['q_val','q_val','q_val']
 render_metrics_test: []
 
