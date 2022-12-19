@@ -67,8 +67,10 @@ class LiveAnimationPlot:
     def save_animation(self, base_path):
         FFwriter = matplotlib.animation.FFMpegWriter(fps=20, codec="h264")
         for i, ax_i in enumerate(self.axs):
-            ax_i.set_xlim(0.0, max(self.x_data[-1]))
-            ax_i.set_ylim(0.0, max(self.y_data[i]) * 1.1)
+            y_range = max(self.y_data[i]) - min(self.y_data[i])
+            x_range = max(self.x_data[i]) - min(self.x_data[i])
+            ax_i.set_xlim(min(self.x_data[i]) - x_range * 0.05, max(self.x_data[i]) + x_range * 0.05)
+            ax_i.set_ylim(min(self.y_data[i]) - y_range * 0.05, max(self.y_data[i]) + y_range * 0.05)
             ax_i.set_xlabel(self.x_axis_labels[i])
             ax_i.set_ylabel(self.y_axis_labels[i])
         self.animation = FuncAnimation(self.fig, func=self.create_to_save_anim, frames=80, interval=50, blit=False,
