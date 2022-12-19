@@ -173,6 +173,7 @@ class RecordVideo(gym.Wrapper):
                 f"Overwriting existing videos at {self.video_folder} folder (try specifying a different `video_folder` for the `RecordVideo` wrapper if this is not desired)"
             )
         os.makedirs(self.video_folder, exist_ok=True)
+        self.base_path = None
 
         self.name_prefix = name_prefix
         self.video_length = video_length
@@ -203,10 +204,10 @@ class RecordVideo(gym.Wrapper):
         else:
             video_name = f"{self.name_prefix}-episode-{self.episode_id}"
 
-        base_path = os.path.join(self.video_folder, video_name)
+        self.base_path = os.path.join(self.video_folder, video_name)
         self.video_recorder = video_recorder.VideoRecorder(
             env=self.env,
-            base_path=base_path,
+            base_path=self.base_path,
             metadata={"step_id": self.step_id, "episode_id": self.episode_id},
         )
 
@@ -250,7 +251,6 @@ class RecordVideo(gym.Wrapper):
                     self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
                     self.animation.x_data[i].append(self.step_in_episode_id)
                     self.animation.y_data[i].append(self.curr_recorded_value)
-                # self.animation.start_animation()
             self.video_recorder.capture_frame()
             self.recorded_frames += 1
             if self.video_length > 0:
@@ -279,13 +279,7 @@ class RecordVideo(gym.Wrapper):
             self.video_recorder.close()
             # Metric stuff
             if self.record_metrics:
-                if self.step_trigger:
-                    video_name = f"{self.name_prefix}-step-{self.step_id}"
-                elif self.episode_in_epoch_trigger:
-                    video_name = f"{self.name_prefix}-epochs-{self.epoch_id}"
-                else:
-                    video_name = f"{self.name_prefix}-episode-{self.episode_id}"
-                self.animation.save_animation(video_name)
+                self.animation.save_animation(self.base_path + ".metric")
                 self.animation.reset_fig()
                 # reset data
                 self.animation.x_data = [[] for _ in range(len(self.metric_keys))]
