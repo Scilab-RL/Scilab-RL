@@ -1,4 +1,5 @@
 import os
+import subprocess
 import gym
 
 from typing import Callable
@@ -286,5 +287,31 @@ class RecordVideo(gym.Wrapper):
                 # reset data
                 self.animation.x_data = [[] for _ in range(len(self.metric_keys))]
                 self.animation.y_data = [[] for _ in range(len(self.metric_keys))]
+                self.join_animation()
         self.recording = False
         self.recorded_frames = 1
+
+    def join_animation(self):
+        self.cmdline = (
+            "ffmpeg",
+            "-nostats",
+            "-loglevel",
+            "error",  # suppress warnings
+            "-y",
+            # input
+            "-i",
+            self.base_path + ".mp4",
+            "-i",
+            self.base_path + ".metric.mp4",
+            # output
+            "-filter_complex",
+            "hstack",
+            self.base_path + ".joint.mp4",
+        )
+
+        if hasattr(os, "setsid"):  # setsid not present on Windows
+            subprocess.Popen(
+                self.cmdline, preexec_fn=os.setsid
+            )
+        else:
+            subprocess.Popen(self.cmdline)
