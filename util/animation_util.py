@@ -60,7 +60,7 @@ class LiveAnimationPlot:
         self.animation = FuncAnimation(self.fig, func=self.animation_frame, interval=500, blit=False)
         plt.ion()
         plt.pause(0.01)
-        self.fig.set_layout_engine(None)
+        #self.fig.set_layout_engine(None)
 
     def create_to_save_anim(self, j):
         for i, line in enumerate(self.lines):
