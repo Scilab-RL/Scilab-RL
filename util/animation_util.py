@@ -18,7 +18,10 @@ class LiveAnimationPlot:
         self.num_metrics = len(y_axis_labels)
         self.x_data = [[] for _ in range(self.num_metrics)]
         self.y_data = [[] for _ in range(self.num_metrics)]
-        self.fig, self.axs = plt.subplots(nrows=ceil(sqrt(self.num_metrics)), ncols=ceil(sqrt(self.num_metrics)),constrained_layout=True)
+        self.fig, self.axs = plt.subplots(nrows=ceil(sqrt(self.num_metrics)),
+                                          ncols=ceil(sqrt(self.num_metrics)),
+                                          constrained_layout=True,
+                                          figsize=[5, 5])
 
         # for n = 1, matplotlib returns an ax object without an array
         if self.num_metrics == 1:
