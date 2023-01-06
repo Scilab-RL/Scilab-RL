@@ -10,9 +10,14 @@ cwd = os.getcwd()
 class LiveAnimationPlot:
     def __init__(
             self,
+            env,
             x_axis_labels=["Rollout_step"],
             y_axis_labels=["recorded_value"]
     ):
+        self.frames_per_sec = env.metadata.get("video.frames_per_second", 30)
+        self.output_frames_per_sec = env.metadata.get(
+            "video.output_frames_per_second", self.frames_per_sec
+        )
         self.x_axis_labels = x_axis_labels * len(y_axis_labels)
         self.y_axis_labels = y_axis_labels
         self.num_metrics = len(y_axis_labels)
@@ -52,7 +57,7 @@ class LiveAnimationPlot:
         for i, ax_i in enumerate(self.axs):
             ax_i.set_xlabel(self.x_axis_labels[i])
             ax_i.set_ylabel(self.y_axis_labels[i])
-        self.animation = FuncAnimation(self.fig, func=self.animation_frame, frames=20, interval=500, blit=False)
+        self.animation = FuncAnimation(self.fig, func=self.animation_frame, interval=500, blit=False)
         plt.ion()
         plt.pause(0.01)
         self.fig.set_layout_engine(None)
@@ -64,7 +69,7 @@ class LiveAnimationPlot:
         return self.lines
 
     def save_animation(self, base_path):
-        FFwriter = matplotlib.animation.FFMpegWriter(fps=20, codec="h264")
+        FFwriter = matplotlib.animation.FFMpegWriter(fps=self.output_frames_per_sec, codec="h264")
         for i, ax_i in enumerate(self.axs):
             y_range = max(self.y_data[i]) - min(self.y_data[i])
             x_range = max(self.x_data[i]) - min(self.x_data[i])

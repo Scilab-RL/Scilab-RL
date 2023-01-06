@@ -49,7 +49,8 @@ class DisplayWrapper(gym.Wrapper):
         self.metric_keys = metric_keys
         self.num_metrics = len(self.metric_keys)
         self.display_metrics = self.num_metrics > 0
-        self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys) if self.display_metrics else None
+        self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys,
+                                           env=self.env) if self.display_metrics else None
         self.logger = logger
 
 
@@ -185,7 +186,8 @@ class RecordVideo(gym.Wrapper):
         self.metric_keys = metric_keys
         self.num_metrics = len(self.metric_keys)
         self.record_metrics = self.num_metrics > 0
-        self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys) if self.record_metrics else None
+        self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys,
+                                           env=self.env) if self.record_metrics else None
         self.logger = logger
 
     def reset(self, **kwargs):
