@@ -19,6 +19,8 @@ from util.custom_callbacks import EarlyStopCallback
 from util.custom_wrappers import DisplayWrapper
 
 from custom_algorithms.oo_sac.oo_blocks_adapter import OOBlocksAdapter
+from custom_algorithms.oo_sac.oo_wrapper import OOWrappper
+from custom_algorithms.oo_sac.oo_wrapper import apply_oo_wrapper
 from custom_callbacks.oo_eval_callback import OOEvalCallback
 
 # make git_label available in hydra
@@ -57,8 +59,8 @@ def get_env_instance(cfg, logger):
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
 
     if cfg.algorithm.name.startswith('oo_'):
-        train_env.env.__class__ = OOBlocksAdapter
-        eval_env.env.__class__ = OOBlocksAdapter
+        train_env.env = apply_oo_wrapper(train_env.env, cfg.n_attrs, cfg.n_objects)
+        eval_env.env = apply_oo_wrapper(eval_env.env, cfg.n_attrs, cfg.n_objects)
 
     # wrappers for rendering
     if cfg.render_args[0][0] == 'display':
