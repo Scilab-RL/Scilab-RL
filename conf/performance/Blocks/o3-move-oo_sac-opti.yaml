@@ -9,7 +9,7 @@ defaults:
   # access algorithm config group to get the default parameters of hac
   - override /algorithm: oo_sac
 
-env: 'Blocks-o2-gripper_above-v1'
+env: 'Blocks-o3-object_move-v1'
 
 # The n last epochs over which to average for determining early stopping condition.
 early_stop_last_n: 4
@@ -20,8 +20,8 @@ algorithm:
 
 hydra:
   sweeper:
-    study_name: oo-sac_Blocks-o2-gripper_above-v1
-    storage: sqlite:///oo-sac_Blocks-o2-gripper_above-v1.db
+    study_name: oo-sac_Blocks-o3-object_move-v1
+    storage: sqlite:///oo-sac_Blocks-o3-object_move-v1.db
     n_jobs: 3
     direction: maximize
     min_trials_per_param: 3

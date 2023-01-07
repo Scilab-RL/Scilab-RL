@@ -17,7 +17,7 @@ env_kwargs: {}
 # 'record' is for video, 'display' for direct visualization, 'none' for not rendering at all.
 # The numbers determine the number of epochs after which we render the training/testing.
 # Example: [['display',100],['record',10]] means that we display every 100th training and record every 10th testing epoch.
-render_args: [['none',100],['record',15]]
+render_args: [['none',100],['record',100]]
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
@@ -54,9 +54,15 @@ info: ''
 # The number of steps after which to save the model. 0 to never save, i.e., to only save the best and last model.
 save_model_freq: 0
 
+# The number of object-oriented attributes (utilized only by OO_SAC)
+n_attrs: 3
+
+# The number of objects (utilized only by OO_SAC)
+n_objects: 3
+
 # WANDB options
 # Whether to use Weights and Biases. 1=use, 0=disable
-wandb: 1
+wandb: 0
 # wandb project name
 project_name: null
 # wandb entity

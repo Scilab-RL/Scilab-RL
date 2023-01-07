@@ -122,7 +122,7 @@ class OOBlocksAdapter(BlocksEnv):
         # Then if you randomly decide to choose a goal for the block: oogoal = (0, 1, x,y,z)
         # obj_idx = 1
         #self.full_goal = full_goal
-        if self.gripper_goal == 'object_move' or self.gripper_goal == 'gripper_above':
+        if self.gripper_goal == 'object_move':
             obj_idx = random.randint(1, self.n_objects)
         else:
             obj_idx = random.randint(0, self.n_objects)

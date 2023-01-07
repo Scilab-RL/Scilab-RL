@@ -7,7 +7,7 @@ import random
 
 from stable_baselines3.common import base_class
 from stable_baselines3.common.vec_env import VecEnv
-from ideas_baselines.oo_sac.oo_blocks_adapter import OO_Blocks_Adapter
+from custom_algorithms.oo_sac.oo_blocks_adapter import OOBlocksAdapter
 
 
 def get_success(info_list):
@@ -85,7 +85,7 @@ def evaluate_oo_policy(
     tries_per_object = np.zeros(env.envs[0].n_objects + 1)  # + gripper
     success_per_object = np.zeros(env.envs[0].n_objects + 1)
 
-    env.envs[0].__class__ = OO_Blocks_Adapter
+    env.envs[0].__class__ = OOBlocksAdapter
 
     for i in range(n_eval_episodes):
         obj_idx = random.randint(1, env.envs[0].n_objects)
