@@ -1,7 +1,7 @@
 import pickle
+
 import torch as th
 import numpy as np
-
 
 # mean absolute error
 mae = th.nn.L1Loss(reduction='sum')
@@ -27,7 +27,7 @@ def create_nn(net_arch, input_dim, output_dim):
         modules.append(th.nn.ReLU())
     last_layer_dim = net_arch[-1]
     modules.append(th.nn.Linear(last_layer_dim, output_dim))
-    return th.nn.Sequential(*modules)
+    return th.nn.Sequential(*modules).double()
 
 
 class BASIC:
@@ -39,13 +39,14 @@ class BASIC:
     - a critic-network, which provides a score for the action given the action and observation
     - a target-network, which is a copy of the critic network for learning stability
     """
+
     def __init__(self, env, net_arch=None, noise_factor=0.1, learning_rate=0.001):
         self.env = env
         self.logger = None
         self.num_timesteps = 0
         self.observation_space = env.observation_space
         self.action_space = env.action_space
-        self._last_obs = self.env.reset()
+        self._last_obs = self.env.reset().astype('double')
 
         # For deep-Q-learning:
         self.lr = learning_rate
@@ -73,17 +74,28 @@ class BASIC:
         Every self.eval_freq steps, the policy is evaluated.
         """
         callback.init_callback(model=self)
+        if self.num_timesteps == 0:
+            callback.on_rollout_start()
         while self.num_timesteps < total_timesteps:
             action = self._get_action(self._last_obs, deterministic=False)
             obs, rewards, done, info = self.env.step(action)
+            obs = obs.astype('double')
+            q = self.target(
+                th.cat([self.actor(th.tensor(self._last_obs.flatten())), th.tensor(self._last_obs.flatten())]))
+            q_value = float(th.mean(q.detach()))
+            self.logger.record('q_val', q_value)
+            #ToDo Remove
+            #for testing purposed
+            self.logger.record('rand_val', np.random.random_sample())
             self._train(self._last_obs, obs, rewards)
             self._last_obs = obs
             self.num_timesteps += 1
             if done:
-                self._last_obs = self.env.reset()
+                callback.on_rollout_start()
+                self._last_obs = self.env.reset().astype('double')
             if not callback.on_step():
                 return
-
+        callback.on_training_end()
     def _train(self, last_obs, obs, reward):
         """
         Train the network with the new reward and observation from the environment.
@@ -134,20 +146,27 @@ class BASIC:
         # no need to save the target-network state, because it is a copy of the critic network
         pickle.dump(data, open(path, "wb"))
 
+    # deterministic is true when the policy is being evaluated
+    # this is requred for viz during eval
     def _get_action(self, obs, deterministic):
         """
         Get action from the actor network.
         If the action should not be deterministic, add noise with intensity self.noise_factor.
         """
-        obs = th.tensor(obs.flatten())
+        obs = th.tensor(obs.flatten()).double()
         with th.no_grad():
             action = self.actor(obs).detach().numpy()
         if not deterministic:
-            action += self.noise_factor * (np.random.normal(size=len(action))-0.5)
+            action += self.noise_factor * (np.random.normal(size=len(action)) - 0.5)
         action = np.clip(action, -1, 1)
+
+        # if deterministic:
+        rand_eval = np.random.random_sample()
+        self.logger.record('rand_eval', rand_eval)
+
         return [action]  # DummyVecEnv expects actions in a list
 
-    def predict(self, obs, state=None, deterministic=True):
+    def predict(self, obs, state=None, deterministic=True, eval_policy=False):
         return self._get_action(obs, deterministic), state
 
     def get_env(self):

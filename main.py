@@ -6,8 +6,9 @@ from omegaconf import DictConfig, OmegaConf
 import mlflow
 import gym
 import wandb
+
 from stable_baselines3.her.her import HerReplayBuffer
-from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
+from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from custom_envs.register_envs import register_custom_envs
@@ -15,7 +16,7 @@ from util.util import get_git_label, set_global_seeds, get_train_video_schedule,
     avoid_start_learn_before_first_episode_finishes
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.custom_logger import setup_logger
-from util.custom_callbacks import EarlyStopCallback
+from util.custom_callbacks import EarlyStopCallback, DisplayMetricCallBack, EvalCallback
 from util.custom_wrappers import DisplayWrapper
 
 from custom_algorithms.oo_sac.oo_blocks_adapter import OOBlocksAdapter
@@ -28,7 +29,6 @@ OmegaConf.register_new_resolver("git_label", get_git_label)
 
 
 def get_env_instance(cfg, logger):
-
     def is_rlbench_env(env_name):
         return env_name.endswith('-state-v0') or cfg.env.endswith('-vision-v0')
 
@@ -36,14 +36,10 @@ def get_env_instance(cfg, logger):
         return env_name.startswith('Cop')
 
     if is_rlbench_env(cfg.env) or is_coppelia_env(cfg.env):
-        # For envs based on CoppeliaSim, we can either not render at all, display train AND test,
-        # or record train or test or both. 'record' will overwrite 'display'
-        # e.g. render_args=[['display',1],['record',1]] will have the same effect
-        # as render_args=[['none',1],['record',1]]
         render_mode = None
-        if cfg.render_args[0][0] == 'display' or cfg.render_args[1][0] == 'display':
+        if cfg.render == 'display':
             render_mode = 'human'
-        if cfg.render_args[0][0] == 'record' or cfg.render_args[1][0] == 'record':
+        if cfg.render == 'record':
             render_mode = 'rgb_array'
         # there can be only one PyRep instance per process, therefore train_env == eval_env
         if is_rlbench_env(cfg.env):
@@ -63,21 +59,21 @@ def get_env_instance(cfg, logger):
         eval_env.env = apply_oo_wrapper(eval_env.env, cfg.n_attrs, cfg.n_objects)
 
     # wrappers for rendering
-    if cfg.render_args[0][0] == 'display':
-        train_env = DisplayWrapper(train_env, cfg.render_args[0][1], epoch_steps=cfg.eval_after_n_steps)
-    if cfg.render_args[1][0] == 'display':
-        eval_env = DisplayWrapper(eval_env, cfg.render_args[1][1], epoch_episodes=cfg.n_test_rollouts)
-    if cfg.render_args[0][0] == 'record':
+    if cfg.render == 'display':
+        train_env = DisplayWrapper(train_env, cfg.render_freq, epoch_steps=cfg.eval_after_n_steps)
+    if cfg.render == 'display':
+        eval_env = DisplayWrapper(eval_env, cfg.render_freq, epoch_episodes=cfg.n_test_rollouts)
+    if cfg.render == 'record':
         train_env = gym.wrappers.RecordVideo(env=train_env,
                                              video_folder=logger.get_dir() + "/videos",
                                              name_prefix="train",
                                              step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
-                                                                                   * cfg.render_args[0][1]))
-    if cfg.render_args[1][0] == 'record':
+                                                                                   * cfg.render_freq))
+    if cfg.render == 'record':
         eval_env = gym.wrappers.RecordVideo(env=eval_env,
                                             video_folder=logger.get_dir() + "/videos",
                                             name_prefix="eval",
-                                            episode_trigger=get_eval_video_schedule(cfg.render_args[1][1],
+                                            episode_trigger=get_eval_video_schedule(cfg.render_freq,
                                                                                     cfg.n_test_rollouts))
 
     # The following gym wrappers can be added via commandline parameters,
@@ -130,16 +126,30 @@ def get_algo_instance(cfg, logger, env):
 
 def create_callbacks(cfg, logger, eval_env):
     callback = []
+    display_metric_callback_test = None
+
+    if (cfg.render == 'display' or cfg.render == 'record'):
+        save_anim = True if cfg.render == 'record' else False
+        # for training
+        display_metric_callback_train = DisplayMetricCallBack(cfg.render_metrics_train, logger,
+                                                              episodic=cfg.render_episodic,
+                                                              save_anim=save_anim,display_nth_rollout=cfg.render_freq)
+        callback.append(display_metric_callback_train)
+        # for testing
+
+        # custom callback necessary for eval metric viz
+        # If display_metric_callback_test stays None --> no metric visualization
+        display_metric_callback_test = DisplayMetricCallBack(cfg.render_metrics_test, logger,
+                                                            episodic=cfg.render_episodic,
+                                                            save_anim=save_anim,display_nth_rollout=cfg.render_freq)
+
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
         callback.append(checkpoint_callback)
-    # Create the callback list
-    if cfg.algorithm.name.startswith("oo_"):
-        eval_callback = OOEvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                     log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False)
-    else:
-        eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                     log_path=logger.get_dir(), best_model_save_path=None, render=False, warn=False)
+
+    eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
+                                 log_path=logger.get_dir(), best_model_save_path=logger.get_dir(), render=False, warn=False,
+                                 callback_metric_viz=display_metric_callback_test)
     callback.append(eval_callback)
     early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
                                             threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
@@ -166,7 +176,6 @@ def main(cfg: DictConfig) -> (float, int):
         print(f"Active mlflow run_id: {run_id}")
         log_params_from_omegaconf_dict(cfg)
         OmegaConf.save(config=cfg, f='params.yaml')
-
         if cfg['seed'] == 0:
             cfg['seed'] = int(time.time())
         set_global_seeds(cfg.seed)
@@ -184,6 +193,10 @@ def main(cfg: DictConfig) -> (float, int):
             baseline.learn(total_timesteps=total_steps, callback=callback, log_interval=None)
             training_finished = True
             logger.info("Training finished!")
+            # Save model when training is finished
+            p = logger.get_dir() + "/rl_model_finished"
+            logger.info(f"Saving policy to {p}")
+            baseline.save(path=p)
         except ValueError as e:
             if e.args[0].startswith("Expected parameter loc"):
                 logger.error(f"The experiment failed with error {e}")
