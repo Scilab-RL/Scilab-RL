@@ -13,11 +13,19 @@ env: 'FetchReach-v1'
 # keyword arguments for the environment
 env_kwargs: {}
 
-# The render_args specify how and when to render during training (first sublist) and testing (second sublist).
-# 'record' is for video, 'display' for direct visualization, 'none' for not rendering at all.
-# The numbers determine the number of epochs after which we render the training/testing.
-# Example: [['display',100],['record',10]] means that we display every 100th training and record every 10th testing epoch.
-render_args: [['none',100],['record',100]]
+# The render* args specify how and when to render and plot during training and testing.
+# 'record' is for recording the rendered scene as a video file without on-screen display,
+# 'display' for direct visualization, neither one, e.g. 'none' for not rendering at all.
+# render_freq determine the number of epochs after which we render the training/testing.
+# render_metrics* determine the metric values to render. They have to be provided by the
+# learning algorithm.
+# TODO: maybe there is a better place to put render_metrics_* because they depend on the
+# algorithm. Maybe put them in the algorithm/xyz.yaml
+render: 'none' # 'display', 'record', or anything else for neither one
+render_freq: 1
+render_episodic: True # reset metric visualization for each episode/rollout (True) or ongoing (False)
+render_metrics_train: ['q_val','q_val','q_val']
+render_metrics_test: []
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
@@ -30,13 +38,13 @@ base_logdir: 'data'
 restore_policy: null
 
 # The number of training steps after which to evaluate the policy.
-eval_after_n_steps: 5000
+eval_after_n_steps: 2000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 600
+n_epochs: 60
 
 # The number of testing rollouts.
-n_test_rollouts: 50
+n_test_rollouts: 10
 
 # The n last epochs over which to average for determining early stopping condition.
 early_stop_last_n: 3
@@ -62,7 +70,7 @@ n_objects: 3
 
 # WANDB options
 # Whether to use Weights and Biases. 1=use, 0=disable
-wandb: 0
+wandb: 1
 # wandb project name
 project_name: null
 # wandb entity

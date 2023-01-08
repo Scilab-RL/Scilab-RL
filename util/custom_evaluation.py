@@ -1,147 +1,136 @@
-from typing import Callable, List, Optional, Tuple, Union, Dict
-from stable_baselines3.common.logger import Logger
+import warnings
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
 import gym
 import numpy as np
-import cv2
 
 from stable_baselines3.common import base_class
-from stable_baselines3.common.vec_env import VecEnv
-from custom_algorithms.oo_sac.oo_blocks_adapter import OOBlocksAdapter
-from ideas_envs.blocks.blocks_env import BlocksEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
 
 
-def get_success(info_list):
-    succ = np.nan
-    for entry in info_list:
-        try:
-            succ = entry['is_success']
-        except:
-            continue
-    return succ
-
-
-def strategy(is_success, obs, env):
-    obj_idx = env.envs[0].env.env.obj_idx
-    n_obj = env.envs[0].env.env.n_objects
-    if is_success and obj_idx < n_obj:
-        obj_idx += 1
-        oneHot_idx = np.eye(n_obj + 1)[obj_idx]
-        env.envs[0].env.env.goal = np.append(oneHot_idx, env.envs[0].env.env.full_goal[obj_idx * 3:obj_idx * 3 + 3])
-        env.envs[0].env.env.goal = _reshape_goal_vec(env.envs[0].env.env.goal, obs)
-        env.envs[0].env.env.obj_idx = obj_idx
-        return obj_idx
-
-def change_strategy(env):
-    env.envs[0].env.env.target_obj += 1
-
-def _reshape_goal_vec(goal, obs):
-    original_len = obs['achieved_goal'].shape[1]
-    len_diff = abs(len(goal) - original_len)
-    if len_diff != 0:
-        goal = np.expand_dims(np.concatenate([goal, np.zeros(len_diff)]), axis=0)[0]
-    return goal
-
-
+# modified copy from stable baselines
 def evaluate_policy(
-        agent: "base_class.BaseAlgorithm",
-        env: Union[gym.Env, VecEnv],
-        n_eval_episodes: int = 10,
-        deterministic: bool = True,
-        render_info: Dict = None,
-        callback: Optional[Callable] = None,
-        reward_threshold: Optional[float] = None,
-        return_episode_rewards: bool = False,
-        logger: Logger = None
+    model: "base_class.BaseAlgorithm",
+    env: Union[gym.Env, VecEnv],
+    n_eval_episodes: int = 10,
+    deterministic: bool = True,
+    render: bool = False,
+    callback: Optional[Callable[[Dict[str, Any], Dict[str, Any]], None]] = None,
+    reward_threshold: Optional[float] = None,
+    return_episode_rewards: bool = False,
+    warn: bool = True,
+    callback_metric_viz = None
 ) -> Union[Tuple[float, float], Tuple[List[float], List[int]]]:
     """
     Runs policy for ``n_eval_episodes`` episodes and returns average reward.
-    This is made to work only with one env.
+    If a vector env is passed in, this divides the episodes to evaluate onto the
+    different elements of the vector env. This static division of work is done to
+    remove bias. See https://github.com/DLR-RM/stable-baselines3/issues/402 for more
+    details and discussion.
 
-    :param agent: The RL agent you want to evaluate.
-    :param env: The gym environment. In the case of a ``VecEnv``
-        this must contain only one environment.
+    .. note::
+        If environment has not been wrapped with ``Monitor`` wrapper, reward and
+        episode lengths are counted as it appears with ``env.step`` calls. If
+        the environment contains wrappers that modify rewards or episode lengths
+        (e.g. reward scaling, early episode reset), these will affect the evaluation
+        results as well. You can avoid this by wrapping environment with ``Monitor``
+        wrapper before anything else.
+
+    :param model: The RL agent you want to evaluate.
+    :param env: The gym environment or ``VecEnv`` environment.
     :param n_eval_episodes: Number of episode to evaluate the agent
     :param deterministic: Whether to use deterministic or stochastic actions
+    :param render: Whether to render the environment or not
     :param callback: callback function to do additional checks,
-        called after each step.
+        called after each step. Gets locals() and globals() passed as parameters.
     :param reward_threshold: Minimum expected reward per episode,
         this will raise an error if the performance is not met
-    :param return_episode_rewards: If True, a list of reward per episode
-        will be returned instead of the mean.
-    :return: Mean reward per episode, std of reward per episode
-        returns ([float], [int]) when ``return_episode_rewards`` is True
+    :param return_episode_rewards: If True, a list of rewards and episode lengths
+        per episode will be returned instead of the mean.
+    :param warn: If True (default), warns user about lack of a Monitor wrapper in the
+        evaluation environment.
+    :return: Mean reward per episode, std of reward per episode.
+        Returns ([float], [int]) when ``return_episode_rewards`` is True, first
+        list containing per-episode rewards and second containing per-episode lengths
+        (in number of steps).
     """
+    is_monitor_wrapped = False
+    # Avoid circular import
+    from stable_baselines3.common.monitor import Monitor
 
-    video_writer = None
-    render = render_info is not None and (render_info['eval_count'] - 1) % render_info['render_every_n_eval'] == 0
-    if render:
-        if render_info is not None and 'fps' in render_info:
-            try:
-                video_writer = cv2.VideoWriter(render_info['path'] + '/eval_{}.avi'.format(render_info['eval_count']),
-                                               cv2.VideoWriter_fourcc('F', 'M', 'P', '4'), render_info['fps'],
-                                               render_info['size'])
-            except:
-                logger.info("Error creating video writer")
+    if not isinstance(env, VecEnv):
+        env = DummyVecEnv([lambda: env])
 
-    info_list = []
-    episode_rewards, episode_lengths, episode_successes = [], [], []
-    if env.envs[0].env.env.__class__ == BlocksEnv:
-        env.envs[0].env.env.__class__ = OOBlocksAdapter
-    tries_per_object = np.zeros(env.envs[0].n_objects + 1)  # + gripper
-    success_per_object = np.zeros(env.envs[0].n_objects + 1)
+    is_monitor_wrapped = is_vecenv_wrapped(env, VecMonitor) or env.env_is_wrapped(Monitor)[0]
 
-    for i in range(n_eval_episodes):
-        # Avoid double reset, as VecEnv are reset automatically
-        if not isinstance(env, VecEnv) or i == 0:
-            obs = env.reset()
-        obj_idx = np.argmax(obs['achieved_goal'][0] == 1.)
-        tries_per_object[obj_idx] += 1
-        done, state = False, None
-        episode_reward = 0.0
-        episode_length = 0
-        episode_success = 0.0
-        while not done:
-            if render:
-                if video_writer is not None:
-                    if hasattr(env, 'venv'):
-                        frame = env.venv.envs[0].render(mode='rgb_array', width=render_info['size'][0],
-                                                                height=render_info['size'][1])
+    if not is_monitor_wrapped and warn:
+        warnings.warn(
+            "Evaluation environment is not wrapped with a ``Monitor`` wrapper. "
+            "This may result in reporting modified episode lengths and rewards, if other wrappers happen to modify these. "
+            "Consider wrapping environment first with ``Monitor`` wrapper.",
+            UserWarning,
+        )
+
+    n_envs = env.num_envs
+    episode_rewards = []
+    episode_lengths = []
+
+    episode_counts = np.zeros(n_envs, dtype="int")
+    # Divides episodes among different sub environments in the vector as evenly as possible
+    episode_count_targets = np.array([(n_eval_episodes + i) // n_envs for i in range(n_envs)], dtype="int")
+
+    current_rewards = np.zeros(n_envs)
+    current_lengths = np.zeros(n_envs, dtype="int")
+    observations = env.reset()
+    states = None
+    while (episode_counts < episode_count_targets).any():
+        actions, states = model.predict(observations, state=states, deterministic=deterministic)
+        observations, rewards, dones, infos = env.step(actions)
+        # trigger metric visualization
+        if callback_metric_viz:
+            callback_metric_viz._on_step()
+        current_rewards += rewards
+        current_lengths += 1
+        for i in range(n_envs):
+            if episode_counts[i] < episode_count_targets[i]:
+
+                # unpack values so that the callback can access the local variables
+                reward = rewards[i]
+                done = dones[i]
+                info = infos[i]
+
+                if callback is not None:
+                    callback(locals(), globals())
+
+                if dones[i]:
+                    if is_monitor_wrapped:
+                        # Atari wrapper can send a "done" signal when
+                        # the agent loses a life, but it does not correspond
+                        # to the true end of episode
+                        if "episode" in info.keys():
+                            # Do not trust "done" with episode endings.
+                            # Monitor wrapper includes "episode" key in info if environment
+                            # has been wrapped with it. Use those rewards instead.
+                            episode_rewards.append(info["episode"]["r"])
+                            episode_lengths.append(info["episode"]["l"])
+                            # Only increment at the real end of an episode
+                            episode_counts[i] += 1
                     else:
-                        frame = env.render(mode='rgb_array')
-                    video_writer.write(frame)
-                elif render_info is not None and 'mode' in render_info:
-                    if hasattr(env, 'venv'):
-                        env.venv.envs[0].render(mode=render_info['mode'])
-                    else:
-                        env.render(mode=render_info['mode'])
+                        episode_rewards.append(current_rewards[i])
+                        episode_lengths.append(current_lengths[i])
+                        episode_counts[i] += 1
+                    current_rewards[i] = 0
+                    current_lengths[i] = 0
+                    if states is not None:
+                        states[i] *= 0
 
-            action, state = agent.predict(obs, state=state, deterministic=deterministic)
-            obs, reward, done, _info = env.step(action)
-            this_episode_success = get_success(_info)
-            if this_episode_success > 0:
-                success_per_object[obj_idx] += this_episode_success
-            if not episode_success or episode_success == np.nan:
-                episode_success = this_episode_success
-            episode_reward += reward
-            if callback is not None:
-                callback(locals(), globals())
-            episode_length += 1
-            if episode_success and episode_success is not np.nan: # Early abort on success.
-                done = True
-                if isinstance(env, VecEnv):
-                    env.reset()
-        episode_successes.append(episode_success)
-        episode_rewards.append(episode_reward)
-        episode_lengths.append(episode_length)
-    if video_writer is not None:
-        video_writer.release()
-    mean_success = np.mean(episode_successes)
+        if render:
+            env.render()
+
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
-    mean_length = np.mean(episode_lengths)
-    success_per_object = success_per_object / tries_per_object
     if reward_threshold is not None:
         assert mean_reward > reward_threshold, "Mean reward below threshold: " f"{mean_reward:.2f} < {reward_threshold:.2f}"
     if return_episode_rewards:
-        return episode_rewards, episode_lengths, episode_successes, success_per_object
-    return mean_reward, std_reward, mean_length, mean_success, success_per_object
+        return episode_rewards, episode_lengths
+    return mean_reward, std_reward

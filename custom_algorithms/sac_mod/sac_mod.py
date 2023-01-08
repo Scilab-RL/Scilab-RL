@@ -218,7 +218,6 @@ class SAC_MOD(OffPolicyAlgorithm):
                 ent_coef = self.ent_coef_tensor
 
             ent_coefs.append(ent_coef.item())
-
             # Optimize entropy coefficient, also called
             # entropy temperature or alpha in the paper
             if ent_coef_loss is not None:
@@ -264,7 +263,6 @@ class SAC_MOD(OffPolicyAlgorithm):
             min_qf_pi, _ = th.min(q_values_pi, dim=1, keepdim=True)
             actor_loss = (ent_coef * log_prob - min_qf_pi).mean()
             actor_losses.append(actor_loss.item())
-
             # Optimize the actor
             self.actor.optimizer.zero_grad()
             actor_loss.backward()
