@@ -19,7 +19,7 @@ _conda_install_pytorch() {
     # remove potential cpu versions
     conda uninstall pytorch -y
     pip uninstall torch -y
-    conda uninstall cpuonly -y 
+    conda uninstall cpuonly -y
     # install gpu version
     conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia -y --force-reinstall
   else
@@ -81,7 +81,7 @@ install_mujoco() {
       # For M1 (arm64) mac users:
       if [[ $(uname -m) =~ "arm" ]]; then
         conda install -y glfw
-        rm -rfiv $CONDA_PREFIX/lib/python3.*/site-packages/glfw/libglfw.3.dylib
+        rm -rfv $CONDA_PREFIX/lib/python3.*/site-packages/glfw/libglfw.3.dylib
         ln -sf $CONDA_PREFIX/lib/libglfw.3.dylib $HOME/.mujoco/mujoco210/bin
         if [[ ! -x "$(command -v gcc-12)" ]]; then
           brew install gcc
