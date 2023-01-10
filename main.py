@@ -12,12 +12,12 @@ from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from custom_envs.register_envs import register_custom_envs
-from util.util import get_git_label, set_global_seeds, get_train_video_schedule, get_eval_video_schedule, \
+from util.util import get_git_label, set_global_seeds, get_train_render_schedule, get_eval_render_schedule, \
     avoid_start_learn_before_first_episode_finishes
 from util.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
 from util.custom_logger import setup_logger
-from util.custom_callbacks import EarlyStopCallback, DisplayMetricCallBack, EvalCallback
-from util.custom_wrappers import DisplayWrapper
+from util.custom_callbacks import EarlyStopCallback, EvalCallback
+from util.custom_wrappers import DisplayWrapper, RecordVideo
 
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
@@ -50,22 +50,32 @@ def get_env_instance(cfg, logger):
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
 
     # wrappers for rendering
+    train_render_schedule = get_train_render_schedule(cfg.render_freq)
+    eval_render_schedule = get_eval_render_schedule(cfg.render_freq, cfg.n_test_rollouts)
     if cfg.render == 'display':
-        train_env = DisplayWrapper(train_env, cfg.render_freq, epoch_steps=cfg.eval_after_n_steps)
-    if cfg.render == 'display':
-        eval_env = DisplayWrapper(eval_env, cfg.render_freq, epoch_episodes=cfg.n_test_rollouts)
+        train_env = DisplayWrapper(train_env,
+                                   steps_per_epoch=cfg.eval_after_n_steps,
+                                   episode_in_epoch_trigger=train_render_schedule,
+                                   metric_keys=cfg.render_metrics_train,
+                                   logger=logger)
+        eval_env = DisplayWrapper(eval_env,
+                                  episode_trigger=eval_render_schedule,
+                                  metric_keys=cfg.render_metrics_test,
+                                  logger=logger)
     if cfg.render == 'record':
-        train_env = gym.wrappers.RecordVideo(env=train_env,
-                                             video_folder=logger.get_dir() + "/videos",
-                                             name_prefix="train",
-                                             step_trigger=get_train_video_schedule(cfg.eval_after_n_steps
-                                                                                   * cfg.render_freq))
-    if cfg.render == 'record':
-        eval_env = gym.wrappers.RecordVideo(env=eval_env,
-                                            video_folder=logger.get_dir() + "/videos",
-                                            name_prefix="eval",
-                                            episode_trigger=get_eval_video_schedule(cfg.render_freq,
-                                                                                    cfg.n_test_rollouts))
+        train_env = RecordVideo(env=train_env,
+                                video_folder=logger.get_dir() + "/videos",
+                                name_prefix="train",
+                                steps_per_epoch=cfg.eval_after_n_steps,
+                                episode_in_epoch_trigger=train_render_schedule,
+                                metric_keys=cfg.render_metrics_train,
+                                logger=logger)
+        eval_env = RecordVideo(env=eval_env,
+                               video_folder=logger.get_dir() + "/videos",
+                               name_prefix="eval",
+                               episode_trigger=eval_render_schedule,
+                               metric_keys=cfg.render_metrics_test,
+                               logger=logger)
 
     # The following gym wrappers can be added via commandline parameters,
     # e.g. use +flatten_obs to use the FlattenObservation wrapper
@@ -117,30 +127,13 @@ def get_algo_instance(cfg, logger, env):
 
 def create_callbacks(cfg, logger, eval_env):
     callback = []
-    display_metric_callback_test = None
-
-    if (cfg.render == 'display' or cfg.render == 'record'):
-        save_anim = True if cfg.render == 'record' else False
-        # for training
-        display_metric_callback_train = DisplayMetricCallBack(cfg.render_metrics_train, logger,
-                                                              episodic=cfg.render_episodic,
-                                                              save_anim=save_anim,display_nth_rollout=cfg.render_freq)
-        callback.append(display_metric_callback_train)
-        # for testing
-
-        # custom callback necessary for eval metric viz
-        # If display_metric_callback_test stays None --> no metric visualization
-        display_metric_callback_test = DisplayMetricCallBack(cfg.render_metrics_test, logger,
-                                                            episodic=cfg.render_episodic,
-                                                            save_anim=save_anim,display_nth_rollout=cfg.render_freq)
 
     if cfg.save_model_freq > 0:
         checkpoint_callback = CheckpointCallback(save_freq=cfg.save_model_freq, save_path=logger.get_dir(), verbose=1)
         callback.append(checkpoint_callback)
 
     eval_callback = EvalCallback(eval_env, n_eval_episodes=cfg.n_test_rollouts, eval_freq=cfg.eval_after_n_steps,
-                                 log_path=logger.get_dir(), best_model_save_path=logger.get_dir(), render=False, warn=False,
-                                 callback_metric_viz=display_metric_callback_test)
+                                 log_path=logger.get_dir(), best_model_save_path=logger.get_dir(), render=False, warn=False)
     callback.append(eval_callback)
     early_stop_callback = EarlyStopCallback(metric=cfg.early_stop_data_column, eval_freq=cfg.eval_after_n_steps,
                                             threshold=cfg.early_stop_threshold, n_episodes=cfg.early_stop_last_n)
