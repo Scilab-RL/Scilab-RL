@@ -33,3 +33,7 @@ run-smoke-and-performance-tests:
         - ./run_smoke_tests.sh
         - echo "running performance tests"
         - ./run_performance_tests.sh
+        - echo "running render tests"
+        - ./run_render_tests.sh
+        - echo "running loading pre-trained policy tests"
+        - ./run_loading.sh
