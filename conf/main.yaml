@@ -66,11 +66,11 @@ save_model_freq: 0
 n_attrs: 3
 
 # The number of objects (utilized only by OO_SAC)
-n_objects: 3
+n_objects: 1
 
 # WANDB options
 # Whether to use Weights and Biases. 1=use, 0=disable
-wandb: 1
+wandb: 0
 # wandb project name
 project_name: null
 # wandb entity

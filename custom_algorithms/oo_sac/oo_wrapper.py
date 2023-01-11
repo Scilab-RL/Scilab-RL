@@ -5,7 +5,7 @@ import numpy as np
 def apply_oo_wrapper(env, n_attrs, n_objects):
     env._original_get_obs = env._get_obs
     env._original_sample_goal = env._sample_goal
-    t = OOWrappper(env, n_attrs, n_objects)
+    t = OOWrappper(env, n_objects, n_attrs)
     env._get_obs = t._get_obs
     env._sample_goal = t._sample_goal
     return env
