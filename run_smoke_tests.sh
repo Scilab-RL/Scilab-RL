@@ -56,3 +56,34 @@ export CUDA_VISIBLE_DEVICES=""
 test_algos
 test_envs
 echo "All smoke tests passed successfully."
+
+test_render() {
+  # test render on different types of environments
+  local ENVS=""
+  # MuJoCo
+  ENVS+="FetchPickAndPlace-v1,"
+  # CoppeliaSim
+  ENVS+="close_box-state-v0,"
+  # Box2D physics engine
+  ENVS+="parking-limited-v0"
+  if ! xvfb-run -a python3 main.py algorithm=sac env=$ENVS +performance=smoke_test render="record" render_freq=1 --multirun;
+  then
+    exit 1
+  fi
+
+}
+export CUDA_VISIBLE_DEVICES=""
+test_render
+echo "All render tests passed successfully."
+
+test_loading() {
+  # TODO: restore an agent from the previous smoke test and not a hard-coded path
+  SMOKE_TEST_DIR=/builds/$USER/Scilab-RL/data/2327a47/FetchPickAndPlace-v1/11-15-15/0/rl_model_best.zip
+  if ! xvfb-run -a python3 main.py env=FetchReach-v1 algorithm=sac +restore_policy=$SMOKE_TEST_DIR render=none wandb=0
+  then
+    exit 1
+  fi
+}
+export CUDA_VISIBLE_DEVICES=""
+test_loading
+echo "Passed loading test"
