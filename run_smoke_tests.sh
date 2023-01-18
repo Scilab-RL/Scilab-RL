@@ -76,14 +76,20 @@ export CUDA_VISIBLE_DEVICES=""
 test_render
 echo "All render tests passed successfully."
 
+# find all pre-trained algorithms from the pervious smoke tests
+TRIALS=( $(find /builds/*/Scilab-RL/data/ -name 'rl_model_best.zip*') )
+N_TRIALS=${#TRIALS[@]}
+
 test_loading() {
-  # TODO: restore an agent from the previous smoke test and not a hard-coded path
-  SMOKE_TEST_DIR=/builds/$USER/Scilab-RL/data/2327a47/FetchPickAndPlace-v1/11-15-15/0/rl_model_best.zip
-  if ! xvfb-run -a python3 main.py env=FetchReach-v1 algorithm=sac +restore_policy=$SMOKE_TEST_DIR render=none wandb=0
+  # restore an agent from the previous randomly selected smoke test
+	RND_INDEX=$(($RANDOM % $N_TRIALS))
+  if ! xvfb-run -a python3 main.py env=FetchReach-v1 algorithm=sac +restore_policy=${TRIALS[$RND_INDEX]} render=none wandb=0
   then
     exit 1
   fi
 }
 export CUDA_VISIBLE_DEVICES=""
-test_loading
+for i in {0..10}; do
+	test_loading
+done
 echo "Passed loading test"
