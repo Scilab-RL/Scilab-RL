@@ -83,13 +83,20 @@ N_TRIALS=${#TRIALS[@]}
 test_loading() {
   # restore an agent from the previous randomly selected smoke test
 	RND_INDEX=$(($RANDOM % $N_TRIALS))
-  if ! xvfb-run -a python3 main.py env=FetchReach-v1 algorithm=sac +restore_policy=${TRIALS[$RND_INDEX]} render=none wandb=0
-  then
-    exit 1
-  fi
+  for ENV in "FetchPickAndPlace-v1" "close_box-state-v0" "parking-limited-v0"; do
+    for TRIAL_LINE in "${TRIALS[@]}"; do
+      if [[ -n $(echo "$TRIAL_LINE" | grep -e "$ENV" ) ]]; then
+        echo "Loading $TRIAL_LINE for $ENV"
+        if ! xvfb-run -a python3 main.py env=FetchReach-v1 algorithm=sac +restore_policy=${TRIALS[$RND_INDEX]} render=none wandb=0
+        then
+          exit 1
+        fi
+      fi
+    done
+  done
 }
 export CUDA_VISIBLE_DEVICES=""
 for i in {0..10}; do
 	test_loading
 done
-echo "Passed loading test"
+echo "All loading tests passed successfully."
