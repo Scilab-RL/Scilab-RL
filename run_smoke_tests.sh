@@ -87,7 +87,7 @@ test_loading() {
     for TRIAL_LINE in "${TRIALS[@]}"; do
       if [[ -n $(echo "$TRIAL_LINE" | grep -e "$ENV" ) ]]; then
         echo "Loading $TRIAL_LINE for $ENV"
-        if ! xvfb-run -a python3 main.py env=FetchReach-v1 algorithm=sac +restore_policy=${TRIALS[$RND_INDEX]} render=none wandb=0
+        if ! xvfb-run -a python3 main.py env=${ENV} algorithm=sac +restore_policy=${TRIALS[$RND_INDEX]} render=none wandb=0
         then
           exit 1
         fi
