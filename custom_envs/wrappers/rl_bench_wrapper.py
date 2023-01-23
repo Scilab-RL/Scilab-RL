@@ -12,7 +12,7 @@ from rlbench.backend.conditions import DetectedCondition, NothingGrasped, Graspe
     DetectedSeveralCondition, ConditionSet, EmptyCondition
 from pyrep.objects.shape import Shape
 from pyrep.const import PrimitiveShape
-from util.util import get_git_label
+from src.utils.util import get_git_label
 
 
 class RLBenchWrapper(Wrapper):
