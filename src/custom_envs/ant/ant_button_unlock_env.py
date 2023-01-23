@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from custom_envs.ant.ant_env import AntEnv
+from src.custom_envs.ant.ant_env import AntEnv
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'ant_button_unlock.xml')
 
