@@ -3,7 +3,7 @@ import subprocess
 import gym
 
 from typing import Callable
-from util.animation_util import LiveAnimationPlot
+from src.utils.animation_util import LiveAnimationPlot
 
 from gym.wrappers.monitoring import video_recorder
 
