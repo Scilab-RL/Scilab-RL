@@ -11,7 +11,7 @@ from stable_baselines3.her.her import HerReplayBuffer
 from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
 
-from custom_envs.register_envs import register_custom_envs
+from src.custom_envs.register_envs import register_custom_envs
 from src.utils.util import get_git_label, set_global_seeds, get_train_render_schedule, get_eval_render_schedule, \
     avoid_start_learn_before_first_episode_finishes
 from src.utils.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
@@ -38,7 +38,7 @@ def get_env_instance(cfg, logger):
             render_mode = 'rgb_array'
         # there can be only one PyRep instance per process, therefore train_env == eval_env
         if is_rlbench_env(cfg.env):
-            from custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
+            from src.custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
             rlbench_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
             train_env = RLBenchWrapper(rlbench_env, "train")
             eval_env = RLBenchWrapper(rlbench_env, "eval")
