@@ -113,7 +113,7 @@ def get_algo_instance(cfg, logger, env):
     try:
         baseline_class = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except ModuleNotFoundError:
-        baseline_class = getattr(importlib.import_module('custom_algorithms.' + algo_name), algo_name.upper())
+        baseline_class = getattr(importlib.import_module('src.custom_algorithms.' + algo_name), algo_name.upper())
     if 'replay_buffer_class' in alg_kwargs and alg_kwargs['replay_buffer_class'] == 'HerReplayBuffer':
         alg_kwargs['replay_buffer_class'] = HerReplayBuffer
         alg_kwargs = avoid_start_learn_before_first_episode_finishes(alg_kwargs, env)
