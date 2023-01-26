@@ -9,15 +9,15 @@ image: collaborating.tuhh.de:5005/ckv0173/scilab-rl/scilabrl
 # Change pip's cache directory to be inside the project directory since we can
 # only cache local items.
 variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  # PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   HOME: "/root"
 
 run-smoke-and-performance-tests:
     # cache the pip cache for every branch
-    cache:
-      key: $CI_COMMIT_REF_SLUG
-      paths:
-        - .cache/pip
+    # cache:
+    #   key: $CI_COMMIT_REF_SLUG
+    #   paths:
+    #     - .cache/pip
     script:
         - echo "Installing python libraries"
         - bash setup.sh
