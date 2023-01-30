@@ -33,7 +33,7 @@ For visualization with matplotlib, it is important to have the GUI-backend tkint
 
 It is also important to install the following packages, if they are not yet there. On Ubuntu execute the following:
 
-`sudo apt install libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf gcc`
+`sudo apt install libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf gcc ffmpeg`
 
 ## Getting started using the setup script
 

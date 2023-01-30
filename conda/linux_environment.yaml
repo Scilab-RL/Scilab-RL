@@ -55,6 +55,7 @@ dependencies:
     - gym==0.21.0
     - hydra-core==1.1.2
     - idna==3.4
+    - imageio==2.22.4
     - importlib-metadata==5.0.0
     - importlib-resources==5.2.3
     - itsdangerous==2.1.2
