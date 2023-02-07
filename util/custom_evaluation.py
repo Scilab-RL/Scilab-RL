@@ -3,9 +3,22 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import gym
 import numpy as np
+import random
 
 from stable_baselines3.common import base_class
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
+
+from custom_algorithms.oo_sac.oo_blocks_adapter import OOBlocksAdapter
+
+
+def get_success(info_list):
+    succ = np.nan
+    for entry in info_list:
+        try:
+            succ = entry['is_success']
+        except:
+            continue
+    return succ
 
 
 # modified copy from stable baselines
@@ -79,11 +92,16 @@ def evaluate_policy(
     # Divides episodes among different sub environments in the vector as evenly as possible
     episode_count_targets = np.array([(n_eval_episodes + i) // n_envs for i in range(n_envs)], dtype="int")
 
+    # Utilized for OO_SAC evaluation
+    tries_per_object = np.zeros(env.envs[0].n_objects + 1)  # + gripper
+    success_per_object = np.zeros(env.envs[0].n_objects + 1)
+
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
     observations = env.reset()
     states = None
     while (episode_counts < episode_count_targets).any():
+        obj_idx = np.where(observations['achieved_goal'][0][:-3] != 0)[0][0]
         actions, states = model.predict(observations, state=states, deterministic=deterministic)
         observations, rewards, dones, infos = env.step(actions)
         # trigger metric visualization
@@ -119,6 +137,11 @@ def evaluate_policy(
                         episode_rewards.append(current_rewards[i])
                         episode_lengths.append(current_lengths[i])
                         episode_counts[i] += 1
+
+                    tries_per_object[obj_idx] += 1
+                    if get_success(infos):
+                        success_per_object[obj_idx] += 1
+
                     current_rewards[i] = 0
                     current_lengths[i] = 0
                     if states is not None:
@@ -129,8 +152,9 @@ def evaluate_policy(
 
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
+    success_per_object = success_per_object / tries_per_object
     if reward_threshold is not None:
         assert mean_reward > reward_threshold, "Mean reward below threshold: " f"{mean_reward:.2f} < {reward_threshold:.2f}"
     if return_episode_rewards:
-        return episode_rewards, episode_lengths
-    return mean_reward, std_reward
+        return episode_rewards, episode_lengths, success_per_object
+    return mean_reward, std_reward, success_per_object

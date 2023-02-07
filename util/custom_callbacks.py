@@ -228,7 +228,7 @@ class EvalCallback(EventCallback):
             if self.callback_metric_viz:
                 self.callback_metric_viz._on_rollout_start()
 
-            episode_rewards, episode_lengths = evaluate_policy(
+            episode_rewards, episode_lengths, success_per_object = evaluate_policy(
                 self.model,
                 self.eval_env,
                 n_eval_episodes=self.n_eval_episodes,
@@ -275,6 +275,8 @@ class EvalCallback(EventCallback):
                 if self.verbose > 0:
                     print(f"Success rate: {100 * success_rate:.2f}%")
                 self.logger.record("eval/success_rate", success_rate)
+                for i in range(success_per_object.shape[0]):
+                    self.logger.record("eval/success_per_obj_" + str(i), success_per_object[i])
 
             # Dump log so the evaluation results are printed with the correct timestep
             self.logger.record("time/total timesteps", self.num_timesteps, exclude="tensorboard")

@@ -135,5 +135,5 @@ class OOBlocksAdapter(BlocksEnv):
         return oo_goal.copy()
 
     def _is_success(self, achieved_goal, desired_goal):
-        d = fetch_env.goal_distance(achieved_goal[self.n_objects + 1:], desired_goal[self.n_objects + 1:])
+        d = fetch_env.goal_distance(achieved_goal, desired_goal)
         return (d < self.distance_threshold).astype(np.float32)
