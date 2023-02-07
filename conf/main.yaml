@@ -38,13 +38,13 @@ base_logdir: 'data'
 restore_policy: null
 
 # The number of training steps after which to evaluate the policy.
-eval_after_n_steps: 2000
+eval_after_n_steps: 5000
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 60
+n_epochs: 600
 
 # The number of testing rollouts.
-n_test_rollouts: 10
+n_test_rollouts: 50
 
 # The n last epochs over which to average for determining early stopping condition.
 early_stop_last_n: 3
@@ -61,12 +61,6 @@ info: ''
 
 # The number of steps after which to save the model. 0 to never save, i.e., to only save the best and last model.
 save_model_freq: 0
-
-# The number of object-oriented attributes (utilized only by OO_SAC)
-n_attrs: 3
-
-# The number of objects (utilized only by OO_SAC)
-n_objects: 1
 
 # WANDB options
 # Whether to use Weights and Biases. 1=use, 0=disable

@@ -55,8 +55,8 @@ def get_env_instance(cfg, logger):
         eval_env = gym.make(cfg.env, **cfg.env_kwargs)
 
     if cfg.algorithm.name.startswith('oo_'):
-        train_env.env = apply_oo_wrapper(train_env.env, cfg.n_attrs, cfg.n_objects)
-        eval_env.env = apply_oo_wrapper(eval_env.env, cfg.n_attrs, cfg.n_objects)
+        train_env.env.__class__ = OOBlocksAdapter
+        eval_env.env.__class__ = OOBlocksAdapter
 
     # wrappers for rendering
     if cfg.render == 'display':
