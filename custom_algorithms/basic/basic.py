@@ -142,7 +142,7 @@ class BASIC:
         data["actor_state"] = self.actor.state_dict()
         data["critic_state"] = self.critic.state_dict()
         # no need to save the target-network state, because it is a copy of the critic network
-        th.save(data, open(path, "wb"))
+        th.save(data, open(path + ".zip", "wb"))
 
     # deterministic is true when the policy is being evaluated
     # this is requred for viz during eval
