@@ -123,7 +123,7 @@ class BASIC:
     @classmethod
     def load(cls, path, env, **kwargs):
         model = cls(env=env, **kwargs)
-        loaded_dict = torch.load(open(path, "rb"))
+        loaded_dict = th.load(open(path, "rb"))
         for k in loaded_dict:
             if k not in ["actor_state", "critic_state"]:
                 model.__dict__[k] = loaded_dict[k]
@@ -142,7 +142,7 @@ class BASIC:
         data["actor_state"] = self.actor.state_dict()
         data["critic_state"] = self.critic.state_dict()
         # no need to save the target-network state, because it is a copy of the critic network
-        torch.save(data, open(path, "wb"))
+        th.save(data, open(path, "wb"))
 
     # deterministic is true when the policy is being evaluated
     # this is requred for viz during eval
