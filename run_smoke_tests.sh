@@ -77,7 +77,7 @@ test_render
 echo "All render tests passed successfully."
 
 # find all pre-trained algorithms from the pervious smoke tests
-TRIALS=( $(find /builds/*/Scilab-RL/data/ -name 'rl_model_finished.zip*') )
+TRIALS=( $(find ./data/ -name 'rl_model_finished.zip*') )
 N_TRIALS=${#TRIALS[@]}
 
 test_loading() {
