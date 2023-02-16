@@ -77,22 +77,42 @@ export CUDA_VISIBLE_DEVICES=""
 # test_render
 echo "All render tests passed successfully."
 
-# find all pre-trained algorithms from the pervious smoke tests
-TRIALS=( $(find "$(pwd)/data/" -name "rl_model_finished*") )
-N_TRIALS=${#TRIALS[@]}
-
 test_loading() {
-  # restore an agent from the previous randomly selected smoke test
-	RND_INDEX=$(($RANDOM % $N_TRIALS))
-  for ENV in "FetchPickAndPlace-v1" "AntMaze-v0" "Hook-o1-v1" "close_box-state-v0" "parking-limited-v0"; do
-    for TRIAL_LINE in "${TRIALS[@]}"; do
-      if [[ -n $(echo "$TRIAL_LINE" | grep -e "$ENV" ) ]]; then
-        echo "Loading $TRIAL_LINE for $ENV"
-        if ! xvfb-run -a python3 main.py env=${ENV} +restore_policy=${TRIAL_LINE} render=none wandb=0 n_epochs=1
-        then
-          exit 1
-        fi
-      fi
+  # Loop over algorithms and specify base_logdir corresponding to algorithms.
+  # Otherwise, algorithm names would not be in the paths. That way it is easier
+  # to restore trained policies.
+  # Storing the policies with adapted base_logdir could also be done in test_algos().
+  local ALGOS=()
+  for config in "conf/algorithm"/*
+  do
+    config="${config%.*}"
+    config="${config##*/}"
+    ALGOS+=($config)
+  done
+  ALGOS=("basic" "sac")
+  local ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0,parking-limited-v0"
+  for ALG in ${ALGOS[@]}; do
+    # Don't have xvfb? install it with sudo apt-get install xvfb
+    if ! xvfb-run -a python3 main.py env=$ENVS algorithm=$ALG +performance=smoke_test render=none base_logdir="data/$ALG" --multirun;
+    then
+      exit 1
+    fi
+  done
+  # Overwrite ENVS here, as we'll need an array
+  local ENVS=("FetchReach-v1" "AntReacher-v1" "reach_target-state-v0" "parking-limited-v0")
+  for ALG in ${ALGOS[@]}; do
+    # Find pre-trained algorithms from above
+    TRIALS=( $(find "$(pwd)/data/$ALG/" -name "rl_model_finished*") )
+    for TRIAL_LINE in ${TRIALS[@]}; do
+      for ENV in ${ENVS[@]}; do
+        if [[ -n $(echo "$TRIAL_LINE" | grep -e "$ENV" ) ]]; then
+          echo "Loading $TRIAL_LINE for $ENV and $ALG"
+          if ! xvfb-run -a python3 main.py env=${ENV} algorithm=${ALG} +restore_policy=${TRIAL_LINE} render=none wandb=0 n_epochs=1
+          then
+            exit 1
+          fi
+	fi
+      done
     done
   done
 }
