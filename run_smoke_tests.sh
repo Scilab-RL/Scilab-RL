@@ -78,7 +78,7 @@ export CUDA_VISIBLE_DEVICES=""
 echo "All render tests passed successfully."
 
 # find all pre-trained algorithms from the pervious smoke tests
-TRIALS=( $(find ./data/ -name 'rl_model_finished*') )
+TRIALS=( $(find "$(pwd)/data/" -name "rl_model_finished*") )
 N_TRIALS=${#TRIALS[@]}
 
 test_loading() {
