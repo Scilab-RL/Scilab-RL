@@ -11,7 +11,6 @@ test_algos() {
     ALGOS+="${config##*/},"
   done
   ALGOS="${ALGOS%,*}"
-  ALGOS="basic"
   echo "Smoke-testing algorithms $ALGOS"
 
   # environments with which to test the algorithms
@@ -55,7 +54,7 @@ test_envs() {
 }
 export CUDA_VISIBLE_DEVICES=""
 test_algos
-# test_envs
+test_envs
 echo "All smoke tests passed successfully."
 
 test_render() {
@@ -74,7 +73,7 @@ test_render() {
 
 }
 export CUDA_VISIBLE_DEVICES=""
-# test_render
+test_render
 echo "All render tests passed successfully."
 
 test_loading() {
@@ -89,7 +88,6 @@ test_loading() {
     config="${config##*/}"
     ALGOS+=($config)
   done
-  ALGOS=("basic" "sac")
   local ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0,parking-limited-v0"
   for ALG in ${ALGOS[@]}; do
     # Don't have xvfb? install it with sudo apt-get install xvfb
@@ -117,7 +115,5 @@ test_loading() {
   done
 }
 export CUDA_VISIBLE_DEVICES=""
-# for i in {0..10}; do
-	test_loading
-# done
+test_loading
 echo "All loading tests passed successfully."
