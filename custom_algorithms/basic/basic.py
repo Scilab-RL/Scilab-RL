@@ -1,6 +1,5 @@
 import torch as th
 import numpy as np
-import pickle
 
 # mean absolute error
 mae = th.nn.L1Loss(reduction='sum')
@@ -124,7 +123,7 @@ class BASIC:
     @classmethod
     def load(cls, path, env, **kwargs):
         model = cls(env=env, **kwargs)
-        loaded_dict = th.load(path) #pickle.load(open(path, "rb"), fix_imports=True, encoding="bytes", errors="strict")
+        loaded_dict = th.load(path)
         for k in loaded_dict:
             if k not in ["actor_state", "critic_state"]:
                 model.__dict__[k] = loaded_dict[k]
@@ -143,7 +142,6 @@ class BASIC:
         data["actor_state"] = self.actor.state_dict()
         data["critic_state"] = self.critic.state_dict()
         # no need to save the target-network state, because it is a copy of the critic network
-        # pickle.dump(data, open(path , "wb"))
         th.save(data, path)
 
     # deterministic is true when the policy is being evaluated
