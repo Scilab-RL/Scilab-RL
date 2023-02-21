@@ -89,7 +89,7 @@ def get_env_instance(cfg, logger):
 
     if 'normalize_obs' in cfg and cfg.normalize_obs:
         train_env = gym.wrappers.NormalizeObservation(train_env)
-        eval_env = gym.wrappers.NormalizeReward(eval_env)
+        eval_env = gym.wrappers.NormalizeObservation(eval_env)
 
     if 'normalize_reward' in cfg and cfg.normalize_reward:
         train_env = gym.wrappers.NormalizeReward(train_env)
