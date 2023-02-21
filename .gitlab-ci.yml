@@ -29,6 +29,7 @@ run-smoke-and-performance-tests:
         - conda install -c conda-forge ncurses -y
         - export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
         - pip install "importlib-metadata~=4.13" # bug fix for gym issues/3122
+        - export HYDRA_FULL_ERROR=1
         - echo "running smoke tests"
         - ./run_smoke_tests.sh
         - echo "running performance tests"
