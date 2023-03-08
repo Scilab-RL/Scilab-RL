@@ -1,5 +1,3 @@
-# Scilab-RL
-
 [Code](https://github.com/Scilab-RL/Scilab-RL)
 
 [Wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home)
