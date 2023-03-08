@@ -1,8 +1,3 @@
-[Code](https://github.com/Scilab-RL/Scilab-RL)
-
-[Wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home)
-
-
 This is the Scilab-RL repository focusing on (hierarchical) goal-conditioned reinforcement learning using the [stable baselines 3](https://stable-baselines3.readthedocs.io/en/master/) methods and [OpenAI gym](https://gym.openai.com/) interface.
 
 ![](overview.svg)
