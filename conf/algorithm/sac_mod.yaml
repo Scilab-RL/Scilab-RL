@@ -1,4 +1,0 @@
-name: 'sac_mod'
-critic_select: 'min' # allows values ['min', 'max']
-verbose: True
-policy: 'MultiInputPolicy'
