@@ -1,2 +1,4 @@
 title: Scilab-RL
 theme: minima
+plugins:
+  - jekyll-redirect-from
