@@ -1,4 +1,5 @@
 title: Scilab-RL
+description: A Reinforcement Learning Framework 
 theme: minima
 plugins:
   - jekyll-redirect-from
