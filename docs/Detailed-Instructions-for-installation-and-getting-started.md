@@ -24,7 +24,7 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 6. Test the installation from the Linux console
 * Activate Conda by running `source ~/.bashrc`
 * Activate the correct Conda environment with `conda activate scilabrl`
-* run `python main.py`
+* run `python src/main.py`
 * When running for the first time, you are asked about your wandb account. On your wandb profile site at [wandb.ai]([wandb.ai), go to "settings" and copy your API key. Then paste it in the console. 
 * Also, when running for the first time, MuJoCo is being compiled, and gcc will produce some additional output. 
 * Once compilation is finished, you should see console output similar to the following: 
@@ -35,7 +35,7 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 * To monitor all other training metrics, go to wandb.ai and find your experiment data there. 
 
 9. [Optional] Test real-time rendering
-* To test the real-time rendering, start `python main.py source render=display`. 
+* To test the real-time rendering, start `python src/main.py source render=display`. 
 * [Windows] You cannot do real-time rendering on Windows  because then you would need to install an X-Server first and export the $DISPLAY variable appropriately. If you want that, it is necessary to install an X-Server on Windows. We recommend using the free version of [VcxSrv](https://sourceforge.net/projects/vcxsrv/). Download and install it. Start the X-Server with `XLaunch` (cf. the shortcut on your Windows Desktop). Then press "Next->Next", and in the "Extra Settings" dialog make sure to select "Disable access control". Press "Next->Finish". There are some other details that we leave unspecified here for now. Generally, we recommend not using real-time rendering on Windows. 
 
 10. Install Pycharm professional
@@ -49,7 +49,7 @@ Click on `File-> Open... ` and select the `Scilab-RL` folder in your cloned repo
 ![image](uploads/39d27cb605719aaabf13a0e1b5f15d20/image.png)
 
 12. Setup a PyCharm debug configuration.
-* After opening the project, you should see the file structure on the left, and the README.md will be displayed. For starting a training process, you need to set up a debug configuration. To do so, open `main.py`, i.e., double-click on `main.py` in the file structure view on the left. Then press in the Menu "Run--> Debug" and then, in the little window that opens, "2 main". This will auto-create a debug configuration for you, and it will also start the debugger to run the script. However, this will fail, because you still need to set up the Python Interpreter and environment variables as follows: 
+* After opening the project, you should see the file structure on the left, and the README.md will be displayed. For starting a training process, you need to set up a debug configuration. To do so, open `src/main.py`, i.e., double-click on `main.py` in the file structure view on the left. Then press in the Menu "Run--> Debug" and then, in the little window that opens, "2 main". This will auto-create a debug configuration for you, and it will also start the debugger to run the script. However, this will fail, because you still need to set up the Python Interpreter and environment variables as follows: 
 * Set up the Conda Python interpreter as follows: In the Menu click "File--> Settings", and then "Project: Scilab-RL"
 
 ![image](uploads/cd48171c9d141f8e3da8bed79ae29a98/image.png)

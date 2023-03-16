@@ -13,11 +13,11 @@ As a basis, use an environment that is as close as possible to the new environme
 
 In our example, we'd like to create a very easy environment that is like the `FetchReach-v1` environment, but the robot only has one degree of freedom (DOF). As a basis, we choose the `BlocksEnv` environment from our custom environments, because it already inherits from the `FetchEnv`.
 
-Run your favorite algorithm with this base environment and make sure it works as intended. It is also a good idea to take notes about the learning performance (how many training steps are required to achieve success). In our case we run `python main.py env=Blocks-o0-gripper_random-v1 wandb=0`, which uses the default algorithm SAC with HER, and achieves 1.0 `eval/success_rate` after the third epoch.
+Run your favorite algorithm with this base environment and make sure it works as intended. It is also a good idea to take notes about the learning performance (how many training steps are required to achieve success). In our case we run `python src/main.py env=Blocks-o0-gripper_random-v1 wandb=0`, which uses the default algorithm SAC with HER, and achieves 1.0 `eval/success_rate` after the third epoch.
 
 # Copy and rename the base-environment
 
-Create a copy of your base-environment and add it to the `custom_envs` folder in the repository. To do that, create a new subfolder for your new environment under `custom_envs`. For our example, we copy the `custom_envs/blocks` folder and paste it to the `custom_envs` directory with the name `reach1dof`. We also rename the copied
+Create a copy of your base-environment and add it to the `src/custom_envs` folder in the repository. To do that, create a new subfolder for your new environment under `src/custom_envs`. For our example, we copy the `src/custom_envs/blocks` folder and paste it to the `src/custom_envs` directory with the name `reach1dof`. We also rename the copied
 
 - `blocks_env.py` to `reach1dof_env.py`
 - in `reach1dof_env.py`: `BlocksEnv` to `Reach1DOFEnv`
@@ -28,19 +28,19 @@ The original `FetchReach` environment uses _entry points_. Using an entry point 
 
 # Register and test the new environment
 
-Then you need to register your new environment. You can do this by adding it to the `custom_envs/register_envs.py` file. For our example environment, we add 
+Then you need to register your new environment. You can do this by adding it to the `src/custom_envs/register_envs.py` file. For our example environment, we add 
 ```
 register(id='Reach1DOF-v0',
              entry_point='custom_envs.reach1dof.reach1dof_env:Reach1DOFEnv',
              max_episode_steps=50)
 ```
 
-Note that the `-vN` suffix is mandatory for each environment name, where `N` is the version number. We can now call the copied environment with `python main.py env=Reach1DOF-v0 wandb=0` and receive a `TypeError: Reach1DOFEnv.__init__() missing 2 required positional arguments: 'n_objects' and 'gripper_goal'`. That happened because the original `Blocks` env requires keyword arguments that are specified with the environment ID. E.g. to launch the `Blocks` env with `n_objects=0` and `gripper_goal='gripper_random'`, specify `env=Blocks-o0-gripper_random-v1`. As a quick fix, we set default arguments for the two _kwargs_ in `reach1dof_env.py`:
+Note that the `-vN` suffix is mandatory for each environment name, where `N` is the version number. We can now call the copied environment with `python src/main.py env=Reach1DOF-v0 wandb=0` and receive a `TypeError: Reach1DOFEnv.__init__() missing 2 required positional arguments: 'n_objects' and 'gripper_goal'`. That happened because the original `Blocks` env requires keyword arguments that are specified with the environment ID. E.g. to launch the `Blocks` env with `n_objects=0` and `gripper_goal='gripper_random'`, specify `env=Blocks-o0-gripper_random-v1`. As a quick fix, we set default arguments for the two _kwargs_ in `reach1dof_env.py`:
 ```
 def __init__(self, n_objects=0, gripper_goal='gripper_random', distance_threshold=0.05, reward_type='sparse', model_xml_path=MODEL_XML_PATH):
 ```
 
-Now try whether your copy of the base environment is running as intended, in the same way as the original one. For our example, we run `python main.py env=Reach1DOF-v0 wandb=0` again. It should achieve 100% `eval/success_rate` after 3 to 4 epochs.
+Now try whether your copy of the base environment is running as intended, in the same way as the original one. For our example, we run `python src/main.py env=Reach1DOF-v0 wandb=0` again. It should achieve 100% `eval/success_rate` after 3 to 4 epochs.
 
 # Modify the new environment
 We'd like to modify the environment so that the robot only has to move forwards or backwards.
@@ -68,7 +68,7 @@ def _sample_goal(self):
 ```
 So now the goal is an x-coordinate between the grippers original x-position + `self.target_range` and the original x-position - `self.target_range`.
 
-We can now run `python main.py wandb=0 env=Reach1DOF-v0 render_args=[[display,1],[display,1]]` to see the modified version, but we will not see the goal. For that, we first have to change the `_render_callback()` which visualizes the goal.
+We can now run `python src/main.py wandb=0 env=Reach1DOF-v0 render_args=[[display,1],[display,1]]` to see the modified version, but we will not see the goal. For that, we first have to change the `_render_callback()` which visualizes the goal.
 
 > :bulb: You can simply end a visualized MuJoCo experiment by pressing _ESC_.
 
@@ -81,7 +81,7 @@ def _render_callback(self):
     site_id = self.sim.model.site_name2id('gripper_goal')
     self.sim.model.site_pos[site_id] = goal_pos
 ```
-We need three coordinates for the goal-visualization-site (a site in MuJoCo is an object that does not participate in collisions). That is why we copy the initial gripper position and only change the x-coordinate. Then we put the goal-visualization site to that position. You should now be able to see the goal change only its x-position with `python main.py wandb=0 env=Reach1DOF-v0 render_args=[[display,1],[display,1]]`.
+We need three coordinates for the goal-visualization-site (a site in MuJoCo is an object that does not participate in collisions). That is why we copy the initial gripper position and only change the x-coordinate. Then we put the goal-visualization site to that position. You should now be able to see the goal change only its x-position with `python src/main.py wandb=0 env=Reach1DOF-v0 render_args=[[display,1],[display,1]]`.
 
 Now we also need to make the robot move only on the x-axis:
 
@@ -95,7 +95,7 @@ def _set_action(self, action):
 
 The `FetchEnv._set_action(action)` expects an action with `shape==(4,)`, where the first three values change the x-, y- and z-position of the gripper and the fourth value opens or closes the gripper. We just set everything except the x-value to zero and then call the method.
 
-Running `python main.py wandb=0 env=Reach1DOF-v0 render_args=[[display,1],[display,1]]` again gives us an `AssertionError`. That is because we have not adjusted `self.action_space` yet. The action space tells the algorithm how many values each action has and in what range these values are expected. To set the action space to only one value, add the line 
+Running `python src/main.py wandb=0 env=Reach1DOF-v0 render_args=[[display,1],[display,1]]` again gives us an `AssertionError`. That is because we have not adjusted `self.action_space` yet. The action space tells the algorithm how many values each action has and in what range these values are expected. To set the action space to only one value, add the line 
 ```
 self.action_space = spaces.Box(-1.0, 1.0, shape=(1,), dtype="float32")
 ```
@@ -105,7 +105,7 @@ from gym import spaces
 ```
 to the imports.
 
-`python main.py wandb=0 env=Reach1DOF-v0 render_args=[[display,1],[display,1]]` should now show the robot moving with only one DOF. SAC + HER should be able to solve this environment practically immediately.
+`python src/main.py wandb=0 env=Reach1DOF-v0 render_args=[[display,1],[display,1]]` should now show the robot moving with only one DOF. SAC + HER should be able to solve this environment practically immediately.
 
 > :warning: Of course these changes only lead to a first version of the new environment. You'll also need to change the _docstrings_ and remove unused code (e.g. the code that sets the position of the blocks, as we do not use blocks).
 

@@ -50,7 +50,7 @@ hydra:
 ```
 The last part of the config sets the number of parallel runs with `n_jobs`, specifies that we use the `PerformanceTestingSweeper` and names the study.
 
-You can start this performance test with `python main.py +performance=FetchReach/sac_her-test --multirun`
+You can start this performance test with `python src/main.py +performance=FetchReach/sac_her-test --multirun`
 
 If the test is successful, the `PerformanceTestingSweeper` prints something like `[2022-04-22 13:10:25,558][HYDRA] Performance test FetchReach/sac_her-test successful! The value for eval/success_rate was at least 0.9 in 3 runs.` to the console.
 

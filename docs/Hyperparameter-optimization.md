@@ -80,7 +80,7 @@ This is the configuration for the sweeper that chooses the different parameteriz
 - The most important thing to adjust is the `study_name`. Change it to _sac_mod_FetchReach_
 - `max_trials` is the maximum number of runs, let's set it to 8 so that our experiment does not take too long
 - `n_jobs` is the number of runs to run in parallel. It depends on how powerful the machine that you are running the experiments on is. For example, if you have a CPU with 4 threads, do not set `n_jobs` to anything higher than 3.
-- `direction: maximize` tells the sweeper that we try to maximize a metric. In our case, this is the hyperopt-score that we return in `main.py` at the end of each experiment. The hyperopt-score is the sum of the mean of the evaluation metric (usually `eval/success_rate`) and the mean of the evaluation metric in the last `early_stop_last_n` epochs, divided by the number of epochs. In pseudo-python-code
+- `direction: maximize` tells the sweeper that we try to maximize a metric. In our case, this is the hyperopt-score that we return in `src/main.py` at the end of each experiment. The hyperopt-score is the sum of the mean of the evaluation metric (usually `eval/success_rate`) and the mean of the evaluation metric in the last `early_stop_last_n` epochs, divided by the number of epochs. In pseudo-python-code
 ```
 score = mean(early_stop_data_column) + mean(early_stop_data_column[-early_stop_last_n:])
 score /= epochs
@@ -141,7 +141,7 @@ hydra:
 
 ## Running the hyperopt
 
-We can run the experiment with `python main.py +performance=FetchReach/sac_mod-opti --multirun`.
+We can run the experiment with `python src/main.py +performance=FetchReach/sac_mod-opti --multirun`.
 If everything goes well you should see something like
 ```
 [2022-04-21 11:51:41,322][HYDRA] Launching jobs, sweep output dir : data/428cbb5/FetchReach-v1/11-51-41

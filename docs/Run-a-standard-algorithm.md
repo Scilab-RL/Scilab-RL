@@ -3,7 +3,7 @@ This tutorial shows how to run the standard algorithm _soft actor-critic_ (SAC) 
 - navigate to Scilab-RL folder
 - activate the virtual environment with `conda activate scilabrl`
 - set the paths with `source set_paths.sh`
-- run SAC with HER on the FetchReach environment with `python main.py algorithm=sac env=FetchReach-v1 wandb=0`
+- run SAC with HER on the FetchReach environment with `python src/main.py algorithm=sac env=FetchReach-v1 wandb=0`
 
 Alternatively, you can run it via Pycharm (see the [tutorial](Pycharm)).
 

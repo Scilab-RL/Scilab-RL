@@ -6,4 +6,4 @@ This logger allows to log to different outputs. Currently we log to four differe
 - To _MLFlow_ with the `MLFlowOutputFormat`
 - To _Weights and Biases_ with the `WandBOutputFormat`
 
-These output formats are specified in `util/custom_logger.py`. You could create another custom output format, e.g. for another experiment tracking software, and add it to the logger with `logger.output_formats.append(AnotherCustomOutputFormat())`.
+These output formats are specified in `src/util/custom_logger.py`. You could create another custom output format, e.g. for another experiment tracking software, and add it to the logger with `logger.output_formats.append(AnotherCustomOutputFormat())`.

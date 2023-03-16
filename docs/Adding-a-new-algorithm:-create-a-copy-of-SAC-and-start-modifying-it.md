@@ -3,12 +3,12 @@ You may want to create your own reinforcement learning algorithm by modifying an
 ## copy SAC
 
 - copy the SAC folder `venv/lib/python3.10/site-packages/stable_baselines3/sac`
-- paste it into the `custom_algorithms` folder and name it something other than "sac", e.g. "sac_mod"
+- paste it into the `src/custom_algorithms` folder and name it something other than "sac", e.g. "sac_mod"
 - rename the python file, `sac.py` :arrow_right: `sac_mod.py`, class-name (e.g. to _SAC_MOD_), docstring, _super()_ calls etc.
 - remove unnecessary duplicates that we do not want to modify, e.g. `policies.py`
 - adjust the `__init__.py` in the sac_mod folder to import your custom version of SAC
 - create an algorithm configuration file `sac_mod.yaml` in `conf/algorithm` and write `name: 'sac_mod'` and `verbose: True` into it
-- start the algorithm with `python main.py algorithm=sac_mod`
+- start the algorithm with `python src/main.py algorithm=sac_mod`
 
 ## start modifying it
 
