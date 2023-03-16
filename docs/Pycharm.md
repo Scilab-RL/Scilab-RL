@@ -8,7 +8,7 @@ Alternatively to starting your experiment from the terminal, you can start it vi
 Creating the run/debug configuration for an experiment-run takes the following steps:
 1. Click on `Add Configuration ...` ![image](uploads/2d225962e7792a85a63bc5977a7e363b/image.png)
 2. Add a new Python configuration with the `+` on the top left. 
-3. Specify your script path, e.g. `/home/USER/PycharmProjects/Scilab-RL/main.py`
+3. Specify your script path, e.g. `/home/USER/PycharmProjects/Scilab-RL/src/main.py`
 > :warning: relative paths and dynamic path creation like `$(whoami)` don't work in the Pycharm run/debug config. You have to use the full paths!
 3. Specify your parameters, e.g. `env=Blocks-o1-gripper_random-v1
 algorithm=sac`

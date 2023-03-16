@@ -28,7 +28,7 @@ Basically the same as the _blocks_ environment, but the blocks can be out of rea
 This time the goal is to push the red button. The robotic arm can only move in the x-y-plane. Before it can push the red button, it has to unlock access to it by pushing up to 2 blue buttons. In the picture, one button was already pressed. Causal Dependencies!
 
 ## Ant
-We have a variety of _Ant_ environments that all inherit from `custom_envs.ant.ant_env`.
+We have a variety of _Ant_ environments that all inherit from `src/custom_envs.ant.ant_env`.
 ### AntReacher
 ![Screenshot_from_2021-10-15_16-29-50](uploads/af4446ffa8d61c7b255a0ceb4d1f39b2/Screenshot_from_2021-10-15_16-29-50.png)
 
@@ -71,4 +71,4 @@ These environments were created to showcase the abilities of the [HIRO algorithm
 
 > turn_tap-state-v0
 
-[RLBench](https://github.com/stepjam/RLBench) is a collection of ~100 environments, which we can use in our framework by wrapping them with our `custom_envs.wrappers.rl_bench_wrapper`. You can find a list of them in issue #66. Thoroughly tested RLBench environments are _reach_target-state-v0_, _turn_tap-state-v0_, _close_laptop_lid-state-v0_, _close_drawer-state-v0_ and _close_box-state-v0_.
+[RLBench](https://github.com/stepjam/RLBench) is a collection of ~100 environments, which we can use in our framework by wrapping them with our `src/custom_envs.wrappers.rl_bench_wrapper`. You can find a list of them in issue #66. Thoroughly tested RLBench environments are _reach_target-state-v0_, _turn_tap-state-v0_, _close_laptop_lid-state-v0_, _close_drawer-state-v0_ and _close_box-state-v0_.
