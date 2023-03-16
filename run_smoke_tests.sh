@@ -17,7 +17,7 @@ test_algos() {
   local ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0,parking-limited-v0"
 
   # Don't have xvfb? install it with sudo apt-get install xvfb
-  if ! xvfb-run -a python3 main.py env=$ENVS algorithm=$ALGOS +performance=smoke_test render=none --multirun;
+  if ! xvfb-run -a python3 src/main.py env=$ENVS algorithm=$ALGOS +performance=smoke_test render=none --multirun;
   then
     exit 1
   fi
@@ -47,7 +47,7 @@ test_envs() {
   echo "Smoke-testing environments $ENVS"
 
   # Don't have xvfb? install it with sudo apt-get install xvfb
-  if ! xvfb-run -a python3 main.py algorithm=sac env=$ENVS +performance=smoke_test render=none --multirun;
+  if ! xvfb-run -a python3 src/main.py algorithm=sac env=$ENVS +performance=smoke_test render=none --multirun;
   then
     exit 1
   fi
@@ -66,7 +66,7 @@ test_render() {
   ENVS+="close_box-state-v0,"
   # Box2D physics engine
   ENVS+="parking-limited-v0"
-  if ! xvfb-run -a python3 main.py algorithm=sac env=$ENVS +performance=smoke_test render="record" render_freq=1 --multirun;
+  if ! xvfb-run -a python3 src/main.py algorithm=sac env=$ENVS +performance=smoke_test render="record" render_freq=1 --multirun;
   then
     exit 1
   fi
@@ -91,7 +91,7 @@ test_loading() {
   local ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0,parking-limited-v0"
   for ALG in ${ALGOS[@]}; do
     # Don't have xvfb? install it with sudo apt-get install xvfb
-    if ! xvfb-run -a python3 main.py env=$ENVS algorithm=$ALG +performance=smoke_test render=none base_logdir="data/$ALG" --multirun;
+    if ! xvfb-run -a python3 src/main.py env=$ENVS algorithm=$ALG +performance=smoke_test render=none base_logdir="data/$ALG" --multirun;
     then
       exit 1
     fi
@@ -105,7 +105,7 @@ test_loading() {
       for ENV in ${ENVS[@]}; do
         if [[ -n $(echo "$TRIAL_LINE" | grep -e "$ENV" ) ]]; then
           echo "Loading $TRIAL_LINE for $ENV and $ALG"
-          if ! xvfb-run -a python3 main.py env=${ENV} algorithm=${ALG} +restore_policy=${TRIAL_LINE} render=none wandb=0 n_epochs=1
+          if ! xvfb-run -a python3 src/main.py env=${ENV} algorithm=${ALG} +restore_policy=${TRIAL_LINE} render=none wandb=0 n_epochs=1
           then
             exit 1
           fi
