@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from gym.envs.robotics import rotations
-from src.custom_envs.blocks.blocks_env import BlocksEnv
+from custom_envs.blocks.blocks_env import BlocksEnv
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'hook.xml')
 POS_MIN, POS_MAX = [0.28, -0.15, 0.42], [0.34, 0.15, 0.42]
