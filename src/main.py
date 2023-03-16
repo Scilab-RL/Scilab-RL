@@ -11,13 +11,13 @@ from stable_baselines3.her.her import HerReplayBuffer
 from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
 
-from src.custom_envs.register_envs import register_custom_envs
-from src.utils.util import get_git_label, set_global_seeds, get_train_render_schedule, get_eval_render_schedule, \
+from custom_envs.register_envs import register_custom_envs
+from utils.util import get_git_label, set_global_seeds, get_train_render_schedule, get_eval_render_schedule, \
     avoid_start_learn_before_first_episode_finishes
-from src.utils.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
-from src.utils.custom_logger import setup_logger
-from src.utils.custom_callbacks import EarlyStopCallback, EvalCallback
-from src.utils.custom_wrappers import DisplayWrapper, RecordVideo
+from utils.mlflow_util import setup_mlflow, get_hyperopt_score, log_params_from_omegaconf_dict
+from utils.custom_logger import setup_logger
+from utils.custom_callbacks import EarlyStopCallback, EvalCallback
+from utils.custom_wrappers import DisplayWrapper, RecordVideo
 
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
@@ -38,7 +38,7 @@ def get_env_instance(cfg, logger):
             render_mode = 'rgb_array'
         # there can be only one PyRep instance per process, therefore train_env == eval_env
         if is_rlbench_env(cfg.env):
-            from src.custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
+            from custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
             rlbench_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
             train_env = RLBenchWrapper(rlbench_env, "train")
             eval_env = RLBenchWrapper(rlbench_env, "eval")
@@ -113,7 +113,7 @@ def get_algo_instance(cfg, logger, env):
     try:
         baseline_class = getattr(importlib.import_module('stable_baselines3.' + algo_name), algo_name.upper())
     except ModuleNotFoundError:
-        baseline_class = getattr(importlib.import_module('src.custom_algorithms.' + algo_name), algo_name.upper())
+        baseline_class = getattr(importlib.import_module('custom_algorithms.' + algo_name), algo_name.upper())
     if 'replay_buffer_class' in alg_kwargs and alg_kwargs['replay_buffer_class'] == 'HerReplayBuffer':
         alg_kwargs['replay_buffer_class'] = HerReplayBuffer
         alg_kwargs = avoid_start_learn_before_first_episode_finishes(alg_kwargs, env)
