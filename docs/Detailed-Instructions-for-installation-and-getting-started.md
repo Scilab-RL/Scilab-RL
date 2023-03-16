@@ -16,14 +16,14 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 * Clone this repository by navigating to your home folder in the Ubuntu WSL2 console and running `git clone https://collaborating.tuhh.de/ckv0173/Scilab-RL.git`. This creates a folder `Scilab-RL`.
 
 4. Install the main Scilab-RL dependencies
-* In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `setup.sh`. This will install all required dependencies, it will take a while. 
+* In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `./setup.sh`. This will install all required dependencies, it will take a while. 
 
 5. Create an weights n biases account 
 * Go to [wandb.ai]([wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account. 
 
 6. Test the installation from the Linux console
-* Activate conda by running `source ~/.bashrc`
-* Activate the correct conda environment with `conda activate scilabrl`
+* Activate Conda by running `source ~/.bashrc`
+* Activate the correct Conda environment with `conda activate scilabrl`
 * run `python main.py`
 * When running for the first time, you are asked about your wandb account. On your wandb profile site at [wandb.ai]([wandb.ai), go to "settings" and copy your API key. Then paste it in the console. 
 * Also, when running for the first time, MuJoCo is being compiled, and gcc will produce some additional output. 
@@ -49,8 +49,8 @@ Click on `File-> Open... ` and select the `Scilab-RL` folder in your cloned repo
 ![image](uploads/39d27cb605719aaabf13a0e1b5f15d20/image.png)
 
 12. Setup a PyCharm debug configuration.
-* After opening the project, you should see the file structure on the left, and the README.md will be displayed. For starting a training process, you need to setup a debug configuration. To to so, open `main.py`, i.e., double-click on `main.py` in the file structure view on the left. Then press in the Menu "Run--> Debug" and then, in the little window that opens, "2 main". This  will auto-create a debug configuration for you, and it will also start the debugger to run the script. However, this will fail, because you still need to set up the Python Interpreter and environment variables as follows: 
-* Setup the conda python interpreter as follows: In the Menu click "File--> Settings", and then "Project: Scilab-RL"
+* After opening the project, you should see the file structure on the left, and the README.md will be displayed. For starting a training process, you need to set up a debug configuration. To do so, open `main.py`, i.e., double-click on `main.py` in the file structure view on the left. Then press in the Menu "Run--> Debug" and then, in the little window that opens, "2 main". This will auto-create a debug configuration for you, and it will also start the debugger to run the script. However, this will fail, because you still need to set up the Python Interpreter and environment variables as follows: 
+* Set up the Conda Python interpreter as follows: In the Menu click "File--> Settings", and then "Project: Scilab-RL"
 
 ![image](uploads/cd48171c9d141f8e3da8bed79ae29a98/image.png)
 
