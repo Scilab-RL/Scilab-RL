@@ -6,7 +6,7 @@ from stable_baselines3.common.logger import KVWriter, Video, FormatUnsupportedEr
 import mlflow
 import wandb
 from omegaconf import OmegaConf
-from src.utils.util import flatten_dictConf
+from utils.util import flatten_dictConf
 
 
 def setup_logger(run_dir, run_name, cfg):
