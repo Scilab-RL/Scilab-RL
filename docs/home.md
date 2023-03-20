@@ -1,6 +1,6 @@
-First information about setting up this repository can be found in our [readme](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/blob/devel/README.md). This wiki contains tutorials and some additional tips and tricks. Take a look at the tutorials below!
+First information about setting up this repository can be found in our [readme](../README). This wiki contains tutorials and some additional tips and tricks. Take a look at the tutorials below!
 
-The most common use case for a researcher is probably to extend an existing algorithm with a new feature or mechanism. This is covered in the tutorial to [create a copy of SAC and start modifying it](Create-a-copy-of-SAC-and-start-modifying-it). 
+The most common use case for a researcher is probably to extend an existing algorithm with a new feature or mechanism. This is covered in the tutorial to [create a copy of SAC and start modifying it](Adding-a-new-Algorithm). 
 
 # Tutorials
 
@@ -9,7 +9,7 @@ How to configure [Pycharm](Pycharm) for this project.
 How to [run a standard algorithm](Run-a-standard-algorithm)(SAC with Hindsight Experience Replay from stable baselines 3) and interpret the console output. This is also a good starting point for checking out 
 other tutorials.
 
-How to [visualize and render](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/Visualization:-3D-rendering,-recording,-and-on-line-plotting-of-episodic-metrics).
+How to [visualize and render](Visualization).
 
 How to [manage hyperparameters and arguments with Hydra](Hyperparameter-management-with-Hydra).
 
@@ -21,7 +21,7 @@ How to [restore a saved policy](Restore-a-saved-policy).
 
 How to [set early stopping values](Setting-early-stopping-values).
 
-As an example of how to create a new different algorithm from an existing one, we [create a copy of SAC and start modifying it](Create-a-copy-of-SAC-and-start-modifying-it).
+As an example of how to create a new different algorithm from an existing one, we [create a copy of SAC and start modifying it](Adding-a-new-Algorithm)
 
 How to [perform hyperparameter optimization](Hyperparameter-optimization).
 
