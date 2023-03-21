@@ -1,5 +1,8 @@
 RUN_ALL_TESTS="false" # set to "true" to run all tests
 
+# change into git root directory
+cd $(git rev-parse --show-toplevel)
+
 if [ $RUN_ALL_TESTS != "true" ]
 then  # run only these performance tests:
   for config in "FetchReach/sac_her-test" # "RLB_reach_target/sac_her-test"

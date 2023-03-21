@@ -12,7 +12,7 @@ Creating the run/debug configuration for an experiment-run takes the following s
 > :warning: relative paths and dynamic path creation like `$(whoami)` don't work in the Pycharm run/debug config. You have to use the full paths!
 3. Specify your parameters, e.g. `env=Blocks-o1-gripper_random-v1
 algorithm=sac`
-4. Specify the user environment variables. These are the variables that you set with `./set_paths.sh`. It could look like this:
+4. Specify the user environment variables. These are the variables that you set with `./scripts/set_paths.sh`. It could look like this:
 
 | Name | Value |
 | ------ | ------ |

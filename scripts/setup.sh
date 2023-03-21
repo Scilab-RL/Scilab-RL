@@ -90,7 +90,7 @@ install_mujoco() {
     fi
     # Install mujoco-py
     info "Installing mujoco-py and testing import"
-    source set_paths.sh
+    source scripts/set_paths.sh
     pip install mujoco-py && python -c 'import mujoco_py'
 }
 
@@ -111,7 +111,7 @@ install_rlbench() {
   rm "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz"
   # Get RLBench
   echo "Getting RLBench"
-  source set_paths.sh
+  source scripts/set_paths.sh
   pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
 }
 
@@ -135,6 +135,8 @@ install_conda() {
 
 
 main() {
+  # change into git root directory
+  cd $(git rev-parse --show-toplevel)
   if ! [[ -x "$(command -v conda)" ]]; then
     info "Installing conda"
     install_conda
@@ -144,15 +146,15 @@ main() {
 	# conda update -n base -c conda-forge conda
   setup_conda
 
-  info "Adding source $PWD/set_paths.sh to rc file of the current shell"
+  info "Adding source $PWD/scripts/set_paths.sh to rc file of the current shell"
   if [[ -n "$($SHELL -c 'echo $ZSH_VERSION')" ]]; then
-    grep -qxF "source $PWD/set_paths.sh" $HOME/.zshrc || echo "source $PWD/set_paths.sh" >> $HOME/.zshrc
+    grep -qxF "source $PWD/scripts/set_paths.sh" $HOME/.zshrc || echo "source $PWD/scripts/set_paths.sh" >> $HOME/.zshrc
     source $HOME/.zshrc
   elif [[ -n "$($SHELL -c 'echo $BASH_VERSION')" ]]; then
-    grep -qxF "source $PWD/set_paths.sh" $HOME/.bashrc || echo "source $PWD/set_paths.sh" >> $HOME/.bashrc
+    grep -qxF "source $PWD/scripts/set_paths.sh" $HOME/.bashrc || echo "source $PWD/scripts/set_paths.sh" >> $HOME/.bashrc
     source $HOME/.bashrc
   else
-    warn "Unknown shell, could not setup set_paths.sh script correctly"
+    warn "Unknown shell, could not setup scripts/set_paths.sh script correctly"
   fi
 
   conda activate scilabrl
