@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # We first test all the algorithms and then test a selection of environments
 
+# change into git root directory
+cd $(git rev-parse --show-toplevel)
+
 test_algos() {
   # test all algorithms that have a config in conf/algorithm.
   # For now, we only consider algorithms with a continuous action space, so DQN will not work.

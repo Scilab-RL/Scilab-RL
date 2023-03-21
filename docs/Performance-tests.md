@@ -54,4 +54,4 @@ You can start this performance test with `python src/main.py +performance=FetchR
 
 If the test is successful, the `PerformanceTestingSweeper` prints something like `[2022-04-22 13:10:25,558][HYDRA] Performance test FetchReach/sac_her-test successful! The value for eval/success_rate was at least 0.9 in 3 runs.` to the console.
 
-Use `run_performance_tests.sh` to run multiple performance tests sequentially.
+Use `scripts/run_performance_tests.sh` to run multiple performance tests sequentially.

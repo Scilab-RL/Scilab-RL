@@ -37,7 +37,7 @@ It is also important to install the following packages, if they are not yet ther
 
 ## Getting started using the setup script
 
-1. run `./setup.sh`. This will automatically install the Conda Python interpreter, along with all required packages. It will also install the robotic simulators MuJoCo and 
+1. run `./scripts/setup.sh`. This will automatically install the Conda Python interpreter, along with all required packages. It will also install the robotic simulators MuJoCo and 
  CoppeliaSim.
 2. source your ~/.bashrc: `source ~/.bashrc`
 3. activate the conda python environment: `conda activate scilabrl`

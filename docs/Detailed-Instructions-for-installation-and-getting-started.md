@@ -16,7 +16,7 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 * Clone this repository by navigating to your home folder in the Ubuntu WSL2 console and running `git clone https://collaborating.tuhh.de/ckv0173/Scilab-RL.git`. This creates a folder `Scilab-RL`.
 
 4. Install the main Scilab-RL dependencies
-* In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `./setup.sh`. This will install all required dependencies, it will take a while. 
+* In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `./scripts/setup.sh`. This will install all required dependencies, it will take a while. 
 
 5. Create an weights n biases account 
 * Go to [wandb.ai]([wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account. 
