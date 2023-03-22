@@ -8,7 +8,7 @@ nav_order: 17
 
 Most of us use Pycharm as the IDE for this project. This page includes some tips and caveats for Pycharm.
 
-> :warning: This tutorial assumes that you have already [set up a virtual environment for the project.](https://collaborating.tuhh.de/ckv0173/Scilab-RL#getting-started)
+> :warning: This tutorial assumes that you have already [set up a virtual environment for the project.](Detailed-Instructions-for-installation-and-getting-started)
 
 # run/debug configuration
 Alternatively to starting your experiment from the terminal, you can start it via Pycharm by using a [run/debug configuration](https://www.jetbrains.com/help/pycharm/run-debug-configuration.html). This has the advantages that you can use the Pycharm debugger, that it is easier to switch between multiple configurations and that it is easier to kill your process if something goes wrong.

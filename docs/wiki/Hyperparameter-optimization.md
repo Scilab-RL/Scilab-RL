@@ -14,7 +14,7 @@ We organize the configurations for hyperopt like this:
 - they end in `-opti.yaml` if they are configs for hyperopt and in `-test.yaml` if they are for [performance tests](Performance-tests).
 - if there is a sub-type of the environment, e.g. the _Blocks_ env with one block and the gripper-goal above, this is reflected in the filename: `conf/performance/Blocks/o1-above-sac_her-opti.yaml`.
 
-To learn about the hyperopt configuration, we create a config for the _FetchReach_ environment for the modified version of SAC, _SAC_MOD_, that we created in the [Create a copy of SAC and start modifying it tutorial](Create-a-copy-of-SAC-and-start-modifying-it).
+To learn about the hyperopt configuration, we create a config for the _FetchReach_ environment for the modified version of SAC, _SAC_MOD_, that we created in the [Create a copy of SAC and start modifying it tutorial](Adding-a-new-Algorithm).
 
 ## Configuration
 
