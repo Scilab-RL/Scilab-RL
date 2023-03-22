@@ -1,7 +1,7 @@
 # Scilab-RL
 
 This is the Scilab-RL repository focusing on (hierarchical) goal-conditioned reinforcement learning using the [stable baselines 3](https://stable-baselines3.readthedocs.io/en/master/) methods and [OpenAI gym](https://gym.openai.com/) interface.
-> We now have a wiki with many tutorials, [check it out!](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home)
+> We now have a wiki with many tutorials, [check it out!](https://scilab-rl.github.io/Scilab-RL/)
 
 ![](docs/overview.svg)
 
@@ -27,7 +27,7 @@ The framework is tailored towards the rapid prototyping and development and eval
 - [Known Issues](#known-issues)
 
 ## Requirements
-The framework is designed to run on Linux, best compatibility with Ubuntu 22. However, it is also reported to run on MacOS and WSL2 (see [this](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/Running-on-Windows-with-WSL2) tutorial). The preferred Python version is 3.10, but it is likely to run also with less recent versions >= v3.8. A GPU is not required, but it will speed up the training significantly. 
+The framework is designed to run on Linux, best compatibility with Ubuntu 22. However, it is also reported to run on MacOS and WSL2 (see [this](https://scilab-rl.github.io/Scilab-RL/wiki/Running-on-Windows-with-WSL2.html) tutorial). The preferred Python version is 3.10, but it is likely to run also with less recent versions >= v3.8. A GPU is not required, but it will speed up the training significantly. 
 
 For visualization with matplotlib, it is important to have the GUI-backend tkinter installed (see [this](https://stackoverflow.com/questions/56656777/userwarning-matplotlib-is-currently-using-agg-which-is-a-non-gui-backend-so) for more information).
 
@@ -45,7 +45,7 @@ It is also important to install the following packages, if they are not yet ther
 3. Check your installation with
    - `python3 src/main.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
    - `python3 src/main.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
-4. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home) for more details.
+4. Look at the tutorials in the [wiki](https://scilab-rl.github.io/Scilab-RL/) for more details.
 
 You can also install all dependencies manually, but we do not recommend this. 
 
@@ -57,7 +57,7 @@ We currently support the _Stable Baselines 3_ goal-conditioned off-policy algori
 
 ## Hyperparameter optimization and management
 The framework has a sophisticated hyperparameter management and optimization pipeline, based on Hydra, Optuna, MLFlow and Weights & Biases.
-The tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home) explain how to use it.
+The tutorials in the [wiki](https://scilab-rl.github.io/Scilab-RL/) explain how to use it.
 
 ## Known Issues:
 
