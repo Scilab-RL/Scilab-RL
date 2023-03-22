@@ -14,7 +14,7 @@ In this folder, we find the `early_stop_agent.zip`.
 
 A common use case is to use stored policies to observe visually (by rendering) how an agent behaves. For example, assume that we'd like to look at the early-stopping agent to see if it really solved the reacher-task well. Therefore, 
 - we use the `+restore_policy` parameter and set it to the path of the `early_stop_agent.zip` file. 
-- We also set the [render_args](Render-the-experiment) so that we display the evaluation.
+- We also set the [render_args](Visualization) so that we display the evaluation.
 - Furthermore, we set `wandb=0`, because we do not want to track this run and `n_epochs=1` because we only want to display one epoch. 
 - Finally, we set `eval_after_n_steps` to 1 because we do not want the policy to train, as it is already trained. `eval_after_n_steps` hast to be at least 1.
 

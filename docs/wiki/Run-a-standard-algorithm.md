@@ -27,7 +27,7 @@ wandb: Syncing run rose-breeze-83
 wandb: ⭐️ View project at https://wandb.ai/USER/sac_FetchReach-v1
 wandb: 🚀 View run at https://wandb.ai/USER/sac_FetchReach-v1/runs/2872w2rk
 ```
-These lines are displayed because we use _MLFlow_ and _Weights and Biases_ to track our experiments (more on that in the [Display logged data tutorial](Display-logged-data-(e.g.-learning-curve)-in-Weights-and-Biases)).
+These lines are displayed because we use _MLFlow_ and _Weights and Biases_ to track our experiments (more on that in the [Display logged data tutorial](Display-logged-data).
 
 ```
 Starting training with the following configuration:
@@ -66,7 +66,7 @@ entity: null
 group: null
 tags: null
 ```
-This shows more of our configuration, including the maximal number of epochs `n_epochs`, the early stopping arguments ([early stopping tutorial](Setting-early-stopping-values)), the render arguments ([rendering tutorial](Render-the-experiment)) and whether to use Weights and Biases (`wandb`).
+This shows more of our configuration, including the maximal number of epochs `n_epochs`, the early stopping arguments ([early stopping tutorial](Setting-early-stopping-values)), the render arguments ([rendering tutorial](Visualization)) and whether to use Weights and Biases (`wandb`).
 
 ```
 Log directory: /home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v1/09-08-48
@@ -147,4 +147,4 @@ wandb: Find logs at: ./wandb/run-20220527_180745-122u2g70/logs
 
 Process finished with exit code 0
 ```
-At the end of each experiment, we calculate a score for the hyperparameter optimization (hyperopt) and return it. In this case, we did not run hyperopt, so this is not important for us. Learn more about hyperopt in the [hyperparameter optimization tutorial](Perform-hyperparameter-optimization).
+At the end of each experiment, we calculate a score for the hyperparameter optimization (hyperopt) and return it. In this case, we did not run hyperopt, so this is not important for us. Learn more about hyperopt in the [hyperparameter optimization tutorial](Hyperparameter-optimization).
