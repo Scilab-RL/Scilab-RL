@@ -1,3 +1,11 @@
+---
+layout: default
+title: Logger
+parent: Wiki
+has_children: false
+nav_order: 14
+---
+
 We use the [stable baselines 3 Logger](https://stable-baselines3.readthedocs.io/en/master/common/logger.html). To use the logger in a custom algorithm, just pass the logger instance to the instance of your algorithm and use it with `logger.info()` or `logger.error()` etc.
 
 This logger allows to log to different outputs. Currently we log to four different outputs:

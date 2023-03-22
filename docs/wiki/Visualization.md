@@ -1,3 +1,11 @@
+---
+layout: default
+title: Visualization
+parent: Wiki
+has_children: false
+nav_order: 6
+---
+
 The framework supports multiple ways of rendering and plotting features. Two of these are discussed here: 3D rendering and the plotting of episodoc metric values. 
 
 The 3D rendering displays the simulated robot in its environment, and the plotting enables an engineer or researcher to display metrics that might be useful for presentation and debugging purposes. 

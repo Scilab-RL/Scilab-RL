@@ -1,3 +1,10 @@
+---
+layout: default
+title: Wiki
+has_children: true
+nav_order: 2
+---
+
 First information about setting up this repository can be found in our [readme](../README). This wiki contains tutorials and some additional tips and tricks. Take a look at the tutorials below!
 
 The most common use case for a researcher is probably to extend an existing algorithm with a new feature or mechanism. This is covered in the tutorial to [create a copy of SAC and start modifying it](Adding-a-new-Algorithm). 

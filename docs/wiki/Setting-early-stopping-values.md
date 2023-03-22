@@ -1,3 +1,11 @@
+---
+layout: default
+title: Early stopping
+parent: Wiki
+has_children: false
+nav_order: 10
+---
+
 If the policy is good enough, we want to stop the experiment to not waste any computing resources. How to do this early stopping is defined by the following parameters:
 
 - `early_stop_data_column: 'eval/success_rate'`, 

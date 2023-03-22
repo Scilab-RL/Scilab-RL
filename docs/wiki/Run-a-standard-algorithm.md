@@ -1,3 +1,11 @@
+---
+layout: default
+title: Run an experiment
+parent: Wiki
+has_children: false
+nav_order: 4
+---
+
 This tutorial shows how to run the standard algorithm _soft actor-critic_ (SAC) with _hindsight experience replay_ (HER) from stable baselines 3 in the Scilab-RL framework. There are two main ways to start an algorithm. Either via the terminal:
 
 - navigate to Scilab-RL folder

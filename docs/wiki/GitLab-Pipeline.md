@@ -1,3 +1,11 @@
+---
+layout: default
+title: GitLab Pipeline
+parent: Wiki
+has_children: false
+nav_order: 13
+---
+
 Each time someone pushes to a merge request, we run a GitLab pipeline to check if all [smoke](Smoke-tests) and [performance](Performance-tests) tests pass. The pipeline fails if the project cannot be set up or if any test fails. But how does it work?
 
 # The .gitlab-ci.yml

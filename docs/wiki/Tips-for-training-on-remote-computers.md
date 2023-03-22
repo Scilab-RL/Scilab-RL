@@ -1,3 +1,11 @@
+---
+layout: default
+title: Train on remote machine
+parent: Wiki
+has_children: false
+nav_order: 15
+---
+
 Training or running a hyperparameter optimization for your model takes much computational power that you might not have on your local machine. Luckily you can run your experiments on remote computers!
 
 Here are some useful tools and hints for running on remote machines:
@@ -11,7 +19,7 @@ You can create a session with `tmux`. To detach from a _tmux_ session, press `Ct
 In your _tmux_ session, activate your _venv_ with 
 ```
 source venv/bin/activate
-source ./scripts/set_paths.sh
+source ./set_paths.sh
 ```
 
 # Choosing a GPU

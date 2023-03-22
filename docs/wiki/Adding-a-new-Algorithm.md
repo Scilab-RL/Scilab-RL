@@ -1,3 +1,11 @@
+---
+layout: default
+title: Add new algorithms
+parent: Wiki
+has_children: false
+nav_order: 1
+---
+
 You may want to create your own reinforcement learning algorithm by modifying an existing one. As an example for this, we create a copy of the soft actor-critic (SAC) algorithm implementation of stable baselines 3 and modify it.
 
 ## copy SAC

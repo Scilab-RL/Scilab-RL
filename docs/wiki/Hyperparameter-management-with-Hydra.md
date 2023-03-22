@@ -1,3 +1,11 @@
+---
+layout: default
+title: Hyperparameter management
+parent: Wiki
+has_children: false
+nav_order: 8
+---
+
 Each experiment can have a different hyperparameter configuration. Because there are many hyperparameters and many different configurations for our experiments, we manage our hyperparameters and arguments with [hydra](https://hydra.cc/). They also have [nice tutorials](https://hydra.cc/docs/tutorials/intro/)!
 
 Hydra works with configuration files. We store our configurations in `conf`. The following screenshot shows an overview of our configurations.
