@@ -37,14 +37,14 @@ It is also important to install the following packages, if they are not yet ther
 
 ## Getting started using the setup script
 
-1. run `./setup.sh`. This will automatically install the Conda Python interpreter, along with all required packages. It will also install the robotic simulators MuJoCo and 
+1. run `./scripts/setup.sh`. This will automatically install the Conda Python interpreter, along with all required packages. It will also install the robotic simulators MuJoCo and 
  CoppeliaSim.
 2. source your ~/.bashrc: `source ~/.bashrc`
 3. activate the conda python environment: `conda activate scilabrl`
 2. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiments with the command line parameter `wandb=0`.
 3. Check your installation with
-   - `python3 main.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
-   - `python3 main.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
+   - `python3 src/main.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
+   - `python3 src/main.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
 4. Look at the tutorials in the [wiki](https://collaborating.tuhh.de/ckv0173/Scilab-RL/-/wikis/home) for more details.
 
 You can also install all dependencies manually, but we do not recommend this. 
