@@ -20,10 +20,10 @@ run-smoke-and-performance-tests:
         - .cache/pip
     script:
         - echo "Installing python libraries"
-        - bash setup.sh
+        - bash scripts/setup.sh
         - source /root/miniforge3/etc/profile.d/conda.sh
         - source ~/.bashrc
-        - source set_paths.sh
+        - source scripts/set_paths.sh
         - conda activate scilabrl
         - nvidia-smi
         - conda install -c conda-forge ncurses -y
@@ -31,6 +31,6 @@ run-smoke-and-performance-tests:
         - pip install "importlib-metadata~=4.13" # bug fix for gym issues/3122
         - export HYDRA_FULL_ERROR=1
         - echo "running smoke tests"
-        - ./run_smoke_tests.sh
+        - ./scripts/run_smoke_tests.sh
         - echo "running performance tests"
-        - ./run_performance_tests.sh
+        - ./scripts/run_performance_tests.sh
