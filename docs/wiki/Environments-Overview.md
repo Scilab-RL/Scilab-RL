@@ -1,3 +1,11 @@
+---
+layout: default
+title: Custom Environments
+parent: Wiki
+has_children: false
+nav_order: 3
+---
+
 This page gives a short overview over the `custom_envs`.
 
 # MuJoCo Environments

@@ -1,3 +1,11 @@
+---
+layout: default
+title: File structure
+parent: Wiki
+has_children: false
+nav_order: 18
+---
+
 * The main script from which all algorithms are started is `src/main.py`.
 * The root directory contains shell scripts for automated testing.
 * New algorithms should be added to the `src/custom_algorithms` folder.

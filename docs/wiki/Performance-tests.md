@@ -1,3 +1,11 @@
+---
+layout: default
+title: Performance tests
+parent: Wiki
+has_children: false
+nav_order: 11
+---
+
 Performance tests check if the performance of an algorithm is still as before, e.g. after the upgrade of a python package, a common utility function or changes in the code. If you just want to check whether an algorithm or environment works with the rest of the framework _at all_, use [smoke tests](Smoke-tests).
 
 
@@ -54,4 +62,4 @@ You can start this performance test with `python src/main.py +performance=FetchR
 
 If the test is successful, the `PerformanceTestingSweeper` prints something like `[2022-04-22 13:10:25,558][HYDRA] Performance test FetchReach/sac_her-test successful! The value for eval/success_rate was at least 0.9 in 3 runs.` to the console.
 
-Use `scripts/run_performance_tests.sh` to run multiple performance tests sequentially.
+Use `run_performance_tests.sh` to run multiple performance tests sequentially.

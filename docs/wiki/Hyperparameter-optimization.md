@@ -1,3 +1,11 @@
+---
+layout: default
+title: Hyperparameter optimization
+parent: Wiki
+has_children: false
+nav_order: 9 
+---
+
 Hyperparameter optimization is essential for machine learning tasks. For our framework, we use Optuna for optimization and Weights and Biases to monitor the experiments. In this tutorial we take a look at how to configure the hyperparameter optimization.
 
 We organize the configurations for hyperopt like this:

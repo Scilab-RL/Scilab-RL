@@ -1,3 +1,11 @@
+---
+layout: default
+title: Restore a policy
+parent: Wiki
+has_children: false
+nav_order: 7
+---
+
 The early-stopping policy of a run is always stored in the `data` folder for the run. Let's say we ran an experiment with `python src/main.py env=FetchReach-v1 algorithm=sac`. Then, at the start of the console output, it will have printed the Log directory:
 ```
 Log directory: /home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v1/15-26-33
