@@ -21,10 +21,10 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 * Install gcc and other tools: `sudo apt install libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf gcc ffmpeg`
 
 3. Clone this repository 
-* Clone this repository by navigating to your home folder in the Ubuntu WSL2 console and running `git clone https://collaborating.tuhh.de/ckv0173/Scilab-RL.git`. This creates a folder `Scilab-RL`.
+* Clone this repository by navigating to your home folder in the Ubuntu WSL2 console and running `git clone https://github.com/Scilab-RL/Scilab-RL.git`. This creates a folder `Scilab-RL`.
 
 4. Install the main Scilab-RL dependencies
-* In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `./setup.sh`. This will install all required dependencies, it will take a while. 
+* In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `./scripts/setup.sh`. This will install all required dependencies, it will take a while. 
 
 5. Create an weights n biases account 
 * Go to [wandb.ai]([wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account. 
@@ -39,12 +39,15 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 ![image](uploads/c6d784811a62fc1b85653a91aa1dee00/image.png)
 
 7. Accessing visualizations and debugging information. 
-* By default, Scilab-RL will store all data of the currently running experiment in the `data` subfolder. The structure is <Scilab-Rl-root>/data/<git commit hash>/<Environment name>/<Time of Day>. There, you will  also find a subfolder "videos" with renderings of the experiment. 
+* By default, Scilab-RL will store all data of the currently running experiment in the `data` subfolder. The structure is `<Scilab-Rl-root>/data/<git commit hash>/<Environment name>/<Time of Day>`. There, you will  also find a subfolder "videos" with renderings of the experiment. 
 * To monitor all other training metrics, go to wandb.ai and find your experiment data there. 
 
 9. [Optional] Test real-time rendering
 * To test the real-time rendering, start `python src/main.py source render=display`. 
-* [Windows] You cannot do real-time rendering on Windows  because then you would need to install an X-Server first and export the $DISPLAY variable appropriately. If you want that, it is necessary to install an X-Server on Windows. We recommend using the free version of [VcxSrv](https://sourceforge.net/projects/vcxsrv/). Download and install it. Start the X-Server with `XLaunch` (cf. the shortcut on your Windows Desktop). Then press "Next->Next", and in the "Extra Settings" dialog make sure to select "Disable access control". Press "Next->Finish". There are some other details that we leave unspecified here for now. Generally, we recommend not using real-time rendering on Windows. 
+* [Windows] You cannot do real-time rendering on Windows  because then you would need to install an X-Server first and export the $DISPLAY variable appropriately. Generally, we recommend not using real-time rendering on Windows. 
+However, if you want that, it is necessary to install an X-Server on Windows. We recommend using the free version of [VcxSrv](https://sourceforge.net/projects/vcxsrv/). Download and install it. Start the X-Server with `XLaunch` (cf. the shortcut on your Windows Desktop). Then press "Next->Next", and in the "Extra Settings" dialog make sure to select "Disable access control". Press "Next->Finish". There are some other details that we leave unspecified here for now. 
+
+# Instructions for debugging with PyCharm
 
 10. Install Pycharm professional
 * As an IDE, we recommend PyCharm professional. On Windows, this is required to work with WSL, on other platforms you may use other IDEs, but we do not recommend this. 
@@ -57,8 +60,8 @@ Click on `File-> Open... ` and select the `Scilab-RL` folder in your cloned repo
 ![image](uploads/39d27cb605719aaabf13a0e1b5f15d20/image.png)
 
 12. Setup a PyCharm debug configuration.
-* After opening the project, you should see the file structure on the left, and the README.md will be displayed. For starting a training process, you need to set up a debug configuration. To do so, open `src/main.py`, i.e., double-click on `main.py` in the file structure view on the left. Then press in the Menu "Run--> Debug" and then, in the little window that opens, "2 main". This will auto-create a debug configuration for you, and it will also start the debugger to run the script. However, this will fail, because you still need to set up the Python Interpreter and environment variables as follows: 
-* Set up the Conda Python interpreter as follows: In the Menu click "File--> Settings", and then "Project: Scilab-RL"
+* After opening the project, you should see the file structure on the left, and the README.md will be displayed. For starting a training process, you need to set up a debug configuration. To do so, open `src/main.py`, i.e., double-click on `src/main.py` in the file structure view on the left. Then press in the Menu `Run--> Debug` and then, in the little window that opens, `2 main`. This will auto-create a debug configuration for you, and it will also start the debugger to run the script. However, if you do it for the first time, this will fail because you still need to set up the Python Interpreter and environment variables as follows: 
+* Set up the Conda Python interpreter as follows: In the Menu click `File--> Settings`, and then `Project: Scilab-RL`
 
 ![image](uploads/cd48171c9d141f8e3da8bed79ae29a98/image.png)
 
@@ -71,6 +74,7 @@ Now do not select "New", but "Existing":
 ![image](uploads/b8a22294fa81fca85da8ec71dbe302f5/image.png)
 
 and navigate to the python binary `\\wsl$\Ubuntu-22.04\home\<user>\miniforge3\envs\scilabrl\bin\python` or the respective path on non-windows systems. 
+Note that if you had installed a different version of conda when executing the `scripts/setup.sh` script, the python binary will be in the path of the pre-existing conda installation. For example, if you had Anaconda3 installed before, you should add the path `\\wsl$\Ubuntu-22.04\home\<user>\anaconda3\envs\scilabrl\bin\python`. 
 
 ![image](uploads/7b9299485e8275ff4c6080b75ba3d5a8/image.png)
 
@@ -80,7 +84,7 @@ Then click "create" to create the interpreter, and finally "OK".
 ![image](uploads/09734f9557c6d9b97ae42769e5773381/image.png)
 
 Then, add the following Environment variable: 
-`LD_LIBRARY_PATH=/home/user/.mujoco/mujoco210/bin`
+`LD_LIBRARY_PATH=/home/<user>/.mujoco/mujoco210/bin`
 
 ![image](uploads/c21c912aa1da4b728c226563a33219b5/image.png)
 
@@ -92,7 +96,7 @@ Then close the debug configuration window.
 
 # General remarks
 * You should always use the debugger (the bug symbol) not just the interpreter (the "play" symbol left of the bug.). It is not much slower, and it enables you to use breakpoints and to monitor variables at runtime. These features are critical to your debugging process. 
-* To set a breakpoint, just click on any line right of the line number and left of the actual editor window. For example, in these instructions, you started the "basic" algorithm. You can now investigate and debug the algorithm, by opening "custom_algorithms/basic.py" and setting a breakpoint, e.g., in line 81, where the action is executed: 
+* To set a breakpoint, just click on any line right of the line number and left of the actual editor window. For example, in these instructions, you started the "basic" algorithm. You can now investigate and debug the algorithm, by opening `src/custom_algorithms/basic.py` and setting a breakpoint, e.g., in line 81, where the action is executed: 
 
 ![image](uploads/4e4992ac4c6aafa5f56e1f5581e0d234/image.png)
 
@@ -101,4 +105,4 @@ You can also observe the variables in the debug window below the code window:
 
 ![image](uploads/b7e1113854b8c44d37d6aab54c96503b/image.png)
 
-We highly recommend to get used to using the debugger in this way.
+We strongly recommend to get used to the debugger in this way.
