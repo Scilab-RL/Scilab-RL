@@ -7,7 +7,7 @@ import mlflow
 import gym
 import wandb
 
-from stable_baselines3.her.her import HerReplayBuffer
+from stable_baselines3.her import HerReplayBuffer
 from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
 
