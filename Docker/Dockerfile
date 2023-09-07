@@ -13,7 +13,6 @@ FROM ubuntu:22.04
 
 # Get necessary system libraries
 # adapted from https://github.com/openai/mujoco-py/blob/master/Dockerfile
-# and https://github.com/CoppeliaRobotics/docker-image-coppeliasim/blob/master/Dockerfile
 RUN apt-get update -q \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
