@@ -94,27 +94,6 @@ install_mujoco() {
     pip install mujoco-py && python -c 'import mujoco_py'
 }
 
-install_rlbench() {
-  if [[ $(uname -s) == "Darwin" ]]; then
-    warn "There is no PyRep support for macos"
-    return
-  fi
-  # Check if CoppeliaSim is already installed
-  if [[ -d "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04" ]]; then
-    warn "Skipping CoppeliaSim as it is already installed."
-    return
-  fi
-  # Get CoppeliaSim
-  echo "Getting CoppeliaSim"
-  wget -q http://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz -O "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz"
-  tar -xf "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz" -C "$HOME"
-  rm "${HOME}/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz"
-  # Get RLBench
-  echo "Getting RLBench"
-  source scripts/set_paths.sh
-  pip install git+https://github.com/stepjam/PyRep.git git+https://github.com/stepjam/RLBench.git pyquaternion natsort
-}
-
 
 install_conda() {
   if [[ $(uname -s) == "Linux" ]]; then
@@ -162,8 +141,6 @@ main() {
   success "SciLab-RL environment created/updated"
   install_mujoco
   success "Mujoco installed/updated"
-  install_rlbench
-  success "RLBench installed/updated"
   success "Installation complete."
   info "You must now run 'source ~/.bashrc' to activate conda. Alternatively, you can just restart this shell"
   info "Then, activate the created environment with 'conda activate scilabrl'"
