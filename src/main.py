@@ -24,30 +24,8 @@ OmegaConf.register_new_resolver("git_label", get_git_label)
 
 
 def get_env_instance(cfg, logger):
-    def is_rlbench_env(env_name):
-        return env_name.endswith('-state-v0') or cfg.env.endswith('-vision-v0')
-
-    def is_coppelia_env(env_name):
-        return env_name.startswith('Cop')
-
-    if is_rlbench_env(cfg.env) or is_coppelia_env(cfg.env):
-        render_mode = None
-        if cfg.render == 'display':
-            render_mode = 'human'
-        if cfg.render == 'record':
-            render_mode = 'rgb_array'
-        # there can be only one PyRep instance per process, therefore train_env == eval_env
-        if is_rlbench_env(cfg.env):
-            from custom_envs.wrappers.rl_bench_wrapper import RLBenchWrapper
-            rlbench_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
-            train_env = RLBenchWrapper(rlbench_env, "train")
-            eval_env = RLBenchWrapper(rlbench_env, "eval")
-        else:
-            train_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
-            eval_env = gym.make(cfg.env, render_mode=render_mode, **cfg.env_kwargs)
-    else:
-        train_env = gym.make(cfg.env, **cfg.env_kwargs)
-        eval_env = gym.make(cfg.env, **cfg.env_kwargs)
+    train_env = gym.make(cfg.env, **cfg.env_kwargs)
+    eval_env = gym.make(cfg.env, **cfg.env_kwargs)
 
     # wrappers for rendering
     train_render_schedule = get_train_render_schedule(cfg.render_freq)
