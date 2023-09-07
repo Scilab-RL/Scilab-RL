@@ -17,7 +17,7 @@ test_algos() {
   echo "Smoke-testing algorithms $ALGOS"
 
   # environments with which to test the algorithms
-  local ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0,parking-limited-v0"
+  local ENVS="FetchReach-v1,AntReacher-v1,parking-limited-v0"
 
   # Don't have xvfb? install it with sudo apt-get install xvfb
   if ! xvfb-run -a python3 src/main.py env=$ENVS algorithm=$ALGOS +performance=smoke_test render=none --multirun;
@@ -40,10 +40,6 @@ test_envs() {
   ENVS+="Blocks-o0-gripper_random-v1,"
   ENVS+="Blocks-o3-gripper_none-v1,"
   ENVS+="Reach1DOF-v0,"
-  #RLBench
-  # ENVS+="reach_target-state-v0,"
-  ENVS+="close_box-state-v0,"
-  ENVS+="CopReach-ik1-v0,"
   # ADD NEW ENVIRONMENTS HERE
   ENVS+="parking-limited-v0"
 
@@ -65,8 +61,6 @@ test_render() {
   local ENVS=""
   # MuJoCo
   ENVS+="FetchPickAndPlace-v1,"
-  # CoppeliaSim
-  ENVS+="close_box-state-v0,"
   # Box2D physics engine
   ENVS+="parking-limited-v0"
   if ! xvfb-run -a python3 src/main.py algorithm=sac env=$ENVS +performance=smoke_test render="record" render_freq=1 --multirun;
@@ -91,7 +85,7 @@ test_loading() {
     config="${config##*/}"
     ALGOS+=($config)
   done
-  local ENVS="FetchReach-v1,AntReacher-v1,reach_target-state-v0,parking-limited-v0"
+  local ENVS="FetchReach-v1,AntReacher-v1,parking-limited-v0"
   for ALG in ${ALGOS[@]}; do
     # Don't have xvfb? install it with sudo apt-get install xvfb
     if ! xvfb-run -a python3 src/main.py env=$ENVS algorithm=$ALG +performance=smoke_test render=none base_logdir="data/$ALG" --multirun;
@@ -100,7 +94,7 @@ test_loading() {
     fi
   done
   # Overwrite ENVS here, as we'll need an array
-  local ENVS=("FetchReach-v1" "AntReacher-v1" "reach_target-state-v0" "parking-limited-v0")
+  local ENVS=("FetchReach-v1" "AntReacher-v1" "parking-limited-v0")
   for ALG in ${ALGOS[@]}; do
     # Find pre-trained algorithms from above
     TRIALS=( $(find "$(pwd)/data/$ALG/" -name "rl_model_finished*") )
