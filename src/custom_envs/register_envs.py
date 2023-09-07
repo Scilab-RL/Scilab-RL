@@ -53,14 +53,6 @@ def register_custom_envs():
                  kwargs=kwargs,
                  max_episode_steps=600)
 
-    # ReacherEnv using CoppeliaSim
-    for IK in [0, 1]:  # whether to use inverse kinematics
-        kwargs = {'ik': IK}
-        register(id=f'CopReach-ik{kwargs["ik"]}-v0',
-                 entry_point='custom_envs.cop_reach.cop_reach_env:ReacherEnvMaker',
-                 kwargs=kwargs,
-                 max_episode_steps=200)
-
     register(
         id='parking-limited-v0',
         entry_point='highway_env.envs:ParkingEnv',
