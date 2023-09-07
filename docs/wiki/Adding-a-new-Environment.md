@@ -6,7 +6,7 @@ has_children: false
 nav_order: 2
 ---
 
-In this tutorial, you'll learn how to add a new custom _MuJoCo_ environment. Part of the tutorial might also be useful for adding environments that use other simulators like _CoppeliaSim_, but it is mainly for _MuJoCo_ environments. It is divided into four steps:
+In this tutorial, you'll learn how to add a new custom _MuJoCo_ environment. It is divided into four steps:
 
 1. Choose and test a base-environment
 2. Copy and rename the base-environment

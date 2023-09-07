@@ -28,7 +28,7 @@ With `++`, you can override arguments or add them if they're not in the default 
 The advantage of hydra is that we do not have to type out all the hyperparameters every run, but can reuse them with hierarchical configurations. For example, we have a configuration file for each algorithm. This contains the default parameters for the algorithm. Hierarchical arguments are referenced with a `.`, e.g. the learning rate of the algorithm can be set with `++algorithm.learning_rate=0.007`.
 
 ## Performance
-The `performance` folder contains configurations for hyperparameter optimization and performance testing. They have to be run with the `--multirun` flag. E.g. to run performance testing for the `reach_target-state-v0` environment with SAC & HER, run `python src/main.py +performance=RLB_reach_target/sac_her-opti --multirun`. More on this in the [Hyperparameter optimization tutorial](Hyperparameter-optimization).
+The `performance` folder contains configurations for hyperparameter optimization and performance testing. They have to be run with the `--multirun` flag. E.g. to run performance testing for the `FetchReach-v1` environment with SAC & HER, run `python src/main.py +performance=FetchReach/sac_her-opti --multirun`. More on this in the [Hyperparameter optimization tutorial](Hyperparameter-optimization).
 
 ## Smoke test config
 `smoke_test.yaml` is the configuration for smoke tests.

@@ -72,11 +72,3 @@ The same as _ButtonUnlock_ with the robotic arm, but with the Ant robot.
 > AntFall-v0
 
 These environments were created to showcase the abilities of the [HIRO algorithm](https://arxiv.org/abs/1805.08296). We adapted them to fit in our framework. The goal of the Ant is to reach the yellow sphere (the purple sphere is a subgoal created by the HAC algorithm).
-
-# CoppeliaSim
-## RLBench
-![Screenshot_from_2021-10-15_16-55-36](uploads/3ebe6df1ceea1bba39da6ee6dde51631/Screenshot_from_2021-10-15_16-55-36.png)
-
-> turn_tap-state-v0
-
-[RLBench](https://github.com/stepjam/RLBench) is a collection of ~100 environments, which we can use in our framework by wrapping them with our `src/custom_envs.wrappers.rl_bench_wrapper`. You can find a list of them in issue #66. Thoroughly tested RLBench environments are _reach_target-state-v0_, _turn_tap-state-v0_, _close_laptop_lid-state-v0_, _close_drawer-state-v0_ and _close_box-state-v0_.
