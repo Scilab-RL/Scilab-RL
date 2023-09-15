@@ -37,7 +37,7 @@ It is also important to install the following packages, if they are not yet ther
 2. source your ~/.bashrc: `source ~/.bashrc`
 3. activate the conda python environment: `conda activate scilabrl`
 2. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiments with the command line parameter `wandb=0`.
-3. Check your installation with `python3 src/main.py n_epochs=1 wandb=0 env=FetchReach-v1`
+3. Check your installation with `python3 src/main.py n_epochs=1 wandb=0 env=FetchReach-v2`
 4. Look at the tutorials in the [wiki](https://scilab-rl.github.io/Scilab-RL/) for more details.
 
 You can also install all dependencies manually, but we do not recommend this. 

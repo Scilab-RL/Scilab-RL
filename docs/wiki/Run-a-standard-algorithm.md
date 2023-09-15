@@ -11,7 +11,7 @@ This tutorial shows how to run the standard algorithm _soft actor-critic_ (SAC) 
 - navigate to Scilab-RL folder
 - activate the virtual environment with `conda activate scilabrl`
 - set the paths with `source set_paths.sh`
-- run SAC with HER on the FetchReach environment with `python src/main.py algorithm=sac env=FetchReach-v1 wandb=0`
+- run SAC with HER on the FetchReach environment with `python src/main.py algorithm=sac env=FetchReach-v2 wandb=0`
 
 Alternatively, you can run it via Pycharm (see the [tutorial](Pycharm)).
 
@@ -21,11 +21,11 @@ In the remainder of this tutorial, we explain the console output of the experime
 MLFlow experiment name Default
 wandb: Currently logged in as: USER (use `wandb login --relogin` to force relogin)
 wandb: Tracking run with wandb version 0.12.14
-wandb: Run data is saved locally in /home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v1/09-08-48/wandb/run-20220420_090848-2872w2rk
+wandb: Run data is saved locally in /home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v2/09-08-48/wandb/run-20220420_090848-2872w2rk
 wandb: Run `wandb offline` to turn off syncing.
 wandb: Syncing run rose-breeze-83
-wandb: ⭐️ View project at https://wandb.ai/USER/sac_FetchReach-v1
-wandb: 🚀 View run at https://wandb.ai/USER/sac_FetchReach-v1/runs/2872w2rk
+wandb: ⭐️ View project at https://wandb.ai/USER/sac_FetchReach-v2
+wandb: 🚀 View run at https://wandb.ai/USER/sac_FetchReach-v2/runs/2872w2rk
 ```
 These lines are displayed because we use _MLFlow_ and _Weights and Biases_ to track our experiments (more on that in the [Display logged data tutorial](Display-logged-data).
 
@@ -36,7 +36,7 @@ algorithm:
   verbose: true
   replay_buffer_class: HerReplayBuffer
   policy: MultiInputPolicy
-env: FetchReach-v1
+env: FetchReach-v2
 ```
 After that, the experiment configuration is printed ([configuration tutorial](Hyperparameter-management-with-Hydra)). The first lines show us that we run SAC with hindsight experience replay (HER) and that we train on the _FetchReach_ environment.
 
@@ -69,7 +69,7 @@ tags: null
 This shows more of our configuration, including the maximal number of epochs `n_epochs`, the early stopping arguments ([early stopping tutorial](Setting-early-stopping-values)), the render arguments ([rendering tutorial](Visualization)) and whether to use Weights and Biases (`wandb`).
 
 ```
-Log directory: /home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v1/09-08-48
+Log directory: /home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v2/09-08-48
 Active mlflow run_id: bbd4b389b4a24d82ab5d50c8e8885c2a
 Starting process id: 4604
 Using cpu device
@@ -105,7 +105,7 @@ This shows some of the metrics with which we monitor the experiment. The most im
 After a while, in this case 14000 timesteps, the early stopping threshold is met and the training finishes:
 ```
 Early stop threshold for eval/success_rate met: Average over last 3 evaluations is 1.0 and threshold is 0.9. Stopping training.
-Saving policy to /home/USER/PycharmProjects/Scilab-RL/data/5cd6307/FetchReach-v1/18-07-44/early_stop_agent.zip
+Saving policy to /home/USER/PycharmProjects/Scilab-RL/data/5cd6307/FetchReach-v2/18-07-44/early_stop_agent.zip
 Training finished!
 Hyperopt score: 0.20408163265306123, epochs: 7.
 ```
@@ -141,7 +141,7 @@ wandb:  train/ent_coef_loss -5.70626
 wandb:  train/learning_rate 0.0003
 wandb:      train/n_updates 13949
 wandb: 
-wandb: Synced stilted-dawn-47: https://wandb.ai/thifry/sac_FetchReach-v1/runs/122u2g70
+wandb: Synced stilted-dawn-47: https://wandb.ai/thifry/sac_FetchReach-v2/runs/122u2g70
 wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
 wandb: Find logs at: ./wandb/run-20220527_180745-122u2g70/logs
 

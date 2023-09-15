@@ -28,6 +28,6 @@ self.logger.record('q_val',q_value)
 
 Basic.py includes a concrete example. Then the algorithm can be run as usual. For example, in the case where we want to visualize the metric 'q_val' for each episode/rollout and close the animation after every episode in basic.py, we run:
 
-`python3 src/main.py n_epochs=2 wandb=0 algorithm=basic env=FetchReach-v1 render_args=[['none',1,[['q_val',1],['q_val',1]]],['none',10,[['q_val',1],['q_val',1]]]]`
+`python3 src/main.py n_epochs=2 wandb=0 algorithm=basic env=FetchReach-v2 render_args=[['none',1,[['q_val',1],['q_val',1]]],['none',10,[['q_val',1],['q_val',1]]]]`
 
 We concurrently display the interactions of the agent with the environment every step.

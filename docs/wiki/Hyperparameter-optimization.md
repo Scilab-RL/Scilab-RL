@@ -33,7 +33,7 @@ Here we have to change `- override /algorithm: sac` to `- override /algorithm: s
 ```
 n_epochs: 10
 
-env: 'FetchReach-v1'
+env: 'FetchReach-v2'
 
 algorithm:
   replay_buffer_class: HerReplayBuffer
@@ -113,7 +113,7 @@ defaults:
   - override /algorithm: sac_mod
 
 # overwrite default parameters.
-env: 'FetchReach-v1'
+env: 'FetchReach-v2'
 
 algorithm:
   replay_buffer_class: HerReplayBuffer
@@ -152,7 +152,7 @@ hydra:
 We can run the experiment with `python src/main.py +performance=FetchReach/sac_mod-opti --multirun`.
 If everything goes well you should see something like
 ```
-[2022-04-21 11:51:41,322][HYDRA] Launching jobs, sweep output dir : data/428cbb5/FetchReach-v1/11-51-41
+[2022-04-21 11:51:41,322][HYDRA] Launching jobs, sweep output dir : data/428cbb5/FetchReach-v2/11-51-41
 [2022-04-21 11:51:41,322][HYDRA] 	#0 : ++algorithm.critic_select=min +performance=FetchReach/sac_mod-opti n_epochs=60
 [2022-04-21 11:51:41,322][HYDRA] 	#1 : ++algorithm.critic_select=min +performance=FetchReach/sac_mod-opti n_epochs=60
 [2022-04-21 11:51:41,322][HYDRA] 	#2 : ++algorithm.critic_select=min +performance=FetchReach/sac_mod-opti n_epochs=60

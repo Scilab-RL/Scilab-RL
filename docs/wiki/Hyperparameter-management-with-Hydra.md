@@ -13,7 +13,7 @@ Hydra works with configuration files. We store our configurations in `conf`. The
 ![image](uploads/0991a38dfd18236520ef1bfa5af537cc/image.png)
 
 ## Default parameters
-Hydra loads the hyperparameters from `main.yaml`, which in turn loads most of the default parameters from `default_params/default.yaml`. When we run `python src/main.py`, hydra automatically adds all the default parameters from this config. For example, the default environment is specified in `default.yaml` with `env: 'FetchReach-v1'`. `default.yaml` also contains good explanations for the most important arguments!
+Hydra loads the hyperparameters from `main.yaml`, which in turn loads most of the default parameters from `default_params/default.yaml`. When we run `python src/main.py`, hydra automatically adds all the default parameters from this config. For example, the default environment is specified in `default.yaml` with `env: 'FetchReach-v2'`. `default.yaml` also contains good explanations for the most important arguments!
 
 ## Override arguments
 Let's say we want to choose a different environment. Then we can specify it by setting the `env` argument like this: `python src/main.py env=reach_target-state-v0`. Note that we do not need any quotes like `""` or `''` for the environment name.
@@ -28,7 +28,7 @@ With `++`, you can override arguments or add them if they're not in the default 
 The advantage of hydra is that we do not have to type out all the hyperparameters every run, but can reuse them with hierarchical configurations. For example, we have a configuration file for each algorithm. This contains the default parameters for the algorithm. Hierarchical arguments are referenced with a `.`, e.g. the learning rate of the algorithm can be set with `++algorithm.learning_rate=0.007`.
 
 ## Performance
-The `performance` folder contains configurations for hyperparameter optimization and performance testing. They have to be run with the `--multirun` flag. E.g. to run performance testing for the `FetchReach-v1` environment with SAC & HER, run `python src/main.py +performance=FetchReach/sac_her-opti --multirun`. More on this in the [Hyperparameter optimization tutorial](Hyperparameter-optimization).
+The `performance` folder contains configurations for hyperparameter optimization and performance testing. They have to be run with the `--multirun` flag. E.g. to run performance testing for the `FetchReach-v2` environment with SAC & HER, run `python src/main.py +performance=FetchReach/sac_her-opti --multirun`. More on this in the [Hyperparameter optimization tutorial](Hyperparameter-optimization).
 
 ## Smoke test config
 `smoke_test.yaml` is the configuration for smoke tests.
