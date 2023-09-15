@@ -1,8 +1,3 @@
-#For MuJoCo
-export MUJOCO_PY_MUJOCO_PATH=${HOME}/.mujoco/mujoco210
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MUJOCO_PY_MUJOCO_PATH/bin
-
-
 if [ -x "$(command -v nvidia-smi)" ]; then
   nv_version_long=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader)
   nv_version=${nv_version_long:0:3}
