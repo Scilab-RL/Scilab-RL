@@ -1,7 +1,7 @@
 """
 All custom environments must be registered here, otherwise they won't be found.
 """
-from gym.envs.registration import register
+from gymnasium.envs.registration import register
 import highway_env
 
 def register_custom_envs():
