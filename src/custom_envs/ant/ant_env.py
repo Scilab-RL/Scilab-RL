@@ -1,9 +1,9 @@
 import numpy as np
-from gym.envs.robotics.robot_env import RobotEnv
-from gym.envs.robotics.fetch_env import goal_distance
+from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
+from gymnasium_robotics.envs.fetch.fetch_env import goal_distance
 
 
-class AntEnv(RobotEnv):
+class AntEnv(MujocoEnv):
     def __init__(self, model_path, reward_type='sparse', distance_threshold=0.4):
         self.reward_type = reward_type
         self.distance_threshold = distance_threshold
