@@ -1,14 +1,14 @@
 defaults:
   # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg')
   # here we use hydras config group defaults
+  - _self_
   - algorithm: 'basic'
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
   - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time. The standard launcher is much better for debugging.
-  - _self_
 
 # The name of the OpenAI Gym environment that you want to train on.
-env: 'FetchReach-v1'
+env: 'FetchReach-v2'
 
 # keyword arguments for the environment
 env_kwargs: {}
