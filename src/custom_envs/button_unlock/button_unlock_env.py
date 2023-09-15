@@ -1,12 +1,14 @@
 import os
 import numpy as np
-from gym import spaces
-from gym.utils import EzPickle
-from gym.envs.robotics import fetch_env, utils
+from gymnasium import spaces
+from gymnasium.utils import EzPickle
+from gymnasium_robotics.envs.fetch.fetch_env import MujocoFetchEnv
+from gymnasium_robotics.utils.mujoco_utils import get_joint_qpos, set_joint_qpos
+from custom_envs.blocks.blocks_env import get_geom_xpos, get_geom_xmat, get_geom_xvelp, get_geom_xvelr
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'button_unlock.xml')
 
-class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
+class ButtonUnlockEnv(MujocoFetchEnv, EzPickle):
     """
     Environment with causal dependencies:
     The robot has to reach n key locations (buttons) to unlock the goal location.
@@ -36,7 +38,7 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
         self.goal = np.zeros(3)
         self.reset_since_last_goal_sampled = False
 
-        super().__init__(model_xml_path, has_object=False, block_gripper=True, n_substeps=20,
+        super().__init__(model_path=model_xml_path, has_object=False, block_gripper=True, n_substeps=20,
                          gripper_extra_height=0, target_in_the_air=True, target_offset=0.0,
                          obj_range=0.15, target_range=0.15, distance_threshold=0.03,
                          initial_qpos=initial_qpos, reward_type=reward_type)
@@ -52,34 +54,34 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
 
         # little changes in the grippers height would accumulate over time.
         # The following forces the gripper to stay at its initial height.
-        z = 0.435 - self.sim.data.get_site_xpos('robot0:grip')[2]
+        z = 0.435 - self._utils.get_site_xpos(self.model, self.data, 'robot0:grip')[2]
 
         action = np.concatenate([action, [z], rot_ctrl])
 
         # Apply action to simulation.
-        utils.mocap_set_action(self.sim, action)
+        self._utils.mocap_set_action(self.model, self.data, action)
 
     def _get_obs(self):
-        grip_pos = self.sim.data.get_site_xpos('robot0:grip')
-        dt = self.sim.nsubsteps * self.sim.model.opt.timestep
-        grip_velp = self.sim.data.get_site_xvelp('robot0:grip') * dt
+        grip_pos = self._utils.get_site_xpos(self.model, self.data, 'robot0:grip')
+        dt = self.n_substeps * self.model.opt.timestep
+        grip_velp = self._utils.get_site_xvelp(self.model, self.data, 'robot0:grip') * dt
 
         buttons_pos = np.empty(self.n_buttons * 2)
         for i in range(self.n_buttons):
             # we only care for the x-y-position of the buttons,
             # since the buttons do not rotate nor move and are always at the same height.
-            pos = self.sim.data.get_geom_xpos('object{}'.format(i))[:2]
+            pos = get_geom_xpos(self.model, self.data, 'object{}'.format(i))[:2]
             buttons_pos[2 * i:2 * i + 2] = pos
             # remove subgoal if robot is close to it
             if i > 0:
                 if np.linalg.norm(grip_pos[:2] - pos) < self.distance_threshold:
                     self.locked[i - 1] = 0
-                    geom_id = self.sim.model._geom_name2id['object{}'.format(i)]
-                    self.sim.model.geom_rgba[geom_id] = [0.1, 0.9, 0.1, 1]
+                    geom_id = self._model_names.geom_name2id['object{}'.format(i)]
+                    self.model.geom_rgba[geom_id] = [0.1, 0.9, 0.1, 1]
 
         # open cage if all subgoals were reached
         if np.all([l == 0 for l in self.locked]) or len(self.locked) == 0:
-            self.sim.data.set_joint_qpos('cage:glassjoint', -1.99)
+            set_joint_qpos(self.model, self.data, 'cage:glassjoint', -1.99)
 
         obs = np.concatenate([grip_pos, buttons_pos, grip_velp, self.locked])
 
@@ -96,7 +98,9 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
         pass
 
     def _reset_sim(self):
-        self.sim.set_state(self.initial_state)
+        self.data.time = self.initial_time
+        self.data.qpos[:] = np.copy(self.initial_qpos)
+        self.data.qvel[:] = np.copy(self.initial_qvel)
         self.locked = np.ones(self.n_buttons-1)
         # randomize start position of buttons
         for i in range(self.n_buttons):
@@ -109,28 +113,28 @@ class ButtonUnlockEnv(fetch_env.FetchEnv, EzPickle):
                 closest_dist = np.linalg.norm(button_xy - self.initial_gripper_xpos[:2])
                 # Iterate through all previously placed buttons and select closest:
                 for o_other in range(i):
-                    other_xpos = self.sim.data.get_joint_qpos('object{}:joint'.format(o_other)).copy()[:2]
+                    other_xpos = get_joint_qpos(self.model, self.data, 'object{}:joint'.format(o_other)).copy()[:2]
                     dist = np.linalg.norm(button_xy - other_xpos)
                     closest_dist = min(dist, closest_dist)
                 if closest_dist > self.sample_dist_threshold:
                     too_close = False
 
-            object_qpos = self.sim.data.get_joint_qpos('object{}:joint'.format(i))
+            object_qpos = get_joint_qpos(self.model, self.data, 'object{}:joint'.format(i))
             assert object_qpos.shape == (7,)
             object_qpos[:2] = button_xy
             object_qpos[2] = self.table_height + 0.008
-            self.sim.data.set_joint_qpos('object{}:joint'.format(i), object_qpos)
+            set_joint_qpos(self.model, self.data, 'object{}:joint'.format(i), object_qpos)
             # also reset the buttons color
             if i > 0:
-                geom_id = self.sim.model._geom_name2id['object{}'.format(i)]
-                self.sim.model.geom_rgba[geom_id] = [0.1, 0.1, 0.9, 1]
+                geom_id = self._model_names.geom_name2id['object{}'.format(i)]
+                self.model.geom_rgba[geom_id] = [0.1, 0.1, 0.9, 1]
 
         # set cage position
-        goal_pos = self.sim.data.get_joint_qpos('object0:joint').copy()
+        goal_pos = get_joint_qpos(self.model, self.data, 'object0:joint').copy()
         goal_pos[2] = self.table_height + 0.05
-        self.sim.data.set_joint_qpos('cage:joint', goal_pos)
+        set_joint_qpos(self.model, self.data, 'cage:joint', goal_pos)
 
-        self.sim.forward()
+        self._mujoco.mj_forward(self.model, self.data)
         self.reset_since_last_goal_sampled = True
         return True
 

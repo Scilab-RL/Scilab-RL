@@ -1,12 +1,60 @@
 import os
 import numpy as np
-from gym.utils import EzPickle
-from gym.envs.robotics import fetch_env, rotations, utils
+from gymnasium.utils import EzPickle
+from gymnasium_robotics.utils import rotations
+from gymnasium_robotics.utils.mujoco_utils import get_joint_qpos, set_joint_qpos
+from gymnasium_robotics.envs.fetch.fetch_env import MujocoFetchEnv
+import mujoco
+from mujoco import MjData, MjModel, mjtObj
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'blocks.xml')
 
 
-class BlocksEnv(fetch_env.FetchEnv, EzPickle):
+def get_geom_xpos(model, data, name):
+    geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, name)
+    return data.geom_xpos[geom_id]
+
+
+def get_geom_xvelp(model, data, name):
+    geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, name)
+    jacp = get_geom_jacp(model, data, geom_id)
+    xvelp = jacp @ data.qvel
+    return xvelp
+
+
+def get_geom_xvelr(model, data, name):
+    geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, name)
+    jacp = get_geom_jacr(model, data, geom_id)
+    xvelp = jacp @ data.qvel
+    return xvelp
+
+
+def get_geom_jacp(model, data, geom_id):
+    """Return the Jacobian' translational component of the end-effector of
+    the corresponding geom id.
+    """
+    jacp = np.zeros((3, model.nv))
+    mujoco.mj_jacGeom(model, data, jacp, None, geom_id)
+
+    return jacp
+
+
+def get_geom_jacr(model, data, geom_id):
+    """Return the Jacobian' rotational component of the end-effector of
+    the corresponding geom id.
+    """
+    jacr = np.zeros((3, model.nv))
+    mujoco.mj_jacGeom(model, data, None, jacr, geom_id)
+
+    return jacr
+
+
+def get_geom_xmat(model: MjModel, data: MjData, name: str):
+    geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, name)
+    return data.geom_xmat[geom_id].reshape(3, 3)
+
+
+class BlocksEnv(MujocoFetchEnv, EzPickle):
     """
     Environment for block-stacking. Up to four blocks can be stacked.
     """
@@ -40,29 +88,29 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
 
         has_object = self.n_objects > 0
 
-        super().__init__(model_xml_path, has_object=has_object, block_gripper=False, n_substeps=20,
+        super().__init__(model_path=model_xml_path, has_object=has_object, block_gripper=False, n_substeps=20,
                          gripper_extra_height=0.2, target_in_the_air=True, target_offset=0.0,
                          obj_range=0.15, target_range=0.14, distance_threshold=distance_threshold,
                          initial_qpos=initial_qpos, reward_type=reward_type)
         EzPickle.__init__(self)
 
     def _get_obs(self):
-        grip_pos = self.sim.data.get_site_xpos('robot0:grip')
-        dt = self.sim.nsubsteps * self.sim.model.opt.timestep
-        grip_velp = self.sim.data.get_site_xvelp('robot0:grip') * dt
-        robot_qpos, robot_qvel = utils.robot_get_obs(self.sim)
+        grip_pos = self._utils.get_site_xpos(self.model, self.data, "robot0:grip")
+        dt = self.n_substeps * self.model.opt.timestep
+        grip_velp = self._utils.get_site_xvelp(self.model, self.data, "robot0:grip") * dt
+        robot_qpos, robot_qvel = self._utils.robot_get_obs(self.model, self.data, self._model_names.joint_names)
         gripper_state = robot_qpos[-2:]
         gripper_vel = robot_qvel[-2:] * dt
 
         object_pos, object_rot, object_velp, object_velr = (np.empty(self.n_objects * 3) for _ in range(4))
         for i in range(self.n_objects):
             # position
-            object_pos[i * 3:(i + 1) * 3] = self.sim.data.get_geom_xpos('object{}'.format(i))
+            object_pos[i * 3:(i + 1) * 3] = get_geom_xpos(self.model, self.data, 'object{}'.format(i))
             # rotation
-            object_rot[i * 3:(i + 1) * 3] = rotations.mat2euler(self.sim.data.get_geom_xmat('object{}'.format(i)))
+            object_rot[i * 3:(i + 1) * 3] = rotations.mat2euler(get_geom_xmat(self.model, self.data, 'object{}'.format(i)))
             # velocities
-            object_velp[i * 3:(i + 1) * 3] = self.sim.data.get_geom_xvelp('object{}'.format(i)) * dt
-            object_velr[i * 3:(i + 1) * 3] = self.sim.data.get_geom_xvelr('object{}'.format(i)) * dt
+            object_velp[i * 3:(i + 1) * 3] = get_geom_xvelp(self.model, self.data, 'object{}'.format(i)) * dt
+            object_velr[i * 3:(i + 1) * 3] = get_geom_xvelr(self.model, self.data, 'object{}'.format(i)) * dt
 
         obs = np.concatenate([grip_pos, object_pos, gripper_state, object_rot,
                               grip_velp, object_velp, object_velr, gripper_vel])
@@ -82,14 +130,16 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
         start_idx = 0
         if self.gripper_goal != 'gripper_none':
             start_idx = 3
-            site_id = self.sim.model.site_name2id('gripper_goal')
-            self.sim.model.site_pos[site_id] = self.goal[:3].copy()
+            site_id = self._model_names.site_name2id['gripper_goal']
+            self.model.site_pos[site_id] = self.goal[:3].copy()
         for i in range(self.n_objects):
-            site_id = self.sim.model.site_name2id('object{}_goal'.format(i))
-            self.sim.model.site_pos[site_id] = self.goal[start_idx + 3 * i:start_idx + 3 * i + 3].copy()
+            site_id = self._model_names.site_name2id['object{}_goal'.format(i)]
+            self.model.site_pos[site_id] = self.goal[start_idx + 3 * i:start_idx + 3 * i + 3].copy()
 
     def _reset_sim(self):
-        self.sim.set_state(self.initial_state)
+        self.data.time = self.initial_time
+        self.data.qpos[:] = np.copy(self.initial_qpos)
+        self.data.qvel[:] = np.copy(self.initial_qvel)
         # randomize start position of objects
         for o in range(self.n_objects):
             oname = 'object{}'.format(o)
@@ -102,18 +152,18 @@ class BlocksEnv(fetch_env.FetchEnv, EzPickle):
                 closest_dist = np.linalg.norm(object_xpos - self.initial_gripper_xpos[:2])
                 # Iterate through all previously placed boxes and select closest:
                 for o_other in range(o):
-                    other_xpos = self.sim.data.get_geom_xpos('object{}'.format(o_other))[:2]
+                    other_xpos = get_geom_xpos(self.model, self.data, 'object{}'.format(o_other))[:2]
                     dist = np.linalg.norm(object_xpos - other_xpos)
                     closest_dist = min(dist, closest_dist)
                 if closest_dist > self.sample_dist_threshold:
                     too_close = False
 
-            object_qpos = self.sim.data.get_joint_qpos('{}:joint'.format(oname))
+            object_qpos = get_joint_qpos(self.model, self.data, '{}:joint'.format(oname))
             assert object_qpos.shape == (7,)
             object_qpos[:2] = object_xpos
             object_qpos[2] = self.table_height + (self.object_height / 2)
-            self.sim.data.set_joint_qpos('{}:joint'.format(oname), object_qpos)
-        self.sim.forward()
+            set_joint_qpos(self.model, self.data, '{}:joint'.format(oname), object_qpos)
+        self._mujoco.mj_forward(self.model, self.data)
         return True
 
     def _sample_goal(self):

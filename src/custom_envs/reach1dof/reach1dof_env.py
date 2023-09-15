@@ -1,13 +1,13 @@
 import os
 import numpy as np
-from gym.utils import EzPickle
-from gym.envs.robotics.fetch_env import FetchEnv
-from gym import spaces
+from gymnasium.utils import EzPickle
+from gymnasium_robotics.envs.fetch.fetch_env import MujocoFetchEnv
+from gymnasium import spaces
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'blocks.xml')
 
 
-class Reach1DOFEnv(FetchEnv, EzPickle):
+class Reach1DOFEnv(MujocoFetchEnv, EzPickle):
     """
     This is a very easy reacher-environment with only one degree of freedom.
     """
@@ -23,7 +23,7 @@ class Reach1DOFEnv(FetchEnv, EzPickle):
             'robot0:slide2': 0,
         }
         self.goal_size = 1
-        super().__init__(model_xml_path, has_object=False, block_gripper=False, n_substeps=20,
+        super().__init__(model_path=model_xml_path, has_object=False, block_gripper=False, n_substeps=20,
                          gripper_extra_height=0.2, target_in_the_air=True, target_offset=0.0,
                          obj_range=0.15, target_range=0.15, distance_threshold=0.05,
                          initial_qpos=initial_qpos, reward_type=reward_type)
@@ -31,9 +31,9 @@ class Reach1DOFEnv(FetchEnv, EzPickle):
         EzPickle.__init__(self)
 
     def _get_obs(self):
-        grip_pos = self.sim.data.get_site_xpos('robot0:grip')
-        dt = self.sim.nsubsteps * self.sim.model.opt.timestep
-        grip_velp = self.sim.data.get_site_xvelp('robot0:grip') * dt
+        grip_pos = self._utils.get_site_xpos(self.model, self.data, 'robot0:grip')
+        dt = self.n_substeps * self.model.opt.timestep
+        grip_velp = self._utils.get_site_xvelp(self.model, self.data, 'robot0:grip') * dt
 
         obs = np.concatenate([grip_pos, grip_velp])
         achieved_goal = obs[:self.goal_size]
@@ -47,12 +47,14 @@ class Reach1DOFEnv(FetchEnv, EzPickle):
     def _render_callback(self):
         goal_pos = self.initial_gripper_xpos.copy()
         goal_pos[0] = self.goal[0]
-        site_id = self.sim.model.site_name2id('gripper_goal')
-        self.sim.model.site_pos[site_id] = goal_pos
+        site_id = self._model_names.site_name2id('gripper_goal')
+        self.model.site_pos[site_id] = goal_pos
 
     def _reset_sim(self):
-        self.sim.set_state(self.initial_state)
-        self.sim.forward()
+        self.data.time = self.initial_time
+        self.data.qpos[:] = np.copy(self.initial_qpos)
+        self.data.qvel[:] = np.copy(self.initial_qvel)
+        self._mujoco.mj_forward(self.model, self.data)
         return True
 
     def _sample_goal(self):
