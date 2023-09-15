@@ -1,11 +1,11 @@
 import os
 import subprocess
-import gym
+import gymnasium as gym
 
 from typing import Callable
 from utils.animation_util import LiveAnimationPlot
 
-from gym.wrappers.monitoring import video_recorder
+from gymnasium.wrappers.monitoring import video_recorder
 
 
 class DisplayWrapper(gym.Wrapper):
@@ -75,7 +75,9 @@ class DisplayWrapper(gym.Wrapper):
             return self.episode_trigger(self.episode_id)
 
     def step(self, action):
-        observations, rewards, dones, infos = self.env.step(action)
+        observations, rewards, terminated, truncated, infos = self.env.step(action)
+
+        dones = terminated | truncated
 
         # increment steps, episodes and epochs
         if self.steps_per_epoch:
@@ -96,7 +98,8 @@ class DisplayWrapper(gym.Wrapper):
                 self.episode_in_epoch_id += 1
 
         if self.displaying:
-            self.env.render(mode='human')
+            self.env.unwrapped.render_mode = 'human'
+            self.env.render()
             # metrics stuff
             if self.display_metrics:
                 for i in range(self.num_metrics):
@@ -119,7 +122,7 @@ class DisplayWrapper(gym.Wrapper):
                 self.step_in_episode_id = 0
         elif dones[0]:
             self.step_in_episode_id = 0
-        return observations, rewards, dones, infos
+        return observations, rewards, terminated, truncated, infos
 
     def close_displayer(self) -> None:
         if self.displaying:
@@ -208,6 +211,7 @@ class RecordVideo(gym.Wrapper):
             video_name = f"{self.name_prefix}-episode-{self.episode_id}"
 
         self.base_path = os.path.join(self.video_folder, video_name)
+        self.env.unwrapped.render_mode = 'rgb_array'
         self.video_recorder = video_recorder.VideoRecorder(
             env=self.env,
             base_path=self.base_path,
@@ -227,7 +231,9 @@ class RecordVideo(gym.Wrapper):
             return self.episode_trigger(self.episode_id)
 
     def step(self, action):
-        observations, rewards, dones, infos = super(RecordVideo, self).step(action)
+        observations, rewards, terminated, truncated, infos = super(RecordVideo, self).step(action)
+
+        dones = terminated | truncated
 
         # increment steps, episodes and epochs
         if self.steps_per_epoch:
@@ -275,7 +281,7 @@ class RecordVideo(gym.Wrapper):
         elif dones[0]:
             self.step_in_episode_id = 0
 
-        return observations, rewards, dones, infos
+        return observations, rewards, terminated, truncated, infos
 
     def close_video_recorder(self) -> None:
         if self.recording:
