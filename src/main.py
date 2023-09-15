@@ -4,7 +4,7 @@ import importlib
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import mlflow
-import gym
+import gymnasium as gym
 import wandb
 
 from stable_baselines3.her import HerReplayBuffer
@@ -121,7 +121,7 @@ def create_callbacks(cfg, logger, eval_env):
 
 
 # config_path is relative to the location of the Python script
-@hydra.main(config_name="main", config_path="../conf")
+@hydra.main(config_name="main", config_path="../conf", version_base="1.1.2")
 def main(cfg: DictConfig) -> (float, int):
     run_dir = os.getcwd()
     if cfg.restore_policy is not None:
