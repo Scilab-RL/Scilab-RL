@@ -51,7 +51,6 @@ test_envs() {
     exit 1
   fi
 }
-export CUDA_VISIBLE_DEVICES=""
 test_algos
 test_envs
 echo "All smoke tests passed successfully."
@@ -69,7 +68,6 @@ test_render() {
   fi
 
 }
-export CUDA_VISIBLE_DEVICES=""
 test_render
 echo "All render tests passed successfully."
 
@@ -111,6 +109,5 @@ test_loading() {
     done
   done
 }
-export CUDA_VISIBLE_DEVICES=""
 test_loading
 echo "All loading tests passed successfully."
