@@ -2,7 +2,8 @@ import os
 import numpy as np
 from gymnasium_robotics.utils import rotations
 from gymnasium_robotics.utils.mujoco_utils import get_joint_qpos, set_joint_qpos
-from custom_envs.blocks.blocks_env import BlocksEnv, get_geom_xpos, get_geom_xmat, get_geom_xvelp, get_geom_xvelr
+from custom_envs.blocks.blocks_env import BlocksEnv
+from custom_envs.mujoco_utils import get_geom_xpos, get_geom_xmat, get_geom_xvelp, get_geom_xvelr
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'hook.xml')
 POS_MIN, POS_MAX = [0.28, -0.15, 0.42], [0.34, 0.15, 0.42]
