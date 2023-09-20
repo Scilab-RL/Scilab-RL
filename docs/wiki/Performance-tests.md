@@ -28,7 +28,6 @@ algorithm:
   replay_buffer_kwargs:
     n_sampled_goal: 1
     goal_selection_strategy: 'future'
-    online_sampling: True
 
 ```
 This just specifies that the performance test is for the `sac` algorithm with the HER replay buffer and the `FetchReach-v2` environment.

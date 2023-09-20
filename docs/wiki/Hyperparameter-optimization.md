@@ -47,7 +47,6 @@ algorithm:
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'
-    online_sampling: True
 ``` 
 Delete `n_epochs: 10` because we would like to use the default `n_epochs=60` here.
 The rest can be left as-is, because we still want to optimize for the FetchReach environment and use hindsight experience replay.
@@ -127,7 +126,6 @@ algorithm:
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'
-    online_sampling: True
 
 hydra:
   sweeper:

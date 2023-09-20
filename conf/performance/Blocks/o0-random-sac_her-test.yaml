@@ -21,7 +21,6 @@ algorithm:
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'
-    online_sampling: True
 
 performance_testing_conditions:
   # In 2 out of 3 tests, the eval/success rate should be at least 0.9 after 10k steps.
