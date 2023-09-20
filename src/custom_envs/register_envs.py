@@ -30,29 +30,6 @@ def register_custom_envs():
                  kwargs={'n_buttons': n_objects+1},
                  max_episode_steps=max(50, 50*n_objects))
 
-        register(id=f'AntButtonUnlock-o{n_objects}-v1',
-                 entry_point='custom_envs.ant.ant_button_unlock_env:AntButtonUnlockEnv',
-                 kwargs={'n_buttons': n_objects+1},
-                 max_episode_steps=500*(n_objects+1))
-
-    register(id='Ant4Rooms-v1',
-             entry_point='custom_envs.ant.ant_4_rooms_env:Ant4RoomsEnv',
-             kwargs={},
-             max_episode_steps=600)
-
-    register(id='AntReacher-v1',
-             entry_point='custom_envs.ant.ant_reacher_env:AntReacherEnv',
-             kwargs={},
-             max_episode_steps=500)
-
-    # Ant environments from HIRO paper
-    for task in ['Maze', 'Push', 'Fall']:
-        kwargs = {'task': task}
-        register(id=f'Ant{task}-v0',
-                 entry_point='custom_envs.ant.ant_maze_push_fall_env:AntMazePushFallEnv',
-                 kwargs=kwargs,
-                 max_episode_steps=600)
-
     register(
         id='parking-limited-v0',
         entry_point='highway_env.envs:ParkingEnv',
