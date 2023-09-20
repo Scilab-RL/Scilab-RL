@@ -81,9 +81,11 @@ test_loading() {
     ALGOS+=($config)
   done
   local ENVS="FetchReach-v2,parking-limited-v0"
+  # delete directory for loading_tests so that we only load the policies that we save now
+  rm -rf data/loading_tests
   for ALG in ${ALGOS[@]}; do
     # Don't have xvfb? install it with sudo apt-get install xvfb
-    if ! xvfb-run -a python3 src/main.py env=$ENVS algorithm=$ALG +performance=smoke_test render=none base_logdir="data/$ALG" --multirun;
+    if ! xvfb-run -a python3 src/main.py env=$ENVS algorithm=$ALG +performance=smoke_test render=none base_logdir="data/loading_tests/$ALG" --multirun;
     then
       exit 1
     fi
@@ -92,7 +94,7 @@ test_loading() {
   local ENVS=("FetchReach-v2" "parking-limited-v0")
   for ALG in ${ALGOS[@]}; do
     # Find pre-trained algorithms from above
-    TRIALS=( $(find "$(pwd)/data/$ALG/" -name "rl_model_finished*") )
+    TRIALS=( $(find "$(pwd)/data/loading_tests/$ALG/" -name "rl_model_finished*") )
     for TRIAL_LINE in ${TRIALS[@]}; do
       for ENV in ${ENVS[@]}; do
         if [[ -n $(echo "$TRIAL_LINE" | grep -e "$ENV" ) ]]; then
