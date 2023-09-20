@@ -22,7 +22,7 @@ _conda_install_pytorch() {
     pip uninstall torch -y
     conda uninstall cpuonly -y
     # install gpu version
-    conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia -y --force-reinstall
+    conda install pytorch-cuda=11.7 -c pytorch -c nvidia -y --force-reinstall
   else
     info "Installing pytorch cpu version"
     conda install pytorch=2.0.1 -c pytorch -y
