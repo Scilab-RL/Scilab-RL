@@ -3,7 +3,7 @@
 defaults:
   - override /algorithm: sac
 
-env: 'FetchPickAndPlace-v1'
+env: 'FetchPickAndPlace-v2'
 
 algorithm:
   replay_buffer_class: HerReplayBuffer

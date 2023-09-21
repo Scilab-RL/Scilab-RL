@@ -5,7 +5,7 @@ defaults:
 
 n_epochs: 100
 
-env: 'FetchPush-v1'
+env: 'FetchPush-v2'
 
 algorithm:
   replay_buffer_class: HerReplayBuffer

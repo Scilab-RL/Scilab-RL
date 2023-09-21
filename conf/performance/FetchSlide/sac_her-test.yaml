@@ -3,7 +3,7 @@
 defaults:
   - override /algorithm: sac
 
-env: 'FetchSlide-v1'
+env: 'FetchSlide-v2'
 
 algorithm:
   replay_buffer_class: HerReplayBuffer
