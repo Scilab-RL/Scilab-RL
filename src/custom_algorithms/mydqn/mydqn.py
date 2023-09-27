@@ -114,11 +114,8 @@ class MYDQN:
             epsilon = linear_schedule(self.start_e, self.end_e, int(self.exploration_fraction * total_timesteps),
                                       global_step)
             self.logger.record("rollout/exploration_rate", epsilon)
-            if random.random() < epsilon:
-                actions = np.array([self.env.action_space.sample() for _ in range(self.env.num_envs)])
-            else:
-                q_values = self.q_network(torch.Tensor(obs).to(device))
-                actions = torch.argmax(q_values, dim=1).cpu().numpy()
+
+            actions, _ = self.predict(obs=obs, state=None, deterministic=False, episode_start=False, epsilon=epsilon)
 
             next_obs, rewards, done, infos = self.env.step(actions)  # VecEnv automatically resets
 
@@ -165,9 +162,12 @@ class MYDQN:
                 self.tau * q_network_param.data + (1.0 - self.tau) * target_network_param.data
             )
 
-    def predict(self, obs, state, episode_start, deterministic):
-        q_values = self.q_network(torch.Tensor(obs).to(device))
-        actions = torch.argmax(q_values, dim=1).cpu().numpy()
+    def predict(self, obs, state, episode_start, deterministic, epsilon=0.):
+        if random.random() < epsilon and not deterministic:
+            actions = np.array([self.env.action_space.sample() for _ in range(self.env.num_envs)])
+        else:
+            q_values = self.q_network(torch.Tensor(obs).to(device))
+            actions = torch.argmax(q_values, dim=1).cpu().numpy()
         return actions, state
 
     def save(self, path):
