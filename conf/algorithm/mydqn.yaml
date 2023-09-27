@@ -1,0 +1,18 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+
+algorithm:
+  name: 'mydqn'
+  learning_rate: 2.5e-4
+  start_e: 1
+  end_e: 0.05
+  exploration_fraction: 0.5
+  learning_starts: 1000 # 10_000
+  train_frequency: 10
+  target_network_frequency: 500
+  tau: 1.
+  gamma: 0.99
+  batch_size: 128
+
+early_stop_data_column: 'eval/mean_reward'
+early_stop_threshold: 500
