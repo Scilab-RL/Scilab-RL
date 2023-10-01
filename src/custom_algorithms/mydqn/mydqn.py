@@ -45,13 +45,13 @@ class MYDQN:
     :param start_e: the starting epsilon for exploration
     :param end_e: the final epsilon for exploration
     :param exploration_fraction: the fraction of the total steps it takes to go from start_e to end_e exploration
-    :learning_starts: start the training after learning_starts steps
-    :train_frequency: train the policy every train_frequency steps
-    target_network_frequency: update the target network every target_network_frequency steps
-    :tau: target network update rate
-    :gamma: the discount factor gamma
-    :batch_size: batch_size for the deep Q networks sampled from the replay buffer
-    buffer_size: size of the replay buffer memory
+    :param learning_starts: start the training after learning_starts steps
+    :param train_frequency: train the policy every train_frequency steps
+    :param target_network_frequency: update the target network every target_network_frequency steps
+    :param tau: target network update rate
+    :param gamma: the discount factor gamma
+    :param batch_size: size of the batches sampled from the replay buffer
+    :param buffer_size: size of the replay buffer memory
     """
     def __init__(self,
                  env: GymEnv,
@@ -80,11 +80,6 @@ class MYDQN:
         self.gamma = gamma
         self.batch_size = batch_size
 
-        self.num_timesteps = 0
-        self.n_updates = 0
-        self.callback = None
-        self.logger = None
-
         self.q_network = QNetwork(self.env).to(device)
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=learning_rate)
         self.target_network = QNetwork(self.env).to(device)
@@ -97,6 +92,11 @@ class MYDQN:
             device,
             handle_timeout_termination=False,
         )
+
+        self.num_timesteps = 0
+        self.n_updates = 0
+        self.logger = None
+        self.callback = None
 
     def learn(self, total_timesteps: int, callback, log_interval):
         """
