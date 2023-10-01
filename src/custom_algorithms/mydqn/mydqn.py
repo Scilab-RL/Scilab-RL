@@ -173,7 +173,8 @@ class MYDQN:
     def save(self, path):
         # Copy parameter list, so we don't mutate the original dict
         data = self.__dict__.copy()
-        for to_exclude in ["logger", "env", "num_timesteps", "n_updates", "q_network", "target_network", "callback"]:
+        for to_exclude in ["logger", "env", "num_timesteps", "n_updates",
+                           "rb", "q_network", "target_network", "callback"]:
             del data[to_exclude]
         # save network parameters
         data["state_dict"] = self.q_network.state_dict()
