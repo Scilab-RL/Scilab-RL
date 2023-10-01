@@ -48,7 +48,7 @@ class MYDQN:
     :param learning_starts: start the training after learning_starts steps
     :param train_frequency: train the policy every train_frequency steps
     :param target_network_frequency: update the target network every target_network_frequency steps
-    :param tau: target network update rate
+    :param tau: target network smoothing coefficient
     :param gamma: the discount factor gamma
     :param batch_size: size of the batches sampled from the replay buffer
     :param buffer_size: size of the replay buffer memory
