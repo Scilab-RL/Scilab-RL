@@ -102,7 +102,7 @@ class MYDQN:
         """
         learn to get a good reward for the environment
         :param total_timesteps: the maximum number of timesteps to train the agent
-        :callback: a Callback or CallbackList to call every step, e.g. EvalCallback
+        :param callback: a Callback or CallbackList to call every step, e.g. EvalCallback
         """
         self.callback = callback
         self.callback.init_callback(self)
