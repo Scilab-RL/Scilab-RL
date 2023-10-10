@@ -6,20 +6,20 @@ has_children: false
 nav_order: 2
 ---
 
-In this tutorial, you'll learn how to add a new custom _MuJoCo_ environment. Part of the tutorial might also be useful for adding environments that use other simulators like _CoppeliaSim_, but it is mainly for _MuJoCo_ environments. It is divided into four steps:
+In this tutorial, you'll learn how to add a new custom _MuJoCo_ environment. It is divided into four steps:
 
 1. Choose and test a base-environment
 2. Copy and rename the base-environment
 3. Register and test the new environment
 4. Modify the new environment
 
-As an example, we'll add a 1-DOF (degree of freedom) version of the `FetchReach-v1` environment by copying the `Blocks` environment.
+As an example, we'll add a 1-DOF (degree of freedom) version of the `FetchReach-v2` environment by copying the `Blocks` environment.
 
 # Choose and test a base-environment
 
 As a basis, use an environment that is as close as possible to the new environment you want to develop. A good start for a gripper-based environment is the gym version of `FetchReach`. You could also choose to base your new env on one of our [custom environments](Environments-Overview). 
 
-In our example, we'd like to create a very easy environment that is like the `FetchReach-v1` environment, but the robot only has one degree of freedom (DOF). As a basis, we choose the `BlocksEnv` environment from our custom environments, because it already inherits from the `FetchEnv`.
+In our example, we'd like to create a very easy environment that is like the `FetchReach-v2` environment, but the robot only has one degree of freedom (DOF). As a basis, we choose the `BlocksEnv` environment from our custom environments, because it already inherits from the `FetchEnv`.
 
 Run your favorite algorithm with this base environment and make sure it works as intended. It is also a good idea to take notes about the learning performance (how many training steps are required to achieve success). In our case we run `python src/main.py env=Blocks-o0-gripper_random-v1 wandb=0`, which uses the default algorithm SAC with HER, and achieves 1.0 `eval/success_rate` after the third epoch.
 
@@ -109,7 +109,7 @@ self.action_space = spaces.Box(-1.0, 1.0, shape=(1,), dtype="float32")
 ```
 at the end of `__init__()`, after the call to `super().__init__()`. Also add
 ```
-from gym import spaces
+from gymnasium import spaces
 ```
 to the imports.
 

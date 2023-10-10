@@ -26,12 +26,6 @@ source ./set_paths.sh
 
 You can select the GPU you want to train on with e.g. `export CUDA_VISIBLE_DEVICES=0` in your _venv_.
 
-# CoppeliaSim
-
-If you're using **CoppeliaSim**, you have to simulate a screen. There are two options:
-- Put `xvfb-run -a ` before your command.
-- Open a _tmux_ session, run `Xvfb :99` (or any other number if 99 is already taken) and then `Ctrl + B` `D` out of the tmux session. Before you run your experiment in your _venv_, `export DISPLAY=:99`.
-
 # Mounting storage
 
 You can **mount the server storage** to your PC with

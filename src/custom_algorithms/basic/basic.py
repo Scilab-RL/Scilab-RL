@@ -164,7 +164,7 @@ class BASIC:
 
         return [action]  # DummyVecEnv expects actions in a list
 
-    def predict(self, obs, state=None, deterministic=True, eval_policy=False):
+    def predict(self, obs, state=None, deterministic=True, episode_start=None):
         return self._get_action(obs, deterministic), state
 
     def get_env(self):

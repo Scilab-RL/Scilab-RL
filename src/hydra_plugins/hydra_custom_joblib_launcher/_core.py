@@ -51,9 +51,15 @@ def run_job(
         # are only available there.
         subdir = str(OmegaConf.select(config, job_subdir_key))
         working_dir = os.path.join(working_dir, subdir)
+
+    with read_write(config.hydra.runtime):
+        with open_dict(config.hydra.runtime):
+            config.hydra.runtime.output_dir = os.path.abspath(working_dir)
+
+    # update Hydra config
+    HydraConfig.instance().set_config(config)
     try:
         ret = JobReturn()
-        ret.working_dir = working_dir
         task_cfg = copy.deepcopy(config)
         with read_write(task_cfg):
             with open_dict(task_cfg):
@@ -80,7 +86,7 @@ def run_job(
             _save_config(config.hydra.overrides.task, "overrides.yaml", hydra_output)
 
         with env_override(hydra_cfg.hydra.job.env_set):
-            callbacks.on_job_start(config=config)
+            callbacks.on_job_start(config=config, task_function=task_function)
             try:
                 ret.return_value = task_function(task_cfg)
                 ret.status = JobStatus.COMPLETED

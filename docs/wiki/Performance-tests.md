@@ -20,7 +20,7 @@ defaults:
   - override /algorithm: sac
 
 # overwrite parameters of main.yaml
-env: 'FetchReach-v1'
+env: 'FetchReach-v2'
 
 algorithm:
   replay_buffer_class: HerReplayBuffer
@@ -28,10 +28,9 @@ algorithm:
   replay_buffer_kwargs:
     n_sampled_goal: 1
     goal_selection_strategy: 'future'
-    online_sampling: True
 
 ```
-This just specifies that the performance test is for the `sac` algorithm with the HER replay buffer and the `FetchReach-v1` environment.
+This just specifies that the performance test is for the `sac` algorithm with the HER replay buffer and the `FetchReach-v2` environment.
 
 ```
 performance_testing_conditions:

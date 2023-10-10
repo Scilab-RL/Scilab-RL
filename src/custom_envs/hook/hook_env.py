@@ -1,7 +1,9 @@
 import os
 import numpy as np
-from gym.envs.robotics import rotations
+from gymnasium_robotics.utils import rotations
+from gymnasium_robotics.utils.mujoco_utils import get_joint_qpos, set_joint_qpos
 from custom_envs.blocks.blocks_env import BlocksEnv
+from custom_envs.mujoco_utils import get_geom_xpos, get_geom_xmat, get_geom_xvelp, get_geom_xvelr
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'hook.xml')
 POS_MIN, POS_MAX = [0.28, -0.15, 0.42], [0.34, 0.15, 0.42]
@@ -25,26 +27,28 @@ class HookEnv(BlocksEnv):
         obs = super()._get_obs()
         observation = obs['observation']
 
-        dt = self.sim.nsubsteps * self.sim.model.opt.timestep
+        dt = self.n_substeps * self.model.opt.timestep
         # position
-        hook_pos = self.sim.data.get_geom_xpos('hook').copy()
+        hook_pos = get_geom_xpos(self.model, self.data, 'hook').copy()
         # rotation
-        hook_rot = rotations.mat2euler(self.sim.data.get_geom_xmat('hook')).copy()
+        hook_rot = rotations.mat2euler(get_geom_xmat(self.model, self.data, 'hook')).copy()
         # velocities
-        hook_velp = self.sim.data.get_geom_xvelp('hook').copy() * dt
-        hook_velr = self.sim.data.get_geom_xvelr('hook').copy() * dt
+        hook_velp = get_geom_xvelp(self.model, self.data, 'hook').copy() * dt
+        hook_velr = get_geom_xvelr(self.model, self.data, 'hook').copy() * dt
 
         obs['observation'] = np.concatenate([observation, hook_pos, hook_rot, hook_velp, hook_velr])
         return obs
 
     def _reset_sim(self):
-        self.sim.set_state(self.initial_state)
+        self.data.time = self.initial_time
+        self.data.qpos[:] = np.copy(self.initial_qpos)
+        self.data.qvel[:] = np.copy(self.initial_qvel)
         # randomize the position of the hook
         hook_pos = self.np_random.uniform(POS_MIN, POS_MAX)
-        hook_qpos = self.sim.data.get_joint_qpos('hook:joint')
+        hook_qpos = get_joint_qpos(self.model, self.data, 'hook:joint')
         assert hook_qpos.shape == (7,)
         hook_qpos[:3] = hook_pos
-        self.sim.data.set_joint_qpos('hook:joint', hook_qpos)
+        set_joint_qpos(self.model, self.data, 'hook:joint', hook_qpos)
 
         # randomize start position of objects
         for o in range(self.n_objects):
@@ -57,16 +61,16 @@ class HookEnv(BlocksEnv):
                 closest_dist = np.linalg.norm(object_xpos - hook_pos[:2])
                 # Iterate through all previously placed boxes and select closest:
                 for o_other in range(o):
-                    other_xpos = self.sim.data.get_geom_xpos('object{}'.format(o_other))[:2]
+                    other_xpos = get_geom_xpos(self.model, self.data, 'object{}'.format(o_other))[:2]
                     dist = np.linalg.norm(object_xpos - other_xpos)
                     closest_dist = min(dist, closest_dist)
                 if closest_dist > self.sample_dist_threshold:
                     too_close = False
 
-            object_qpos = self.sim.data.get_joint_qpos('{}:joint'.format(oname))
+            object_qpos = get_joint_qpos(self.model, self.data, '{}:joint'.format(oname))
             assert object_qpos.shape == (7,)
             object_qpos[:2] = object_xpos
             object_qpos[2] = self.table_height + (self.object_height / 2)
-            self.sim.data.set_joint_qpos('{}:joint'.format(oname), object_qpos)
-        self.sim.forward()
+            set_joint_qpos(self.model, self.data, '{}:joint'.format(oname), object_qpos)
+        self._mujoco.mj_forward(self.model, self.data)
         return True

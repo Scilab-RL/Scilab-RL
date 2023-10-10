@@ -9,7 +9,7 @@ The framework is tailored towards the rapid prototyping and development and eval
 * Built-in data visualization for fast and efficient debugging using MLFLow and Weights & Biases.
 * Support for many state-of-the-art algorithms via stable baselines 3 and extensible to others. 
 * Built-in hyperparameter optimization using Optuna
-* Easy development of new robotic simulation and real robot environments based on MuJoCo, CoppeliaSim, and PyBullet. 
+* Easy development of new robotic simulation and real robot environments based on MuJoCo.
 * Smoke and performance testing
 * Compatibility between a multitude of state-of-the-art algorithms for quick empirical comparison and evaluation. 
 * A focus on goal-conditioned reinforcement learning with hindsight experience replay to avoid environment-specific reward shaping. 
@@ -17,12 +17,8 @@ The framework is tailored towards the rapid prototyping and development and eval
 ## Table of Contents
 
 - [Requirements](#requirements)
-- [Getting Started](#getting-started)
-- [Supported Environments](#supported-environments)
-  * [OpenAI Gym / MuJoCo](#installation-instructions-on-mujoco)
-  * [CoppeliaSim and RLBench](#installation-instructions-on-coppeliasim-and-rlbench)
+- [Getting Started](#getting-started-using-the-setup-script)
 - [Supported Algorithms](#supported-algorithms)
-  * [Stable Baselines3 (SB3)](#stable-baselines3-(sb3))
 - [Hyperparameter optimization and management](#hyperparameter-optimization-and-management)
 - [Known Issues](#known-issues)
 
@@ -37,14 +33,11 @@ It is also important to install the following packages, if they are not yet ther
 
 ## Getting started using the setup script
 
-1. run `./scripts/setup.sh`. This will automatically install the Conda Python interpreter, along with all required packages. It will also install the robotic simulators MuJoCo and 
- CoppeliaSim.
+1. run `./scripts/setup.sh`. This will automatically install the Conda Python interpreter, along with all required packages. It will also install the robotic simulator MuJoCo.
 2. source your ~/.bashrc: `source ~/.bashrc`
 3. activate the conda python environment: `conda activate scilabrl`
 2. Optional but recommended: Use Weights and Biases (WandB). [Create an account](https://app.wandb.ai/login?signup=true). Run `wandb login` in the console and paste your API key. If you don't want to use WandB, run your experiments with the command line parameter `wandb=0`.
-3. Check your installation with
-   - `python3 src/main.py n_epochs=1 wandb=0 env=FetchReach-v1` for MuJoCo
-   - `python3 src/main.py n_epochs=1 wandb=0 env=reach_target-state-v0` for RLBench
+3. Check your installation with `python3 src/main.py n_epochs=1 wandb=0 env=FetchReach-v2`
 4. Look at the tutorials in the [wiki](https://scilab-rl.github.io/Scilab-RL/) for more details.
 
 You can also install all dependencies manually, but we do not recommend this. 

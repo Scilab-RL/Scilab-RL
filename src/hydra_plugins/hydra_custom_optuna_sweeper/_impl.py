@@ -167,7 +167,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         self.config = config
         self.config_loader = hydra_context.config_loader
         self.launcher = Plugins.instance().instantiate_launcher(
-            config=config, config_loader=hydra_context.config_loader, task_function=task_function
+            config=config, hydra_context=hydra_context, task_function=task_function
         )
         self.sweep_dir = config.hydra.sweep.dir
 
@@ -323,7 +323,7 @@ class CustomOptunaSweeperImpl(Sweeper):
         if not algos:
             algos = ['sac']
         if not envs:
-            envs = ['FetchReach-v1']
+            envs = ['FetchReach-v2']
         configs = []
         for a in algos:
             for e in envs:

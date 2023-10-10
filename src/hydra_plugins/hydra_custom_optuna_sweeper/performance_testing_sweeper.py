@@ -2,10 +2,9 @@ import datetime
 import time
 import logging
 from typing import List
-from hydra.core.config_loader import ConfigLoader
 from hydra.core.plugins import Plugins
 from hydra.plugins.sweeper import Sweeper
-from hydra.types import TaskFunction
+from hydra.types import TaskFunction, HydraContext
 from omegaconf import DictConfig
 from mlflow.tracking import MlflowClient
 
@@ -20,7 +19,7 @@ class PerformanceTestingSweeper(Sweeper):
     You can for example run: "python main.py +performance=FetchReach/her-test --multirun"
     The joblib launcher allows to run n_jobs in parallel.
     YOU CANNOT run multiple performance tests by simply providing multiple configs separated by commas, for example:
-    "python main.py +performance=FetchReach/her-test,RLB_reach_target/sac_her-test --multirun" doesn't work.
+    "python main.py +performance=FetchReach/her-test,FetchSlide/sac_her-test --multirun" doesn't work.
     In that case, just call main.py twice with the different performance test configs.
     """
     def __init__(self, study_name, n_jobs, **kwargs):
@@ -35,14 +34,14 @@ class PerformanceTestingSweeper(Sweeper):
     def setup(
         self,
         config: DictConfig,
-        config_loader: ConfigLoader,
+        hydra_context: HydraContext,
         task_function: TaskFunction,
     ) -> None:
         self.config = config
-        self.config_loader = config_loader
+        self.hydra_context = hydra_context
         self.task_function = task_function
         self.launcher = Plugins.instance().instantiate_launcher(
-            config=config, config_loader=config_loader, task_function=task_function)
+            config=config, hydra_context=hydra_context, task_function=task_function)
 
     def sweep(self, arguments: List[str]) -> None:
         for arg in arguments:

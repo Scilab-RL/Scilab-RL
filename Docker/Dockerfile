@@ -13,7 +13,6 @@ FROM ubuntu:22.04
 
 # Get necessary system libraries
 # adapted from https://github.com/openai/mujoco-py/blob/master/Dockerfile
-# and https://github.com/CoppeliaRobotics/docker-image-coppeliasim/blob/master/Dockerfile
 RUN apt-get update -q \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
@@ -45,11 +44,6 @@ RUN apt-get update -q \
 #     && wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz -O mujoco.tar.gz \
 #     && tar -xf mujoco.tar.gz -C /root/.mujoco/ \
 #     && rm mujoco.tar.gz
-#
-# # # Get CoppeliaSim
-# RUN wget http://www.coppeliarobotics.com/files/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
-#     && tar -xf CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz \
-#     && rm CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz
 #
 # # # Install miniconda
 # RUN wget \

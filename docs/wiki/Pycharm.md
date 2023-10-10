@@ -25,9 +25,7 @@ algorithm=sac`
 | Name | Value |
 | ------ | ------ |
 | MUJOCO_PY_MUJOCO_PATH | /home/USER/mujoco210 |
-| LD_LIBRARY_PATH | LD_LIBRARY_PATH:/home/USER/mujoco210/bin:/home/USER/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04 |
-| COPPELIASIM_ROOT | /home/USER/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04 |
-| QT_QPA_PLATFORM_PLUGIN_PATH | /home/USER/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04 |
+| LD_LIBRARY_PATH | LD_LIBRARY_PATH:/home/USER/mujoco210/bin |
 | HYDRA_FULL_ERROR | 1 |
 
 4. Choose your Python interpreter. It should be the one from your virtual environment.

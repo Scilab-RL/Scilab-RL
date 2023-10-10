@@ -5,7 +5,7 @@ cd $(git rev-parse --show-toplevel)
 
 if [ $RUN_ALL_TESTS != "true" ]
 then  # run only these performance tests:
-  for config in "FetchReach/sac_her-test" # "RLB_reach_target/sac_her-test"
+  for config in "FetchReach/sac_her-test"
   do
     if ! xvfb-run -a python3 src/main.py +performance=$config wandb=0 render=none --multirun;
     then
