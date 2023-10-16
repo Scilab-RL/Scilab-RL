@@ -43,9 +43,6 @@ class MEINSAC:
     :param batch_size: Minibatch size for each gradient update
     :param tau: the soft update coefficient ("Polyak update", between 0 and 1)
     :param gamma: the discount factor
-    :param gradient_steps: How many gradient steps to do after each rollout
-        Set to ``-1`` means to do as many gradient steps as steps done in the environment
-        during the rollout.
     :param replay_buffer_class: Replay buffer class to use (for instance ``HerReplayBuffer``).
         If ``None``, it will be automatically selected.
     :param replay_buffer_kwargs: Keyword arguments to pass to the replay buffer on creation.
@@ -70,7 +67,6 @@ class MEINSAC:
         batch_size: int = 256,
         tau: float = 0.005,
         gamma: float = 0.99,
-        gradient_steps: int = 1,
         replay_buffer_class: Optional[Type[ReplayBuffer]] = None,
         replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         ent_coef: Union[str, float] = "auto",
@@ -108,7 +104,6 @@ class MEINSAC:
         self.learning_starts = learning_starts
         self.tau = tau
         self.gamma = gamma
-        self.gradient_steps = gradient_steps
         self.replay_buffer: Optional[ReplayBuffer] = None
         self.replay_buffer_class = replay_buffer_class
         self.replay_buffer_kwargs = replay_buffer_kwargs or {}
@@ -183,7 +178,7 @@ class MEINSAC:
         self.critic_target.crit_1.load_state_dict(self.critic.crit_1.state_dict())
         self.critic_target.crit_2.load_state_dict(self.critic.crit_2.state_dict())
 
-    def train(self, gradient_steps: int, batch_size: int = 64) -> None:
+    def train(self):
         # Update optimizers learning rate
         optimizers = [self.actor.optimizer, self.critic.optimizer]
         if self.ent_coef_optimizer is not None:
@@ -192,88 +187,86 @@ class MEINSAC:
         ent_coef_losses, ent_coefs = [], []
         actor_losses, critic_losses = [], []
 
-        for gradient_step in range(gradient_steps):
-            # Sample replay buffer
-            replay_data = self.replay_buffer.sample(batch_size)
+        # Sample replay buffer
+        replay_data = self.replay_buffer.sample(self.batch_size)
 
-            # Action by the current actor for the sampled state
-            actions_pi, log_prob = self.actor.action_log_prob(replay_data.observations)
-            log_prob = log_prob.reshape(-1, 1)
+        # Action by the current actor for the sampled state
+        actions_pi, log_prob = self.actor.action_log_prob(replay_data.observations)
+        log_prob = log_prob.reshape(-1, 1)
 
-            ent_coef_loss = None
-            if self.ent_coef_optimizer is not None and self.log_ent_coef is not None:
-                # Important: detach the variable from the graph
-                # so we don't change it with other losses
-                # see https://github.com/rail-berkeley/softlearning/issues/60
-                ent_coef = th.exp(self.log_ent_coef.detach())
-                ent_coef_loss = -(self.log_ent_coef * (log_prob + self.target_entropy).detach()).mean()
-                ent_coef_losses.append(ent_coef_loss.item())
-            else:
-                ent_coef = self.ent_coef_tensor
+        ent_coef_loss = None
+        if self.ent_coef_optimizer is not None and self.log_ent_coef is not None:
+            # Important: detach the variable from the graph
+            # so we don't change it with other losses
+            # see https://github.com/rail-berkeley/softlearning/issues/60
+            ent_coef = th.exp(self.log_ent_coef.detach())
+            ent_coef_loss = -(self.log_ent_coef * (log_prob + self.target_entropy).detach()).mean()
+            ent_coef_losses.append(ent_coef_loss.item())
+        else:
+            ent_coef = self.ent_coef_tensor
 
-            ent_coefs.append(ent_coef.item())
+        ent_coefs.append(ent_coef.item())
 
-            # Optimize entropy coefficient, also called
-            # entropy temperature or alpha in the paper
-            if ent_coef_loss is not None and self.ent_coef_optimizer is not None:
-                self.ent_coef_optimizer.zero_grad()
-                ent_coef_loss.backward()
-                self.ent_coef_optimizer.step()
+        # Optimize entropy coefficient, also called
+        # entropy temperature or alpha in the paper
+        if ent_coef_loss is not None and self.ent_coef_optimizer is not None:
+            self.ent_coef_optimizer.zero_grad()
+            ent_coef_loss.backward()
+            self.ent_coef_optimizer.step()
 
-            with th.no_grad():
-                # Select action according to policy
-                next_actions, next_log_prob = self.actor.action_log_prob(replay_data.next_observations)
-                # Compute the next Q values: min over all critics targets
-                next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
-                next_q_values, _ = th.min(next_q_values, dim=1, keepdim=True)
-                # add entropy term
-                next_q_values = next_q_values - ent_coef * next_log_prob.reshape(-1, 1)
-                # td error + entropy term
-                target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
+        with th.no_grad():
+            # Select action according to policy
+            next_actions, next_log_prob = self.actor.action_log_prob(replay_data.next_observations)
+            # Compute the next Q values: min over all critics targets
+            next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
+            next_q_values, _ = th.min(next_q_values, dim=1, keepdim=True)
+            # add entropy term
+            next_q_values = next_q_values - ent_coef * next_log_prob.reshape(-1, 1)
+            # td error + entropy term
+            target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
 
-            # Get current Q-values estimates for each critic network
-            # using action from the replay buffer
-            current_q_values = self.critic(replay_data.observations, replay_data.actions)
+        # Get current Q-values estimates for each critic network
+        # using action from the replay buffer
+        current_q_values = self.critic(replay_data.observations, replay_data.actions)
 
-            # Compute critic loss
-            critic_loss = 0.5 * sum(F.mse_loss(current_q, target_q_values) for current_q in current_q_values)
-            assert isinstance(critic_loss, th.Tensor)  # for type checker
-            critic_losses.append(critic_loss.item())  # type: ignore[union-attr]
+        # Compute critic loss
+        critic_loss = 0.5 * sum(F.mse_loss(current_q, target_q_values) for current_q in current_q_values)
+        assert isinstance(critic_loss, th.Tensor)  # for type checker
+        critic_losses.append(critic_loss.item())  # type: ignore[union-attr]
 
-            # Optimize the critic
-            self.critic.optimizer.zero_grad()
-            critic_loss.backward()
-            self.critic.optimizer.step()
+        # Optimize the critic
+        self.critic.optimizer.zero_grad()
+        critic_loss.backward()
+        self.critic.optimizer.step()
 
-            # Compute actor loss
-            # Alternative: actor_loss = th.mean(log_prob - qf1_pi)
-            # Min over all critic networks
-            q_values_pi = th.cat(self.critic(replay_data.observations, actions_pi), dim=1)
-            min_qf_pi, _ = th.min(q_values_pi, dim=1, keepdim=True)
-            actor_loss = (ent_coef * log_prob - min_qf_pi).mean()
-            actor_losses.append(actor_loss.item())
+        # Compute actor loss
+        # Alternative: actor_loss = th.mean(log_prob - qf1_pi)
+        # Min over all critic networks
+        q_values_pi = th.cat(self.critic(replay_data.observations, actions_pi), dim=1)
+        min_qf_pi, _ = th.min(q_values_pi, dim=1, keepdim=True)
+        actor_loss = (ent_coef * log_prob - min_qf_pi).mean()
+        actor_losses.append(actor_loss.item())
 
-            # Optimize the actor
-            self.actor.optimizer.zero_grad()
-            actor_loss.backward()
-            self.actor.optimizer.step()
+        # Optimize the actor
+        self.actor.optimizer.zero_grad()
+        actor_loss.backward()
+        self.actor.optimizer.step()
 
-            # Update target networks
-            if gradient_step % self.target_update_interval == 0:
-                # polyak update
-                with th.no_grad():
-                    # zip does not raise an exception if length of parameters does not match.
-                    # for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-                    #     target_param.data.mul_(1 - self.tau)
-                    #     th.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
-                    for param, target_param in zip(self.critic.crit_1.parameters(), self.critic_target.crit_1.parameters()):
-                        target_param.data.mul_(1 - self.tau)
-                        th.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
-                    for param, target_param in zip(self.critic.crit_2.parameters(), self.critic_target.crit_2.parameters()):
-                        target_param.data.mul_(1 - self.tau)
-                        th.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
+        # Update target networks
+        # polyak update
+        with th.no_grad():
+            # zip does not raise an exception if length of parameters does not match.
+            # for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
+            #     target_param.data.mul_(1 - self.tau)
+            #     th.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
+            for param, target_param in zip(self.critic.crit_1.parameters(), self.critic_target.crit_1.parameters()):
+                target_param.data.mul_(1 - self.tau)
+                th.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
+            for param, target_param in zip(self.critic.crit_2.parameters(), self.critic_target.crit_2.parameters()):
+                target_param.data.mul_(1 - self.tau)
+                th.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
 
-        self._n_updates += gradient_steps
+        self._n_updates += 1
 
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/ent_coef", np.mean(ent_coefs))
@@ -303,12 +296,7 @@ class MEINSAC:
                 break
 
             if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts:
-                # If no `gradient_steps` is specified,
-                # do as many gradients steps as steps performed during the rollout
-                gradient_steps = self.gradient_steps if self.gradient_steps >= 0 else rollout.episode_timesteps
-                # Special case when the user passes `gradient_steps=0`
-                if gradient_steps > 0:
-                    self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+                self.train()
 
         callback.on_training_end()
 
@@ -333,7 +321,7 @@ class MEINSAC:
         else:
             actions, _ = self.predict(self._last_obs)
 
-        # Rescale and perform action
+        # perform action
         new_obs, rewards, dones, infos = env.step(actions)
 
         self.num_timesteps += env.num_envs
