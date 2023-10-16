@@ -1,3 +1,4 @@
+#!/bin/bash
 if [ -x "$(command -v nvidia-smi)" ]; then
   nv_version_long=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader)
   nv_version=${nv_version_long:0:3}
