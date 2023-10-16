@@ -9,27 +9,11 @@ from torch.nn import functional as F
 
 from stable_baselines3.common.logger import Logger
 from stable_baselines3.common.callbacks import BaseCallback
-from stable_baselines3.common.buffers import ReplayBuffer, DictReplayBuffer
+from stable_baselines3.common.buffers import DictReplayBuffer
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, RolloutReturn
-# from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
+from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
 from custom_algorithms.mysacher.mysacher import SoftQNetwork, flatten_obs, Actor
-
-
-device = th.device("cuda" if th.cuda.is_available() else "cpu")
-
-
-class Critic(th.nn.Module):
-    def __init__(self, env, lr):
-        super().__init__()
-        self.crit_1 = SoftQNetwork(env).to(device)
-        self.crit_2 = SoftQNetwork(env).to(device)
-        self.optimizer = th.optim.Adam(list(self.crit_1.parameters()) + list(self.crit_2.parameters()), lr=lr)
-
-    def forward(self, obs: th.Tensor, actions: th.Tensor) -> Tuple[th.Tensor, ...]:
-        obs = flatten_obs(obs).to(device)
-
-        return tuple([self.crit_1(obs, actions), self.crit_2(obs, actions)])
 
 
 class MEINSAC:
@@ -43,210 +27,142 @@ class MEINSAC:
     :param batch_size: Minibatch size for each gradient update
     :param tau: the soft update coefficient ("Polyak update", between 0 and 1)
     :param gamma: the discount factor
-    :param replay_buffer_class: Replay buffer class to use (for instance ``HerReplayBuffer``).
-        If ``None``, it will be automatically selected.
-    :param replay_buffer_kwargs: Keyword arguments to pass to the replay buffer on creation.
     :param ent_coef: Entropy regularization coefficient. (Equivalent to
         inverse of reward scale in the original SAC paper.)  Controlling exploration/exploitation trade-off.
         Set it to 'auto' to learn it automatically (and 'auto_0.1' for using 0.1 as initial value)
-    :param target_entropy: target entropy when learning ``ent_coef`` (``ent_coef = 'auto'``)
     :param seed: Seed for the pseudo random generators
     """
     actor: Actor
-    critic: Critic
-    critic_target: Critic
+    critic: SoftQNetwork
+    critic_target: SoftQNetwork
 
     def __init__(
         self,
         env: Union[GymEnv, str],
         learning_rate: float = 3e-4,
-        buffer_size: int = 1_000_000,  # 1e6
+        buffer_size: int = 1_000_000,
         learning_starts: int = 100,
         batch_size: int = 256,
         tau: float = 0.005,
         gamma: float = 0.99,
-        replay_buffer_class: Optional[Type[ReplayBuffer]] = None,
-        replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         ent_coef: Union[str, float] = "auto",
         seed: Optional[int] = None,
     ):
         self.device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
-        self.num_timesteps = 0
+        self.env = env
+
+        if isinstance(self.env.action_space, spaces.Box):
+            assert np.all(
+                np.isfinite(np.array([self.env.action_space.low, self.env.action_space.high]))
+            ), "Continuous action space must have a finite lower and upper bound"
+
         self.seed = seed
         self.learning_rate = learning_rate
-        self._last_obs = None
-
-        self._episode_num = 0
-
-        # Buffers for logging
-        # For logging (and TD3 delayed updates)
-        self._n_updates = 0  # type: int
-
-        # Create and wrap the env if needed
-        if env is not None:
-            self.observation_space = env.observation_space
-            self.action_space = env.action_space
-            self.n_envs = env.num_envs
-            self.env = env
-
-            if isinstance(self.action_space, spaces.Box):
-                assert np.all(
-                    np.isfinite(np.array([self.action_space.low, self.action_space.high]))
-                ), "Continuous action space must have a finite lower and upper bound"
-
         self.buffer_size = buffer_size
         self.batch_size = batch_size
         self.learning_starts = learning_starts
         self.tau = tau
         self.gamma = gamma
-        self.replay_buffer: Optional[ReplayBuffer] = None
-        self.replay_buffer_class = replay_buffer_class
-        self.replay_buffer_kwargs = replay_buffer_kwargs or {}
 
-        self.log_ent_coef = None  # type: Optional[th.Tensor]
-        # Entropy coefficient / Entropy temperature
-        # Inverse of the reward scale
-        self.ent_coef = ent_coef
-        self.ent_coef_optimizer: Optional[th.optim.Adam] = None
+        self.replay_buffer = DictReplayBuffer(
+            self.buffer_size,
+            self.env.observation_space,
+            self.env.action_space,
+            device=self.device,
+            n_envs=self.env.num_envs
+        )
 
-        self._setup_model()
-
-        self.logger = None
-
-    def _setup_model(self) -> None:
-        if self.replay_buffer_class is None:
-            if isinstance(self.observation_space, spaces.Dict):
-                self.replay_buffer_class = DictReplayBuffer
-            else:
-                self.replay_buffer_class = ReplayBuffer
-
-        if self.replay_buffer is None:
-            # Make a local copy as we should not pickle
-            # the environment when using HerReplayBuffer
-            replay_buffer_kwargs = self.replay_buffer_kwargs.copy()
-            # if issubclass(self.replay_buffer_class, HerReplayBuffer):
-            #     assert self.env is not None, "You must pass an environment when using `HerReplayBuffer`"
-            #     replay_buffer_kwargs["env"] = self.env
-            self.replay_buffer = self.replay_buffer_class(
-                self.buffer_size,
-                self.observation_space,
-                self.action_space,
-                device=self.device,
-                n_envs=self.n_envs,
-                **replay_buffer_kwargs,  # pytype:disable=wrong-keyword-args
-            )
-
-        # Convert train freq parameter to TrainFreq object
         self._create_nets()
-        # Target entropy is used when learning the entropy coefficient
-        self.target_entropy = float(-np.prod(self.env.action_space.shape).astype(np.float32))  # type: ignore
 
-        # The entropy coefficient or entropy can be learned automatically
-        # see Automating Entropy Adjustment for Maximum Entropy RL section
-        # of https://arxiv.org/abs/1812.05905
+        self.ent_coef = ent_coef
         if self.ent_coef == "auto":
-            # Default initial value of ent_coef when learned
-            init_value = 1.0
-
-            # Note: we optimize the log of the entropy coeff which is slightly different from the paper
-            # as discussed in https://github.com/rail-berkeley/softlearning/issues/37
-            self.log_ent_coef = th.log(th.ones(1, device=self.device) * init_value).requires_grad_(True)
+            self.target_entropy = float(-np.prod(self.env.action_space.shape).astype(np.float32))
+            self.log_ent_coef = th.zeros(1, device=self.device).requires_grad_(True)
             self.ent_coef_optimizer = th.optim.Adam([self.log_ent_coef], lr=self.learning_rate)
         else:
             self.ent_coef_tensor = th.tensor(float(self.ent_coef), device=self.device)
 
+        self.logger = None
+        self._last_obs = None
+        self._episode_num = 0
+        self.num_timesteps = 0
+        self._n_updates = 0
+
     def _create_nets(self) -> None:
         self.actor = Actor(self.env).to(self.device)
-        self.actor.optimizer = th.optim.Adam(self.actor.parameters(), lr=self.learning_rate)
-        self.critic = Critic(self.env, lr=self.learning_rate).to(self.device)
+        self.actor_optimizer = th.optim.Adam(self.actor.parameters(), lr=self.learning_rate)
 
-        self.critic_target = Critic(self.env, lr=self.learning_rate).to(self.device)
-
-        self.critic_target.crit_1.load_state_dict(self.critic.crit_1.state_dict())
-        self.critic_target.crit_2.load_state_dict(self.critic.crit_2.state_dict())
+        self.crit_1 = SoftQNetwork(self.env).to(self.device)
+        self.crit_2 = SoftQNetwork(self.env).to(self.device)
+        self.crit_1_target = SoftQNetwork(self.env).to(self.device)
+        self.crit_2_target = SoftQNetwork(self.env).to(self.device)
+        self.crit_1_target.load_state_dict(self.crit_1.state_dict())
+        self.crit_2_target.load_state_dict(self.crit_2.state_dict())
+        self.critic_optimizer = th.optim.Adam(list(self.crit_1.parameters()) + list(self.crit_2.parameters()),
+                                              lr=self.learning_rate)
 
     def train(self):
-        # Update optimizers learning rate
-        optimizers = [self.actor.optimizer, self.critic.optimizer]
-        if self.ent_coef_optimizer is not None:
-            optimizers += [self.ent_coef_optimizer]
-
         ent_coef_losses, ent_coefs = [], []
         actor_losses, critic_losses = [], []
 
         # Sample replay buffer
         replay_data = self.replay_buffer.sample(self.batch_size)
+        observations = flatten_obs(replay_data.observations)
+        next_observations = flatten_obs(replay_data.next_observations)
 
-        # Action by the current actor for the sampled state
-        actions_pi, log_prob = self.actor.action_log_prob(replay_data.observations)
-        log_prob = log_prob.reshape(-1, 1)
-
-        ent_coef_loss = None
-        if self.ent_coef_optimizer is not None and self.log_ent_coef is not None:
-            # Important: detach the variable from the graph
-            # so we don't change it with other losses
-            # see https://github.com/rail-berkeley/softlearning/issues/60
-            ent_coef = th.exp(self.log_ent_coef.detach())
-            ent_coef_loss = -(self.log_ent_coef * (log_prob + self.target_entropy).detach()).mean()
+        # optimize entropy coefficient
+        if self.ent_coef == "auto":
+            with th.no_grad():
+                _, log_pi = self.actor.get_action(observations)
+            ent_coef_loss = (-self.log_ent_coef * (log_pi + self.target_entropy)).mean()
             ent_coef_losses.append(ent_coef_loss.item())
-        else:
-            ent_coef = self.ent_coef_tensor
 
-        ent_coefs.append(ent_coef.item())
-
-        # Optimize entropy coefficient, also called
-        # entropy temperature or alpha in the paper
-        if ent_coef_loss is not None and self.ent_coef_optimizer is not None:
             self.ent_coef_optimizer.zero_grad()
             ent_coef_loss.backward()
             self.ent_coef_optimizer.step()
+            ent_coef = self.log_ent_coef.exp().item()
+        else:
+            ent_coef = self.ent_coef_tensor
+        ent_coefs.append(ent_coef)
 
+        # train critic
         with th.no_grad():
-            # Select action according to policy
-            next_actions, next_log_prob = self.actor.action_log_prob(replay_data.next_observations)
-            # Compute the next Q values: min over all critics targets
-            next_q_values = th.cat(self.critic_target(replay_data.next_observations, next_actions), dim=1)
-            next_q_values, _ = th.min(next_q_values, dim=1, keepdim=True)
-            # add entropy term
-            next_q_values = next_q_values - ent_coef * next_log_prob
-            # td error + entropy term
-            target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
+            next_state_actions, next_state_log_pi = self.actor.get_action(next_observations)
+            qf1_next_target = self.crit_1_target(next_observations, next_state_actions)
+            qf2_next_target = self.crit_2_target(next_observations, next_state_actions)
+            min_qf_next_target = th.min(qf1_next_target, qf2_next_target) - ent_coef * next_state_log_pi
+            next_q_value = replay_data.rewards.flatten() + (1 - replay_data.dones.flatten()) * self.gamma * min_qf_next_target.flatten()
 
-        # Get current Q-values estimates for each critic network
-        # using action from the replay buffer
-        current_q_values = self.critic(replay_data.observations, replay_data.actions)
+        qf1_a_values = self.crit_1(observations, replay_data.actions).view(-1)
+        qf2_a_values = self.crit_2(observations, replay_data.actions).view(-1)
+        qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
+        qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
+        qf_loss = 0.5 * (qf1_loss + qf2_loss)
+        critic_losses.append(qf_loss.item())
 
-        # Compute critic loss
-        critic_loss = 0.5 * sum(F.mse_loss(current_q, target_q_values) for current_q in current_q_values)
-        assert isinstance(critic_loss, th.Tensor)  # for type checker
-        critic_losses.append(critic_loss.item())  # type: ignore[union-attr]
+        self.critic_optimizer.zero_grad()
+        qf_loss.backward()
+        self.critic_optimizer.step()
 
-        # Optimize the critic
-        self.critic.optimizer.zero_grad()
-        critic_loss.backward()
-        self.critic.optimizer.step()
-
-        # Compute actor loss
-        # Alternative: actor_loss = th.mean(log_prob - qf1_pi)
-        # Min over all critic networks
-        q_values_pi = th.cat(self.critic(replay_data.observations, actions_pi), dim=1)
-        min_qf_pi, _ = th.min(q_values_pi, dim=1, keepdim=True)
-        actor_loss = (ent_coef * log_prob - min_qf_pi).mean()
+        # train actor
+        pi, log_pi = self.actor.get_action(observations)
+        qf1_pi = self.crit_1(observations, pi)
+        qf2_pi = self.crit_2(observations, pi)
+        min_qf_pi = th.min(qf1_pi, qf2_pi).view(-1)
+        actor_loss = ((ent_coef * log_pi) - min_qf_pi).mean()
         actor_losses.append(actor_loss.item())
 
-        # Optimize the actor
-        self.actor.optimizer.zero_grad()
+        self.actor_optimizer.zero_grad()
         actor_loss.backward()
-        self.actor.optimizer.step()
+        self.actor_optimizer.step()
 
-        # Update target networks
-        # polyak update
+        # Update target networks with polyak update
         with th.no_grad():
-            for param, target_param in zip(self.critic.crit_1.parameters(), self.critic_target.crit_1.parameters()):
+            for param, target_param in zip(self.crit_1.parameters(), self.crit_1_target.parameters()):
                 target_param.data.mul_(1 - self.tau)
                 th.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
-            for param, target_param in zip(self.critic.crit_2.parameters(), self.critic_target.crit_2.parameters()):
+            for param, target_param in zip(self.crit_2.parameters(), self.crit_2_target.parameters()):
                 target_param.data.mul_(1 - self.tau)
                 th.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
 
@@ -274,7 +190,7 @@ class MEINSAC:
         callback.on_training_start(locals(), globals())
 
         while self.num_timesteps < total_timesteps:
-            rollout = self.collect_rollouts(self.env, callback=callback)
+            rollout = self.collect_rollouts(callback=callback)
 
             if rollout.continue_training is False:
                 break
@@ -288,31 +204,25 @@ class MEINSAC:
 
     def collect_rollouts(
         self,
-        env,
         callback: BaseCallback
     ):
         """
         Collect experiences and store them into a ``ReplayBuffer``.
 
-        :param env: The training environment
         :param callback: Callback that will be called at each step
             (and at the beginning and end of the rollout)
         :return:
         """
         # Select action randomly or according to policy
         if self.num_timesteps < self.learning_starts:
-            actions = np.array([self.action_space.sample()])
+            actions = np.array([self.env.action_space.sample()])
         else:
             actions, _ = self.predict(self._last_obs)
 
         # perform action
-        new_obs, rewards, dones, infos = env.step(actions)
+        new_obs, rewards, dones, infos = self.env.step(actions)
 
-        self.num_timesteps += env.num_envs
-
-        # Only stop training if return value is False, not when it is None.
-        if callback.on_step() is False:
-            return RolloutReturn(1, 0, continue_training=False)
+        self.num_timesteps += self.env.num_envs
 
         num_collected_episodes = 0
 
@@ -327,6 +237,9 @@ class MEINSAC:
 
         self._last_obs = new_obs
 
+        # Only stop training if return value is False, not when it is None.
+        if callback.on_step() is False:
+            return RolloutReturn(1, 0, continue_training=False)
         return RolloutReturn(1, num_collected_episodes, True)
 
     def set_logger(self, logger: Logger) -> None:
@@ -346,7 +259,7 @@ class MEINSAC:
         Get the policy action from an observation (and optional hidden state).
         Includes sugar-coating to handle different observations (e.g. normalizing images).
 
-        :param observation: the input observation
+        :param obs: the input observation
         :return: the model's action
         """
         observation = flatten_obs(obs)

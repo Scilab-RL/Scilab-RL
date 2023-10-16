@@ -1,3 +1,7 @@
 name: 'meinsac'
 
-replay_buffer_class: null # HerReplayBuffer  # ++algorithm.replay_buffer_class=null to not use HER
+learning_rate: 0.001
+gamma: 0.96
+tau: 0.07
+# use_her: False
+ent_coef: auto
