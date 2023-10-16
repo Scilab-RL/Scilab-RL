@@ -49,8 +49,6 @@ class MEINSAC:
     :param ent_coef: Entropy regularization coefficient. (Equivalent to
         inverse of reward scale in the original SAC paper.)  Controlling exploration/exploitation trade-off.
         Set it to 'auto' to learn it automatically (and 'auto_0.1' for using 0.1 as initial value)
-    :param target_update_interval: update the target network every ``target_network_update_freq``
-        gradient steps.
     :param target_entropy: target entropy when learning ``ent_coef`` (``ent_coef = 'auto'``)
     :param seed: Seed for the pseudo random generators
     """
@@ -70,8 +68,6 @@ class MEINSAC:
         replay_buffer_class: Optional[Type[ReplayBuffer]] = None,
         replay_buffer_kwargs: Optional[Dict[str, Any]] = None,
         ent_coef: Union[str, float] = "auto",
-        target_update_interval: int = 1,
-        target_entropy: Union[str, float] = "auto",
         seed: Optional[int] = None,
     ):
         self.device = th.device("cuda" if th.cuda.is_available() else "cpu")
@@ -108,12 +104,10 @@ class MEINSAC:
         self.replay_buffer_class = replay_buffer_class
         self.replay_buffer_kwargs = replay_buffer_kwargs or {}
 
-        self.target_entropy = target_entropy
         self.log_ent_coef = None  # type: Optional[th.Tensor]
         # Entropy coefficient / Entropy temperature
         # Inverse of the reward scale
         self.ent_coef = ent_coef
-        self.target_update_interval = target_update_interval
         self.ent_coef_optimizer: Optional[th.optim.Adam] = None
 
         self._setup_model()
@@ -146,13 +140,7 @@ class MEINSAC:
         # Convert train freq parameter to TrainFreq object
         self._create_nets()
         # Target entropy is used when learning the entropy coefficient
-        if self.target_entropy == "auto":
-            # automatically set target entropy if needed
-            self.target_entropy = float(-np.prod(self.env.action_space.shape).astype(np.float32))  # type: ignore
-        else:
-            # Force conversion
-            # this will also throw an error for unexpected string
-            self.target_entropy = float(self.target_entropy)
+        self.target_entropy = float(-np.prod(self.env.action_space.shape).astype(np.float32))  # type: ignore
 
         # The entropy coefficient or entropy can be learned automatically
         # see Automating Entropy Adjustment for Maximum Entropy RL section
@@ -255,10 +243,6 @@ class MEINSAC:
         # Update target networks
         # polyak update
         with th.no_grad():
-            # zip does not raise an exception if length of parameters does not match.
-            # for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-            #     target_param.data.mul_(1 - self.tau)
-            #     th.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
             for param, target_param in zip(self.critic.crit_1.parameters(), self.critic_target.crit_1.parameters()):
                 target_param.data.mul_(1 - self.tau)
                 th.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
