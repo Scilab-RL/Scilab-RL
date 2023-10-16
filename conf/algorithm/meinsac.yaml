@@ -1,0 +1,3 @@
+name: 'meinsac'
+
+replay_buffer_class: null # HerReplayBuffer  # ++algorithm.replay_buffer_class=null to not use HER
