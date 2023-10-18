@@ -200,7 +200,7 @@ class MEINSAC:
         crit_1_loss = F.mse_loss(crit_1_a_values, next_q_value)
         crit_2_loss = F.mse_loss(crit_2_a_values, next_q_value)
         crit_loss = 0.5 * (crit_1_loss + crit_2_loss)
-        self.logger.record("train/critic_loss", crit_loss)
+        self.logger.record("train/critic_loss", crit_loss.item())
 
         self.critic_optimizer.zero_grad()
         crit_loss.backward()
@@ -212,7 +212,7 @@ class MEINSAC:
         crit_2_pi = self.crit_2(observations, pi)
         min_crit_pi = torch.min(crit_1_pi, crit_2_pi).view(-1)
         actor_loss = ((ent_coef * log_pi) - min_crit_pi).mean()
-        self.logger.record("train/actor_loss", actor_loss)
+        self.logger.record("train/actor_loss", actor_loss.item())
 
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
