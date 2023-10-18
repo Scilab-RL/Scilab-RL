@@ -4,6 +4,7 @@ import pathlib
 import io
 import numpy as np
 import torch
+from torch import nn
 from torch.nn import functional as F
 from gymnasium import spaces
 
@@ -13,7 +14,80 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
 from stable_baselines3.common.buffers import DictReplayBuffer
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
-from custom_algorithms.mysacher.mysacher import SoftQNetwork, flatten_obs, Actor
+
+LOG_STD_MAX = 2
+LOG_STD_MIN = -20
+
+
+class Actor(nn.Module):
+    def __init__(self, env):
+        super().__init__()
+        obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
+        self.fc1 = nn.Linear(obs_shape, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 256)
+        self.fc_mean = nn.Linear(256, np.prod(env.action_space.shape))
+        self.fc_logstd = nn.Linear(256, np.prod(env.action_space.shape))
+        # action rescaling
+        self.register_buffer(
+            "action_scale", torch.tensor((env.action_space.high - env.action_space.low) / 2.0, dtype=torch.float32)
+        )
+        self.register_buffer(
+            "action_bias", torch.tensor((env.action_space.high + env.action_space.low) / 2.0, dtype=torch.float32)
+        )
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        mean = self.fc_mean(x)
+        log_std = self.fc_logstd(x)
+        log_std = torch.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX)
+
+        return mean, log_std
+
+    def get_action(self, x):
+        mean, log_std = self(x)
+        std = log_std.exp()
+        normal = torch.distributions.Normal(mean, std)
+        x_t = normal.rsample()  # for reparameterization trick (mean + std * N(0,1))
+        y_t = torch.tanh(x_t)
+        action = y_t * self.action_scale + self.action_bias
+        log_prob = normal.log_prob(x_t)
+        # Enforcing Action Bound
+        log_prob -= torch.log(self.action_scale * (1 - y_t.pow(2)) + 1e-6)
+        log_prob = log_prob.sum(1, keepdim=True)
+
+        return action, log_prob
+
+
+class Critic(nn.Module):
+    def __init__(self, env):
+        super().__init__()
+        obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
+        self.fc1 = nn.Linear(obs_shape + np.prod(env.action_space.shape), 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 256)
+        self.fc4 = nn.Linear(256, 1)
+
+    def forward(self, x, a):
+        x = torch.cat([x, a], 1)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)
+        return x
+
+
+def flatten_obs(obs, device):
+    observation, ag, dg = obs['observation'], obs['achieved_goal'], obs['desired_goal']
+    if isinstance(observation, np.ndarray):
+        observation = torch.from_numpy(observation).to(device)
+    if isinstance(ag, np.ndarray):
+        ag = torch.from_numpy(ag).to(device)
+    if isinstance(dg, np.ndarray):
+        dg = torch.from_numpy(dg).to(device)
+    return torch.cat([observation, ag, dg], dim=1).to(dtype=torch.float32)
 
 
 class MEINSAC:
@@ -31,8 +105,8 @@ class MEINSAC:
         Set it to 'auto' to learn it automatically
     """
     actor: Actor
-    critic: SoftQNetwork
-    critic_target: SoftQNetwork
+    critic: Critic
+    critic_target: Critic
 
     def __init__(
             self,
@@ -89,10 +163,10 @@ class MEINSAC:
         self.actor = Actor(self.env).to(self.device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.learning_rate)
 
-        self.crit_1 = SoftQNetwork(self.env).to(self.device)
-        self.crit_2 = SoftQNetwork(self.env).to(self.device)
-        self.crit_1_target = SoftQNetwork(self.env).to(self.device)
-        self.crit_2_target = SoftQNetwork(self.env).to(self.device)
+        self.crit_1 = Critic(self.env).to(self.device)
+        self.crit_2 = Critic(self.env).to(self.device)
+        self.crit_1_target = Critic(self.env).to(self.device)
+        self.crit_2_target = Critic(self.env).to(self.device)
         self.crit_1_target.load_state_dict(self.crit_1.state_dict())
         self.crit_2_target.load_state_dict(self.crit_2.state_dict())
         self.critic_optimizer = torch.optim.Adam(list(self.crit_1.parameters()) + list(self.crit_2.parameters()),
@@ -168,8 +242,8 @@ class MEINSAC:
 
         # Sample replay buffer
         replay_data = self.replay_buffer.sample(self.batch_size)
-        observations = flatten_obs(replay_data.observations)
-        next_observations = flatten_obs(replay_data.next_observations)
+        observations = flatten_obs(replay_data.observations, self.device)
+        next_observations = flatten_obs(replay_data.next_observations, self.device)
 
         # optimize entropy coefficient
         if self.ent_coef == "auto":
@@ -246,7 +320,7 @@ class MEINSAC:
         :param obs: the input observation
         :return: the model's action
         """
-        observation = flatten_obs(obs)
+        observation = flatten_obs(obs, self.device)
         action, _ = self.actor.get_action(observation)
         return action.detach().cpu().numpy(), None
 
