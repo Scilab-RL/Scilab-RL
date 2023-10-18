@@ -4,13 +4,13 @@ import pathlib
 import io
 import numpy as np
 import torch
-from gymnasium import spaces
 from torch.nn import functional as F
+from gymnasium import spaces
 
 from stable_baselines3.common.logger import Logger
 from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
 from stable_baselines3.common.buffers import DictReplayBuffer
-from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, RolloutReturn
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
 from custom_algorithms.mysacher.mysacher import SoftQNetwork, flatten_obs, Actor
@@ -110,9 +110,9 @@ class MEINSAC:
         self._last_obs = self.env.reset()
 
         while self.num_timesteps < total_timesteps:
-            rollout = self.collect_rollouts(callback=callback)
+            continue_training = self.collect_rollout(callback=callback)
 
-            if rollout.continue_training is False:
+            if continue_training is False:
                 break
 
             if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts:
@@ -122,7 +122,7 @@ class MEINSAC:
 
         return self
 
-    def collect_rollouts(
+    def collect_rollout(
             self,
             callback: BaseCallback
     ):
@@ -131,7 +131,7 @@ class MEINSAC:
 
         :param callback: Callback that will be called at each step
             (and at the beginning and end of the rollout)
-        :return:
+        :return: True if the training should continue, else False
         """
         # Select action randomly or according to policy
         if self.num_timesteps < self.learning_starts:
@@ -159,12 +159,12 @@ class MEINSAC:
 
         # Only stop training if return value is False, not when it is None.
         if callback.on_step() is False:
-            return RolloutReturn(1, 0, continue_training=False)
-        return RolloutReturn(1, num_collected_episodes, True)
+            return False
+        return True
 
     def train(self):
-        ent_coef_losses, ent_coefs = [], []
-        actor_losses, critic_losses = [], []
+        self._n_updates += 1
+        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
 
         # Sample replay buffer
         replay_data = self.replay_buffer.sample(self.batch_size)
@@ -176,7 +176,7 @@ class MEINSAC:
             with torch.no_grad():
                 _, log_pi = self.actor.get_action(observations)
             ent_coef_loss = (-self.log_ent_coef * (log_pi + self.target_entropy)).mean()
-            ent_coef_losses.append(ent_coef_loss.item())
+            self.logger.record("train/ent_coef_loss", ent_coef_loss.item())
 
             self.ent_coef_optimizer.zero_grad()
             ent_coef_loss.backward()
@@ -184,35 +184,35 @@ class MEINSAC:
             ent_coef = self.log_ent_coef.exp().item()
         else:
             ent_coef = self.ent_coef_tensor
-        ent_coefs.append(ent_coef)
+        self.logger.record("train/ent_coef", ent_coef)
 
         # train critic
         with torch.no_grad():
             next_state_actions, next_state_log_pi = self.actor.get_action(next_observations)
-            qf1_next_target = self.crit_1_target(next_observations, next_state_actions)
-            qf2_next_target = self.crit_2_target(next_observations, next_state_actions)
-            min_qf_next_target = torch.min(qf1_next_target, qf2_next_target) - ent_coef * next_state_log_pi
+            crit_1_next_target = self.crit_1_target(next_observations, next_state_actions)
+            crit_2_next_target = self.crit_2_target(next_observations, next_state_actions)
+            min_crit_next_target = torch.min(crit_1_next_target, crit_2_next_target) - ent_coef * next_state_log_pi
             next_q_value = replay_data.rewards.flatten() + \
-                           (1 - replay_data.dones.flatten()) * self.gamma * min_qf_next_target.flatten()
+                           (1 - replay_data.dones.flatten()) * self.gamma * min_crit_next_target.flatten()
 
-        qf1_a_values = self.crit_1(observations, replay_data.actions).view(-1)
-        qf2_a_values = self.crit_2(observations, replay_data.actions).view(-1)
-        qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
-        qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
-        qf_loss = 0.5 * (qf1_loss + qf2_loss)
-        critic_losses.append(qf_loss.item())
+        crit_1_a_values = self.crit_1(observations, replay_data.actions).view(-1)
+        crit_2_a_values = self.crit_2(observations, replay_data.actions).view(-1)
+        crit_1_loss = F.mse_loss(crit_1_a_values, next_q_value)
+        crit_2_loss = F.mse_loss(crit_2_a_values, next_q_value)
+        crit_loss = 0.5 * (crit_1_loss + crit_2_loss)
+        self.logger.record("train/critic_loss", crit_loss)
 
         self.critic_optimizer.zero_grad()
-        qf_loss.backward()
+        crit_loss.backward()
         self.critic_optimizer.step()
 
         # train actor
         pi, log_pi = self.actor.get_action(observations)
-        qf1_pi = self.crit_1(observations, pi)
-        qf2_pi = self.crit_2(observations, pi)
-        min_qf_pi = torch.min(qf1_pi, qf2_pi).view(-1)
-        actor_loss = ((ent_coef * log_pi) - min_qf_pi).mean()
-        actor_losses.append(actor_loss.item())
+        crit_1_pi = self.crit_1(observations, pi)
+        crit_2_pi = self.crit_2(observations, pi)
+        min_crit_pi = torch.min(crit_1_pi, crit_2_pi).view(-1)
+        actor_loss = ((ent_coef * log_pi) - min_crit_pi).mean()
+        self.logger.record("train/actor_loss", actor_loss)
 
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
@@ -226,15 +226,6 @@ class MEINSAC:
             for param, target_param in zip(self.crit_2.parameters(), self.crit_2_target.parameters()):
                 target_param.data.mul_(1 - self.tau)
                 torch.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
-
-        self._n_updates += 1
-
-        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
-        self.logger.record("train/ent_coef", np.mean(ent_coefs))
-        self.logger.record("train/actor_loss", np.mean(actor_losses))
-        self.logger.record("train/critic_loss", np.mean(critic_losses))
-        if len(ent_coef_losses) > 0:
-            self.logger.record("train/ent_coef_loss", np.mean(ent_coef_losses))
 
     def set_logger(self, logger: Logger) -> None:
         self.logger = logger
