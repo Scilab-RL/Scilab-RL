@@ -303,12 +303,6 @@ class MEINSAC:
                 target_param.data.mul_(1 - self.tau)
                 torch.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
 
-    def set_logger(self, logger: Logger) -> None:
-        self.logger = logger
-
-    def get_env(self):
-        return self.env
-
     def predict(
             self,
             obs: Union[np.ndarray, Dict[str, np.ndarray]],
@@ -352,3 +346,9 @@ class MEINSAC:
         model.crit_1_target.load_state_dict(loaded_dict["_crit_1"])
         model.crit_2_target.load_state_dict(loaded_dict["_crit_2"])
         return model
+
+    def set_logger(self, logger: Logger) -> None:
+        self.logger = logger
+
+    def get_env(self):
+        return self.env
