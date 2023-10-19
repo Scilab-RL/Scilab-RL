@@ -324,10 +324,29 @@ class MEINSAC:
         action, _ = self.actor.get_action(observation)
         return action.detach().cpu().numpy(), None
 
-    def save(
-            self,
-            path: Union[str, pathlib.Path, io.BufferedIOBase],
-            exclude: Optional[Iterable[str]] = None,
-            include: Optional[Iterable[str]] = None,
-    ) -> None:
-        return
+    def save(self, path: Union[str, pathlib.Path, io.BufferedIOBase]):
+        # Copy parameter list, so we don't mutate the original dict
+        data = self.__dict__.copy()
+        for to_exclude in ["logger", "env", "num_timesteps", "_n_updates", "_last_obs", "_episode_num",
+                           "replay_buffer", "actor", "crit_1", "crit_2", "crit_1_target", "crit_2_target"]:
+            del data[to_exclude]
+        # save network parameters
+        data["_actor"] = self.actor.state_dict()
+        data["_crit_1"] = self.crit_1.state_dict()
+        data["_crit_2"] = self.crit_2.state_dict()
+        torch.save(data, path)
+
+    @classmethod
+    def load(cls, path, env, **kwargs):
+        model = cls(env=env, **kwargs)
+        loaded_dict = torch.load(path)
+        for k in loaded_dict:
+            if k not in ["_actor", "_crit_1", "_crit_2"]:
+                model.__dict__[k] = loaded_dict[k]
+        # load network states
+        model.actor.load_state_dict(loaded_dict["_actor"])
+        model.crit_1.load_state_dict(loaded_dict["_crit_1"])
+        model.crit_2.load_state_dict(loaded_dict["_crit_2"])
+        model.crit_1_target.load_state_dict(loaded_dict["_crit_1"])
+        model.crit_2_target.load_state_dict(loaded_dict["_crit_2"])
+        return model
