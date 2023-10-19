@@ -105,10 +105,6 @@ class MEINSAC:
         Set it to 'auto' to learn it automatically
     :param use_her: whether to use hindsight experience replay (HER) by using the SB3 HerReplayBuffer
     """
-    actor: Actor
-    critic: Critic
-    critic_target: Critic
-
     def __init__(
             self,
             env: GymEnv,
@@ -122,14 +118,6 @@ class MEINSAC:
             use_her: bool = False
     ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        self.env = env
-
-        if isinstance(self.env.action_space, spaces.Box):
-            assert np.all(
-                np.isfinite(np.array([self.env.action_space.low, self.env.action_space.high]))
-            ), "Continuous action space must have a finite lower and upper bound"
-
         self.learning_rate = learning_rate
         self.buffer_size = buffer_size
         self.batch_size = batch_size
@@ -137,6 +125,13 @@ class MEINSAC:
         self.tau = tau
         self.gamma = gamma
 
+        self.env = env
+        if isinstance(self.env.action_space, spaces.Box):
+            assert np.all(
+                np.isfinite(np.array([self.env.action_space.low, self.env.action_space.high]))
+            ), "Continuous action space must have a finite lower and upper bound"
+
+        # initialize replay buffer
         if use_her:
             self.replay_buffer = HerReplayBuffer(
                 self.buffer_size,
@@ -167,7 +162,6 @@ class MEINSAC:
 
         self.logger = None
         self._last_obs = None
-        self._episode_num = 0
         self.num_timesteps = 0
         self._n_updates = 0
 
@@ -230,15 +224,11 @@ class MEINSAC:
 
         self.num_timesteps += self.env.num_envs
 
-        num_collected_episodes = 0
-
         # save data to replay buffer; handle `terminal_observation`
         real_next_obs = new_obs.copy()
         for idx, done in enumerate(dones):
             if done:
                 real_next_obs[idx] = infos[idx]["terminal_observation"]
-                num_collected_episodes += 1
-                self._episode_num += 1
         self.replay_buffer.add(self._last_obs, real_next_obs, actions, rewards, dones, infos)
 
         self._last_obs = new_obs
@@ -325,7 +315,7 @@ class MEINSAC:
             state: Optional[Tuple[np.ndarray, ...]] = None,
             episode_start: Optional[np.ndarray] = None,
             deterministic: bool = False,
-    ) -> Tuple[np.ndarray, Optional[Tuple[np.ndarray, ...]]]:
+    ) -> Tuple[np.ndarray, None]:
         """
         Get the policy action given an observation.
 
@@ -339,7 +329,7 @@ class MEINSAC:
     def save(self, path: Union[str, pathlib.Path, io.BufferedIOBase]):
         # Copy parameter list, so we don't mutate the original dict
         data = self.__dict__.copy()
-        for to_exclude in ["logger", "env", "num_timesteps", "_n_updates", "_last_obs", "_episode_num",
+        for to_exclude in ["logger", "env", "num_timesteps", "_n_updates", "_last_obs",
                            "replay_buffer", "actor", "crit_1", "crit_2", "crit_1_target", "crit_2_target"]:
             del data[to_exclude]
         # save network parameters
