@@ -294,7 +294,6 @@ class MYSACHER:
         return actions, state
 
     def save(self, path):
-        return
         # Copy parameter list, so we don't mutate the original dict
         data = self.__dict__.copy()
         for to_exclude in ["logger", "env", "num_timesteps", "n_updates", "rb",
