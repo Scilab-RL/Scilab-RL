@@ -173,7 +173,6 @@ class MYSACHER:
             observation_space=self.env.observation_space,
             action_space=self.env.action_space,
             device=device,
-            handle_timeout_termination=False,
         )
 
         self.num_timesteps = 0
