@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, Union, Iterable
+from typing import Dict, Optional, Tuple, Union
 
 import pathlib
 import io
@@ -103,6 +103,7 @@ class MEINSAC:
     :param ent_coef: Entropy regularization coefficient. (Equivalent to
         inverse of reward scale in the original SAC paper.)  Controlling exploration/exploitation trade-off.
         Set it to 'auto' to learn it automatically
+    :param use_her: whether to use hindsight experience replay (HER) by using the SB3 HerReplayBuffer
     """
     actor: Actor
     critic: Critic
@@ -118,6 +119,7 @@ class MEINSAC:
             tau: float = 0.005,
             gamma: float = 0.99,
             ent_coef: Union[str, float] = "auto",
+            use_her: bool = False
     ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -135,13 +137,23 @@ class MEINSAC:
         self.tau = tau
         self.gamma = gamma
 
-        self.replay_buffer = DictReplayBuffer(
-            self.buffer_size,
-            self.env.observation_space,
-            self.env.action_space,
-            device=self.device,
-            n_envs=self.env.num_envs
-        )
+        if use_her:
+            self.replay_buffer = HerReplayBuffer(
+                self.buffer_size,
+                self.env.observation_space,
+                self.env.action_space,
+                env=self.env,
+                device=self.device,
+                n_envs=self.env.num_envs
+            )
+        else:
+            self.replay_buffer = DictReplayBuffer(
+                self.buffer_size,
+                self.env.observation_space,
+                self.env.action_space,
+                device=self.device,
+                n_envs=self.env.num_envs
+            )
 
         self._create_actor_critic()
 
