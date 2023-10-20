@@ -34,7 +34,7 @@ class QNetwork(nn.Module):
         return self.network(x)
 
 
-class MYDQN:
+class CLEANDQN:
     """
     Custom version of DQN adapted from CleanRL
     https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/dqn.py

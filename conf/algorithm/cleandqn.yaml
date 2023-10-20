@@ -2,7 +2,7 @@
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 
 algorithm:
-  name: 'mydqn'
+  name: 'cleandqn'
   learning_rate: 2.5e-4
   start_e: 1
   end_e: 0.05
