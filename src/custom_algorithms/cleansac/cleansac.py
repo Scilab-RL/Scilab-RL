@@ -90,8 +90,9 @@ def flatten_obs(obs, device):
     return torch.cat([observation, ag, dg], dim=1).to(dtype=torch.float32)
 
 
-class MEINSAC:
+class CLEANSAC:
     """
+    A one-file version of SAC derived from both the CleanRL and stable-baselines3 versions of SAC.
     :param env: The Gym environment to learn from
     :param learning_rate: learning rate for adam optimizer,
         the same learning rate will be used for all networks (Q-Values, Actor and Value function)
