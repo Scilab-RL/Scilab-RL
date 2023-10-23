@@ -276,14 +276,14 @@ class CLEANPPO:
             var_y = np.var(y_true)
             explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
-            self.logger.record("charts/learning_rate", self.optimizer.param_groups[0]["lr"], global_step)
-            self.logger.record("losses/value_loss", v_loss.item(), global_step)
-            self.logger.record("losses/policy_loss", pg_loss.item(), global_step)
-            self.logger.record("losses/entropy", entropy_loss.item(), global_step)
-            self.logger.record("losses/old_approx_kl", old_approx_kl.item(), global_step)
-            self.logger.record("losses/approx_kl", approx_kl.item(), global_step)
-            self.logger.record("losses/clipfrac", np.mean(clipfracs), global_step)
-            self.logger.record("losses/explained_variance", explained_var, global_step)
+            self.logger.record("train/learning_rate", self.optimizer.param_groups[0]["lr"], global_step)
+            self.logger.record("train/value_loss", v_loss.item(), global_step)
+            self.logger.record("train/policy_loss", pg_loss.item(), global_step)
+            self.logger.record("train/entropy", entropy_loss.item(), global_step)
+            self.logger.record("train/old_approx_kl", old_approx_kl.item(), global_step)
+            self.logger.record("train/approx_kl", approx_kl.item(), global_step)
+            self.logger.record("train/clip_fraction", np.mean(clipfracs), global_step)
+            self.logger.record("train/explained_variance", explained_var, global_step)
 
     def predict(self, obs, state, episode_start, deterministic):
         with torch.no_grad():
