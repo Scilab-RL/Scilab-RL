@@ -27,14 +27,13 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 * In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `./scripts/setup.sh`. This will install all required dependencies, it will take a while. 
 
 5. Create an weights n biases account 
-* Go to [wandb.ai]([wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account. 
+* Go to [wandb.ai]([wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account. You will obtain a wandb API key that you can find on your wandb profile site. There, go to "settings" and copy your API key. Then assign it to the system variable 'WANDB_API_KEY'. Our recommendation is doing this by adding the line 'export WANDB_API_KEY=<YOUR KEY>' to your '~/.bashrc' file. 
 
 6. Test the installation from the Linux console
 * Activate Conda by running `source ~/.bashrc`
 * Activate the correct Conda environment with `conda activate scilabrl`
 * run `python src/main.py`
-* When running for the first time, you are asked about your wandb account. On your wandb profile site at [wandb.ai]([wandb.ai), go to "settings" and copy your API key. Then paste it in the console. 
-* Also, when running for the first time, MuJoCo is being compiled, and gcc will produce some additional output. 
+* When running for the first time, MuJoCo is being compiled, and gcc will produce some additional output. 
 * Once compilation is finished, you should see console output similar to the following: 
 ![image](uploads/c6d784811a62fc1b85653a91aa1dee00/image.png)
 
