@@ -3,7 +3,7 @@
 
 algorithm:
   name: 'cleanppo'
-  learning_rate: 0.0003
+  learning_rate: 0.001
   num_steps: 2048
   num_envs: 1
   anneal_lr: True
