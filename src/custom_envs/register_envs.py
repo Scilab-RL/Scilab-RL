@@ -3,6 +3,8 @@ All custom environments must be registered here, otherwise they won't be found.
 """
 from gymnasium.envs.registration import register
 import highway_env
+from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
+
 
 def register_custom_envs():
     for n_objects in range(5):
@@ -35,3 +37,21 @@ def register_custom_envs():
         entry_point='highway_env.envs:ParkingEnv',
         max_episode_steps=100,
     )
+
+    register_metaworld_envs()
+
+
+def register_metaworld_envs():
+    for env_name, env_class in ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE.items():
+        def make_variable_goal_env(environment_class):
+            def variable_goal_env(**kwargs):
+                """
+                set _freeze_rand_vec to False after instantiation so that the goal is not always the same.
+                """
+                env = environment_class(**kwargs)
+                env._freeze_rand_vec = False
+                return env
+
+            return variable_goal_env
+
+        register(id=env_name, entry_point=make_variable_goal_env(env_class))
