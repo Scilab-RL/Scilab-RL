@@ -1,6 +1,7 @@
 import os
 import mlflow
 import numpy as np
+from typing import Dict, Any
 
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -73,7 +74,6 @@ class EvalCallback(EvalCallback):
         wrapped with a Monitor wrapper)
     """
 
-
     def _on_step(self) -> bool:
 
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
@@ -145,3 +145,23 @@ class EvalCallback(EvalCallback):
                     return self._on_event()
 
         return True
+
+    def _log_success_callback(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+        """
+        Callback passed to the  ``evaluate_policy`` function
+        in order to log the success rate (when applicable),
+        for instance when using HER.
+
+        :param locals_:
+        :param globals_:
+        """
+        info = locals_["info"]
+
+        if locals_["done"]:
+            maybe_is_success = info.get("is_success")
+            if maybe_is_success is not None:
+                self._is_success_buffer.append(maybe_is_success)
+            # for meta-world environments, "is_success" is named "success"
+            maybe_success = info.get("success")
+            if maybe_success is not None:
+                self._is_success_buffer.append(maybe_success)
