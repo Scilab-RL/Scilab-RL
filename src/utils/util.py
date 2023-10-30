@@ -39,6 +39,7 @@ def set_global_seeds(i):
     try:
         import torch
         torch.manual_seed(myseed)
+        torch.backends.cudnn.deterministic = True
     except ImportError:
         pass
     np.random.seed(myseed)

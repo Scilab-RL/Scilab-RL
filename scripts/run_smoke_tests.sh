@@ -11,7 +11,14 @@ test_algos() {
   for config in "conf/algorithm"/*
   do
     config="${config%.*}"
-    ALGOS+="${config##*/},"
+    case "$(basename "$config")" in
+      "dqn" | "cleandqn")
+        # dqn and cleandqn don't support continuous action spaces
+        ;;
+      *)
+        ALGOS+="$(basename "$config"),"
+        ;;
+    esac
   done
   ALGOS="${ALGOS%,*}"
   echo "Smoke-testing algorithms $ALGOS"
@@ -78,7 +85,14 @@ test_loading() {
   do
     config="${config%.*}"
     config="${config##*/}"
-    ALGOS+=($config)
+    case "$(basename "$config")" in
+      "dqn" | "cleandqn")
+        # dqn and cleandqn don't support continuous action spaces
+        ;;
+      *)
+        ALGOS+=($config)
+        ;;
+    esac
   done
   local ENVS="FetchReach-v2,parking-limited-v0"
   # delete directory for loading_tests so that we only load the policies that we save now
