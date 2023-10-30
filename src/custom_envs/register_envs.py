@@ -54,4 +54,4 @@ def register_metaworld_envs():
 
             return variable_goal_env
 
-        register(id=env_name, entry_point=make_variable_goal_env(env_class))
+        register(id=env_name, entry_point=make_variable_goal_env(env_class), max_episode_steps=500)
