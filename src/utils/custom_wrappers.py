@@ -3,9 +3,14 @@ import subprocess
 import gymnasium as gym
 
 from typing import Callable
+
+import numpy as np
 from utils.animation_util import LiveAnimationPlot
 
 from gymnasium.wrappers.monitoring import video_recorder
+from gymnasium import spaces
+from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE as METAWORLD_ENVS
+from metaworld.envs.reward_utils import tolerance
 
 
 class DisplayWrapper(gym.Wrapper):
@@ -321,3 +326,65 @@ class RecordVideo(gym.Wrapper):
             )
         else:
             subprocess.Popen(self.cmdline)
+
+
+class MakeDictObs(gym.Wrapper):
+    def __init__(self, env, dense=False):
+        super().__init__(env)
+        self.dense = dense
+        if isinstance(env, METAWORLD_ENVS["reach-v2-goal-observable"]):
+            low = self.env.observation_space.low
+            high = self.env.observation_space.high
+            env.observation_space = spaces.Dict(
+                dict(
+                    desired_goal=spaces.Box(
+                        low=low[-3:], high=high[-3:], dtype="float64"
+                    ),
+                    achieved_goal=spaces.Box(
+                        low=low[:3], high=high[:3], dtype="float64"
+                    ),
+                    observation=spaces.Box(
+                        low=low[3:-3], high=high[3:-3], dtype="float64"
+                    ),
+                )
+            )
+
+            def convert_obs(obs):
+                ag = obs[:3]
+                ag[2] -= 0.045  # this is a little correction because the original compute reward works
+                #  with the tcp_center which is slightly lower than the endeffector_pos
+                dg = obs[-3:]
+                ob = obs[3:-3]
+                return {"observation": ob, "achieved_goal": ag, "desired_goal": dg}
+            self.obs_to_dict_obs = convert_obs
+
+            hand_init_pos = self.env.unwrapped.hand_init_pos  # stays the same when env resets
+
+            def compute_reward(achieved_goal, desired_goal, infos):
+                distances = np.linalg.norm(achieved_goal - desired_goal, axis=1)
+                if not self.dense:
+                    return (distances < 0.05) - 1
+                in_place_margin = np.linalg.norm(hand_init_pos - desired_goal)
+                reward = tolerance(
+                    distances,
+                    bounds=(0, 0.05),
+                    margin=in_place_margin,
+                    sigmoid="long_tail",
+                )
+                return reward * 10
+            self.compute_reward = compute_reward
+        else:
+            raise ValueError("No dict obs conversion available for this environment.")
+
+    def step(self, action):
+        observations, rewards, terminated, truncated, infos = self.env.step(action)
+        if not self.dense:
+            rewards = infos["success"] - 1
+        observations = self.obs_to_dict_obs(observations)
+        return observations, rewards, terminated, truncated, infos
+
+    def reset(self, **kwargs):
+        observations, info = self.env.reset(**kwargs)
+        observations = self.obs_to_dict_obs(observations)
+        return observations, info
+
