@@ -373,8 +373,46 @@ class MakeDictObs(gym.Wrapper):
                 )
                 return reward * 10
             self.compute_reward = compute_reward
+
+        elif isinstance(env, METAWORLD_ENVS["push-v2-goal-observable"]):
+            low = self.env.observation_space.low
+            high = self.env.observation_space.high
+            env.observation_space = spaces.Dict(
+                dict(
+                    desired_goal=spaces.Box(
+                        low=low[-3:], high=high[-3:], dtype="float64"
+                    ),
+                    achieved_goal=spaces.Box(
+                        low=low[4:7], high=high[4:7], dtype="float64"
+                    ),
+                    observation=spaces.Box(
+                        low=np.concatenate([low[0:4], low[7:-3]]),
+                        high=np.concatenate([high[0:4], high[7:-3]]),
+                        dtype="float64"
+                    ),
+                )
+            )
+
+            def convert_obs(obs):
+                ag = obs[4:7]
+                dg = obs[-3:]
+                ob = np.concatenate([obs[0:4], obs[7:-3]])
+                return {"observation": ob, "achieved_goal": ag, "desired_goal": dg}
+
+            self.obs_to_dict_obs = convert_obs
+
+            def compute_reward(achieved_goal, desired_goal, infos):
+                distances = np.linalg.norm(achieved_goal - desired_goal, axis=1)
+                if not self.dense:
+                    return (distances < 0.05) - 1
+                else:
+                    raise NotImplementedError("for push-v2, compute_reward for HER is only implemented for sparse "
+                                              "rewards, because the dense reward includes parts that are calculated "
+                                              "from the current environment state.")
+            self.compute_reward = compute_reward
+
         else:
-            raise ValueError("No dict obs conversion available for this environment.")
+            raise ValueError("No dict-obs conversion available for this environment.")
 
     def step(self, action):
         observations, rewards, terminated, truncated, infos = self.env.step(action)
