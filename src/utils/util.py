@@ -62,7 +62,6 @@ def avoid_start_learn_before_first_episode_finishes(alg_kwargs, env):
     try:
         max_ep_steps = env.get_attr("spec")[0].max_episode_steps
         # Raise the error because the attribute is present but is None
-        max_ep_steps=1000
         if max_ep_steps is None:
             raise AttributeError
     # if not available check if a valid value was passed as an argument
