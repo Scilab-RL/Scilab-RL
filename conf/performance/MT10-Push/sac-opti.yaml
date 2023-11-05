@@ -9,7 +9,7 @@ early_stop_threshold: 0.3
 early_stop_data_column: 'eval/success_rate'
 render: 'none'
 
-env: 'push-v2-goal-observable'
+env: 'push-v2'
 
 algorithm:
   replay_buffer_class: null
