@@ -8,7 +8,7 @@ eval_after_n_steps: 10000
 early_stop_threshold: 0.5
 render: 'none'
 
-env: 'pick-place-v2-goal-observable'
+env: 'pick-place-v2'
 
 algorithm:
   replay_buffer_class: null

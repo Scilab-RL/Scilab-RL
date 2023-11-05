@@ -3,7 +3,7 @@
 defaults:
   - override /algorithm: sac
 
-env: 'pick-place-v2-goal-observable'
+env: 'pick-place-v2'
 
 
 
@@ -42,4 +42,4 @@ hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: sac_her_pick-place-v2-goal-observable-test
+    study_name: sac_pick-place-v2-test
