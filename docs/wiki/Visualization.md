@@ -14,15 +14,15 @@ The `render` args specify how and when to render and plot during training and te
 `render_freq` determine the number of epochs after which we render the training/testing.
 `render_metrics_*` determine the metric values to render. They have to be provided by the learning algorithm.
 
-`
+```
 render: 'none' # 'display', 'record', or anything else for neither one
 render_freq: 5
 render_metrics_train: []
 render_metrics_test: []
-`
+```
 
 An example of the side-by-side visualization might look like this, here we highlight a custom critics variance metric and assume it is provided by the algorithm:
 
-`python main.py render='display' render_metrics_train=['critic_variance']`
+`python main.py env='FetchPush-v2' render='display' render_metrics_train=['critic_variance']`
 
 ![](uploads/latest/critics_variance_side_by_side.mp4)
