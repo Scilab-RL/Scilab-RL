@@ -4,7 +4,7 @@ All custom environments must be registered here, otherwise they won't be found.
 from gymnasium.envs.registration import register
 import highway_env
 from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
-from src.utils.custom_wrappers import MakeDictObs
+from utils.custom_wrappers import MakeDictObs
 
 
 def register_custom_envs():
