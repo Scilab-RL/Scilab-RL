@@ -333,7 +333,41 @@ class MakeDictObs(gym.Wrapper):
     def __init__(self, env, dense=False):
         super().__init__(env)
         self.dense = dense
-        if isinstance(env, METAWORLD_ENVS["reach-v2-goal-observable"]):
+
+        if isinstance(env, METAWORLD_ENVS["button-press-v2-goal-observable"]):
+            low = self.env.observation_space.low
+            high = self.env.observation_space.high
+            env.observation_space = spaces.Dict(
+                dict(
+                    desired_goal=spaces.Box(
+                        low=low[-2], high=high[-2], dtype="float64"
+                    ),
+                    achieved_goal=spaces.Box(
+                        low=low[5], high=high[5], dtype="float64"
+                    ),
+                    observation=spaces.Box(
+                        low=np.concatenate([low[0:5], low[6:-2], low[-1:]]),
+                        high=np.concatenate([high[0:5], high[6:-2], low[-1:]]),
+                        dtype="float64"
+                    ),
+                )
+            )
+
+            def convert_obs(obs):
+                ag = np.array([obs[5]])
+                dg = np.array([obs[-2]])
+                ob = np.concatenate([obs[0:5], obs[6:-2], obs[-1:]])
+                return {"observation": ob, "achieved_goal": ag, "desired_goal": dg}
+
+            self.obs_to_dict_obs = convert_obs
+
+            def compute_reward(achieved_goal, desired_goal, infos):
+                obj_to_target = abs(achieved_goal - desired_goal)
+
+                return (obj_to_target <= 0.02) - 1
+            self.compute_reward = compute_reward
+
+        elif isinstance(env, METAWORLD_ENVS["reach-v2-goal-observable"]):
             low = self.env.observation_space.low
             high = self.env.observation_space.high
             env.observation_space = spaces.Dict(
@@ -434,22 +468,22 @@ class MakeDictObs(gym.Wrapper):
             )
 
             def convert_obs(obs):
-                ag = obs[4]
-                dg = obs[-3] # todo ensure its an array
+                ag = np.array([obs[4]])
+                dg = np.array([obs[-3]])
                 ob = np.concatenate([obs[0:4], obs[5:-3], obs[-2:]])
                 return {"observation": ob, "achieved_goal": ag, "desired_goal": dg}
 
             self.obs_to_dict_obs = convert_obs
 
             def compute_reward(achieved_goal, desired_goal, infos):
-                distances = achieved_goal - desired_goal
-                if not self.dense: # todo implement correct reward function
-                    return (distances < 0.05) - 1
+                distances = abs(achieved_goal - desired_goal)
+                if not self.dense:
+                    return (distances <= 0.08) - 1
                 else:
                     raise NotImplementedError("for door-open-v2, "
                                               "compute_reward for HER is only implemented for sparse "
                                               "rewards, because the dense reward includes parts that are calculated "
-                                              "from the current environment state.") # todo adjust
+                                              "from the current environment state.")
             self.compute_reward = compute_reward
 
 
