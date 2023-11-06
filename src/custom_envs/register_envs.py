@@ -62,7 +62,7 @@ def register_metaworld_envs():
                     elif environment_type == "sparse":
                         env = MakeDictObs(env, dense=False)
                     elif environment_type == "dense":
-                            env = MakeDictObs(env, dense=True)
+                        env = MakeDictObs(env, dense=True)
                     else:
                         raise ValueError(f"unknown environment type {environment_type}")
                     return env
@@ -70,8 +70,8 @@ def register_metaworld_envs():
                 return variable_goal_env
 
             if env_type == "original":
-                register(id=env_name[:-len('-goal-observable')], entry_point=make_variable_goal_env(env_class, env_type), max_episode_steps=500)
+                register(id=f"MetaW-{env_name[:-len('-goal-observable')]}", entry_point=make_variable_goal_env(env_class, env_type), max_episode_steps=500)
             elif env_type == "sparse":
-                register(id=f"{env_name[:-len('-goal-observable')]}-sparse", entry_point=make_variable_goal_env(env_class, env_type), max_episode_steps=500)
+                register(id=f"MetaW-{env_name[:-len('-goal-observable')]}-sparse", entry_point=make_variable_goal_env(env_class, env_type), max_episode_steps=500)
             elif env_type == "dense":
-                register(id=f"{env_name[:-len('-goal-observable')]}-dense", entry_point=make_variable_goal_env(env_class, env_type), max_episode_steps=500)
+                register(id=f"MetaW-{env_name[:-len('-goal-observable')]}-dense", entry_point=make_variable_goal_env(env_class, env_type), max_episode_steps=500)
