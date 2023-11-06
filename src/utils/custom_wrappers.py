@@ -329,6 +329,7 @@ class RecordVideo(gym.Wrapper):
 
 
 class MakeDictObs(gym.Wrapper):
+    # todo describe in wiki how to implement for new environment
     def __init__(self, env, dense=False):
         super().__init__(env)
         self.dense = dense
@@ -374,7 +375,8 @@ class MakeDictObs(gym.Wrapper):
                 return reward * 10
             self.compute_reward = compute_reward
 
-        elif isinstance(env, METAWORLD_ENVS["push-v2-goal-observable"]):
+        elif isinstance(env, (METAWORLD_ENVS["push-v2-goal-observable"],
+                              METAWORLD_ENVS["pick-place-v2-goal-observable"])):
             low = self.env.observation_space.low
             high = self.env.observation_space.high
             env.observation_space = spaces.Dict(
@@ -406,10 +408,50 @@ class MakeDictObs(gym.Wrapper):
                 if not self.dense:
                     return (distances < 0.05) - 1
                 else:
-                    raise NotImplementedError("for push-v2, compute_reward for HER is only implemented for sparse "
+                    raise NotImplementedError("for push-v2 / pick-place-v2, "
+                                              "compute_reward for HER is only implemented for sparse "
                                               "rewards, because the dense reward includes parts that are calculated "
                                               "from the current environment state.")
             self.compute_reward = compute_reward
+
+        elif isinstance(env, METAWORLD_ENVS["door-open-v2-goal-observable"]):
+            low = self.env.observation_space.low
+            high = self.env.observation_space.high
+            env.observation_space = spaces.Dict(
+                dict(
+                    desired_goal=spaces.Box(
+                        low=low[-3], high=high[-3], dtype="float64"
+                    ),
+                    achieved_goal=spaces.Box(
+                        low=low[4], high=high[4], dtype="float64"
+                    ),
+                    observation=spaces.Box(
+                        low=np.concatenate([low[0:4], low[5:-3], low[-2:]]),
+                        high=np.concatenate([high[0:4], high[5:-3], low[-2:]]),
+                        dtype="float64"
+                    ),
+                )
+            )
+
+            def convert_obs(obs):
+                ag = obs[4]
+                dg = obs[-3] # todo ensure its an array
+                ob = np.concatenate([obs[0:4], obs[5:-3], obs[-2:]])
+                return {"observation": ob, "achieved_goal": ag, "desired_goal": dg}
+
+            self.obs_to_dict_obs = convert_obs
+
+            def compute_reward(achieved_goal, desired_goal, infos):
+                distances = achieved_goal - desired_goal
+                if not self.dense: # todo implement correct reward function
+                    return (distances < 0.05) - 1
+                else:
+                    raise NotImplementedError("for door-open-v2, "
+                                              "compute_reward for HER is only implemented for sparse "
+                                              "rewards, because the dense reward includes parts that are calculated "
+                                              "from the current environment state.") # todo adjust
+            self.compute_reward = compute_reward
+
 
         else:
             raise ValueError("No dict-obs conversion available for this environment.")
