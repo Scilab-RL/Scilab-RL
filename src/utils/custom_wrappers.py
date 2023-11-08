@@ -410,7 +410,18 @@ class MakeDictObs(gym.Wrapper):
             self.compute_reward = compute_reward
 
         elif isinstance(env, (METAWORLD_ENVS["push-v2-goal-observable"],
-                              METAWORLD_ENVS["pick-place-v2-goal-observable"])):
+                              METAWORLD_ENVS["pick-place-v2-goal-observable"],
+                              METAWORLD_ENVS["drawer-close-v2-goal-observable"],
+                              METAWORLD_ENVS["drawer-open-v2-goal-observable"])):
+
+            if isinstance(env, (METAWORLD_ENVS["push-v2-goal-observable"],
+                                METAWORLD_ENVS["pick-place-v2-goal-observable"])):
+                self.threshold = 0.05
+            elif isinstance(env, (METAWORLD_ENVS["drawer-close-v2-goal-observable"])):
+                self.threshold = 0.065
+            elif isinstance(env, (METAWORLD_ENVS["drawer-open-v2-goal-observable"])):
+                self.threshold = 0.03
+
             low = self.env.observation_space.low
             high = self.env.observation_space.high
             env.observation_space = spaces.Dict(
@@ -440,15 +451,16 @@ class MakeDictObs(gym.Wrapper):
             def compute_reward(achieved_goal, desired_goal, infos):
                 distances = np.linalg.norm(achieved_goal - desired_goal, axis=1)
                 if not self.dense:
-                    return (distances < 0.05) - 1
+                    return (distances < self.threshold) - 1
                 else:
-                    raise NotImplementedError("for push-v2 / pick-place-v2, "
+                    raise NotImplementedError("for push-v2 / pick-place-v2 / drawer-close-v2 / drawer-open-v2, "
                                               "compute_reward for HER is only implemented for sparse "
                                               "rewards, because the dense reward includes parts that are calculated "
                                               "from the current environment state.")
             self.compute_reward = compute_reward
 
-        elif isinstance(env, METAWORLD_ENVS["door-open-v2-goal-observable"]):
+        elif isinstance(env, (METAWORLD_ENVS["door-open-v2-goal-observable"],
+                              METAWORLD_ENVS["window-close-v2-goal-observable"])):
             low = self.env.observation_space.low
             high = self.env.observation_space.high
             env.observation_space = spaces.Dict(
@@ -480,12 +492,11 @@ class MakeDictObs(gym.Wrapper):
                 if not self.dense:
                     return (distances <= 0.08) - 1
                 else:
-                    raise NotImplementedError("for door-open-v2, "
+                    raise NotImplementedError("for door-open-v2 / window-close-v2, "
                                               "compute_reward for HER is only implemented for sparse "
                                               "rewards, because the dense reward includes parts that are calculated "
                                               "from the current environment state.")
             self.compute_reward = compute_reward
-
 
         else:
             raise ValueError("No dict-obs conversion available for this environment.")
