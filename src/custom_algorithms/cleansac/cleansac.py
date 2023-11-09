@@ -111,7 +111,7 @@ class CLEANSAC:
             env: GymEnv,
             learning_rate: float = 3e-4,
             buffer_size: int = 1_000_000,
-            learning_starts: int = 100,
+            learning_starts: int = 1000,
             batch_size: int = 256,
             tau: float = 0.005,
             gamma: float = 0.99,

@@ -30,8 +30,8 @@ hydra:
     n_jobs: 3
     direction: maximize
     max_duration_minutes: 18000
-    min_trials_per_param: 2
-    max_trials_per_param: 3
+    min_trials_per_param: 3
+    max_trials_per_param: 6
     search_space:
       ++algorithm.learning_rate:
         type: float
