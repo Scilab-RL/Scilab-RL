@@ -329,7 +329,6 @@ class RecordVideo(gym.Wrapper):
 
 
 class MakeDictObs(gym.Wrapper):
-    # todo describe in wiki how to implement for new environment
     def __init__(self, env, dense=False):
         super().__init__(env)
         self.dense = dense
