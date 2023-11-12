@@ -35,7 +35,3 @@ hydra:
         low: 0.01
         high: 0.1
         log: true
-      ++algorithm.policy_kwargs.n_critics:
-        type: int
-        low: 2
-        high: 2
