@@ -4,6 +4,9 @@ defaults:
   - override /algorithm: cleansac
 
 n_epochs: 100
+eval_after_n_steps: 4000
+early_stop_threshold: 0.6
+early_stop_data_column: 'eval/success_rate'
 
 env: 'FetchPush-v2'
 
@@ -14,11 +17,11 @@ hydra:
   sweeper:
     study_name: cleansacher_FetchPush
     max_trials: 32
-    n_jobs: 6
+    n_jobs: 9
     direction: maximize
     max_duration_minutes: 18000
-    min_trials_per_param: 3
-    max_trials_per_param: 6
+    min_trials_per_param: 2
+    max_trials_per_param: 4
     search_space:
       ++algorithm.learning_rate:
         type: float

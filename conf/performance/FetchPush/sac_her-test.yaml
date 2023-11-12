@@ -23,7 +23,7 @@ algorithm:
     goal_selection_strategy: 'future'
 
 performance_testing_conditions:
-  # In 2 out of 3 tests, the eval/success rate should be at least 0.7 after 20k steps.
+  # In 2 out of 3 tests, the eval/success rate should be at least 0.7 after 200k steps.
 
   total_runs: 3 # How many runs in total:
 
