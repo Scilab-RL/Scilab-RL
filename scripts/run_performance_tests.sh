@@ -21,7 +21,7 @@ configs_to_ignore=("o0-random-cleansac_her-test" "o0-random-sac_her-test")
 unsuccessful_configs=()
 git_branch=$(git rev-parse --abbrev-ref HEAD)
 commit_hash=$(git rev-parse $git_branch)
-echo "Performance test starting on $(date).\n Branch: $git_branch. \n commit: $git_branch" > performance-test_results.log
+echo "Performance test starting on $(date).\n Branch: $git_branch. \n commit: $commit_hash" > performance-test_results.log
 for env_folder in "conf/performance"/*
 do
   for config in "$env_folder"/*
