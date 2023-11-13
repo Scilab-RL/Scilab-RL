@@ -41,7 +41,7 @@ value=$1
         then
           echo "Performance-test $config FAILED."
           echo "Performance-test $config FAILED.\n" >> performance-test_results.log
-          unsuccessful_configs=+($config)
+          unsuccessful_configs+=($config)
         else
           echo "Performance-test $config successful."
           echo "Performance-test $config successful.\n" >> performance-test_results.log
