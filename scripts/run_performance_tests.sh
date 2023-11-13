@@ -49,6 +49,7 @@ do
           echo "Performance-test $config successful."
           echo "Performance-test $config successful." >> performance-test_results.log
         fi
+      fi
     fi
   done
 done
