@@ -30,15 +30,15 @@ do
 #    if [[ $(echo ${configs_to_ignore[@]} | fgrep -w $config) ]]
 #    if [[ " ${configs_to_ignore[*]} " =~ " ${config} " ]]
 #    if printf '%s\0' "${configs_to_ignore[@]}" | grep $config
-    if [[ " ${configs_to_ignore[*]} " =~ " ${config} " ]]
+    if [ ${config: -9} = "test.yaml" ]
     then
-      echo "Skipping config $config"
-      echo "Skipping config $config" >> performance-test_results.log
-    else
-      if [ ${config: -9} = "test.yaml" ]
+      config=${config:17}
+      config=${config%.*}
+      if [[ " ${configs_to_ignore[*]} " =~ " ${config} " ]]
       then
-        config=${config:17}
-        config=${config%.*}
+        echo "Skipping config $config"
+        echo "Skipping config $config" >> performance-test_results.log
+      else
         #if ! xvfb-run -a python3 src/main.py +performance=$config wandb=0 render=none --multirun;
         if [ $(echo $config | fgrep -w "o1") ]
         then
@@ -49,9 +49,7 @@ do
           echo "Performance-test $config successful."
           echo "Performance-test $config successful." >> performance-test_results.log
         fi
-      fi
     fi
-
   done
 done
 if [ ${#ArrayName[@]} = 0 ]
