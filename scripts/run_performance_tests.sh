@@ -19,7 +19,8 @@ fi
 # run all performance-tests:
 configs_to_ignore=("o0-random-cleansac_her-test" "o0-random-sac_her-test")
 unsuccessful_configs=()
-echo "Performance test starting $(date)" > performance-test_results.log
+git_branch=$(git rev-parse --abbrev-ref HEAD)
+echo "Performance test starting on $(date). Branch: $git_branch " > performance-test_results.log
 for env_folder in "conf/performance"/*
 do
   for config in "$env_folder"/*
