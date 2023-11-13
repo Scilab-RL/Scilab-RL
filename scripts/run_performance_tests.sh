@@ -27,7 +27,8 @@ for env_folder in "conf/performance"/*
 do
   for config in "$env_folder"/*
   do
-    if [[ $(echo ${configs_to_ignore[@]} | fgrep -w $config) ]]
+#    if [[ $(echo ${configs_to_ignore[@]} | fgrep -w $config) ]]
+    if [[ " ${configs_to_ignore[*]} " =~ " ${config} " ]]
     then
       echo "Skipping config $config"
       echo "Skipping config $config\n" >> performance-test_results.log
