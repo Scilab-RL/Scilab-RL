@@ -5,8 +5,15 @@
 #######################################################################################################
 
 # Blocks with SAC+HER and CLEANSAC+HER
-python src/main.py +performance=Blocks/o0-random-sac_her-test --multirun
-python src/main.py +performance=Blocks/o0-random-cleansac_her-test --multirun
+python src/main.py +performance=Blocks/o0-random-sac_her-test --multirun # OK
+python src/main.py +performance=Blocks/o0-random-cleansac_her-test --multirun # OK
+python src/main.py +performance=Blocks/o1-none-sac_her-test --multirun
+python src/main.py +performance=Blocks/o1-none-cleansac_her-test --multirun
+python src/main.py +performance=Blocks/o1-above-sac_her-test --multirun
+python src/main.py +performance=Blocks/o1-above-cleansac_her-test --multirun
+python src/main.py +performance=Blocks/o1-random-sac_her-test --multirun
+python src/main.py +performance=Blocks/o1-random-cleansac_her-test --multirun
+
 # ...
 
 # FetchPickPlace with all algorithms that support HER
