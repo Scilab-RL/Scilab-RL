@@ -17,18 +17,16 @@ then  # run only these performance tests:
 fi
 
 # run all performance-tests:
-configs_to_ignore=("o0-random-cleansac_her-test" "o0-random-sac_her-test")
+configs_to_ignore=("Blocks/o0-random-cleansac_her-test" "Blocks/o0-random-sac_her-test")
 unsuccessful_configs=()
 git_branch=$(git rev-parse --abbrev-ref HEAD)
 commit_hash=$(git rev-parse $git_branch)
-echo "Performance test starting on $(date).\n Branch: $git_branch. \n commit: $commit_hash" > performance-test_results.log
+echo "Performance test starting on $(date)." > performance-test_results.log
+echo "Branch: $git_branch. Commit: $commit_hash" >> performance-test_results.log
 for env_folder in "conf/performance"/*
 do
   for config in "$env_folder"/*
   do
-    array=("one" "two" "potatoes" "bananas" "three" "apples")
-value=$1
-
     if [[ $(echo ${configs_to_ignore[@]} | fgrep -w $config) ]]
     then
       echo "Skipping config $config"
