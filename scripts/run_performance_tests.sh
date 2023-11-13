@@ -28,10 +28,11 @@ do
   for config in "$env_folder"/*
   do
 #    if [[ $(echo ${configs_to_ignore[@]} | fgrep -w $config) ]]
-    if [[ " ${configs_to_ignore[*]} " =~ " ${config} " ]]
+#    if [[ " ${configs_to_ignore[*]} " =~ " ${config} " ]]
+    if printf '%s\0' "${configs_to_ignore[@]}" | grep -Fxqz -- $config; then
     then
       echo "Skipping config $config"
-      echo "Skipping config $config\n" >> performance-test_results.log
+      echo "Skipping config $config" >> performance-test_results.log
     else
       if [ ${config: -9} = "test.yaml" ]
       then
@@ -41,11 +42,11 @@ do
         if [ $(echo $config | fgrep -w "o1") ]
         then
           echo "Performance-test $config FAILED."
-          echo "Performance-test $config FAILED.\n" >> performance-test_results.log
+          echo "Performance-test $config FAILED." >> performance-test_results.log
           unsuccessful_configs+=($config)
         else
           echo "Performance-test $config successful."
-          echo "Performance-test $config successful.\n" >> performance-test_results.log
+          echo "Performance-test $config successful." >> performance-test_results.log
         fi
       fi
     fi
