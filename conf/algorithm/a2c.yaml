@@ -1,5 +1,0 @@
-name: 'a2c'
-
-verbose: True
-
-policy: 'MultiInputPolicy'
