@@ -62,4 +62,5 @@ else
     echo $config
   done
   exit 1
+fi
 
