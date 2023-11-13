@@ -20,7 +20,6 @@ do
         echo "Skipping config $config" >> performance-test_results.log
       else
         if ! xvfb-run -a python3 src/main.py +performance=$config wandb=0 render=none --multirun;
-#        if [ $(echo $config | fgrep -w "o1") ]
         then
           echo "Performance-test $config FAILED."
           echo "Performance-test $config FAILED." >> performance-test_results.log
