@@ -29,7 +29,7 @@ do
   do
 #    if [[ $(echo ${configs_to_ignore[@]} | fgrep -w $config) ]]
 #    if [[ " ${configs_to_ignore[*]} " =~ " ${config} " ]]
-    if printf '%s\0' "${configs_to_ignore[@]}" | grep -Fxqz -- $config; then
+    if printf '%s\0' "${configs_to_ignore[@]}" | grep -Fxqz -- $config
     then
       echo "Skipping config $config"
       echo "Skipping config $config" >> performance-test_results.log
