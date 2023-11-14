@@ -32,9 +32,6 @@ algorithm:
       - 256
       - 256
       - 256
-  replay_buffer_kwargs:
-    n_sampled_goal: 4
-    goal_selection_strategy: 'future'
 
 hydra:
   sweeper:
