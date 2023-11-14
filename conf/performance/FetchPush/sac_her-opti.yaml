@@ -4,11 +4,15 @@ defaults:
   - override /algorithm: sac
 
 n_epochs: 100
+eval_after_n_steps: 4000
+early_stop_threshold: 0.6
+early_stop_data_column: 'eval/success_rate'
 
-env: 'FetchPush-v1'
 
-using_her: true
+env: 'FetchPush-v2'
+
 algorithm:
+  replay_buffer_class: HerReplayBuffer
   buffer_size: 1000000
   batch_size: 256
   policy_kwargs:
@@ -19,17 +23,16 @@ algorithm:
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'
-    online_sampling: True
 
 hydra:
   sweeper:
     study_name: sac_her_FetchPush
     max_trials: 32
-    n_jobs: 8
+    n_jobs: 9
     direction: maximize
     max_duration_minutes: 18000
     min_trials_per_param: 2
-    max_trials_per_param: 3
+    max_trials_per_param: 4
     search_space:
       ++algorithm.learning_rate:
         type: float

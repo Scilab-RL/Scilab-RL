@@ -6,3 +6,5 @@ test_logs/
 __pycache__/
 mlruns/
 delete_me_to_stop_hyperopt
+.idea/
+.DS_Store

@@ -5,10 +5,10 @@ defaults:
 
 n_epochs: 200
 
-env: 'FetchSlide-v1'
+env: 'FetchSlide-v2'
 
-using_her: true
 algorithm:
+  replay_buffer_class: HerReplayBuffer
   buffer_size: 1000000
   batch_size: 256
   policy_kwargs:
@@ -19,7 +19,6 @@ algorithm:
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'
-    online_sampling: True
 
 hydra:
   sweeper:

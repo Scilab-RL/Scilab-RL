@@ -1,0 +1,12 @@
+title: Scilab-RL
+description: A Reinforcement Learning Framework 
+remote_theme: just-the-docs/just-the-docs 
+plugins:
+  - jekyll-redirect-from
+
+# theme: minima
+# minima:
+#   skin: auto
+#   header_pages: 
+#     - wiki.md
+#     - code.md

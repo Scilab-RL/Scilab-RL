@@ -1,8 +1,81 @@
 defaults:
   # the name of the algorithm to be used ('td3', 'sac', 'dqn', 'ddpg')
   # here we use hydras config group defaults
-  - algorithm: 'sac'
-  - default_params: 'default'
+  - _self_
+  - algorithm: 'basic'
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
   - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time. The standard launcher is much better for debugging.
+
+# The name of the OpenAI Gym environment that you want to train on.
+env: 'FetchReach-v2'
+
+# keyword arguments for the environment
+env_kwargs: {}
+
+# The render* args specify how and when to render and plot during training and testing.
+# 'record' is for recording the rendered scene as a video file without on-screen display, 
+# 'display' for direct visualization, neither one, e.g. 'none' for not rendering at all.
+# render_freq determine the number of epochs after which we render the training/testing.
+# render_metrics* determine the metric values to render. They have to be provided by the 
+# learning algorithm.
+# TODO: maybe there is a better place to put render_metrics_* because they depend on the
+# algorithm. Maybe put them in the algorithm/xyz.yaml
+render: 'none' # 'display', 'record', or anything else for neither one
+render_freq: 5
+render_metrics_train: ['q_val', 'rand_eval']
+render_metrics_test: ['q_val','rand_eval']
+
+# If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
+seed: 0
+
+# the path to where logs and policy pickles should go.
+base_logdir: 'data'
+
+# The pretrained policy file to start with to avoid learning from scratch again.
+# Useful for interrupting and restoring training sessions.
+restore_policy: null
+
+# The number of training steps after which to evaluate the policy.
+eval_after_n_steps: 2000
+
+# The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
+n_epochs: 60
+
+# The number of testing rollouts.
+n_test_rollouts: 10
+
+# The n last epochs over which to average for determining early stopping condition.
+early_stop_last_n: 3
+
+# The early stopping threshold.
+early_stop_threshold: 0.9
+
+# The data column on which early stopping is based.
+early_stop_data_column: 'eval/success_rate'
+
+# A command line comment that will be integrated in the folder where the results
+# are stored. Useful for debugging and addressing temporary changes to the code.
+info: ''
+
+# The number of steps after which to save the model. 0 to never save, i.e., to only save the best and last model.
+save_model_freq: 0
+
+# WANDB options
+# Whether to use Weights and Biases. 1=use, 0=disable
+wandb: 1
+# wandb project name
+project_name: null
+# wandb entity
+entity: null
+# wandb group
+group: null
+# list of tags
+tags: null
+
+hydra:
+  run:
+    dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S}
+  sweep:
+    dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

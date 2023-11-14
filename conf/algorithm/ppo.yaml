@@ -1,0 +1,5 @@
+name: 'ppo'
+
+verbose: True
+
+policy: 'MultiInputPolicy'

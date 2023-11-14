@@ -1,0 +1,8 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+
+algorithm:
+  name: 'basic'
+  net_arch: [16,16]
+
+flatten_obs: True  # will use the FlattenObservation wrapper
