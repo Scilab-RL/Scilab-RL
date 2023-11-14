@@ -5,6 +5,7 @@ from gymnasium.envs.registration import register
 import highway_env
 
 
+
 def register_custom_envs():
     for n_objects in range(5):
         for gripper_goal in ['gripper_none', 'gripper_random', 'gripper_above']:

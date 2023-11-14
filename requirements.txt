@@ -17,4 +17,3 @@ stable-baselines3==2.1.0
 tqdm==4.66.1
 wandb==0.15.10
 highway-env==1.8.2
-
