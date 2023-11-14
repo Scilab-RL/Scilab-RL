@@ -3,9 +3,7 @@
 defaults:
   - override /algorithm: ppo
 
-env: 'FetchReach-v2'
-env_kwargs:
-  reward_type: 'dense'
+env: 'FetchReachDense-v2'
 
 algorithm:
   learning_rate: 0.0002

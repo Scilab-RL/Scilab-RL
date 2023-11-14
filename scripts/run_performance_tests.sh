@@ -1,6 +1,13 @@
 #!/bin/bash
-# run all performance-tests:
-configs_to_ignore=("Blocks/o0-random-cleansac_her-test" "Blocks/o0-random-sac_her-test")
+# Run all performance-tests, except for those: (useful when you don't want to repeat already successful tests)
+configs_to_ignore=()
+configs_to_ignore+=("Blocks/o0-random-cleansac_her-test" "Blocks/o0-random-sac_her-test")
+configs_to_ignore+=("Blocks/o1-above-sac_her-test")
+configs_to_ignore+=("FetchPickAndPlace/sac_her-test")
+configs_to_ignore+=("FetchPush/sac_her-test")
+configs_to_ignore+=("FetchReach/sac_her-test")
+
+
 unsuccessful_configs=()
 git_branch=$(git rev-parse --abbrev-ref HEAD)
 commit_hash=$(git rev-parse $git_branch)

@@ -3,13 +3,11 @@
 defaults:
   - override /algorithm: ppo
 
-env: 'FetchReach-v2'
-env_kwargs:
-  reward_type: 'dense'
+env: 'FetchReachDense-v2'
 
 hydra:
   sweeper:
-    study_name: ppo_FetchReach
+    study_name: ppo_FetchReachDense
     max_trials: 32
     n_jobs: 4
     direction: maximize
