@@ -38,7 +38,7 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 ![image](uploads/c6d784811a62fc1b85653a91aa1dee00/image.png)
 
 7. Accessing visualizations and debugging information. 
-* By default, Scilab-RL will store all data of the currently running experiment in the `data` subfolder. The structure is `<Scilab-Rl-root>/data/<git commit hash>/<Environment name>/<Time of Day>`. There, you will  also find a subfolder "videos" with renderings of the experiment. 
+* By default, Scilab-RL will store all data of the currently running experiment in the `data` subfolder. The structure is `<Scilab-Rl-root>/data/<git commit hash>/<Environment name>/<Time of Day>`. If the `render_args` variable is set to `record` in the config, you will  also find a subfolder "videos" with renderings of the experiment in this subfolder. 
 * To monitor all other training metrics, go to wandb.ai and find your experiment data there. 
 
 9. [Optional] Test real-time rendering
