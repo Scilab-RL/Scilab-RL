@@ -5,7 +5,7 @@ import numpy as np
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import sync_envs_normalization
-
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 class EarlyStopCallback(BaseCallback):
     """
@@ -73,6 +73,24 @@ class EvalCallback(EvalCallback):
         wrapped with a Monitor wrapper)
     """
 
+    def _log_success_callback(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+        """
+        Callback passed to the  ``evaluate_policy`` function
+        in order to log the success rate (when applicable),
+        for instance when using HER.
+
+        :param locals_:
+        :param globals_:
+        """
+        info = locals_["info"]
+        maybe_is_success = None
+        if locals_["done"]:
+            if "is_success" in info.keys():
+                maybe_is_success = info.get("is_success")
+            elif "success" in info.keys():
+                maybe_is_success = info.get("success")
+            if maybe_is_success is not None:
+                self._is_success_buffer.append(maybe_is_success)
 
     def _on_step(self) -> bool:
 
