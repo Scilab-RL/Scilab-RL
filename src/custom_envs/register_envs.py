@@ -3,6 +3,7 @@ All custom environments must be registered here, otherwise they won't be found.
 """
 from gymnasium.envs.registration import register
 import highway_env
+import myosuite
 
 def register_custom_envs():
     for n_objects in range(5):
