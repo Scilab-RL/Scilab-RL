@@ -6,6 +6,7 @@ from omegaconf import DictConfig, OmegaConf
 import mlflow
 import gymnasium as gym
 import wandb
+import myosuite
 
 from stable_baselines3.her import HerReplayBuffer
 from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
