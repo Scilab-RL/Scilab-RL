@@ -2,4 +2,4 @@ name: 'ppo'
 
 verbose: True
 
-policy: 'MultiInputPolicy'
+policy: 'MultiInputPolicy' # use MlpPolicy when not using an environment with DictObs

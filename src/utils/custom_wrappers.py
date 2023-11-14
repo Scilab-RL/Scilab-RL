@@ -4,8 +4,24 @@ import gymnasium as gym
 
 from typing import Callable
 from utils.animation_util import LiveAnimationPlot
+from gymnasium.envs.mujoco import MujocoEnv
 
 from gymnasium.wrappers.monitoring import video_recorder
+
+def recursive_set_render_mode(env, mode):
+    """
+    Sets the render mode for the environment object and all environments that are part of the object.
+    """
+    try:
+        env.unwrapped.render_mode = mode
+        env_dict = vars(env.unwrapped)
+        for k,v in env_dict.items():
+            if isinstance(v, MujocoEnv):
+                if k != "unwrapped":
+                    recursive_set_render_mode(v, mode)
+    except Exception as e:
+        print(f"{e}. Error, no valid environment provided")
+
 
 
 class DisplayWrapper(gym.Wrapper):
@@ -53,6 +69,7 @@ class DisplayWrapper(gym.Wrapper):
         self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys,
                                            env=self.env) if self.display_metrics else None
         self.logger = logger
+        recursive_set_render_mode(self.env, 'human')
 
 
     def reset(self, **kwargs):
@@ -98,7 +115,6 @@ class DisplayWrapper(gym.Wrapper):
                 self.episode_in_epoch_id += 1
 
         if self.displaying:
-            self.env.unwrapped.render_mode = 'human'
             self.env.render()
             # metrics stuff
             if self.display_metrics:
@@ -193,6 +209,7 @@ class RecordVideo(gym.Wrapper):
         self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys,
                                            env=self.env) if self.record_metrics else None
         self.logger = logger
+        recursive_set_render_mode(self.env, 'rgb_array')
 
     def reset(self, **kwargs):
         observations = super(RecordVideo, self).reset(**kwargs)
@@ -211,7 +228,7 @@ class RecordVideo(gym.Wrapper):
             video_name = f"{self.name_prefix}-episode-{self.episode_id}"
 
         self.base_path = os.path.join(self.video_folder, video_name)
-        self.env.unwrapped.render_mode = 'rgb_array'
+        # self.env.unwrapped.render_mode = 'rgb_array'
         self.video_recorder = video_recorder.VideoRecorder(
             env=self.env,
             base_path=self.base_path,
