@@ -1,0 +1,58 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  - override /algorithm: cleansac
+
+n_epochs: 150
+
+# The number of training steps after which to evaluate the policy.
+eval_after_n_steps: 2000
+
+# The number of testing rollouts.
+n_test_rollouts: 10
+
+# The n last epochs over which to average for determining early stopping condition.
+early_stop_last_n: 3
+
+# The early stopping threshold.
+early_stop_threshold: 0.5
+
+# The data column on which early stopping is based.
+early_stop_data_column: 'eval/success_rate'
+
+env: 'Blocks-o1-gripper_none-v1'
+
+algorithm:
+  use_her: True
+  buffer_size: 1000000
+  batch_size: 256
+
+hydra:
+  sweeper:
+    study_name: cleansac_her_Blocks_o1_none
+    max_trials: 32
+    n_jobs: 9
+    direction: maximize
+    max_duration_minutes: 36000
+    min_trials_per_param: 3
+    max_trials_per_param: 3
+    search_space:
+      ++algorithm.learning_rate:
+        type: float
+        low: 0.0001
+        high: 0.005
+        log: true
+      ++algorithm.gamma:
+        type: float
+        low: 0.9
+        high: 0.99
+        log: true
+      ++algorithm.tau:
+        type: float
+        low: 0.005
+        high: 0.1
+        log: true
+      ++algorithm.n_critics:
+        type: int
+        low: 1
+        high: 4
