@@ -38,3 +38,7 @@ hydra:
         low: 0.01
         high: 0.1
         log: true
+      ++algorithm.n_critics:
+        type: int
+        low: 1
+        high: 4
