@@ -24,6 +24,7 @@ algorithm:
   learning_rate: 0.0003
   gamma: 0.95
   tau: 0.02
+  n_critics: 1
 
 
 performance_testing_conditions:
