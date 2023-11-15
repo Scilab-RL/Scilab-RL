@@ -18,7 +18,7 @@ python src/main.py +performance=Blocks/o1-random-cleansac_her-test --multirun
 
 # FetchPickPlace with all algorithms that support HER
 
-# HighwayParking with all algorithms that support HER.
+# HighwayParking with all algorithms that support HER
 
 # FetchPush with CLEANSAC+HER and SAC+HER
 
