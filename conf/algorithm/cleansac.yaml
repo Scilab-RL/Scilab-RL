@@ -1,7 +1,11 @@
 name: 'cleansac'
 
-learning_rate: 0.001
-gamma: 0.96
-tau: 0.07
-# use_her: False
+learning_rate: 0.0003
+buffer_size: 1_000_000
+learning_starts: 100
+batch_size: 256
+tau: 0.005
+gamma: 0.99
 ent_coef: auto
+use_her: True
+n_critics: 2
