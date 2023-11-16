@@ -11,7 +11,7 @@ from gymnasium import spaces
 from stable_baselines3.common.logger import Logger
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
-from stable_baselines3.common.buffers import DictReplayBuffer
+from stable_baselines3.common.buffers import DictReplayBuffer, ReplayBuffer
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 from utils.custom_buffers import ErrorBuffer
 from .mc import MorphologicalNetworks
@@ -24,7 +24,7 @@ LOG_STD_MIN = -20
 class Actor(nn.Module):
     def __init__(self, env):
         super().__init__()
-        obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
+        obs_shape = np.sum(env.observation_space.shape)
         self.fc1 = nn.Linear(obs_shape, 256)
         self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, 256)
@@ -66,7 +66,7 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     def __init__(self, env):
         super().__init__()
-        obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
+        obs_shape = np.sum(env.observation_space.shape)
         self.fc1 = nn.Linear(obs_shape + np.prod(env.action_space.shape), 256)
         self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, 256)
@@ -94,6 +94,10 @@ class CriticEnsemble(nn.Module):
         return torch.stack([critic(x, a) for critic in self._critics])
 
 def flatten_obs(obs, device):
+    if not isinstance(obs, dict):
+        if isinstance(obs, np.ndarray):
+            obs = torch.tensor(obs)
+        return obs.to(device)
     observation, ag, dg = obs['observation'], obs['achieved_goal'], obs['desired_goal']
     if isinstance(observation, np.ndarray):
         observation = torch.from_numpy(observation).to(device)
@@ -161,7 +165,7 @@ class CLEANSACMC:
                 n_envs=self.env.num_envs
             )
         else:
-            self.replay_buffer = DictReplayBuffer(
+            self.replay_buffer = ReplayBuffer(
                 self.buffer_size,
                 self.env.observation_space,
                 self.env.action_space,
@@ -280,13 +284,13 @@ class CLEANSACMC:
         self.mc_err_buffer.add(_err)
         min_err = self.mc_err_buffer.get_min().to(self.device)
         max_err = self.mc_err_buffer.get_max().to(self.device)
-        i_reward = ((_err - min_err) / (max_err - min_err)) - 1.0
+        i_rewards = ((_err - min_err) / (max_err - min_err)) - 1.0
 
-        self.logger.record("mc/i_reward", i_reward.mean().item())
-        self.logger.record("mc/e_reward", rewards.mean().item())
+        self.logger.record("mc/i_reward", i_rewards.mean().item())
+        self.logger.record("mc/e_reward", e_rewards.mean().item())
         rewards = (
             e_rewards * (1 - self.mc["reward_eta"])
-            + i_reward.to(self.device) * self.mc["reward_eta"]
+            + i_rewards.to(self.device) * self.mc["reward_eta"]
         )
         self.logger.record("mc/reward", rewards.mean().item())
         return rewards
@@ -325,7 +329,7 @@ class CLEANSACMC:
             min_crit_next_target = torch.min(crit_next_targets, dim=0).values
             min_crit_next_target -= ent_coef * next_state_log_pi
 
-            rewards = self.calc_reward(observations, next_state_actions)
+            rewards = self.calc_reward(observations, next_state_actions, replay_data.rewards)
             next_q_value = rewards.flatten() + \
                            (1 - replay_data.dones.flatten()) * self.gamma * min_crit_next_target.flatten()
 
