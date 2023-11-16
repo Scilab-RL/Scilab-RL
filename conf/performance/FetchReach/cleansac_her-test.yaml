@@ -33,4 +33,4 @@ hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: cleansac_her_FetchPush-test
+    study_name: cleansac_her_FetchReach-test
