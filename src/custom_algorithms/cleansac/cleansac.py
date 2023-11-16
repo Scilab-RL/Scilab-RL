@@ -79,6 +79,18 @@ class Critic(nn.Module):
         return x
 
 
+class CriticEnsemble(nn.Module):
+    def __init__(self, env, n_critics: int):
+        super().__init__()
+        self._critics = nn.ModuleList(
+            [
+                Critic(env)
+                for _ in range(n_critics)
+            ]
+        )
+    def forward(self, x, a):
+        return torch.stack([critic(x, a) for critic in self._critics])
+
 def flatten_obs(obs, device):
     observation, ag, dg = obs['observation'], obs['achieved_goal'], obs['desired_goal']
     if isinstance(observation, np.ndarray):
@@ -171,21 +183,10 @@ class CLEANSAC:
     def _create_actor_critic(self) -> None:
         self.actor = Actor(self.env).to(self.device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.learning_rate)
-
-        self.critics = []
-        self.critic_targets = []
-        critic_param_list = []
-
-        for i in range(self.n_critics):
-            critic = Critic(self.env).to(self.device)
-            critic_target = Critic(self.env).to(self.device)
-            critic_target.load_state_dict(critic.state_dict())
-
-            self.critics.append(critic)
-            self.critic_targets.append(critic_target)
-            critic_param_list += list(critic.parameters())
-
-        self.critic_optimizer = torch.optim.Adam(critic_param_list, lr=self.learning_rate)
+        self.critic = CriticEnsemble(self.env, self.n_critics).to(self.device)
+        self.critic_target = CriticEnsemble(self.env, self.n_critics).to(self.device)
+        self.critic_target.load_state_dict(self.critic.state_dict())
+        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=self.learning_rate)
 
     def learn(
             self,
@@ -274,18 +275,14 @@ class CLEANSAC:
         # train critic
         with torch.no_grad():
             next_state_actions, next_state_log_pi = self.actor.get_action(next_observations)
-            crit_next_targets = torch.stack(
-                [crit(next_observations, next_state_actions) for crit in self.critic_targets])
-            min_crit_next_target, _ = torch.min(crit_next_targets, dim=0)
+            crit_next_targets = self.critic_target(next_observations, next_state_actions)
+            min_crit_next_target = torch.min(crit_next_targets, dim=0).values
             min_crit_next_target -= ent_coef * next_state_log_pi
             next_q_value = replay_data.rewards.flatten() + \
                            (1 - replay_data.dones.flatten()) * self.gamma * min_crit_next_target.flatten()
 
-        crit_loss = torch.zeros(1, device=self.device)
-        for crit in self.critics:
-            crit_a_values = crit(observations, replay_data.actions).view(-1)
-            crit_loss += F.mse_loss(crit_a_values, next_q_value)
-        crit_loss *= 0.5
+        critic_a_values = self.critic(observations, replay_data.actions)
+        crit_loss = torch.stack([F.mse_loss(_a_v, next_q_value.view(-1, 1)) for _a_v in critic_a_values]).sum()
         self.logger.record("train/critic_loss", crit_loss.item())
 
         self.critic_optimizer.zero_grad()
@@ -294,7 +291,7 @@ class CLEANSAC:
 
         # train actor
         pi, log_pi = self.actor.get_action(observations)
-        min_crit_pi, _ = torch.min(torch.stack([crit(observations, pi) for crit in self.critics]), dim=0)
+        min_crit_pi = torch.min(self.critic(observations, pi), dim=0).values
         actor_loss = ((ent_coef * log_pi) - min_crit_pi).mean()
         self.logger.record("train/actor_loss", actor_loss.item())
 
@@ -303,11 +300,9 @@ class CLEANSAC:
         self.actor_optimizer.step()
 
         # Update target networks with polyak update
-        with torch.no_grad():
-            for crit, crit_target in zip(self.critics, self.critic_targets):
-                for param, target_param in zip(crit.parameters(), crit_target.parameters()):
-                    target_param.data.mul_(1 - self.tau)
-                    torch.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
+        for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
+            target_param.data.mul_(1 - self.tau)
+            torch.add(target_param.data, param.data, alpha=self.tau, out=target_param.data)
 
     def predict(
             self,
@@ -330,11 +325,11 @@ class CLEANSAC:
         # Copy parameter list, so we don't mutate the original dict
         data = self.__dict__.copy()
         for to_exclude in ["logger", "env", "num_timesteps", "_n_updates", "_last_obs",
-                           "replay_buffer", "actor", "critics", "critic_targets"]:
+                           "replay_buffer", "actor", "critic", "critic_target"]:
             del data[to_exclude]
         # save network parameters
         data["_actor"] = self.actor.state_dict()
-        data["_critics"] = [crit.state_dict() for crit in self.critics]
+        data["_critic"] = self.critic.state_dict()
         torch.save(data, path)
 
     @classmethod
@@ -342,13 +337,11 @@ class CLEANSAC:
         model = cls(env=env, **kwargs)
         loaded_dict = torch.load(path)
         for k in loaded_dict:
-            if k not in ["_actor", "_crit_1", "_crit_2"]:
+            if k not in ["_actor", "_critic"]:
                 model.__dict__[k] = loaded_dict[k]
         # load network states
         model.actor.load_state_dict(loaded_dict["_actor"])
-        for crit, crit_t, state_dict in zip(model.critics, model.critic_targets, loaded_dict["_critics"]):
-            crit.load_state_dict(state_dict)
-            crit_t.load_state_dict(state_dict)
+        data["_critic"] = self.critic.state_dict()
         return model
 
     def set_logger(self, logger: Logger) -> None:
