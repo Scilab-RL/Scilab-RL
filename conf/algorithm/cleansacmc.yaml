@@ -13,4 +13,4 @@ mc:
   reward_eta: 0.5
   hidden_size: 256
   err_buffer_size: 256
-  sparse_reward: False
+  reward_type: "scaled"

@@ -281,11 +281,16 @@ class CLEANSACMC:
                 .mean(-1)
                 .unsqueeze(1)
             )
-        if self.mc["sparse_reward"]:
+        if self.mc["reward_type"] in ["sparse", "scaled"]:
             self.mc_err_buffer.add(_err)
             min_err = self.mc_err_buffer.get_min().to(self.device)
             max_err = self.mc_err_buffer.get_max().to(self.device)
-            i_rewards = ((_err - min_err) / (max_err - min_err)) - 1.0
+            if self.mc["reward_type"] == "sparse":
+                # reward in [-1, 0]
+                i_rewards = ((_err - min_err) / (max_err - min_err)) - 1.0
+            elif self.mc["reward_type"] == "scaled":
+                # reward in [0, 1]
+                i_rewards = ((_err - min_err) / (max_err - min_err))
         else:
             i_rewards = _err
 
