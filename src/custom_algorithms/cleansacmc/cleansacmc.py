@@ -210,7 +210,7 @@ class CLEANSACMC:
         callback.init_callback(self)
         callback.on_training_start(locals(), globals())
 
-        self._last_obs = self.env.reset()
+        self._last_obs = self.env.reset()[0]
 
         while self.num_timesteps < total_timesteps:
             continue_training = self.collect_rollout(callback=callback)
@@ -281,10 +281,13 @@ class CLEANSACMC:
                 .mean(-1)
                 .unsqueeze(1)
             )
-        self.mc_err_buffer.add(_err)
-        min_err = self.mc_err_buffer.get_min().to(self.device)
-        max_err = self.mc_err_buffer.get_max().to(self.device)
-        i_rewards = ((_err - min_err) / (max_err - min_err)) - 1.0
+        if self.mc["sparse_reward"]:
+            self.mc_err_buffer.add(_err)
+            min_err = self.mc_err_buffer.get_min().to(self.device)
+            max_err = self.mc_err_buffer.get_max().to(self.device)
+            i_rewards = ((_err - min_err) / (max_err - min_err)) - 1.0
+        else:
+            i_rewards = _err
 
         self.logger.record("mc/i_reward", i_rewards.mean().item())
         self.logger.record("mc/e_reward", e_rewards.mean().item())
