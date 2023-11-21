@@ -14,17 +14,17 @@ env: 'FetchReach-v2'
 env_kwargs: {}
 
 # The render* args specify how and when to render and plot during training and testing.
-# 'record' is for recording the rendered scene as a video file without on-screen display, 
+# 'record' is for recording the rendered scene as a video file without on-screen display,
 # 'display' for direct visualization, neither one, e.g. 'none' for not rendering at all.
 # render_freq determine the number of epochs after which we render the training/testing.
-# render_metrics* determine the metric values to render. They have to be provided by the 
+# render_metrics* determine the metric values to render. They have to be provided by the
 # learning algorithm.
 # TODO: maybe there is a better place to put render_metrics_* because they depend on the
 # algorithm. Maybe put them in the algorithm/xyz.yaml
 render: 'none' # 'display', 'record', or anything else for neither one
 render_freq: 5
-render_metrics_train: ['q_val', 'rand_eval']
-render_metrics_test: ['q_val','rand_eval']
+render_metrics_train: ['mc_mean', 'mc_std']
+render_metrics_test: ['mc_mean','mc_std']
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
