@@ -341,7 +341,7 @@ class CLEANSAC:
                 model.__dict__[k] = loaded_dict[k]
         # load network states
         model.actor.load_state_dict(loaded_dict["_actor"])
-        data["_critic"] = self.critic.state_dict()
+        model.critic.load_state_dict(loaded_dict["_critic"])
         return model
 
     def set_logger(self, logger: Logger) -> None:
