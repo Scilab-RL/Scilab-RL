@@ -25,7 +25,7 @@ env: 'FetchPush-v2'
 ############################################################################################################
 algorithm:
   name: 'cleansac'
-  learning_rate: 0.0001
+  learning_rate: !!float 1e-3
   ent_coef: auto
   buffer_size: 1_000_000
   learning_starts: 100

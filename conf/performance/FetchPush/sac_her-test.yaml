@@ -32,7 +32,7 @@ algorithm:
   replay_buffer_class: HerReplayBuffer
   buffer_size: 1000000
   batch_size: 2048
-  learning_rate: 0.0001
+  learning_rate: !!float 1e-3
   gamma: 0.95
   tau: 0.05
   policy_kwargs:
