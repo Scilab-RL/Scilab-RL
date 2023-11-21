@@ -247,10 +247,10 @@ class CLEANSACMC:
         mc_obs = torch.from_numpy(self._last_obs)
         if len(mc_obs.shape) == 1:
             mc_obs.unsqueeze_(0)
-        fw_normal, wm_normal = self.mc_network(mc_obs, torch.from_numpy(actions))
+        fw_normal, wm_normal = self.mc_network(mc_obs.to(self.device), torch.from_numpy(actions).to(self.device))
         kl_div = torch.distributions.kl_divergence(fw_normal, wm_normal)
-        self.logger.record("mc_mean", kl_div.mean().item(), exclude="tensorboard")
-        self.logger.record("mc_std", kl_div.std().item(), exclude="tensorboard")
+        self.logger.record("mc_mean", kl_div.cpu().mean().item(), exclude="tensorboard")
+        self.logger.record("mc_std", kl_div.cpu().std().item(), exclude="tensorboard")
 
         self.num_timesteps += self.env.num_envs
 
