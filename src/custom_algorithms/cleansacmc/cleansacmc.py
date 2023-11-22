@@ -288,6 +288,8 @@ class CLEANSACMC:
                 .mean(-1)
                 .unsqueeze(1)
             )
+        if self.mc["minimize"]:
+            _err = _err * -1.0
         if self.mc["reward_type"] in ["sparse", "scaled"]:
             self.mc_err_buffer.add(_err)
             min_err = self.mc_err_buffer.get_min().to(self.device)
