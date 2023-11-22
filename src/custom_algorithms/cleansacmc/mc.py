@@ -3,12 +3,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
+from gymnasium import spaces
 
 class MorphologicalNetworks(nn.Module):
     def __init__(self, env, cfg):
         super().__init__()
         hidden_size = cfg["hidden_size"]
-        self.obs_shape = np.sum(env.observation_space.shape)
+        if isinstance(env.observation_space, spaces.dict.Dict):
+            self.obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
+        else:
+            self.obs_shape = np.sum(env.observation_space.shape)
         self.action_shape = np.prod(env.action_space.shape)
 
 

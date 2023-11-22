@@ -24,7 +24,10 @@ LOG_STD_MIN = -20
 class Actor(nn.Module):
     def __init__(self, env):
         super().__init__()
-        obs_shape = np.sum(env.observation_space.shape)
+        if isinstance(env.observation_space, spaces.dict.Dict):
+            obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
+        else:
+            obs_shape = np.sum(env.observation_space.shape)
         self.fc1 = nn.Linear(obs_shape, 256)
         self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, 256)
@@ -66,7 +69,10 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     def __init__(self, env):
         super().__init__()
-        obs_shape = np.sum(env.observation_space.shape)
+        if isinstance(env.observation_space, spaces.dict.Dict):
+            obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
+        else:
+            obs_shape = np.sum(env.observation_space.shape)
         self.fc1 = nn.Linear(obs_shape + np.prod(env.action_space.shape), 256)
         self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, 256)
@@ -210,7 +216,11 @@ class CLEANSACMC:
         callback.init_callback(self)
         callback.on_training_start(locals(), globals())
 
-        self._last_obs = self.env.reset()[0]
+        obs = self.env.reset()
+        if len(obs) == 2:
+            self._last_obs = obs[0]
+        else:
+            self._last_obs = obs
 
         while self.num_timesteps < total_timesteps:
             continue_training = self.collect_rollout(callback=callback)
@@ -244,7 +254,7 @@ class CLEANSACMC:
 
         # perform action
         new_obs, rewards, dones, infos = self.env.step(actions)
-        mc_obs = torch.from_numpy(self._last_obs)
+        mc_obs = flatten_obs(self._last_obs, self.device)
         if len(mc_obs.shape) == 1:
             mc_obs.unsqueeze_(0)
         fw_normal, wm_normal = self.mc_network(mc_obs.to(self.device), torch.from_numpy(actions).to(self.device))
