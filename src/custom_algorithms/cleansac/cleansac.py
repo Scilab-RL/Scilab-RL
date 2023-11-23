@@ -1,4 +1,5 @@
 from typing import Dict, Optional, Tuple, Union
+from copy import deepcopy
 
 import pathlib
 import io
@@ -46,11 +47,14 @@ class Actor(nn.Module):
 
         return mean, log_std
 
-    def get_action(self, x):
+    def get_action(self, x, deterministic=False):
         mean, log_std = self(x)
         std = log_std.exp()
         normal = torch.distributions.Normal(mean, std)
-        x_t = normal.rsample()  # for reparameterization trick (mean + std * N(0,1))
+        if deterministic:
+            x_t = mean
+        else:
+            x_t = normal.rsample()  # for reparameterization trick (mean + std * N(0,1))
         y_t = torch.tanh(x_t)
         action = y_t * self.action_scale + self.action_bias
         log_prob = normal.log_prob(x_t)
@@ -235,11 +239,13 @@ class CLEANSAC:
         self.num_timesteps += self.env.num_envs
 
         # save data to replay buffer; handle `terminal_observation`
-        real_next_obs = new_obs.copy()
-        for idx, done in enumerate(dones):
+        next_obs = deepcopy(new_obs)
+        for i, done in enumerate(dones):
             if done:
-                real_next_obs[idx] = infos[idx]["terminal_observation"]
-        self.replay_buffer.add(self._last_obs, real_next_obs, actions, rewards, dones, infos)
+                next_obs_ = infos[i]["terminal_observation"]
+                for key in next_obs.keys():
+                    next_obs[key][i] = next_obs_[key]
+        self.replay_buffer.add(self._last_obs, next_obs, actions, rewards, dones, infos)
 
         self._last_obs = new_obs
 
@@ -318,7 +324,7 @@ class CLEANSAC:
         :return: the model's action
         """
         observation = flatten_obs(obs, self.device)
-        action, _ = self.actor.get_action(observation)
+        action, _ = self.actor.get_action(observation, deterministic=deterministic)
         return action.detach().cpu().numpy(), None
 
     def save(self, path: Union[str, pathlib.Path, io.BufferedIOBase]):
