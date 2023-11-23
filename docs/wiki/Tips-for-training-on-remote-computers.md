@@ -18,7 +18,7 @@ You can create a session with `tmux`. To detach from a _tmux_ session, press `Ct
 
 In your _tmux_ session, activate your _venv_ with 
 ```
-source venv/bin/activate
+conda activate scilabrl
 source ./set_paths.sh
 ```
 

@@ -8,6 +8,7 @@ import numpy as np
 from utils.animation_util import LiveAnimationPlot
 
 from gymnasium.wrappers.monitoring import video_recorder
+from moviepy.editor import VideoFileClip, clips_array
 from gymnasium import spaces
 from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE as METAWORLD_ENVS
 from metaworld.envs.reward_utils import tolerance
@@ -320,12 +321,39 @@ class RecordVideo(gym.Wrapper):
             self.base_path + ".joint.mp4",
         )
 
-        if hasattr(os, "setsid"):  # setsid not present on Windows
-            subprocess.Popen(
-                self.cmdline, preexec_fn=os.setsid
-            )
-        else:
-            subprocess.Popen(self.cmdline)
+        # determine largest width and height of both videos
+        render_clip = VideoFileClip(self.base_path + ".mp4")
+        metric_clip = VideoFileClip(self.base_path + ".metric.mp4")
+
+        # Keeping this commented here, just in case we need the padding in the future.
+        # I think that clip_array pads automatically.
+
+        # max_width = max(render_clip.w, metric_clip.w)
+        # max_height = max(render_clip.h, metric_clip.h)
+
+        # pad both videos to larger width and height.
+        # if render_clip.w < max_width:
+        #     left_margin = (max_width - render_clip.w) // 2
+        #     right_margin = max_width - render_clip.w - left_margin
+        #     render_clip.margin(left=left_margin, right=right_margin)
+        #
+        # if metric_clip.w < max_width:
+        #     left_margin = (max_width - metric_clip.w) // 2
+        #     right_margin = max_width - metric_clip.w - left_margin
+        #     metric_clip.margin(left=left_margin, right=right_margin)
+        #
+        # if render_clip.h < max_height:
+        #     top_margin = (max_height - render_clip.h) // 2
+        #     bot_margin = max_height - render_clip.h - top_margin
+        #     render_clip.margin(top=top_margin, right=bot_margin)
+        #
+        # if metric_clip.h < max_height:
+        #     top_margin = (max_height - metric_clip.h) // 2
+        #     bot_margin = max_height - metric_clip.h - top_margin
+        #     metric_clip.margin(top=top_margin, right=bot_margin)
+
+        joint_clip = clips_array([[render_clip, metric_clip]])
+        joint_clip.write_videofile(self.base_path + ".joint.mp4")
 
 
 class MakeDictObs(gym.Wrapper):

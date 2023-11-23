@@ -1,9 +1,9 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  - override /algorithm: sac
+  - override /algorithm: cleansac
 
-env: 'FetchPickAndPlace-v2'
+env: 'Blocks-o1-gripper_none-v1'
 
 # The number of training steps after which to evaluate the policy.
 eval_after_n_steps: 2000
@@ -21,21 +21,13 @@ algorithm:
   replay_buffer_class: HerReplayBuffer
   buffer_size: 1000000
   batch_size: 256
-  learning_rate: 0.0002
-  gamma: 0.91
-  tau: 0.007
-  policy_kwargs:
-    n_critics: 1
-    net_arch:
-      - 256
-      - 256
-      - 256
-  replay_buffer_kwargs:
-    n_sampled_goal: 4
-    goal_selection_strategy: 'future'
+  learning_rate: 0.0003
+  gamma: 0.95
+  tau: 0.02
+
 
 performance_testing_conditions:
-  # In 2 out of 3 tests, the eval/success rate should be at least 0.5 after 250k steps.
+  # In 2 out of 3 tests, the eval/success rate should be at least 0.5 after 200K steps.
 
   total_runs: 3 # How many runs in total:
 
@@ -45,11 +37,11 @@ performance_testing_conditions:
 
   eval_value: 0.5 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
-  # ca. 3 hours with GPU
-  max_steps: 250_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+  # ca. 3,5 hours with GPU
+  max_steps: 200_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: sac_her_FetchPickAndPlace-test
+    study_name: cleansac_her_Blocks_o1_none-test

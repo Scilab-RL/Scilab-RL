@@ -6,28 +6,23 @@ has_children: false
 nav_order: 6
 ---
 
-The framework supports multiple ways of rendering and plotting features. Two of these are discussed here: 3D rendering and the plotting of episodoc metric values. 
+The framework supports the online visualization of user-defined metrics in sync with the rendering provided by the respective environment. Developers can define and visualize any number of online metrics at runtime.
 
-The 3D rendering displays the simulated robot in its environment, and the plotting enables an engineer or researcher to display metrics that might be useful for presentation and debugging purposes. 
+The visualization is controlled via the following options in the `main.yaml` config file (or, respectively, via the command line).
 
-Both features are controlled via the `render_args` option in `main.yaml` config file (or, respectively, via the command line).
+The `render` args specify how and when to render and plot during training and testing. 'record' is for recording the rendered scene as a video file without on-screen display, 'display' for direct visualization, neither one, e.g. 'none' for not rendering at all.
+`render_freq` determine the number of epochs after which we render the training/testing.
+`render_metrics_*` determine the metric values to render. They have to be provided by the learning algorithm.
 
-Details for using the `render_args` are provided as comments in `main.yaml`. 
+```
+render: 'none' # 'display', 'record', or anything else for neither one
+render_freq: 5
+render_metrics_train: []
+render_metrics_test: []
+```
 
-> ⚠ There are the following limitations:
+An example of the side-by-side visualization might look like this, here we highlight a custom critics variance metric and assume it is provided by the algorithm:
 
-* MuJoCo: The training is only displayed in the first epoch if the evaluation should be recorded.
+`python main.py env='FetchPush-v2' render='display' render_metrics_train=['critic_variance']`
 
-To visualize a certain metric when training using a custom algorithm implementing the stable baselines API, the logger (from util.custom_logger) must record the metric in the logger. It is important that the "_on_step" and "_on_rollout_start" functions are called for all custom callbacks. You can read more about custom callbacks in the stable baselines [documentation.](https://stable-baselines.readthedocs.io/en/master/guide/callbacks.html)
-
-
-`
-q_value = ...
-self.logger.record('q_val',q_value)
-`
-
-Basic.py includes a concrete example. Then the algorithm can be run as usual. For example, in the case where we want to visualize the metric 'q_val' for each episode/rollout and close the animation after every episode in basic.py, we run:
-
-`python3 src/main.py n_epochs=2 wandb=0 algorithm=basic env=FetchReach-v2 render_args=[['none',1,[['q_val',1],['q_val',1]]],['none',10,[['q_val',1],['q_val',1]]]]`
-
-We concurrently display the interactions of the agent with the environment every step.
+![](uploads/latest/critics_variance_side_by_side.mp4)

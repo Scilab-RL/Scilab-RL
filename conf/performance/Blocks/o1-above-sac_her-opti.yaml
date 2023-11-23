@@ -5,6 +5,21 @@ defaults:
 
 n_epochs: 100
 
+# The number of training steps after which to evaluate the policy.
+eval_after_n_steps: 2000
+
+# The number of testing rollouts.
+n_test_rollouts: 10
+
+# The n last epochs over which to average for determining early stopping condition.
+early_stop_last_n: 3
+
+# The early stopping threshold.
+early_stop_threshold: 0.5
+
+# The data column on which early stopping is based.
+early_stop_data_column: 'eval/success_rate'
+
 env: 'Blocks-o1-gripper_above-v1'
 
 algorithm:
