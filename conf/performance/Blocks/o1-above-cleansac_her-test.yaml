@@ -24,6 +24,7 @@ algorithm:
   learning_rate: 0.0005
   gamma: 0.91
   tau: 0.03
+  n_critics: 1
 
 performance_testing_conditions:
   # In 2 out of 3 tests, the eval/success rate should be at least 0.5 after 200k steps.
