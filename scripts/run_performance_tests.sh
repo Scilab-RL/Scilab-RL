@@ -4,14 +4,18 @@ configs_to_ignore=()
 # The following are known to work:
 configs_to_ignore+=("Blocks/o0-random-cleansac_her-test")
 configs_to_ignore+=("Blocks/o0-random-sac_her-test")
-configs_to_ignore+=("Blocks/o1-above-sac_her-test")
+#configs_to_ignore+=("Blocks/o1-above-sac_her-test")
+#configs_to_ignore+=("Blocks/o1-none-sac_her-test")
 configs_to_ignore+=("FetchPickAndPlace/sac_her-test")
 configs_to_ignore+=("FetchPush/sac_her-test")
+configs_to_ignore+=("FetchPush/cleansac_her-test")
 configs_to_ignore+=("FetchReach/sac_her-test")
+configs_to_ignore+=("FetchReach/cleansac_her-test")
 configs_to_ignore+=("FetchReach/dense-ppo-test")
 configs_to_ignore+=("FetchSlide/sac_her-test")
 configs_to_ignore+=("HighwayParking/sac_her-test")
-configs_to_ignore+=("Reach1DOF/basic")
+configs_to_ignore+=("HighwayParking/cleansac_her-test")
+configs_to_ignore+=("Reach1DOF/basic-test")
 # The following are known not to work:
 configs_to_ignore+=("AntMaze/AntMaze_Open_Diverse_GR-v4-sac_her-test")
 configs_to_ignore+=("AntMaze/AntMaze_Open_Diverse_GR_Dense-v4-sac_her-test")
@@ -48,7 +52,7 @@ do
     fi
   done
 done
-if [ ${#ArrayName[@]} = 0 ]
+if [ ${#unsuccessful_configs[@]} = 0 ]
 then
   echo "All performance tests passed."
   exit 0
