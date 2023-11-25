@@ -4,7 +4,7 @@ import sys
 import warnings
 import time
 from collections import deque
-from typing import Any, ClassVar, Dict, Iterable, Optional, Type, TypeVar, Tuple, Union
+from typing import Any, ClassVar, Dict, Iterable, Optional, Type, Tuple, Union
 
 import numpy as np
 import torch
@@ -17,9 +17,7 @@ from stable_baselines3.common.policies import ActorCriticCnnPolicy, ActorCriticP
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.noise import ActionNoise
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean, update_learning_rate, obs_as_tensor
-from stable_baselines3.common.vec_env import VecEnv, VecNormalize, unwrap_vec_normalize
-
-SelfPPO = TypeVar("SelfPPO", bound="PPO")
+from stable_baselines3.common.vec_env import VecEnv
 
 
 class CLEANERPPO:
@@ -102,7 +100,6 @@ class CLEANERPPO:
         self.learning_rate = learning_rate
         self._last_obs = None  # type: Optional[Union[np.ndarray, Dict[str, np.ndarray]]]
         self._last_episode_starts = None  # type: Optional[np.ndarray]
-        # When using VecNormalize:
         self._last_original_obs = None  # type: Optional[Union[np.ndarray, Dict[str, np.ndarray]]]
         self._episode_num = 0
         # Track the training progress remaining (from 1 to 0)
@@ -110,13 +107,9 @@ class CLEANERPPO:
         self._current_progress_remaining = 1.0
         # Buffers for logging
         self.ep_info_buffer = None  # type: Optional[deque]
-        self.ep_success_buffer = None  # type: Optional[deque]
-        # For logging (and TD3 delayed updates)
-        self._n_updates = 0  # type: int
         # Whether the user passed a custom logger or not
         self._custom_logger = False
         self.env: Optional[VecEnv] = None
-        self._vec_normalize_env: Optional[VecNormalize] = None
 
         # Create and wrap the env if needed
         if env is not None:
@@ -124,9 +117,6 @@ class CLEANERPPO:
             self.action_space = env.action_space
             self.n_envs = env.num_envs
             self.env = env
-
-            # get VecNormalize object if needed
-            self._vec_normalize_env = unwrap_vec_normalize(env)
 
             # Catch common mistake: using MlpPolicy/CnnPolicy instead of MultiInputPolicy
             if policy in ["MlpPolicy", "CnnPolicy"] and isinstance(self.observation_space, spaces.Dict):
@@ -299,7 +289,6 @@ class CLEANERPPO:
                 torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
                 self.policy.optimizer.step()
 
-            self._n_updates += 1
             if not continue_training:
                 break
 
@@ -316,20 +305,19 @@ class CLEANERPPO:
         if hasattr(self.policy, "log_std"):
             self.logger.record("train/std", torch.exp(self.policy.log_std).mean().item())
 
-        self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/clip_range", clip_range)
         if self.clip_range_vf is not None:
             self.logger.record("train/clip_range_vf", clip_range_vf)
 
     def learn(
-        self: SelfPPO,
+        self,
         total_timesteps: int,
         callback: MaybeCallback = None,
         log_interval: int = 1,
         tb_log_name: str = "PPO",
         reset_num_timesteps: bool = True,
         progress_bar: bool = False,
-    ) -> SelfPPO:
+    ):
         iteration = 0
 
         self._last_obs = self.env.reset()
