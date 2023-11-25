@@ -2,7 +2,7 @@ import io
 import pathlib
 import warnings
 from collections import deque
-from typing import Dict, Iterable, Optional, Type, Tuple, Union
+from typing import Dict, Iterable, Optional, Tuple, Union
 
 import numpy as np
 from gymnasium import spaces
@@ -125,8 +125,8 @@ class CLEANERPPO:
         n_epochs: int = 10,
         gamma: float = 0.99,
         gae_lambda: float = 0.95,
-        clip_range: Union[float, Schedule] = 0.2,
-        clip_range_vf: Union[None, float, Schedule] = None,
+        clip_range: float = 0.2,
+        clip_range_vf: Union[None, float] = None,
         normalize_advantage: bool = True,
         ent_coef: float = 0.0,
         vf_coef: float = 0.5,
@@ -137,9 +137,6 @@ class CLEANERPPO:
         self.learning_rate = learning_rate
         self._last_obs = None  # type: Optional[Union[np.ndarray, Dict[str, np.ndarray]]]
         self._last_episode_starts = None  # type: Optional[np.ndarray]
-        # Track the training progress remaining (from 1 to 0)
-        # this is used to update the learning rate
-        self._current_progress_remaining = 1.0
         # Buffers for logging
         self.ep_info_buffer = None  # type: Optional[deque]
 
@@ -208,24 +205,10 @@ class CLEANERPPO:
         self.policy = Agent(self.env).to(device)
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.learning_rate, eps=1e-5)
 
-        # Initialize schedules for policy/value clipping
-        self.clip_range = get_schedule_fn(self.clip_range)
-        if self.clip_range_vf is not None:
-            if isinstance(self.clip_range_vf, (float, int)):
-                assert self.clip_range_vf > 0, "`clip_range_vf` must be positive, " "pass `None` to deactivate vf clipping"
-
-            self.clip_range_vf = get_schedule_fn(self.clip_range_vf)
-
     def train(self) -> None:
         """
         Update policy using the currently gathered rollout buffer.
         """
-        # Compute current clip range
-        clip_range = self.clip_range(self._current_progress_remaining)
-        # Optional: clip range for the value function
-        if self.clip_range_vf is not None:
-            clip_range_vf = self.clip_range_vf(self._current_progress_remaining)
-
         entropy_losses = []
         pg_losses, value_losses = [], []
         clip_fractions = []
@@ -252,12 +235,12 @@ class CLEANERPPO:
 
                 # clipped surrogate loss
                 policy_loss_1 = advantages * ratio
-                policy_loss_2 = advantages * torch.clamp(ratio, 1 - clip_range, 1 + clip_range)
+                policy_loss_2 = advantages * torch.clamp(ratio, 1 - self.clip_range, 1 + self.clip_range)
                 policy_loss = -torch.min(policy_loss_1, policy_loss_2).mean()
 
                 # Logging
                 pg_losses.append(policy_loss.item())
-                clip_fraction = torch.mean((torch.abs(ratio - 1) > clip_range).float()).item()
+                clip_fraction = torch.mean((torch.abs(ratio - 1) > self.clip_range).float()).item()
                 clip_fractions.append(clip_fraction)
 
                 if self.clip_range_vf is None:
@@ -267,7 +250,7 @@ class CLEANERPPO:
                     # Clip the difference between old and new value
                     # NOTE: this depends on the reward scaling
                     values_pred = rollout_data.old_values + torch.clamp(
-                        values - rollout_data.old_values, -clip_range_vf, clip_range_vf
+                        values - rollout_data.old_values, -self.clip_range_vf, self.clip_range_vf
                     )
                 # Value loss using the TD(gae_lambda) target
                 value_loss = F.mse_loss(rollout_data.returns, values_pred)
@@ -301,10 +284,6 @@ class CLEANERPPO:
         self.logger.record("train/loss", loss.item())
         self.logger.record("train/explained_variance", explained_var)
 
-        self.logger.record("train/clip_range", clip_range)
-        if self.clip_range_vf is not None:
-            self.logger.record("train/clip_range_vf", clip_range_vf)
-
     def learn(
         self,
         total_timesteps: int,
@@ -328,7 +307,6 @@ class CLEANERPPO:
                 break
 
             iteration += 1
-            self._current_progress_remaining = 1.0 - float(self.num_timesteps) / float(total_timesteps)
 
             # Display training infos
             if log_interval is not None and iteration % log_interval == 0:
