@@ -16,15 +16,15 @@ n_test_rollouts: 10
 early_stop_last_n: 3
 
 # The early stopping threshold.
-early_stop_threshold: 0.5
+early_stop_threshold: 100
 
 # The data column on which early stopping is based.
-early_stop_data_column: 'eval/success_rate'
+early_stop_data_column: 'train/rollout_rewards_mean'
 
 env: 'AntMaze_Open_Diverse_G-v4'
 
 algorithm:
-  using_her: true
+  use_her: True
   buffer_size: 1000000
   batch_size: 256
   learning_starts: 1000

@@ -235,7 +235,8 @@ class CLEANSAC:
 
         # perform action
         new_obs, rewards, dones, infos = self.env.step(actions)
-        self.logger.record("train/rollout_rewards", np.mean(rewards))
+        self.logger.record("train/rollout_rewards_step", np.mean(rewards))
+        self.logger.record_mean("train/rollout_rewards_mean", np.mean(rewards))
         self.num_timesteps += self.env.num_envs
 
         # save data to replay buffer; handle `terminal_observation`

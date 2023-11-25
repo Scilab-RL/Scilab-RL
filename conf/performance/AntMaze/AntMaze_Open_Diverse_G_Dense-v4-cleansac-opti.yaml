@@ -19,12 +19,12 @@ early_stop_last_n: 3
 early_stop_threshold: 100
 
 # The data column on which early stopping is based.
-early_stop_data_column: 'eval/mean_reward'
+early_stop_data_column: 'train/rollout_rewards_mean'
 
 env: 'AntMaze_Open_Diverse_GDense-v4'
 
 algorithm:
-  using_her: false
+  use_her: False
   buffer_size: 1000000
   batch_size: 256
   learning_starts: 1000
