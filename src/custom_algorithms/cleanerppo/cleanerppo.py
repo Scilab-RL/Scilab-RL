@@ -1,8 +1,6 @@
 import io
 import pathlib
-import sys
 import warnings
-import time
 from collections import deque
 from typing import Any, ClassVar, Dict, Iterable, Optional, Type, Tuple, Union
 
@@ -15,7 +13,6 @@ from stable_baselines3.common.buffers import DictRolloutBuffer, RolloutBuffer
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.policies import ActorCriticCnnPolicy, ActorCriticPolicy, BasePolicy, MultiInputActorCriticPolicy
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
-from stable_baselines3.common.noise import ActionNoise
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean, update_learning_rate, obs_as_tensor
 from stable_baselines3.common.vec_env import VecEnv
 
@@ -94,38 +91,28 @@ class CLEANERPPO:
         # Used for updating schedules
         self._total_timesteps = 0
         # Used for computing fps, it is updated at each call of learn()
-        self._num_timesteps_at_start = 0
-        self.action_noise: Optional[ActionNoise] = None
-        self.start_time = 0.0
         self.learning_rate = learning_rate
         self._last_obs = None  # type: Optional[Union[np.ndarray, Dict[str, np.ndarray]]]
         self._last_episode_starts = None  # type: Optional[np.ndarray]
-        self._last_original_obs = None  # type: Optional[Union[np.ndarray, Dict[str, np.ndarray]]]
-        self._episode_num = 0
         # Track the training progress remaining (from 1 to 0)
         # this is used to update the learning rate
         self._current_progress_remaining = 1.0
         # Buffers for logging
         self.ep_info_buffer = None  # type: Optional[deque]
-        # Whether the user passed a custom logger or not
-        self._custom_logger = False
-        self.env: Optional[VecEnv] = None
 
-        # Create and wrap the env if needed
-        if env is not None:
-            self.observation_space = env.observation_space
-            self.action_space = env.action_space
-            self.n_envs = env.num_envs
-            self.env = env
+        self.observation_space = env.observation_space
+        self.action_space = env.action_space
+        self.n_envs = env.num_envs
+        self.env = env
 
-            # Catch common mistake: using MlpPolicy/CnnPolicy instead of MultiInputPolicy
-            if policy in ["MlpPolicy", "CnnPolicy"] and isinstance(self.observation_space, spaces.Dict):
-                raise ValueError(f"You must use `MultiInputPolicy` when working with dict observation space, not {policy}")
+        # Catch common mistake: using MlpPolicy/CnnPolicy instead of MultiInputPolicy
+        if policy in ["MlpPolicy", "CnnPolicy"] and isinstance(self.observation_space, spaces.Dict):
+            raise ValueError(f"You must use `MultiInputPolicy` when working with dict observation space, not {policy}")
 
-            if isinstance(self.action_space, spaces.Box):
-                assert np.all(
-                    np.isfinite(np.array([self.action_space.low, self.action_space.high]))
-                ), "Continuous action space must have a finite lower and upper bound"
+        if isinstance(self.action_space, spaces.Box):
+            assert np.all(
+                np.isfinite(np.array([self.action_space.low, self.action_space.high]))
+            ), "Continuous action space must have a finite lower and upper bound"
 
         self.n_steps = n_steps
         self.gamma = gamma
@@ -141,23 +128,22 @@ class CLEANERPPO:
                 batch_size > 1
             ), "`batch_size` must be greater than 1. See https://github.com/DLR-RM/stable-baselines3/issues/440"
 
-        if self.env is not None:
-            # Check that `n_steps * n_envs > 1` to avoid NaN
-            # when doing advantage normalization
-            buffer_size = self.env.num_envs * self.n_steps
-            assert buffer_size > 1 or (
-                not normalize_advantage
-            ), f"`n_steps * n_envs` must be greater than 1. Currently n_steps={self.n_steps} and n_envs={self.env.num_envs}"
-            # Check that the rollout buffer size is a multiple of the mini-batch size
-            untruncated_batches = buffer_size // batch_size
-            if buffer_size % batch_size > 0:
-                warnings.warn(
-                    f"You have specified a mini-batch size of {batch_size},"
-                    f" but because the `RolloutBuffer` is of size `n_steps * n_envs = {buffer_size}`,"
-                    f" after every {untruncated_batches} untruncated mini-batches,"
-                    f" there will be a truncated mini-batch of size {buffer_size % batch_size}\n"
-                    f"We recommend using a `batch_size` that is a factor of `n_steps * n_envs`.\n"
-                    f"Info: (n_steps={self.n_steps} and n_envs={self.env.num_envs})"
+        # Check that `n_steps * n_envs > 1` to avoid NaN
+        # when doing advantage normalization
+        buffer_size = self.env.num_envs * self.n_steps
+        assert buffer_size > 1 or (
+            not normalize_advantage
+        ), f"`n_steps * n_envs` must be greater than 1. Currently n_steps={self.n_steps} and n_envs={self.env.num_envs}"
+        # Check that the rollout buffer size is a multiple of the mini-batch size
+        untruncated_batches = buffer_size // batch_size
+        if buffer_size % batch_size > 0:
+            warnings.warn(
+                f"You have specified a mini-batch size of {batch_size},"
+                f" but because the `RolloutBuffer` is of size `n_steps * n_envs = {buffer_size}`,"
+                f" after every {untruncated_batches} untruncated mini-batches,"
+                f" there will be a truncated mini-batch of size {buffer_size % batch_size}\n"
+                f"We recommend using a `batch_size` that is a factor of `n_steps * n_envs`.\n"
+                f"Info: (n_steps={self.n_steps} and n_envs={self.env.num_envs})"
                 )
         self.batch_size = batch_size
         self.n_epochs = n_epochs
@@ -341,16 +327,11 @@ class CLEANERPPO:
             # Display training infos
             if log_interval is not None and iteration % log_interval == 0:
                 assert self.ep_info_buffer is not None
-                time_elapsed = max((time.time_ns() - self.start_time) / 1e9, sys.float_info.epsilon)
-                fps = int((self.num_timesteps - self._num_timesteps_at_start) / time_elapsed)
-                self.logger.record("time/iterations", iteration, exclude="tensorboard")
                 if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
                     self.logger.record("rollout/ep_rew_mean",
                                        safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
                     self.logger.record("rollout/ep_len_mean",
                                        safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
-                self.logger.record("time/fps", fps)
-                self.logger.record("time/time_elapsed", int(time_elapsed), exclude="tensorboard")
                 self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
                 self.logger.dump(step=self.num_timesteps)
 
