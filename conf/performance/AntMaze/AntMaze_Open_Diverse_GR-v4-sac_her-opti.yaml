@@ -4,10 +4,10 @@ defaults:
   - override /algorithm: sac
 
 # The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
-n_epochs: 100
+n_epochs: 50
 
 # The number of training steps after which to evaluate the policy.
-eval_after_n_steps: 4000
+eval_after_n_steps: 10000
 
 # The number of testing rollouts.
 n_test_rollouts: 10
@@ -32,6 +32,7 @@ algorithm:
       - 256
       - 256
       - 256
+  learning_starts: 1000
   replay_buffer_kwargs:
     n_sampled_goal: 4
     goal_selection_strategy: 'future'
@@ -39,8 +40,8 @@ algorithm:
 hydra:
   sweeper:
     study_name: sac_her_AntMaze_Open_Diverse_GR-v4
-    max_trials: 32
-    n_jobs: 9
+    max_trials: 60
+    n_jobs: 12
     direction: maximize
     max_duration_minutes: 36000
     min_trials_per_param: 3
@@ -61,7 +62,12 @@ hydra:
         low: 0.005
         high: 0.1
         log: true
+      ++algorithm.batch_size:
+        type: int
+        low: 128
+        high: 8192
+        log: false
       ++algorithm.policy_kwargs.n_critics:
         type: int
         low: 1
-        high: 4
+        high: 2
