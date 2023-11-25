@@ -2,19 +2,84 @@ import io
 import pathlib
 import warnings
 from collections import deque
-from typing import Any, ClassVar, Dict, Iterable, Optional, Type, Tuple, Union
+from typing import Dict, Iterable, Optional, Type, Tuple, Union
 
 import numpy as np
-import torch
 from gymnasium import spaces
+import torch
+import torch.nn as nn
 from torch.nn import functional as F
+from torch.distributions.normal import Normal
 
 from stable_baselines3.common.buffers import DictRolloutBuffer, RolloutBuffer
 from stable_baselines3.common.callbacks import BaseCallback
-from stable_baselines3.common.policies import ActorCriticCnnPolicy, ActorCriticPolicy, BasePolicy, MultiInputActorCriticPolicy
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
-from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean, update_learning_rate, obs_as_tensor
+from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean, obs_as_tensor
 from stable_baselines3.common.vec_env import VecEnv
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    torch.nn.init.orthogonal_(layer.weight, std)
+    torch.nn.init.constant_(layer.bias, bias_const)
+    return layer
+
+
+def flatten_obs(obs):
+    observation, ag, dg = obs['observation'], obs['achieved_goal'], obs['desired_goal']
+    if isinstance(observation, np.ndarray):
+        observation = torch.from_numpy(observation).to(device)
+    if isinstance(ag, np.ndarray):
+        ag = torch.from_numpy(ag).to(device)
+    if isinstance(dg, np.ndarray):
+        dg = torch.from_numpy(dg).to(device)
+    if len(ag.shape) > 1:
+        return torch.cat([observation, ag, dg], dim=1).to(dtype=torch.float32).detach().clone()
+    else:
+        return torch.cat([observation, ag, dg]).to(dtype=torch.float32).detach().clone()
+
+
+class Agent(nn.Module):
+    def __init__(self, env):
+        super().__init__()
+        if isinstance(env.observation_space, spaces.Dict):
+            obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
+        else:
+            obs_shape = np.array(env.observation_space.shape).prod()
+        self.critic = nn.Sequential(
+            layer_init(nn.Linear(obs_shape, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 1), std=1.0),
+        )
+        self.actor_mean = nn.Sequential(
+            layer_init(nn.Linear(obs_shape, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, np.prod(env.action_space.shape)), std=0.01),
+        )
+        self.actor_logstd = nn.Parameter(torch.zeros(1, np.prod(env.action_space.shape)))
+
+    def get_value(self, x):
+        x = flatten_obs(x)
+        return self.critic(x)
+
+    def get_action_and_value(self, x, action=None, deterministic=False):
+        x = flatten_obs(x)
+        action_mean = self.actor_mean(x)
+        action_logstd = self.actor_logstd.expand_as(action_mean)
+        action_std = torch.exp(action_logstd)
+        probs = Normal(action_mean, action_std)
+        if action is None:
+            if deterministic:
+                action = action_mean
+            else:
+                action = probs.sample()
+        return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(x)
 
 
 class CLEANERPPO:
@@ -28,9 +93,8 @@ class CLEANERPPO:
 
     Introduction to PPO: https://spinningup.openai.com/en/latest/algorithms/ppo.html
 
-    :param policy: The policy model to use (MlpPolicy, CnnPolicy, ...)
     :param env: The environment to learn from (if registered in Gym, can be str)
-    :param learning_rate: The learning rate, it can be a function
+    :param learning_rate: The learning rate
         of the current progress remaining (from 1 to 0)
     :param n_steps: The number of steps to run for each environment per update
         (i.e. rollout buffer size is n_steps * n_envs where n_envs is number of environment copies running in parallel)
@@ -51,20 +115,11 @@ class CLEANERPPO:
     :param ent_coef: Entropy coefficient for the loss calculation
     :param vf_coef: Value function coefficient for the loss calculation
     :param max_grad_norm: The maximum value for the gradient clipping
-    :param policy_kwargs: additional arguments to be passed to the policy on creation
     """
-
-    policy_aliases: ClassVar[Dict[str, Type[BasePolicy]]] = {
-        "MlpPolicy": ActorCriticPolicy,
-        "CnnPolicy": ActorCriticCnnPolicy,
-        "MultiInputPolicy": MultiInputActorCriticPolicy,
-    }
-
     def __init__(
         self,
-        policy: Union[str, Type[ActorCriticPolicy]],
         env: Union[GymEnv, str],
-        learning_rate: Union[float, Schedule] = 3e-4,
+        learning_rate: float = 3e-4,
         n_steps: int = 2048,
         batch_size: int = 64,
         n_epochs: int = 10,
@@ -76,17 +131,7 @@ class CLEANERPPO:
         ent_coef: float = 0.0,
         vf_coef: float = 0.5,
         max_grad_norm: float = 0.5,
-        policy_kwargs: Optional[Dict[str, Any]] = None,
     ):
-        if isinstance(policy, str):
-            self.policy_class = self.policy_aliases[policy]
-        else:
-            self.policy_class = policy
-
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        self.policy_kwargs = {} if policy_kwargs is None else policy_kwargs
-
         self.num_timesteps = 0
         # Used for updating schedules
         self._total_timesteps = 0
@@ -104,10 +149,6 @@ class CLEANERPPO:
         self.action_space = env.action_space
         self.n_envs = env.num_envs
         self.env = env
-
-        # Catch common mistake: using MlpPolicy/CnnPolicy instead of MultiInputPolicy
-        if policy in ["MlpPolicy", "CnnPolicy"] and isinstance(self.observation_space, spaces.Dict):
-            raise ValueError(f"You must use `MultiInputPolicy` when working with dict observation space, not {policy}")
 
         if isinstance(self.action_space, spaces.Box):
             assert np.all(
@@ -155,25 +196,19 @@ class CLEANERPPO:
         self._setup_model()
 
     def _setup_model(self) -> None:
-        self.lr_schedule = get_schedule_fn(self.learning_rate)
-
         buffer_cls = DictRolloutBuffer if isinstance(self.observation_space, spaces.Dict) else RolloutBuffer
 
         self.rollout_buffer = buffer_cls(
             self.n_steps,
             self.observation_space,
             self.action_space,
-            device=self.device,
+            device=device,
             gamma=self.gamma,
             gae_lambda=self.gae_lambda,
             n_envs=self.n_envs,
         )
-        # pytype:disable=not-instantiable
-        self.policy = self.policy_class(  # type: ignore[assignment]
-            self.observation_space, self.action_space, self.lr_schedule, **self.policy_kwargs
-        )
-        # pytype:enable=not-instantiable
-        self.policy = self.policy.to(self.device)
+        self.policy = Agent(self.env).to(device)
+        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.learning_rate, eps=1e-5)
 
         # Initialize schedules for policy/value clipping
         self.clip_range = get_schedule_fn(self.clip_range)
@@ -187,12 +222,6 @@ class CLEANERPPO:
         """
         Update policy using the currently gathered rollout buffer.
         """
-        # Switch to train mode (this affects batch norm / dropout)
-        self.policy.set_training_mode(True)
-        # Update optimizer learning rate
-        self.logger.record("train/learning_rate", self.lr_schedule(self._current_progress_remaining))
-
-        update_learning_rate(self.policy.optimizer, self.lr_schedule(self._current_progress_remaining))
         # Compute current clip range
         clip_range = self.clip_range(self._current_progress_remaining)  # type: ignore[operator]
         # Optional: clip range for the value function
@@ -214,7 +243,7 @@ class CLEANERPPO:
                     # Convert discrete action from float to long
                     actions = rollout_data.actions.long().flatten()
 
-                values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.observations, actions)
+                _, log_prob, entropy, values = self.policy.get_action_and_value(rollout_data.observations, actions)
                 values = values.flatten()
                 # Normalize advantage
                 advantages = rollout_data.advantages
@@ -269,11 +298,11 @@ class CLEANERPPO:
                     approx_kl_divs.append(approx_kl_div)
 
                 # Optimization step
-                self.policy.optimizer.zero_grad()
+                self.optimizer.zero_grad()
                 loss.backward()
                 # Clip grad norm
                 torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
-                self.policy.optimizer.step()
+                self.optimizer.step()
 
             if not continue_training:
                 break
@@ -288,8 +317,6 @@ class CLEANERPPO:
         self.logger.record("train/clip_fraction", np.mean(clip_fractions))
         self.logger.record("train/loss", loss.item())
         self.logger.record("train/explained_variance", explained_var)
-        if hasattr(self.policy, "log_std"):
-            self.logger.record("train/std", torch.exp(self.policy.log_std).mean().item())
 
         self.logger.record("train/clip_range", clip_range)
         if self.clip_range_vf is not None:
@@ -362,8 +389,6 @@ class CLEANERPPO:
             collected, False if callback terminated rollout prematurely.
         """
         assert self._last_obs is not None, "No previous observation was provided"
-        # Switch to eval mode (this affects batch norm / dropout)
-        self.policy.set_training_mode(False)
 
         n_steps = 0
         rollout_buffer.reset()
@@ -373,8 +398,8 @@ class CLEANERPPO:
         while n_steps < n_rollout_steps:
             with torch.no_grad():
                 # Convert to pytorch tensor or to TensorDict
-                obs_tensor = obs_as_tensor(self._last_obs, self.device)
-                actions, values, log_probs = self.policy(obs_tensor)
+                obs_tensor = obs_as_tensor(self._last_obs, device)
+                actions, log_probs, _, values = self.policy.get_action_and_value(obs_tensor)
             actions = actions.cpu().numpy()
 
             # Rescale and perform action
@@ -407,9 +432,9 @@ class CLEANERPPO:
                     and infos[idx].get("terminal_observation") is not None
                     and infos[idx].get("TimeLimit.truncated", False)
                 ):
-                    terminal_obs = self.policy.obs_to_tensor(infos[idx]["terminal_observation"])[0]
+                    terminal_obs = infos[idx]["terminal_observation"]
                     with torch.no_grad():
-                        terminal_value = self.policy.predict_values(terminal_obs)[0]  # type: ignore[arg-type]
+                        terminal_value = self.policy.get_value(terminal_obs)[0]  # type: ignore[arg-type]
                     rewards[idx] += self.gamma * terminal_value
 
             rollout_buffer.add(
@@ -425,7 +450,7 @@ class CLEANERPPO:
 
         with torch.no_grad():
             # Compute value for the last timestep
-            values = self.policy.predict_values(obs_as_tensor(new_obs, self.device))  # type: ignore[arg-type]
+            values = self.policy.get_value(obs_as_tensor(new_obs, device))  # type: ignore[arg-type]
 
         rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
 
@@ -440,7 +465,9 @@ class CLEANERPPO:
             episode_start: Optional[np.ndarray] = None,
             deterministic: bool = False,
     ) -> Tuple[np.ndarray, Optional[Tuple[np.ndarray, ...]]]:
-        return self.policy.predict(observation, state, episode_start, deterministic)
+        with torch.no_grad():
+            action, _, _, _ = self.policy.get_action_and_value(observation, deterministic=deterministic)
+        return action.cpu().numpy(), state
 
     def save(
             self,
@@ -448,7 +475,7 @@ class CLEANERPPO:
             exclude: Optional[Iterable[str]] = None,
             include: Optional[Iterable[str]] = None,
     ) -> None:
-        return
+        return  # todo implement
 
     def set_logger(self, logger):
         self.logger = logger
