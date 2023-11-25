@@ -221,19 +221,17 @@ class CLEANERPPO:
         Update policy using the currently gathered rollout buffer.
         """
         # Compute current clip range
-        clip_range = self.clip_range(self._current_progress_remaining)  # type: ignore[operator]
+        clip_range = self.clip_range(self._current_progress_remaining)
         # Optional: clip range for the value function
         if self.clip_range_vf is not None:
-            clip_range_vf = self.clip_range_vf(self._current_progress_remaining)  # type: ignore[operator]
+            clip_range_vf = self.clip_range_vf(self._current_progress_remaining)
 
         entropy_losses = []
         pg_losses, value_losses = [], []
         clip_fractions = []
 
-        continue_training = True
         # train for n_epochs epochs
         for epoch in range(self.n_epochs):
-            approx_kl_divs = []
             # Do a complete pass on the rollout buffer
             for rollout_data in self.rollout_buffer.get(self.batch_size):
                 actions = rollout_data.actions
@@ -286,15 +284,6 @@ class CLEANERPPO:
 
                 loss = policy_loss + self.ent_coef * entropy_loss + self.vf_coef * value_loss
 
-                # Calculate approximate form of reverse KL Divergence for early stopping
-                # see issue #417: https://github.com/DLR-RM/stable-baselines3/issues/417
-                # and discussion in PR #419: https://github.com/DLR-RM/stable-baselines3/pull/419
-                # and Schulman blog: http://joschu.net/blog/kl-approx.html
-                with torch.no_grad():
-                    log_ratio = log_prob - rollout_data.old_log_prob
-                    approx_kl_div = torch.mean((torch.exp(log_ratio) - 1) - log_ratio).cpu().numpy()
-                    approx_kl_divs.append(approx_kl_div)
-
                 # Optimization step
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -302,16 +291,12 @@ class CLEANERPPO:
                 torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
                 self.optimizer.step()
 
-            if not continue_training:
-                break
-
         explained_var = explained_variance(self.rollout_buffer.values.flatten(), self.rollout_buffer.returns.flatten())
 
         # Logs
         self.logger.record("train/entropy_loss", np.mean(entropy_losses))
         self.logger.record("train/policy_gradient_loss", np.mean(pg_losses))
         self.logger.record("train/value_loss", np.mean(value_losses))
-        self.logger.record("train/approx_kl", np.mean(approx_kl_divs))
         self.logger.record("train/clip_fraction", np.mean(clip_fractions))
         self.logger.record("train/loss", loss.item())
         self.logger.record("train/explained_variance", explained_var)
@@ -337,8 +322,7 @@ class CLEANERPPO:
         assert self.env is not None
 
         while self.num_timesteps < total_timesteps:
-            continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer,
-                                                      n_rollout_steps=self.n_steps)
+            continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer)
 
             if continue_training is False:
                 break
@@ -368,7 +352,6 @@ class CLEANERPPO:
         env: VecEnv,
         callback: BaseCallback,
         rollout_buffer: RolloutBuffer,
-        n_rollout_steps: int,
     ) -> bool:
         """
         Collect experiences using the current policy and fill a ``RolloutBuffer``.
@@ -379,8 +362,7 @@ class CLEANERPPO:
         :param callback: Callback that will be called at each step
             (and at the beginning and end of the rollout)
         :param rollout_buffer: Buffer to fill with rollouts
-        :param n_rollout_steps: Number of experiences to collect per environment
-        :return: True if function returned with at least `n_rollout_steps`
+        :return: True if function returned with at least `self.n_steps`
             collected, False if callback terminated rollout prematurely.
         """
         assert self._last_obs is not None, "No previous observation was provided"
@@ -390,7 +372,7 @@ class CLEANERPPO:
 
         callback.on_rollout_start()
 
-        while n_steps < n_rollout_steps:
+        while n_steps < self.n_steps:
             with torch.no_grad():
                 # Convert to pytorch tensor or to TensorDict
                 obs_tensor = obs_as_tensor(self._last_obs, device)
@@ -429,23 +411,23 @@ class CLEANERPPO:
                 ):
                     terminal_obs = infos[idx]["terminal_observation"]
                     with torch.no_grad():
-                        terminal_value = self.policy.get_value(terminal_obs)[0]  # type: ignore[arg-type]
+                        terminal_value = self.policy.get_value(terminal_obs)[0]
                     rewards[idx] += self.gamma * terminal_value
 
             rollout_buffer.add(
-                self._last_obs,  # type: ignore[arg-type]
+                self._last_obs,
                 actions,
                 rewards,
-                self._last_episode_starts,  # type: ignore[arg-type]
+                self._last_episode_starts,
                 values,
                 log_probs,
             )
-            self._last_obs = new_obs  # type: ignore[assignment]
+            self._last_obs = new_obs
             self._last_episode_starts = dones
 
         with torch.no_grad():
             # Compute value for the last timestep
-            values = self.policy.get_value(obs_as_tensor(new_obs, device))  # type: ignore[arg-type]
+            values = self.policy.get_value(obs_as_tensor(new_obs, device))
 
         rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
 
