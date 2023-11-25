@@ -73,6 +73,9 @@ group: null
 # list of tags
 tags: null
 
+# What to optimize for when doing hyperparameter optimization
+hyperopt_criterion: 'eval/success_rate'
+
 hydra:
   run:
     dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S}
