@@ -133,8 +133,6 @@ class CLEANERPPO:
         max_grad_norm: float = 0.5,
     ):
         self.num_timesteps = 0
-        # Used for updating schedules
-        self._total_timesteps = 0
         # Used for computing fps, it is updated at each call of learn()
         self.learning_rate = learning_rate
         self._last_obs = None  # type: Optional[Union[np.ndarray, Dict[str, np.ndarray]]]
@@ -326,10 +324,7 @@ class CLEANERPPO:
         self,
         total_timesteps: int,
         callback: MaybeCallback = None,
-        log_interval: int = 1,
-        tb_log_name: str = "PPO",
-        reset_num_timesteps: bool = True,
-        progress_bar: bool = False,
+        log_interval: int = 1
     ):
         iteration = 0
 
