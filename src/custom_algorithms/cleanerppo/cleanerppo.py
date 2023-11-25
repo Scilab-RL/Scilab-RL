@@ -13,8 +13,7 @@ from torch.distributions.normal import Normal
 
 from stable_baselines3.common.buffers import DictRolloutBuffer, RolloutBuffer
 from stable_baselines3.common.callbacks import BaseCallback
-from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
-from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean, obs_as_tensor
+from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
 from stable_baselines3.common.vec_env import VecEnv
 
 
@@ -85,6 +84,7 @@ class Agent(nn.Module):
 class CLEANERPPO:
     """
     Proximal Policy Optimization algorithm (PPO) (clip version)
+    This is a simplified one-file version of the stable-baselines3 PPO implementation.
 
     Paper: https://arxiv.org/abs/1707.06347
     Code: This implementation borrows code from OpenAI Spinning Up (https://github.com/openai/spinningup/)
@@ -93,9 +93,8 @@ class CLEANERPPO:
 
     Introduction to PPO: https://spinningup.openai.com/en/latest/algorithms/ppo.html
 
-    :param env: The environment to learn from (if registered in Gym, can be str)
+    :param env: The environment to learn from
     :param learning_rate: The learning rate
-        of the current progress remaining (from 1 to 0)
     :param n_steps: The number of steps to run for each environment per update
         (i.e. rollout buffer size is n_steps * n_envs where n_envs is number of environment copies running in parallel)
         NOTE: n_steps * n_envs must be greater than 1 (because of the advantage normalization)
@@ -104,14 +103,12 @@ class CLEANERPPO:
     :param n_epochs: Number of epoch when optimizing the surrogate loss
     :param gamma: Discount factor
     :param gae_lambda: Factor for trade-off of bias vs variance for Generalized Advantage Estimator
-    :param clip_range: Clipping parameter, it can be a function of the current progress
-        remaining (from 1 to 0).
-    :param clip_range_vf: Clipping parameter for the value function,
-        it can be a function of the current progress remaining (from 1 to 0).
+    :param clip_range: Clipping parameter
+    :param clip_range_vf: Clipping parameter for the value function
         This is a parameter specific to the OpenAI implementation. If None is passed (default),
         no clipping will be done on the value function.
         IMPORTANT: this clipping depends on the reward scaling.
-    :param normalize_advantage: Whether to normalize or not the advantage
+    :param normalize_advantage: Whether to normalize the advantage
     :param ent_coef: Entropy coefficient for the loss calculation
     :param vf_coef: Value function coefficient for the loss calculation
     :param max_grad_norm: The maximum value for the gradient clipping
@@ -133,7 +130,6 @@ class CLEANERPPO:
         max_grad_norm: float = 0.5,
     ):
         self.num_timesteps = 0
-        # Used for computing fps, it is updated at each call of learn()
         self.learning_rate = learning_rate
         self._last_obs = None  # type: Optional[Union[np.ndarray, Dict[str, np.ndarray]]]
         self._last_episode_starts = None  # type: Optional[np.ndarray]
@@ -274,7 +270,9 @@ class CLEANERPPO:
                 torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
                 self.optimizer.step()
 
-        explained_var = explained_variance(self.rollout_buffer.values.flatten(), self.rollout_buffer.returns.flatten())
+        var_y = np.var(self.rollout_buffer.values.flatten())
+        explained_var = np.nan if var_y == 0 else (
+                1 - np.var(self.rollout_buffer.returns.flatten() - self.rollout_buffer.values.flatten()) / var_y)
 
         # Logs
         self.logger.record("train/entropy_loss", np.mean(entropy_losses))
@@ -291,14 +289,9 @@ class CLEANERPPO:
         log_interval: int = 1
     ):
         iteration = 0
-
         self._last_obs = self.env.reset()
-
         callback.init_callback(self)
-
         callback.on_training_start(locals(), globals())
-
-        assert self.env is not None
 
         while self.num_timesteps < total_timesteps:
             continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer)
@@ -313,9 +306,9 @@ class CLEANERPPO:
                 assert self.ep_info_buffer is not None
                 if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
                     self.logger.record("rollout/ep_rew_mean",
-                                       safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
+                                       np.mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
                     self.logger.record("rollout/ep_len_mean",
-                                       safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+                                       np.mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
                 self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
                 self.logger.dump(step=self.num_timesteps)
 
@@ -352,9 +345,7 @@ class CLEANERPPO:
 
         while n_steps < self.n_steps:
             with torch.no_grad():
-                # Convert to pytorch tensor or to TensorDict
-                obs_tensor = obs_as_tensor(self._last_obs, device)
-                actions, log_probs, _, values = self.policy.get_action_and_value(obs_tensor)
+                actions, log_probs, _, values = self.policy.get_action_and_value(self._last_obs)
             actions = actions.cpu().numpy()
 
             # Rescale and perform action
@@ -372,7 +363,6 @@ class CLEANERPPO:
             if callback.on_step() is False:
                 return False
 
-            # self._update_info_buffer(infos)
             n_steps += 1
 
             if isinstance(self.action_space, spaces.Discrete):
@@ -405,7 +395,7 @@ class CLEANERPPO:
 
         with torch.no_grad():
             # Compute value for the last timestep
-            values = self.policy.get_value(obs_as_tensor(new_obs, device))
+            values = self.policy.get_value(new_obs)
 
         rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
 
