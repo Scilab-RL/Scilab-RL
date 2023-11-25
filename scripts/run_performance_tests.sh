@@ -62,7 +62,7 @@ then
   exit 0
 else
   echo "The following performance tests failed:"
-  for config in unsuccessful_configs
+  for config in "${unsuccessful_configs[@]}"
   do
     echo $config
   done
