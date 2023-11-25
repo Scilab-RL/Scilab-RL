@@ -31,9 +31,6 @@ algorithm:
   buffer_size: 1000000
   batch_size: 256
   learning_starts: 1000
-  replay_buffer_kwargs:
-    n_sampled_goal: 4
-    goal_selection_strategy: 'future'
 
 hydra:
   sweeper:
