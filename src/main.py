@@ -128,7 +128,6 @@ def create_callbacks(cfg, logger, eval_env):
 @hydra.main(config_name="main", config_path="../conf", version_base="1.1.2")
 def main(cfg: DictConfig) -> (float, int):
     reg_var = gym.registry.keys()
-    # test_env = gym.make("AntMaze_Open_Diverse_GR-v4")
     run_dir = os.getcwd()
     if cfg.restore_policy is not None:
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
