@@ -56,16 +56,6 @@ class CLEANERPPO:
     :param ent_coef: Entropy coefficient for the loss calculation
     :param vf_coef: Value function coefficient for the loss calculation
     :param max_grad_norm: The maximum value for the gradient clipping
-    :param use_sde: Whether to use generalized State Dependent Exploration (gSDE)
-        instead of action noise exploration (default: False)
-    :param sde_sample_freq: Sample a new noise matrix every n steps when using gSDE
-        Default: -1 (only sample at the beginning of the rollout)
-    :param target_kl: Limit the KL divergence between updates,
-        because the clipping is not enough to prevent large update
-        see issue #213 (cf https://github.com/hill-a/stable-baselines/issues/213)
-        By default, there is no limit on the kl div.
-    :param stats_window_size: Window size for the rollout logging, specifying the number of episodes to average
-        the reported success rate, mean episode length, and mean reward over
     :param policy_kwargs: additional arguments to be passed to the policy on creation
     """
 
@@ -91,10 +81,6 @@ class CLEANERPPO:
         ent_coef: float = 0.0,
         vf_coef: float = 0.5,
         max_grad_norm: float = 0.5,
-        use_sde: bool = False,
-        sde_sample_freq: int = -1,
-        target_kl: Optional[float] = None,
-        stats_window_size: int = 100,
         policy_kwargs: Optional[Dict[str, Any]] = None,
     ):
         if isinstance(policy, str):
@@ -119,14 +105,10 @@ class CLEANERPPO:
         # When using VecNormalize:
         self._last_original_obs = None  # type: Optional[Union[np.ndarray, Dict[str, np.ndarray]]]
         self._episode_num = 0
-        # Used for gSDE only
-        self.use_sde = use_sde
-        self.sde_sample_freq = sde_sample_freq
         # Track the training progress remaining (from 1 to 0)
         # this is used to update the learning rate
         self._current_progress_remaining = 1.0
         # Buffers for logging
-        self._stats_window_size = stats_window_size
         self.ep_info_buffer = None  # type: Optional[deque]
         self.ep_success_buffer = None  # type: Optional[deque]
         # For logging (and TD3 delayed updates)
@@ -149,9 +131,6 @@ class CLEANERPPO:
             # Catch common mistake: using MlpPolicy/CnnPolicy instead of MultiInputPolicy
             if policy in ["MlpPolicy", "CnnPolicy"] and isinstance(self.observation_space, spaces.Dict):
                 raise ValueError(f"You must use `MultiInputPolicy` when working with dict observation space, not {policy}")
-
-            if self.use_sde and not isinstance(self.action_space, spaces.Box):
-                raise ValueError("generalized State-Dependent Exploration (gSDE) can only be used with continuous actions.")
 
             if isinstance(self.action_space, spaces.Box):
                 assert np.all(
@@ -195,7 +174,6 @@ class CLEANERPPO:
         self.clip_range = clip_range
         self.clip_range_vf = clip_range_vf
         self.normalize_advantage = normalize_advantage
-        self.target_kl = target_kl
         self.logger = None
 
         self._setup_model()
@@ -216,7 +194,7 @@ class CLEANERPPO:
         )
         # pytype:disable=not-instantiable
         self.policy = self.policy_class(  # type: ignore[assignment]
-            self.observation_space, self.action_space, self.lr_schedule, use_sde=self.use_sde, **self.policy_kwargs
+            self.observation_space, self.action_space, self.lr_schedule, **self.policy_kwargs
         )
         # pytype:enable=not-instantiable
         self.policy = self.policy.to(self.device)
@@ -259,10 +237,6 @@ class CLEANERPPO:
                 if isinstance(self.action_space, spaces.Discrete):
                     # Convert discrete action from float to long
                     actions = rollout_data.actions.long().flatten()
-
-                # Re-sample the noise matrix because the log_std has changed
-                if self.use_sde:
-                    self.policy.reset_noise(self.batch_size)
 
                 values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.observations, actions)
                 values = values.flatten()
@@ -317,9 +291,6 @@ class CLEANERPPO:
                     log_ratio = log_prob - rollout_data.old_log_prob
                     approx_kl_div = torch.mean((torch.exp(log_ratio) - 1) - log_ratio).cpu().numpy()
                     approx_kl_divs.append(approx_kl_div)
-
-                if self.target_kl is not None and approx_kl_div > 1.5 * self.target_kl:
-                    continue_training = False
 
                 # Optimization step
                 self.policy.optimizer.zero_grad()
@@ -427,17 +398,10 @@ class CLEANERPPO:
 
         n_steps = 0
         rollout_buffer.reset()
-        # Sample new weights for the state dependent exploration
-        if self.use_sde:
-            self.policy.reset_noise(env.num_envs)
 
         callback.on_rollout_start()
 
         while n_steps < n_rollout_steps:
-            if self.use_sde and self.sde_sample_freq > 0 and n_steps % self.sde_sample_freq == 0:
-                # Sample a new noise matrix
-                self.policy.reset_noise(env.num_envs)
-
             with torch.no_grad():
                 # Convert to pytorch tensor or to TensorDict
                 obs_tensor = obs_as_tensor(self._last_obs, self.device)
