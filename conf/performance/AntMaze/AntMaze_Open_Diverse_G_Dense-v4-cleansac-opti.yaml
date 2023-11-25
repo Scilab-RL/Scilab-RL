@@ -23,6 +23,9 @@ early_stop_data_column: 'train/rollout_rewards_mean'
 
 env: 'AntMaze_Open_Diverse_GDense-v4'
 
+# What to optimize for
+hyperopt_criterion: 'train/rollout_rewards_mean'
+
 algorithm:
   use_her: False
   buffer_size: 1000000
