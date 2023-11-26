@@ -6,6 +6,7 @@ tau: 0.05
 use_her: False
 ent_coef: auto
 n_critics: 2
+hidden_size: 256
 
 # morphological computation hyperparameters
 mc:

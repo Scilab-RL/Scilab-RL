@@ -22,17 +22,17 @@ LOG_STD_MIN = -20
 
 
 class Actor(nn.Module):
-    def __init__(self, env):
+    def __init__(self, env, hidden_size):
         super().__init__()
         if isinstance(env.observation_space, spaces.dict.Dict):
             obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
         else:
             obs_shape = np.sum(env.observation_space.shape)
-        self.fc1 = nn.Linear(obs_shape, 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, 256)
-        self.fc_mean = nn.Linear(256, np.prod(env.action_space.shape))
-        self.fc_logstd = nn.Linear(256, np.prod(env.action_space.shape))
+        self.fc1 = nn.Linear(obs_shape, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, hidden_size)
+        self.fc_mean = nn.Linear(hidden_size, np.prod(env.action_space.shape))
+        self.fc_logstd = nn.Linear(hidden_size, np.prod(env.action_space.shape))
         # action rescaling
         self.register_buffer(
             "action_scale", torch.tensor((env.action_space.high - env.action_space.low) / 2.0, dtype=torch.float32)
@@ -67,16 +67,16 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self, env):
+    def __init__(self, env, hidden_size):
         super().__init__()
         if isinstance(env.observation_space, spaces.dict.Dict):
             obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
         else:
             obs_shape = np.sum(env.observation_space.shape)
-        self.fc1 = nn.Linear(obs_shape + np.prod(env.action_space.shape), 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, 256)
-        self.fc4 = nn.Linear(256, 1)
+        self.fc1 = nn.Linear(obs_shape + np.prod(env.action_space.shape), hidden_size)
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, hidden_size)
+        self.fc4 = nn.Linear(hidden_size, 1)
 
     def forward(self, x, a):
         x = torch.cat([x, a], 1)
@@ -88,11 +88,11 @@ class Critic(nn.Module):
 
 
 class CriticEnsemble(nn.Module):
-    def __init__(self, env, n_critics: int):
+    def __init__(self, env, n_critics: int, hidden_size):
         super().__init__()
         self._critics = nn.ModuleList(
             [
-                Critic(env)
+                Critic(env, hidden_size)
                 for _ in range(n_critics)
             ]
         )
@@ -119,7 +119,7 @@ class CLEANSACMC:
     A one-file version of SAC derived from both the CleanRL and stable-baselines3 versions of SAC.
     :param env: The Gym environment to learn from
     :param learning_rate: learning rate for adam optimizer,
-        the same learning rate will be used for all networks (Q-Values, Actor and Value function)
+        the same learning rate will be used for all networks (Q-Values, Bctor and Value function)
     :param buffer_size: size of the replay buffer
     :param learning_starts: how many steps of the model to collect transitions for before learning starts
     :param batch_size: Minibatch size for each gradient update
@@ -142,6 +142,7 @@ class CLEANSACMC:
             ent_coef: Union[str, float] = "auto",
             use_her: bool = True,
             n_critics: int = 2,
+            hidden_size: int = 256,
             mc: dict = {}
     ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -152,6 +153,7 @@ class CLEANSACMC:
         self.tau = tau
         self.gamma = gamma
         self.n_critics = n_critics
+        self.hidden_size = hidden_size
         self.mc = mc
 
         self.env = env
@@ -195,10 +197,10 @@ class CLEANSACMC:
         self._n_updates = 0
 
     def _create_actor_critic(self) -> None:
-        self.actor = Actor(self.env).to(self.device)
+        self.actor = Actor(self.env, self.hidden_size).to(self.device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.learning_rate)
-        self.critic = CriticEnsemble(self.env, self.n_critics).to(self.device)
-        self.critic_target = CriticEnsemble(self.env, self.n_critics).to(self.device)
+        self.critic = CriticEnsemble(self.env, self.n_critics, self.hidden_size).to(self.device)
+        self.critic_target = CriticEnsemble(self.env, self.n_critics, self.hidden_size).to(self.device)
         self.critic_target.load_state_dict(self.critic.state_dict())
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=self.learning_rate)
 
