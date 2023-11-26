@@ -53,13 +53,16 @@ class Agent(nn.Module):
     def get_value(self, x):
         return self.critic(x)
 
-    def get_action_and_value(self, x, action=None):
+    def get_action_and_value(self, x, action=None, deterministic=False):
         action_mean = self.actor_mean(x)
         action_logstd = self.actor_logstd.expand_as(action_mean)
         action_std = torch.exp(action_logstd)
         probs = Normal(action_mean, action_std)
         if action is None:
-            action = probs.sample()
+            if deterministic:
+                action = action_mean
+            else:
+                action = probs.sample()
         return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(x)
 
 
@@ -290,7 +293,7 @@ class CLEANPPO:
             if self.dict_obs:
                 obs = flatten_obs(obs)
             obs = torch.Tensor(obs).to(device)
-            action, _, _, _ = self.agent.get_action_and_value(obs)
+            action, _, _, _ = self.agent.get_action_and_value(obs, deterministic=deterministic)
             action = action.cpu().numpy()
         return action, state
 
