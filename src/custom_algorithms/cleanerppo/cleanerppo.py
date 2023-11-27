@@ -420,7 +420,25 @@ class CLEANERPPO:
             exclude: Optional[Iterable[str]] = None,
             include: Optional[Iterable[str]] = None,
     ) -> None:
-        return  # todo implement
+        # Copy parameter list, so we don't mutate the original dict
+        data = self.__dict__.copy()
+        for to_exclude in ["logger", "env", "num_timesteps", "policy",
+                           "_last_obs", "_last_episode_starts"]:
+            del data[to_exclude]
+        # save network parameters
+        data["_policy"] = self.policy.state_dict()
+        torch.save(data, path)
+
+    @classmethod
+    def load(cls, path, env, **kwargs):
+        model = cls(env=env, **kwargs)
+        loaded_dict = torch.load(path)
+        for k in loaded_dict:
+            if k not in ["_policy"]:
+                model.__dict__[k] = loaded_dict[k]
+        # load network states
+        model.policy.load_state_dict(loaded_dict["_policy"])
+        return model
 
     def set_logger(self, logger):
         self.logger = logger
