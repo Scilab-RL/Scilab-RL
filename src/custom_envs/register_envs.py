@@ -3,6 +3,9 @@ All custom environments must be registered here, otherwise they won't be found.
 """
 from gymnasium.envs.registration import register
 import highway_env
+from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
+from utils.custom_wrappers import MakeDictObs
+
 
 def register_custom_envs():
     for n_objects in range(5):
@@ -35,3 +38,40 @@ def register_custom_envs():
         entry_point='highway_env.envs:ParkingEnv',
         max_episode_steps=100,
     )
+
+    register_metaworld_envs()
+
+
+def register_metaworld_envs():
+    for env_name, env_class in ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE.items():
+        for env_type in ["original", "sparse", "dense"]:
+            """
+            original - don't use the MakeDictObs wrapper
+            sparse - use the MakeDictObs wrapper and sparse rewards
+            dense - use the MakeDictObs wrapper and dense rewards
+            """
+            def make_variable_goal_env(environment_class, environment_type):
+                def variable_goal_env(**kwargs):
+                    """
+                    set _freeze_rand_vec to False after instantiation so that the goal is not always the same.
+                    """
+                    env = environment_class(**kwargs)
+                    env._freeze_rand_vec = False
+                    if environment_type == "original":
+                        pass
+                    elif environment_type == "sparse":
+                        env = MakeDictObs(env, dense=False)
+                    elif environment_type == "dense":
+                        env = MakeDictObs(env, dense=True)
+                    else:
+                        raise ValueError(f"unknown environment type {environment_type}")
+                    return env
+
+                return variable_goal_env
+
+            if env_type == "original":
+                register(id=f"MetaW-{env_name[:-len('-goal-observable')]}", entry_point=make_variable_goal_env(env_class, env_type), max_episode_steps=500)
+            elif env_type == "sparse":
+                register(id=f"MetaW-{env_name[:-len('-goal-observable')]}-sparse", entry_point=make_variable_goal_env(env_class, env_type), max_episode_steps=500)
+            elif env_type == "dense":
+                register(id=f"MetaW-{env_name[:-len('-goal-observable')]}-dense", entry_point=make_variable_goal_env(env_class, env_type), max_episode_steps=500)
