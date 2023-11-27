@@ -81,7 +81,7 @@ class Agent(nn.Module):
         return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(x)
 
 
-class CLEANERPPO:
+class CLEANPPO:
     """
     Proximal Policy Optimization algorithm (PPO) (clip version)
     This is a simplified one-file version of the stable-baselines3 PPO implementation.
