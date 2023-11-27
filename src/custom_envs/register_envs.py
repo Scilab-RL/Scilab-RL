@@ -4,7 +4,18 @@ All custom environments must be registered here, otherwise they won't be found.
 from gymnasium.envs.registration import register
 import highway_env
 
+OPEN = [
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+]
 
+
+def _merge(a, b):
+    a.update(b)
+    return a
 
 def register_custom_envs():
     for n_objects in range(5):
@@ -16,6 +27,24 @@ def register_custom_envs():
                      entry_point='custom_envs.blocks.blocks_env:BlocksEnv',
                      kwargs={'n_objects': n_objects, 'gripper_goal': gripper_goal, 'distance_threshold': distance_threshold},
                      max_episode_steps=max(50, 50*n_objects))
+
+    for reward_type in ["sparse", "dense"]:
+        suffix = "Dense" if reward_type == "dense" else ""
+        kwargs = {
+            "reward_type": reward_type,
+        }
+
+        register(id=f'AntGymnasiumMod{suffix}-v0',
+            entry_point='custom_envs.ant.ant_env:AntGymMod',
+            kwargs = _merge(
+                {
+                    "maze_map": OPEN,
+                },
+                kwargs,
+            ),
+            max_episode_steps = 700,
+            )
+
 
     register(id='Reach1DOF-v0',
              entry_point='custom_envs.reach1dof.reach1dof_env:Reach1DOFEnv',
