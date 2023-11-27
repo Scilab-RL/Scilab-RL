@@ -46,6 +46,7 @@ test_envs() {
   ENVS+="Reach1DOF-v0,"
   # ADD NEW ENVIRONMENTS HERE
   ENVS+="parking-limited-v0"
+  ENVS+="MetaW-peg-insert-side-v2-sparse"
 
   echo "Smoke-testing environments $ENVS"
 
