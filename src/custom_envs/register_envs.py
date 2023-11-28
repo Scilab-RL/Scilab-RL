@@ -52,7 +52,7 @@ def register_custom_envs():
             "reward_type": reward_type,
         }
 
-        register(id=f'AntGymnasiumMod{suffix}-dt09-openkDGR-v0',
+        register(id=f'AntGymnasiumMod{suffix}-dt15-openDGR-v0',
             entry_point='custom_envs.ant.ant_env:AntGymMod',
             kwargs = _merge(
                 {
@@ -63,6 +63,17 @@ def register_custom_envs():
             ),
             max_episode_steps = 700,
             )
+        register(id=f'AntGymnasiumMod{suffix}-dt15-openDG-v0',
+             entry_point='custom_envs.ant.ant_env:AntGymMod',
+             kwargs=_merge(
+                 {
+                     "distance_threshold": 1.5,
+                     "maze_map": OPEN_DIVERSE_G,
+                 },
+                 kwargs,
+             ),
+             max_episode_steps=700,
+             )
 
 
     register(id='Reach1DOF-v0',
