@@ -3,6 +3,10 @@ All custom environments must be registered here, otherwise they won't be found.
 """
 from gymnasium.envs.registration import register
 import highway_env
+RESET = R = "r"  # Initial Reset position of the agent
+GOAL = G = "g"
+COMBINED = C = "c"  # These cells can be selected as goal or reset locations
+
 
 OPEN = [
     [1, 1, 1, 1, 1, 1, 1],
@@ -11,7 +15,21 @@ OPEN = [
     [1, 0, 0, 0, 0, 0, 1],
     [1, 1, 1, 1, 1, 1, 1],
 ]
+OPEN_DIVERSE_G = [
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, R, G, G, G, G, 1],
+    [1, G, G, G, G, G, 1],
+    [1, G, G, G, G, G, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+]
 
+OPEN_DIVERSE_GR = [
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, C, C, C, C, C, 1],
+    [1, C, C, C, C, C, 1],
+    [1, C, C, C, C, C, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+]
 
 def _merge(a, b):
     a.update(b)
@@ -34,11 +52,12 @@ def register_custom_envs():
             "reward_type": reward_type,
         }
 
-        register(id=f'AntGymnasiumMod{suffix}-v0',
+        register(id=f'AntGymnasiumMod{suffix}-dt09-openkDGR-v0',
             entry_point='custom_envs.ant.ant_env:AntGymMod',
             kwargs = _merge(
                 {
-                    "maze_map": OPEN,
+                    "distance_threshold": 0.9,
+                    "maze_map": OPEN_DIVERSE_GR,
                 },
                 kwargs,
             ),
