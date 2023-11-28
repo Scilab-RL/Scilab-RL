@@ -23,8 +23,8 @@ env_kwargs: {}
 # algorithm. Maybe put them in the algorithm/xyz.yaml
 render: 'none' # 'display', 'record', or anything else for neither one
 render_freq: 5 # epochs
-render_metrics_train: ['q_val', 'rand_eval']
-render_metrics_test: ['q_val','rand_eval']
+render_metrics_train: ['train/rollout_rewards_step']
+render_metrics_test: ['eval/success_rate']
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
