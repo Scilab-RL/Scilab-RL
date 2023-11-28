@@ -27,6 +27,11 @@ hyperopt_criterion: 'train/rollout_rewards_mean'
 #env: 'AntGymnasiumMod-v0'
 env: 'AntGymnasiumMod-dt15-small-openDGR-v0'
 
+render: 'none' # 'display', 'record', or anything else for neither one
+render_freq: 5
+render_metrics_train: ['q_val', 'rand_eval']
+render_metrics_test: ['q_val','rand_eval']
+
 algorithm:
   use_her: True
   buffer_size: 1000000
