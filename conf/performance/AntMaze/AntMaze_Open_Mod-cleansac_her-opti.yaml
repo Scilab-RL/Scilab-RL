@@ -24,7 +24,8 @@ early_stop_data_column: 'eval/success_rate'
 # What to optimize for
 hyperopt_criterion: 'train/rollout_rewards_mean'
 
-env: 'AntGymnasiumMod-v0'
+#env: 'AntGymnasiumMod-v0'
+env: 'AntGymnasiumMod-dt15-openDGR-v0'
 
 algorithm:
   use_her: True
@@ -34,7 +35,7 @@ algorithm:
 
 hydra:
   sweeper:
-    study_name: cleansac_her_AntGymnasiumMod-v4
+    study_name: cleansac_her_AntModOpen-DGR_dt15
     max_trials: 60
     n_jobs: 12
     direction: maximize
