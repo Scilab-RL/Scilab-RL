@@ -56,7 +56,7 @@ def register_custom_envs():
             entry_point='custom_envs.ant.ant_env:AntGymMod',
             kwargs = _merge(
                 {
-                    "distance_threshold": 0.9,
+                    "distance_threshold": 1.5,
                     "maze_map": OPEN_DIVERSE_GR,
                 },
                 kwargs,
