@@ -1,12 +1,15 @@
 name: 'cleansacmc'
 
 learning_rate: 0.001
-gamma: 0.98
+gamma: 0.95
 tau: 0.05
 use_her: False
 ent_coef: auto
 n_critics: 2
 hidden_size: 256
+
+learning_starts: 1000
+batch_size: 2048
 
 # morphological computation hyperparameters
 mc:
