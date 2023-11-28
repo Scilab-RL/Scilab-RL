@@ -30,6 +30,22 @@ OPEN_DIVERSE_GR = [
     [1, C, C, C, C, C, 1],
     [1, 1, 1, 1, 1, 1, 1],
 ]
+SMALL_OPEN_DIVERSE_GR = [
+    [1, 1, 1, 1, 1],
+    [1, C, C, C, 1],
+    [1, C, C, C, 1],
+    [1, C, C, C, 1],
+    [1, 1, 1, 1, 1],
+]
+
+SMALL_OPEN_DIVERSE_G = [
+    [1, 1, 1, 1, 1],
+    [1, G, G, G, 1],
+    [1, G, G, G, 1],
+    [1, G, G, G, 1],
+    [1, 1, 1, 1, 1],
+]
+
 
 def _merge(a, b):
     a.update(b)
@@ -74,7 +90,28 @@ def register_custom_envs():
              ),
              max_episode_steps=700,
              )
-
+        register(id=f'AntGymnasiumMod{suffix}-dt15-small-openDGR-v0',
+                 entry_point='custom_envs.ant.ant_env:AntGymMod',
+                 kwargs=_merge(
+                     {
+                         "distance_threshold": 1.5,
+                         "maze_map": SMALL_OPEN_DIVERSE_GR,
+                     },
+                     kwargs,
+                 ),
+                 max_episode_steps=700,
+                 )
+        register(id=f'AntGymnasiumMod{suffix}-dt15-small-openDG-v0',
+                 entry_point='custom_envs.ant.ant_env:AntGymMod',
+                 kwargs=_merge(
+                     {
+                         "distance_threshold": 1.5,
+                         "maze_map": SMALL_OPEN_DIVERSE_G,
+                     },
+                     kwargs,
+                 ),
+                 max_episode_steps=700,
+                 )
 
     register(id='Reach1DOF-v0',
              entry_point='custom_envs.reach1dof.reach1dof_env:Reach1DOFEnv',
