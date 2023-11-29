@@ -73,7 +73,7 @@ class EvalCallback(EvalCallback):
         wrapped with a Monitor wrapper)
     """
 
-    def _log_success_callback(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+    def _log_data_callback(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
         """
         Callback passed to the  ``evaluate_policy`` function
         in order to log the success rate (when applicable),
@@ -91,6 +91,9 @@ class EvalCallback(EvalCallback):
                 maybe_is_success = info.get("success")
             if maybe_is_success is not None:
                 self._is_success_buffer.append(maybe_is_success)
+        if 'rewards' in locals_.keys():
+            reward = float(locals_['rewards'][0])
+            self.logger.record('eval/rollout_rewards_step', reward)
 
     def _on_step(self) -> bool:
 
@@ -109,7 +112,7 @@ class EvalCallback(EvalCallback):
                 deterministic=self.deterministic,
                 return_episode_rewards=True,
                 warn=self.warn,
-                callback=self._log_success_callback,
+                callback=self._log_data_callback,
             )
 
             if self.log_path is not None:
