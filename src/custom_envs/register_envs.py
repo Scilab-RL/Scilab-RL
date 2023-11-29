@@ -5,7 +5,53 @@ from gymnasium.envs.registration import register
 import highway_env
 from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
 from utils.custom_wrappers import MakeDictObs
+RESET = R = "r"  # Initial Reset position of the agent
+GOAL = G = "g"
+COMBINED = C = "c"  # These cells can be selected as goal or reset locations
 
+
+OPEN = [
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+]
+OPEN_DIVERSE_G = [
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, R, G, G, G, G, 1],
+    [1, G, G, G, G, G, 1],
+    [1, G, G, G, G, G, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+]
+
+OPEN_DIVERSE_GR = [
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, C, C, C, C, C, 1],
+    [1, C, C, C, C, C, 1],
+    [1, C, C, C, C, C, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+]
+SMALL_OPEN_DIVERSE_GR = [
+    [1, 1, 1, 1, 1],
+    [1, C, C, C, 1],
+    [1, C, C, C, 1],
+    [1, C, C, C, 1],
+    [1, 1, 1, 1, 1],
+]
+
+SMALL_OPEN_DIVERSE_G = [
+    [1, 1, 1, 1, 1],
+    [1, G, G, G, 1],
+    [1, G, G, G, 1],
+    [1, G, G, G, 1],
+    [1, 1, 1, 1, 1],
+]
+
+
+def _merge(a, b):
+    a.update(b)
+    return a
 
 def register_custom_envs():
     for n_objects in range(5):
@@ -17,6 +63,61 @@ def register_custom_envs():
                      entry_point='custom_envs.blocks.blocks_env:BlocksEnv',
                      kwargs={'n_objects': n_objects, 'gripper_goal': gripper_goal, 'distance_threshold': distance_threshold},
                      max_episode_steps=max(50, 50*n_objects))
+
+    for reward_type in ["sparse", "dense"]:
+        suffix = "Dense" if reward_type == "dense" else ""
+        kwargs = {
+            "reward_type": reward_type,
+        }
+
+        register(id=f'AntGymnasiumMod{suffix}-dt15-openDGR-v0',
+            entry_point='custom_envs.ant.ant_env:AntGymMod',
+            kwargs = _merge(
+                {
+                    "continuing_task": False,  # No new goal will be generated when a goal is reached
+                    "distance_threshold": 1.5,
+                    "maze_map": OPEN_DIVERSE_GR,
+                },
+                kwargs,
+            ),
+            max_episode_steps = 700,
+            )
+        register(id=f'AntGymnasiumMod{suffix}-dt15-openDG-v0',
+             entry_point='custom_envs.ant.ant_env:AntGymMod',
+             kwargs=_merge(
+                 {
+                     "continuing_task": False,  # No new goal will be generated when a goal is reached
+                     "distance_threshold": 1.5,
+                     "maze_map": OPEN_DIVERSE_G,
+                 },
+                 kwargs,
+             ),
+             max_episode_steps=700,
+             )
+        register(id=f'AntGymnasiumMod{suffix}-dt15-small-openDGR-v0',
+                 entry_point='custom_envs.ant.ant_env:AntGymMod',
+                 kwargs=_merge(
+                     {
+                         "continuing_task": False, # No new goal will be generated when a goal is reached
+                         "distance_threshold": 1.5,
+                         "maze_map": SMALL_OPEN_DIVERSE_GR,
+                     },
+                     kwargs,
+                 ),
+                 max_episode_steps=700,
+                 )
+        register(id=f'AntGymnasiumMod{suffix}-dt15-small-openDG-v0',
+                 entry_point='custom_envs.ant.ant_env:AntGymMod',
+                 kwargs=_merge(
+                     {
+                         "continuing_task": False,  # No new goal will be generated when a goal is reached
+                         "distance_threshold": 1.5,
+                         "maze_map": SMALL_OPEN_DIVERSE_G,
+                     },
+                     kwargs,
+                 ),
+                 max_episode_steps=700,
+                 )
 
     register(id='Reach1DOF-v0',
              entry_point='custom_envs.reach1dof.reach1dof_env:Reach1DOFEnv',

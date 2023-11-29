@@ -4,7 +4,10 @@ import importlib
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import mlflow
+# import myosuite
+# import gym as old_gym
 import gymnasium as gym
+# gym.register_envs()
 import wandb
 
 from stable_baselines3.her import HerReplayBuffer
@@ -24,6 +27,7 @@ OmegaConf.register_new_resolver("git_label", get_git_label)
 
 
 def get_env_instance(cfg, logger):
+    reg_Var = gym.envs.registry
     train_env = gym.make(cfg.env, **cfg.env_kwargs)
     eval_env = gym.make(cfg.env, **cfg.env_kwargs)
 
@@ -47,16 +51,18 @@ def get_env_instance(cfg, logger):
                                 steps_per_epoch=cfg.eval_after_n_steps,
                                 episode_in_epoch_trigger=train_render_schedule,
                                 metric_keys=cfg.render_metrics_train,
+                                video_length=cfg.render_frames_per_clip,
                                 logger=logger)
         eval_env = RecordVideo(env=eval_env,
                                video_folder=logger.get_dir() + "/videos",
                                name_prefix="eval",
                                episode_trigger=eval_render_schedule,
                                metric_keys=cfg.render_metrics_test,
+                               video_length=cfg.render_frames_per_clip,
                                logger=logger)
 
     # The following gym wrappers can be added via commandline parameters,
-    # e.g. use +flatten_obs to use the FlattenObservation wrapper
+    # e.g. use +flatten_obs=1 to use the FlattenObservation wrapper
     if 'flatten_obs' in cfg and cfg.flatten_obs:
         train_env = gym.wrappers.FlattenObservation(train_env)
         eval_env = gym.wrappers.FlattenObservation(eval_env)
@@ -123,6 +129,7 @@ def create_callbacks(cfg, logger, eval_env):
 # config_path is relative to the location of the Python script
 @hydra.main(config_name="main", config_path="../conf", version_base="1.1.2")
 def main(cfg: DictConfig) -> (float, int):
+    reg_var = gym.registry.keys()
     run_dir = os.getcwd()
     if cfg.restore_policy is not None:
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
@@ -142,6 +149,8 @@ def main(cfg: DictConfig) -> (float, int):
         if cfg['seed'] == 0:
             cfg['seed'] = int(time.time())
         set_global_seeds(cfg.seed)
+
+        # print(gym.envs.registry)
 
         train_env, eval_env = get_env_instance(cfg, logger)
 

@@ -6,7 +6,7 @@ from typing import Dict, Any
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import sync_envs_normalization
-
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 class EarlyStopCallback(BaseCallback):
     """
@@ -74,6 +74,28 @@ class EvalCallback(EvalCallback):
         wrapped with a Monitor wrapper)
     """
 
+    def _log_data_callback(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+        """
+        Callback passed to the  ``evaluate_policy`` function
+        in order to log the success rate (when applicable),
+        for instance when using HER.
+
+        :param locals_:
+        :param globals_:
+        """
+        info = locals_["info"]
+        maybe_is_success = None
+        if locals_["done"]:
+            if "is_success" in info.keys():
+                maybe_is_success = info.get("is_success")
+            elif "success" in info.keys():
+                maybe_is_success = info.get("success")
+            if maybe_is_success is not None:
+                self._is_success_buffer.append(maybe_is_success)
+        if 'rewards' in locals_.keys():
+            reward = float(locals_['rewards'][0])
+            self.logger.record('eval/rollout_rewards_step', reward)
+
     def _on_step(self) -> bool:
 
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
@@ -91,7 +113,7 @@ class EvalCallback(EvalCallback):
                 deterministic=self.deterministic,
                 return_episode_rewards=True,
                 warn=self.warn,
-                callback=self._log_success_callback,
+                callback=self._log_data_callback,
             )
 
             if self.log_path is not None:

@@ -1,7 +1,7 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  - override /algorithm: sac
+  - override /algorithm: cleansac
 
 env: 'FetchPush-v2'
 
@@ -9,45 +9,34 @@ env: 'FetchPush-v2'
 ## Parameters determined through hyperopt with search space lr, gamma, tau ##
 #############################################################################
 #algorithm:
-#  replay_buffer_class: HerReplayBuffer
-#  buffer_size: 1000000
-#  batch_size: 256
+#  name: 'cleansac'
 #  learning_rate: 0.00023
+#  ent_coef: auto
+#  buffer_size: 1_000_000
+#  learning_starts: 100
+#  batch_size: 256
 #  gamma: 0.915
 #  tau: 0.078
-#  policy_kwargs:
-#    n_critics: 1
-#    net_arch:
-#      - 256
-#      - 256
-#      - 256
-#  replay_buffer_kwargs:
-#    n_sampled_goal: 4
-#    goal_selection_strategy: 'future'
+#  use_her: True
+#  n_critics: 1
 
 ############################################################################################################
 ## Parameters as in SB3 Zoo (https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/her.yml) ##
 ############################################################################################################
 algorithm:
-  replay_buffer_class: HerReplayBuffer
-  buffer_size: 1000000
-  batch_size: 2048
+  name: 'cleansac'
   learning_rate: !!float 1e-3
+  ent_coef: auto
+  buffer_size: 1_000_000
+  learning_starts: 100
+  batch_size: 2048
   gamma: 0.95
   tau: 0.05
-  policy_kwargs:
-    n_critics: 2
-    net_arch:
-      - 512
-      - 512
-      - 512
-  replay_buffer_kwargs:
-    n_sampled_goal: 4
-    goal_selection_strategy: 'future'
-
+  use_her: True
+  n_critics: 2
 
 performance_testing_conditions:
-  # In 2 out of 3 tests, the eval/success rate should be at least 0.7 after 200k steps.
+  # In 2 out of 3 tests, the eval/success rate should be at least 0.7 after 20k steps.
 
   total_runs: 3 # How many runs in total:
 
@@ -55,13 +44,12 @@ performance_testing_conditions:
 
   eval_columns: eval/success_rate # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
 
-  eval_value: 0.4 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
+  eval_value: 0.7 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
-  # ca. 2,5 hours with GPU
-  max_steps: 200_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+  max_steps: 500_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: sac_her_FetchPush-test
+    study_name: cleansac_her_FetchPush-test
