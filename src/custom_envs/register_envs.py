@@ -3,6 +3,8 @@ All custom environments must be registered here, otherwise they won't be found.
 """
 from gymnasium.envs.registration import register
 import highway_env
+from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
+from utils.custom_wrappers import MakeDictObs
 RESET = R = "r"  # Initial Reset position of the agent
 GOAL = G = "g"
 COMBINED = C = "c"  # These cells can be selected as goal or reset locations
