@@ -121,7 +121,10 @@ class DisplayWrapper(gym.Wrapper):
             if self.display_metrics:
                 for i in range(self.num_metrics):
                     self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
-                    self.animation.x_data[i].append(self.step_in_episode_id)
+                    if len(self.animation.x_data[i]) > 0:
+                        self.animation.x_data[i].append(self.animation.x_data[i][-1]+1)
+                    else:
+                        self.animation.x_data[i].append(self.step_in_episode_id)
                     self.animation.y_data[i].append(self.curr_recorded_value)
                 self.animation.start_animation()
 
@@ -198,8 +201,10 @@ class RecordVideo(gym.Wrapper):
         self.base_path = None
 
         self.name_prefix = name_prefix
-        self.video_length = video_length
+        episode_length = env.spec.max_episode_steps
+        assert episode_length <= video_length, "Video length (render_frames_per_clip in main.yaml) must be at least the number of steps in one episode"
 
+        self.video_length = video_length
         self.recording = False
         self.recorded_frames = 0
         self.is_vector_env = getattr(env, "is_vector_env", False)
@@ -208,7 +213,7 @@ class RecordVideo(gym.Wrapper):
         self.num_metrics = len(self.metric_keys)
         self.record_metrics = self.num_metrics > 0
         self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys,
-                                           env=self.env) if self.record_metrics else None
+                                           env=self.env, ) if self.record_metrics else None
         self.logger = logger
         recursive_set_render_mode(self.env, 'rgb_array')
 
@@ -236,8 +241,16 @@ class RecordVideo(gym.Wrapper):
             metadata={"step_id": self.step_id, "episode_id": self.episode_id},
         )
 
-        self.video_recorder.capture_frame()
-        self.recorded_frames = 1
+        # self.video_recorder.capture_frame()
+        # if self.record_metrics:
+        #     for i in range(self.num_metrics):
+        #         self.animation.x_data[i].append(self.step_in_episode_id)
+        #         # if self.logger.name_to_count[self.metric_keys[i]] == 0:
+        #         #     self.animation.y_data[i].append(None)
+        #         # else:
+        #         self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
+        #         self.animation.y_data[i].append(self.curr_recorded_value)
+        self.recorded_frames = 0
         self.recording = True
 
     def _video_enabled(self):
@@ -276,7 +289,11 @@ class RecordVideo(gym.Wrapper):
             if self.record_metrics:
                 for i in range(self.num_metrics):
                     self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
-                    self.animation.x_data[i].append(self.step_in_episode_id)
+                    if len(self.animation.x_data[i]) > 0:
+                        self.animation.x_data[i].append(self.animation.x_data[i][-1]+1)
+                    else:
+                        self.animation.x_data[i].append(self.step_in_episode_id)
+                    # self.animation.x_data[i].append(self.step_in_episode_id)
                     self.animation.y_data[i].append(self.curr_recorded_value)
             self.video_recorder.capture_frame()
             self.recorded_frames += 1
@@ -303,9 +320,12 @@ class RecordVideo(gym.Wrapper):
 
     def close_video_recorder(self) -> None:
         if self.recording:
+            render_frames = len(self.video_recorder.recorded_frames)
             self.video_recorder.close()
             # Metric stuff
             if self.record_metrics:
+                metrics_frames = len(self.animation.y_data[0])
+                assert render_frames==metrics_frames, "Error, number of frames of rendered video not the same as number of frames of metrics video."
                 self.animation.save_animation(self.base_path + ".metric")
                 self.animation.reset_fig()
                 # reset data
@@ -313,7 +333,7 @@ class RecordVideo(gym.Wrapper):
                 self.animation.y_data = [[] for _ in range(len(self.metric_keys))]
                 self.join_animation()
         self.recording = False
-        self.recorded_frames = 1
+        self.recorded_frames = 0
 
     def join_animation(self):
         self.cmdline = (
@@ -333,8 +353,13 @@ class RecordVideo(gym.Wrapper):
             self.base_path + ".joint.mp4",
         )
 
-        render_clip = VideoFileClip(self.base_path + ".mp4").set_fps(30)
-        metric_clip = VideoFileClip(self.base_path + ".metric.mp4").set_fps(30)
+        metric_clip = VideoFileClip(self.base_path + ".metric.mp4")
+        metric_n_frames = int(metric_clip.fps * metric_clip.duration)
+
+        render_clip = VideoFileClip(self.base_path + ".mp4")
+        render_n_frames = int(render_clip.fps * render_clip.duration)
+        metric_clip = metric_clip.set_duration(render_clip.duration)
+        metric_n_frames = int(metric_clip.fps * metric_clip.duration)
 
         joint_clip = clips_array([[render_clip, metric_clip]])
         joint_clip.write_videofile(self.base_path + ".joint.mp4")
