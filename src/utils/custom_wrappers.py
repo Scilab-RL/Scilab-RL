@@ -208,7 +208,7 @@ class RecordVideo(gym.Wrapper):
 
         self.name_prefix = name_prefix
         episode_length = env.spec.max_episode_steps
-        assert episode_length <= video_length, "Video length (render_frames_per_clip in main.yaml) must be at least the number of steps in one episode"
+        assert episode_length <= video_length or video_length==0, "Video length (render_frames_per_clip in main.yaml) must be at least the number of steps in one episode or 0."
 
         self.video_length = video_length
         self.recording = False
