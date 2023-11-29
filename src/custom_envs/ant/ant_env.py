@@ -4,9 +4,11 @@ import numpy as np
 
 # ParentClass = gymnasium_robotics.envs.maze.ant_maze_v4
 from gymnasium.envs.registration import load_env_creator
-ParentClass = load_env_creator('gymnasium_robotics.envs.maze.ant_maze_v4:AntMazeEnv')
+GymnasiumAntMazeEnvClass = load_env_creator('gymnasium_robotics.envs.maze.ant_maze_v4:AntMazeEnv')
 
-class AntGymMod(ParentClass):
+class AntGymMod(GymnasiumAntMazeEnvClass):
+    metadata = GymnasiumAntMazeEnvClass.metadata
+    metadata['render_fps'] = 30
     def __init__(self, distance_threshold=0.45, **kwargs):
         self.distance_threshold = distance_threshold
         super().__init__(**kwargs)
