@@ -6,5 +6,5 @@ replay_buffer_class: HerReplayBuffer  # ++algorithm.replay_buffer_class=null to 
 
 policy: 'MultiInputPolicy' # MlpPolicy
 
-learning_starts: 100
+learning_starts: 1000
 
