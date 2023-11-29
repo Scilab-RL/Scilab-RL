@@ -7,7 +7,7 @@ algorithm:
   start_e: 1
   end_e: 0.05
   exploration_fraction: 0.5
-  learning_starts: 1000 # 10_000
+  learning_starts: 1000
   train_frequency: 10
   target_network_frequency: 500
   tau: 1.
