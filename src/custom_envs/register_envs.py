@@ -72,6 +72,7 @@ def register_custom_envs():
             entry_point='custom_envs.ant.ant_env:AntGymMod',
             kwargs = _merge(
                 {
+                    "continuing_task": False,  # No new goal will be generated when a goal is reached
                     "distance_threshold": 1.5,
                     "maze_map": OPEN_DIVERSE_GR,
                 },
@@ -83,6 +84,7 @@ def register_custom_envs():
              entry_point='custom_envs.ant.ant_env:AntGymMod',
              kwargs=_merge(
                  {
+                     "continuing_task": False,  # No new goal will be generated when a goal is reached
                      "distance_threshold": 1.5,
                      "maze_map": OPEN_DIVERSE_G,
                  },
@@ -94,6 +96,7 @@ def register_custom_envs():
                  entry_point='custom_envs.ant.ant_env:AntGymMod',
                  kwargs=_merge(
                      {
+                         "continuing_task": False, # No new goal will be generated when a goal is reached
                          "distance_threshold": 1.5,
                          "maze_map": SMALL_OPEN_DIVERSE_GR,
                      },
@@ -105,6 +108,7 @@ def register_custom_envs():
                  entry_point='custom_envs.ant.ant_env:AntGymMod',
                  kwargs=_merge(
                      {
+                         "continuing_task": False,  # No new goal will be generated when a goal is reached
                          "distance_threshold": 1.5,
                          "maze_map": SMALL_OPEN_DIVERSE_G,
                      },
