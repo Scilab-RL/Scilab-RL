@@ -7,7 +7,7 @@ import mlflow
 import wandb
 from omegaconf import OmegaConf
 from utils.util import flatten_dictConf
-
+from moviepy.editor import VideoFileClip
 
 def setup_logger(run_dir, run_name, cfg):
     logger = configure(folder=run_dir, format_strings=[])
@@ -44,7 +44,10 @@ class MLFlowOutputFormat(KVWriter, SeqWriter):
               key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
         kvs = key_values.copy()
         for k, v in kvs.items():
-            mlflow.log_metric(k, v, step=step)
+            try:
+                mlflow.log_metric(k, v, step=step)
+            except Exception as e:
+                pass
 
     def write_sequence(self, sequence: List) -> None:
         sequence = list(sequence)
@@ -60,7 +63,16 @@ class WandBOutputFormat(KVWriter, SeqWriter):
     def write(self,
               key_values: Dict[str, Any],
               key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
-        wandb.log(key_values, step=step)
+        new_key_values = key_values.copy()
+        for key in new_key_values.keys():
+            vid_file_str_idx = key.find("/video")
+            if vid_file_str_idx >= 0:
+                videofilename = new_key_values[key]
+                wandb.log({f'{key}': wandb.Video(videofilename)})
+                del(new_key_values[key])
+        wandb.log(new_key_values, step=step)
+
+
 
     def write_sequence(self, sequence: List) -> None:
         pass
