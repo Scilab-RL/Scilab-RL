@@ -369,7 +369,7 @@ class RecordVideo(gym.Wrapper):
 
         joint_clip = clips_array([[render_clip, metric_clip]])
         joint_clip.write_videofile(self.base_path + ".joint.mp4")
-
+        self.logger.record(f'{self.name_prefix}/video', f'{self.base_path}.joint.mp4')
 
 class MakeDictObs(gym.Wrapper):
     def __init__(self, env, dense=False):

@@ -28,7 +28,7 @@ hyperopt_criterion: 'train/rollout_rewards_mean'
 env: 'AntGymnasiumMod-dt15-small-openDGR-v0'
 
 render: 'record' # 'display', 'record', or anything else for neither one
-render_freq: 5
+render_freq: 2
 render_metrics_train: ['train/rollout_rewards_step']
 render_metrics_test: ['eval/rollout_rewards_step']
 render_frames_per_clip: 1400
