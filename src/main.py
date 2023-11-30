@@ -27,7 +27,6 @@ OmegaConf.register_new_resolver("git_label", get_git_label)
 
 
 def get_env_instance(cfg, logger):
-    reg_Var = gym.envs.registry
     train_env = gym.make(cfg.env, **cfg.env_kwargs)
     eval_env = gym.make(cfg.env, **cfg.env_kwargs)
 
@@ -129,7 +128,6 @@ def create_callbacks(cfg, logger, eval_env):
 # config_path is relative to the location of the Python script
 @hydra.main(config_name="main", config_path="../conf", version_base="1.1.2")
 def main(cfg: DictConfig) -> (float, int):
-    reg_var = gym.registry.keys()
     run_dir = os.getcwd()
     if cfg.restore_policy is not None:
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
@@ -149,8 +147,6 @@ def main(cfg: DictConfig) -> (float, int):
         if cfg['seed'] == 0:
             cfg['seed'] = int(time.time())
         set_global_seeds(cfg.seed)
-
-        # print(gym.envs.registry)
 
         train_env, eval_env = get_env_instance(cfg, logger)
 
