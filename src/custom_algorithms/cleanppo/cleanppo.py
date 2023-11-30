@@ -2,7 +2,7 @@ import io
 import pathlib
 import warnings
 from collections import deque
-from typing import Dict, Iterable, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 from gymnasium import spaces
@@ -417,8 +417,6 @@ class CLEANPPO:
     def save(
             self,
             path: Union[str, pathlib.Path, io.BufferedIOBase],
-            exclude: Optional[Iterable[str]] = None,
-            include: Optional[Iterable[str]] = None,
     ) -> None:
         # Copy parameter list, so we don't mutate the original dict
         data = self.__dict__.copy()
