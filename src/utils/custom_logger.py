@@ -64,12 +64,15 @@ class WandBOutputFormat(KVWriter, SeqWriter):
               key_values: Dict[str, Any],
               key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
         new_key_values = key_values.copy()
+        keys_to_del = []
         for key in new_key_values.keys():
             vid_file_str_idx = key.find("/video")
             if vid_file_str_idx >= 0:
+                keys_to_del.append(key)
                 videofilename = new_key_values[key]
                 wandb.log({f'{key}': wandb.Video(videofilename)})
-                del(new_key_values[key])
+        for k in keys_to_del:
+            del new_key_values[k]
         wandb.log(new_key_values, step=step)
 
 
