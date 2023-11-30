@@ -5,7 +5,7 @@ gamma: 0.95
 tau: 0.05
 use_her: False
 ent_coef: auto
-n_critics: 2
+n_critics: 1
 hidden_size: 256
 
 learning_starts: 1000
