@@ -202,7 +202,7 @@ class CLEANSAC:
         callback.on_training_start(locals(), globals())
 
         self._last_obs = self.env.reset()
-
+        self.episode_steps = 0
         while self.num_timesteps < total_timesteps:
             continue_training = self.collect_rollout(callback=callback)
 
@@ -235,6 +235,7 @@ class CLEANSAC:
 
         # perform action
         new_obs, rewards, dones, infos = self.env.step(actions)
+        self.episode_steps += 1
         self.logger.record("train/rollout_rewards_step", np.mean(rewards))
         self.logger.record_mean("train/rollout_rewards_mean", np.mean(rewards))
         self.num_timesteps += self.env.num_envs
@@ -243,6 +244,8 @@ class CLEANSAC:
         next_obs = deepcopy(new_obs)
         for i, done in enumerate(dones):
             if done:
+                self.logger.record_mean(f'train/mean_ep_length', self.episode_steps)
+                self.episode_steps = 0
                 next_obs_ = infos[i]["terminal_observation"]
                 for key in next_obs.keys():
                     next_obs[key][i] = next_obs_[key]
