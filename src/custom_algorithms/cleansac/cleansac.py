@@ -127,7 +127,7 @@ class CLEANSAC:
             env: GymEnv,
             learning_rate: float = 3e-4,
             buffer_size: int = 1_000_000,
-            learning_starts: int = 100,
+            learning_starts: int = 1000,
             batch_size: int = 256,
             tau: float = 0.005,
             gamma: float = 0.99,
@@ -235,7 +235,8 @@ class CLEANSAC:
 
         # perform action
         new_obs, rewards, dones, infos = self.env.step(actions)
-
+        self.logger.record("train/rollout_rewards_step", np.mean(rewards))
+        self.logger.record_mean("train/rollout_rewards_mean", np.mean(rewards))
         self.num_timesteps += self.env.num_envs
 
         # save data to replay buffer; handle `terminal_observation`
@@ -290,6 +291,7 @@ class CLEANSAC:
         critic_a_values = self.critic(observations, replay_data.actions)
         crit_loss = torch.stack([F.mse_loss(_a_v, next_q_value.view(-1, 1)) for _a_v in critic_a_values]).sum()
         self.logger.record("train/critic_loss", crit_loss.item())
+        self.logger.record("train/train_rewards", replay_data.rewards.flatten().mean().item())
 
         self.critic_optimizer.zero_grad()
         crit_loss.backward()

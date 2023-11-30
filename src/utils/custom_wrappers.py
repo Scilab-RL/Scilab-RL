@@ -3,10 +3,33 @@ import subprocess
 import gymnasium as gym
 
 from typing import Callable
+
+import numpy as np
 from utils.animation_util import LiveAnimationPlot
+from gymnasium.envs.mujoco import MujocoEnv
 
 from gymnasium.wrappers.monitoring import video_recorder
 from moviepy.editor import VideoFileClip, clips_array
+from gymnasium import spaces
+from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE as METAWORLD_ENVS
+from metaworld.envs.reward_utils import tolerance
+
+
+def recursive_set_render_mode(env, mode):
+    """
+    Sets the render mode for the environment object and all environments that are part of the object.
+    """
+    try:
+        env.unwrapped.render_mode = mode
+        env_dict = vars(env.unwrapped)
+        for k,v in env_dict.items():
+            if isinstance(v, MujocoEnv):
+                if k != "unwrapped":
+                    recursive_set_render_mode(v, mode)
+    except Exception as e:
+        print(f"{e}. Error, no valid environment provided")
+
+
 
 class DisplayWrapper(gym.Wrapper):
     """
@@ -53,6 +76,7 @@ class DisplayWrapper(gym.Wrapper):
         self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys,
                                            env=self.env) if self.display_metrics else None
         self.logger = logger
+        recursive_set_render_mode(self.env, 'human')
 
 
     def reset(self, **kwargs):
@@ -98,13 +122,15 @@ class DisplayWrapper(gym.Wrapper):
                 self.episode_in_epoch_id += 1
 
         if self.displaying:
-            self.env.unwrapped.render_mode = 'human'
             self.env.render()
             # metrics stuff
             if self.display_metrics:
                 for i in range(self.num_metrics):
                     self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
-                    self.animation.x_data[i].append(self.step_in_episode_id)
+                    if len(self.animation.x_data[i]) > 0:
+                        self.animation.x_data[i].append(self.animation.x_data[i][-1]+1)
+                    else:
+                        self.animation.x_data[i].append(self.step_in_episode_id)
                     self.animation.y_data[i].append(self.curr_recorded_value)
                 self.animation.start_animation()
 
@@ -181,8 +207,10 @@ class RecordVideo(gym.Wrapper):
         self.base_path = None
 
         self.name_prefix = name_prefix
-        self.video_length = video_length
+        episode_length = env.spec.max_episode_steps
+        assert episode_length <= video_length or video_length==0, "Video length (render_frames_per_clip in main.yaml) must be at least the number of steps in one episode or 0."
 
+        self.video_length = video_length
         self.recording = False
         self.recorded_frames = 0
         self.is_vector_env = getattr(env, "is_vector_env", False)
@@ -191,8 +219,9 @@ class RecordVideo(gym.Wrapper):
         self.num_metrics = len(self.metric_keys)
         self.record_metrics = self.num_metrics > 0
         self.animation = LiveAnimationPlot(y_axis_labels=self.metric_keys,
-                                           env=self.env) if self.record_metrics else None
+                                           env=self.env, ) if self.record_metrics else None
         self.logger = logger
+        recursive_set_render_mode(self.env, 'rgb_array')
 
     def reset(self, **kwargs):
         observations = super(RecordVideo, self).reset(**kwargs)
@@ -211,15 +240,23 @@ class RecordVideo(gym.Wrapper):
             video_name = f"{self.name_prefix}-episode-{self.episode_id}"
 
         self.base_path = os.path.join(self.video_folder, video_name)
-        self.env.unwrapped.render_mode = 'rgb_array'
+        # self.env.unwrapped.render_mode = 'rgb_array'
         self.video_recorder = video_recorder.VideoRecorder(
             env=self.env,
             base_path=self.base_path,
             metadata={"step_id": self.step_id, "episode_id": self.episode_id},
         )
 
-        self.video_recorder.capture_frame()
-        self.recorded_frames = 1
+        # self.video_recorder.capture_frame()
+        # if self.record_metrics:
+        #     for i in range(self.num_metrics):
+        #         self.animation.x_data[i].append(self.step_in_episode_id)
+        #         # if self.logger.name_to_count[self.metric_keys[i]] == 0:
+        #         #     self.animation.y_data[i].append(None)
+        #         # else:
+        #         self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
+        #         self.animation.y_data[i].append(self.curr_recorded_value)
+        self.recorded_frames = 0
         self.recording = True
 
     def _video_enabled(self):
@@ -258,7 +295,11 @@ class RecordVideo(gym.Wrapper):
             if self.record_metrics:
                 for i in range(self.num_metrics):
                     self.curr_recorded_value = self.logger.name_to_value[self.metric_keys[i]]
-                    self.animation.x_data[i].append(self.step_in_episode_id)
+                    if len(self.animation.x_data[i]) > 0:
+                        self.animation.x_data[i].append(self.animation.x_data[i][-1]+1)
+                    else:
+                        self.animation.x_data[i].append(self.step_in_episode_id)
+                    # self.animation.x_data[i].append(self.step_in_episode_id)
                     self.animation.y_data[i].append(self.curr_recorded_value)
             self.video_recorder.capture_frame()
             self.recorded_frames += 1
@@ -285,9 +326,12 @@ class RecordVideo(gym.Wrapper):
 
     def close_video_recorder(self) -> None:
         if self.recording:
+            render_frames = len(self.video_recorder.recorded_frames)
             self.video_recorder.close()
             # Metric stuff
             if self.record_metrics:
+                metrics_frames = len(self.animation.y_data[0])
+                assert render_frames==metrics_frames, "Error, number of frames of rendered video not the same as number of frames of metrics video."
                 self.animation.save_animation(self.base_path + ".metric")
                 self.animation.reset_fig()
                 # reset data
@@ -295,7 +339,7 @@ class RecordVideo(gym.Wrapper):
                 self.animation.y_data = [[] for _ in range(len(self.metric_keys))]
                 self.join_animation()
         self.recording = False
-        self.recorded_frames = 1
+        self.recorded_frames = 0
 
     def join_animation(self):
         self.cmdline = (
@@ -315,36 +359,237 @@ class RecordVideo(gym.Wrapper):
             self.base_path + ".joint.mp4",
         )
 
-        # determine largest width and height of both videos
-        render_clip = VideoFileClip(self.base_path + ".mp4")
         metric_clip = VideoFileClip(self.base_path + ".metric.mp4")
+        metric_n_frames = int(metric_clip.fps * metric_clip.duration)
 
-        # Keeping this commented here, just in case we need the padding in the future.
-        # I think that clip_array pads automatically.
-
-        # max_width = max(render_clip.w, metric_clip.w)
-        # max_height = max(render_clip.h, metric_clip.h)
-
-        # pad both videos to larger width and height.
-        # if render_clip.w < max_width:
-        #     left_margin = (max_width - render_clip.w) // 2
-        #     right_margin = max_width - render_clip.w - left_margin
-        #     render_clip.margin(left=left_margin, right=right_margin)
-        #
-        # if metric_clip.w < max_width:
-        #     left_margin = (max_width - metric_clip.w) // 2
-        #     right_margin = max_width - metric_clip.w - left_margin
-        #     metric_clip.margin(left=left_margin, right=right_margin)
-        #
-        # if render_clip.h < max_height:
-        #     top_margin = (max_height - render_clip.h) // 2
-        #     bot_margin = max_height - render_clip.h - top_margin
-        #     render_clip.margin(top=top_margin, right=bot_margin)
-        #
-        # if metric_clip.h < max_height:
-        #     top_margin = (max_height - metric_clip.h) // 2
-        #     bot_margin = max_height - metric_clip.h - top_margin
-        #     metric_clip.margin(top=top_margin, right=bot_margin)
+        render_clip = VideoFileClip(self.base_path + ".mp4")
+        render_n_frames = int(render_clip.fps * render_clip.duration)
+        metric_clip = metric_clip.set_duration(render_clip.duration)
+        metric_n_frames = int(metric_clip.fps * metric_clip.duration)
 
         joint_clip = clips_array([[render_clip, metric_clip]])
         joint_clip.write_videofile(self.base_path + ".joint.mp4")
+
+
+class MakeDictObs(gym.Wrapper):
+    def __init__(self, env, dense=False):
+        super().__init__(env)
+        self.dense = dense
+
+        if isinstance(env, METAWORLD_ENVS["button-press-v2-goal-observable"]):
+            low = self.env.observation_space.low
+            high = self.env.observation_space.high
+            env.observation_space = spaces.Dict(
+                dict(
+                    desired_goal=spaces.Box(
+                        low=low[-2], high=high[-2], dtype="float64"
+                    ),
+                    achieved_goal=spaces.Box(
+                        low=low[5], high=high[5], dtype="float64"
+                    ),
+                    observation=spaces.Box(
+                        low=np.concatenate([low[0:5], low[6:-2], low[-1:]]),
+                        high=np.concatenate([high[0:5], high[6:-2], low[-1:]]),
+                        dtype="float64"
+                    ),
+                )
+            )
+
+            def convert_obs(obs):
+                ag = np.array([obs[5]])
+                dg = np.array([obs[-2]])
+                ob = np.concatenate([obs[0:5], obs[6:-2], obs[-1:]])
+                return {"observation": ob, "achieved_goal": ag, "desired_goal": dg}
+
+            self.obs_to_dict_obs = convert_obs
+
+            def compute_reward(achieved_goal, desired_goal, infos):
+                obj_to_target = abs(achieved_goal - desired_goal)
+
+                return (obj_to_target <= 0.02) - 1
+            self.compute_reward = compute_reward
+
+        elif isinstance(env, METAWORLD_ENVS["reach-v2-goal-observable"]):
+            low = self.env.observation_space.low
+            high = self.env.observation_space.high
+            env.observation_space = spaces.Dict(
+                dict(
+                    desired_goal=spaces.Box(
+                        low=low[-3:], high=high[-3:], dtype="float64"
+                    ),
+                    achieved_goal=spaces.Box(
+                        low=low[:3], high=high[:3], dtype="float64"
+                    ),
+                    observation=spaces.Box(
+                        low=low[3:-3], high=high[3:-3], dtype="float64"
+                    ),
+                )
+            )
+
+            def convert_obs(obs):
+                ag = obs[:3]
+                ag[2] -= 0.045  # this is a little correction because the original compute reward works
+                #  with the tcp_center which is slightly lower than the endeffector_pos
+                dg = obs[-3:]
+                ob = obs[3:-3]
+                return {"observation": ob, "achieved_goal": ag, "desired_goal": dg}
+            self.obs_to_dict_obs = convert_obs
+
+            hand_init_pos = self.env.unwrapped.hand_init_pos  # stays the same when env resets
+
+            def compute_reward(achieved_goal, desired_goal, infos):
+                distances = np.linalg.norm(achieved_goal - desired_goal, axis=1)
+                if not self.dense:
+                    return (distances < 0.05) - 1
+                in_place_margin = np.linalg.norm(hand_init_pos - desired_goal)
+                reward = tolerance(
+                    distances,
+                    bounds=(0, 0.05),
+                    margin=in_place_margin,
+                    sigmoid="long_tail",
+                )
+                return reward * 10
+            self.compute_reward = compute_reward
+
+        elif isinstance(env, (METAWORLD_ENVS["push-v2-goal-observable"],
+                              METAWORLD_ENVS["pick-place-v2-goal-observable"],
+                              METAWORLD_ENVS["drawer-close-v2-goal-observable"],
+                              METAWORLD_ENVS["drawer-open-v2-goal-observable"])):
+
+            if isinstance(env, (METAWORLD_ENVS["push-v2-goal-observable"],
+                                METAWORLD_ENVS["pick-place-v2-goal-observable"])):
+                self.threshold = 0.05
+            elif isinstance(env, (METAWORLD_ENVS["drawer-close-v2-goal-observable"])):
+                self.threshold = 0.065
+            elif isinstance(env, (METAWORLD_ENVS["drawer-open-v2-goal-observable"])):
+                self.threshold = 0.03
+
+            low = self.env.observation_space.low
+            high = self.env.observation_space.high
+            env.observation_space = spaces.Dict(
+                dict(
+                    desired_goal=spaces.Box(
+                        low=low[-3:], high=high[-3:], dtype="float64"
+                    ),
+                    achieved_goal=spaces.Box(
+                        low=low[4:7], high=high[4:7], dtype="float64"
+                    ),
+                    observation=spaces.Box(
+                        low=np.concatenate([low[0:4], low[7:-3]]),
+                        high=np.concatenate([high[0:4], high[7:-3]]),
+                        dtype="float64"
+                    ),
+                )
+            )
+
+            def convert_obs(obs):
+                ag = obs[4:7]
+                dg = obs[-3:]
+                ob = np.concatenate([obs[0:4], obs[7:-3]])
+                return {"observation": ob, "achieved_goal": ag, "desired_goal": dg}
+
+            self.obs_to_dict_obs = convert_obs
+
+            def compute_reward(achieved_goal, desired_goal, infos):
+                distances = np.linalg.norm(achieved_goal - desired_goal, axis=1)
+                if not self.dense:
+                    return (distances < self.threshold) - 1
+                else:
+                    raise NotImplementedError("for push-v2 / pick-place-v2 / drawer-close-v2 / drawer-open-v2, "
+                                              "compute_reward for HER is only implemented for sparse "
+                                              "rewards, because the dense reward includes parts that are calculated "
+                                              "from the current environment state.")
+            self.compute_reward = compute_reward
+
+        elif isinstance(env, (METAWORLD_ENVS["door-open-v2-goal-observable"],
+                              METAWORLD_ENVS["window-close-v2-goal-observable"])):
+            low = self.env.observation_space.low
+            high = self.env.observation_space.high
+            env.observation_space = spaces.Dict(
+                dict(
+                    desired_goal=spaces.Box(
+                        low=low[-3], high=high[-3], dtype="float64"
+                    ),
+                    achieved_goal=spaces.Box(
+                        low=low[4], high=high[4], dtype="float64"
+                    ),
+                    observation=spaces.Box(
+                        low=np.concatenate([low[0:4], low[5:-3], low[-2:]]),
+                        high=np.concatenate([high[0:4], high[5:-3], low[-2:]]),
+                        dtype="float64"
+                    ),
+                )
+            )
+
+            def convert_obs(obs):
+                ag = np.array([obs[4]])
+                dg = np.array([obs[-3]])
+                ob = np.concatenate([obs[0:4], obs[5:-3], obs[-2:]])
+                return {"observation": ob, "achieved_goal": ag, "desired_goal": dg}
+
+            self.obs_to_dict_obs = convert_obs
+
+            def compute_reward(achieved_goal, desired_goal, infos):
+                distances = abs(achieved_goal - desired_goal)
+                if not self.dense:
+                    return (distances <= 0.08) - 1
+                else:
+                    raise NotImplementedError("for door-open-v2 / window-close-v2, "
+                                              "compute_reward for HER is only implemented for sparse "
+                                              "rewards, because the dense reward includes parts that are calculated "
+                                              "from the current environment state.")
+            self.compute_reward = compute_reward
+
+        elif isinstance(env, (METAWORLD_ENVS["peg-insert-side-v2-goal-observable"])):
+            low = self.env.observation_space.low
+            high = self.env.observation_space.high
+            env.observation_space = spaces.Dict(
+                dict(
+                    desired_goal=spaces.Box(
+                        low=low[-3:], high=high[-3:], dtype="float64"
+                    ),
+                    achieved_goal=spaces.Box(
+                        low=low[4:7], high=high[4:7], dtype="float64"
+                    ),
+                    observation=spaces.Box(
+                        low=np.concatenate([low[0:4], low[7:-3]]),
+                        high=np.concatenate([high[0:4], high[7:-3]]),
+                        dtype="float64"
+                    ),
+                )
+            )
+
+            def convert_obs(obs):
+                ag = obs[4:7]
+                dg = obs[-3:]
+                ob = np.concatenate([obs[0:4], obs[7:-3]])
+                return {"observation": ob, "achieved_goal": ag, "desired_goal": dg}
+
+            self.obs_to_dict_obs = convert_obs
+
+            def compute_reward(achieved_goal, desired_goal, infos):
+                achieved_goal += np.array([0.13, 0, 0.01])
+                scale = np.array([1.0, 2.0, 2.0])
+                distances = np.linalg.norm((achieved_goal - desired_goal) * scale, axis=1)
+                if not self.dense:
+                    return (distances < 0.07) - 1
+                else:
+                    raise NotImplementedError("for peg-insert-side-v2 "
+                                              "compute_reward for HER is only implemented for sparse rewards.")
+            self.compute_reward = compute_reward
+
+        else:
+            raise ValueError("No dict-obs conversion available for this environment.")
+
+    def step(self, action):
+        observations, rewards, terminated, truncated, infos = self.env.step(action)
+        if not self.dense:
+            rewards = infos["success"] - 1
+        observations = self.obs_to_dict_obs(observations)
+        return observations, rewards, terminated, truncated, infos
+
+    def reset(self, **kwargs):
+        observations, info = self.env.reset(**kwargs)
+        observations = self.obs_to_dict_obs(observations)
+        return observations, info
+

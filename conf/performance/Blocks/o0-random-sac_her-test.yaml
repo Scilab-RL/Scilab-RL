@@ -1,5 +1,13 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
+
+# Scilab-RL quality control:
+# Test validated.
+# Testing date: 13.11.2023
+# Branch: devel-testing
+# Commit: fc9bac1e9070be904de22e42b1ebf76a65e6586e
+
+
 defaults:
   - override /algorithm: sac
 

@@ -4,7 +4,10 @@ import importlib
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import mlflow
+# import myosuite
+# import gym as old_gym
 import gymnasium as gym
+# gym.register_envs()
 import wandb
 import myosuite
 
@@ -48,16 +51,18 @@ def get_env_instance(cfg, logger):
                                 steps_per_epoch=cfg.eval_after_n_steps,
                                 episode_in_epoch_trigger=train_render_schedule,
                                 metric_keys=cfg.render_metrics_train,
+                                video_length=cfg.render_frames_per_clip,
                                 logger=logger)
         eval_env = RecordVideo(env=eval_env,
                                video_folder=logger.get_dir() + "/videos",
                                name_prefix="eval",
                                episode_trigger=eval_render_schedule,
                                metric_keys=cfg.render_metrics_test,
+                               video_length=cfg.render_frames_per_clip,
                                logger=logger)
 
     # The following gym wrappers can be added via commandline parameters,
-    # e.g. use +flatten_obs to use the FlattenObservation wrapper
+    # e.g. use +flatten_obs=1 to use the FlattenObservation wrapper
     if 'flatten_obs' in cfg and cfg.flatten_obs:
         train_env = gym.wrappers.FlattenObservation(train_env)
         eval_env = gym.wrappers.FlattenObservation(eval_env)

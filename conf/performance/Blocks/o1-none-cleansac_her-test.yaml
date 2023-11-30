@@ -17,13 +17,16 @@ early_stop_last_n: 3
 # The data column on which early stopping is based.
 early_stop_data_column: 'eval/success_rate'
 
+# Whether to use HER.
+use_her: True
+
 algorithm:
-  replay_buffer_class: HerReplayBuffer
   buffer_size: 1000000
   batch_size: 256
   learning_rate: 0.0003
   gamma: 0.95
   tau: 0.02
+  n_critics: 1
 
 
 performance_testing_conditions:

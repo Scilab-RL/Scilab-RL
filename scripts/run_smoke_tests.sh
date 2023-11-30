@@ -44,8 +44,10 @@ test_envs() {
   ENVS+="Blocks-o0-gripper_random-v1,"
   ENVS+="Blocks-o3-gripper_none-v1,"
   ENVS+="Reach1DOF-v0,"
-  # ADD NEW ENVIRONMENTS HERE
-  ENVS+="parking-limited-v0"
+  # ADD NEW ENVIRONMENTS HERE.
+  # Don't forget to add a comma at the end of each environment name except for the last environment name.
+  ENVS+="parking-limited-v0,"
+  ENVS+="MetaW-peg-insert-side-v2-sparse"
 
   echo "Smoke-testing environments $ENVS"
 

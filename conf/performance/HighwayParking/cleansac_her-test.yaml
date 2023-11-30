@@ -1,26 +1,18 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  - override /algorithm: sac
+  - override /algorithm: cleansac
 
 env: 'parking-limited-v0'
 
 algorithm:
-  replay_buffer_class: HerReplayBuffer
+  use_her: True
   buffer_size: 1000000
   batch_size: 256
   learning_rate: 0.001
   gamma: 0.95
   tau: 0.02
-  policy_kwargs:
-    n_critics: 2
-    net_arch:
-      - 256
-      - 256
-      - 256
-  replay_buffer_kwargs:
-    n_sampled_goal: 4
-    goal_selection_strategy: 'future'
+  n_critics: 2
 
 performance_testing_conditions:
   # In 2 out of 3 tests, the eval/success rate should be at least 0.8 after 36k steps.
@@ -40,4 +32,4 @@ hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: sac_her_Parking-test
+    study_name: cleansac_her_Parking-test

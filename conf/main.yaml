@@ -22,9 +22,10 @@ env_kwargs: {}
 # TODO: maybe there is a better place to put render_metrics_* because they depend on the
 # algorithm. Maybe put them in the algorithm/xyz.yaml
 render: 'none' # 'display', 'record', or anything else for neither one
-render_freq: 5
-render_metrics_train: ['mc_mean', 'mc_std']
-render_metrics_test: ['mc_mean','mc_std']
+render_freq: 5 # epochs
+render_metrics_train: ['train/rollout_rewards_step']
+render_metrics_test: ['eval/rollout_rewards_step']
+render_frames_per_clip: 0 # Number of frames per clip when recording. If set to 0, one episode is recorded.
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))
 seed: 0
@@ -72,6 +73,9 @@ entity: null
 group: null
 # list of tags
 tags: null
+
+# What to optimize for when doing hyperparameter optimization
+hyperopt_criterion: 'eval/success_rate'
 
 hydra:
   run:

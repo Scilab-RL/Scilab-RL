@@ -1,11 +1,21 @@
-# docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppo_continuous_actionpy
-import gymnasium as gym
+import io
+import pathlib
+import warnings
+from collections import deque
+from typing import Dict, Optional, Tuple, Union
+
 import numpy as np
+from gymnasium import spaces
 import torch
 import torch.nn as nn
-import torch.optim as optim
+from torch.nn import functional as F
 from torch.distributions.normal import Normal
-from stable_baselines3.common.type_aliases import GymEnv
+
+from stable_baselines3.common.buffers import DictRolloutBuffer, RolloutBuffer
+from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
+from stable_baselines3.common.vec_env import VecEnv
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -24,13 +34,16 @@ def flatten_obs(obs):
         ag = torch.from_numpy(ag).to(device)
     if isinstance(dg, np.ndarray):
         dg = torch.from_numpy(dg).to(device)
-    return torch.cat([observation, ag, dg], dim=1).to(dtype=torch.float32).detach().clone()
+    if len(ag.shape) > 1:
+        return torch.cat([observation, ag, dg], dim=1).to(dtype=torch.float32).detach().clone()
+    else:
+        return torch.cat([observation, ag, dg]).to(dtype=torch.float32).detach().clone()
 
 
 class Agent(nn.Module):
     def __init__(self, env):
         super().__init__()
-        if isinstance(env.observation_space, gym.spaces.Dict):
+        if isinstance(env.observation_space, spaces.Dict):
             obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
         else:
             obs_shape = np.array(env.observation_space.shape).prod()
@@ -51,9 +64,11 @@ class Agent(nn.Module):
         self.actor_logstd = nn.Parameter(torch.zeros(1, np.prod(env.action_space.shape)))
 
     def get_value(self, x):
+        x = flatten_obs(x)
         return self.critic(x)
 
     def get_action_and_value(self, x, action=None, deterministic=False):
+        x = flatten_obs(x)
         action_mean = self.actor_mean(x)
         action_logstd = self.actor_logstd.expand_as(action_mean)
         action_std = torch.exp(action_logstd)
@@ -68,243 +83,348 @@ class Agent(nn.Module):
 
 class CLEANPPO:
     """
-    Custom version of PPO adapted from CleanRL
-    https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo_continuous_action.py
-    https://docs.cleanrl.dev/rl-algorithms/ppo/#ppo_continuous_actionpy
+    Proximal Policy Optimization algorithm (PPO) (clip version)
+    This is a simplified one-file version of the stable-baselines3 PPO implementation.
 
-    :param env: a gymnasium environment with discrete action space
-    :param learning_rate: the learning rate for the agent
-    :param num_steps: the number of steps to run in each environment per policy rollout
-    :param num_envs: the number of parallel environments
-    :param anneal_lr: whether to use learning rate annealing for policy and value networks
-    :param gamma: the discount factor gamma
-    :param gae_lambda: the lambda for the general advantage estimation
-    :param num_minibatches: the number of mini-batches
-    :param update_epochs: the K epochs to update the policy
-    :param clip_coef: the surrogate clipping coefficient
-    :param norm_adv: whether to use advantages normalization
-    :param clip_vloss:  whether to use a clipped loss for the value function, as per the paper
-    :param ent_coef: coefficient of the entropy
-    :param vf_coef: coefficient of the value function
-    :param max_grad_norm: the maximum norm for the gradient clipping
-    :param target_kl: the target KL divergence threshold
+    Paper: https://arxiv.org/abs/1707.06347
+    Code: This implementation borrows code from OpenAI Spinning Up (https://github.com/openai/spinningup/)
+    https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail and
+    Stable Baselines (PPO2 from https://github.com/hill-a/stable-baselines)
+
+    Introduction to PPO: https://spinningup.openai.com/en/latest/algorithms/ppo.html
+
+    :param env: The environment to learn from
+    :param learning_rate: The learning rate
+    :param n_steps: The number of steps to run for each environment per update
+        (i.e. rollout buffer size is n_steps * n_envs where n_envs is number of environment copies running in parallel)
+        NOTE: n_steps * n_envs must be greater than 1 (because of the advantage normalization)
+        See https://github.com/pytorch/pytorch/issues/29372
+    :param batch_size: Minibatch size
+    :param n_epochs: Number of epoch when optimizing the surrogate loss
+    :param gamma: Discount factor
+    :param gae_lambda: Factor for trade-off of bias vs variance for Generalized Advantage Estimator
+    :param clip_range: Clipping parameter
+    :param clip_range_vf: Clipping parameter for the value function
+        This is a parameter specific to the OpenAI implementation. If None is passed (default),
+        no clipping will be done on the value function.
+        IMPORTANT: this clipping depends on the reward scaling.
+    :param normalize_advantage: Whether to normalize the advantage
+    :param ent_coef: Entropy coefficient for the loss calculation
+    :param vf_coef: Value function coefficient for the loss calculation
+    :param max_grad_norm: The maximum value for the gradient clipping
     """
-    def __init__(self,
-                 env: GymEnv,
-                 learning_rate: float,
-                 num_steps: int,
-                 num_envs: int,
-                 anneal_lr: bool,
-                 gamma: float,
-                 gae_lambda: float,
-                 num_minibatches: int,
-                 update_epochs: int,
-                 clip_coef: float,
-                 norm_adv: bool,
-                 clip_vloss: bool,
-                 ent_coef: float,
-                 vf_coef: float,
-                 max_grad_norm: float,
-                 target_kl: float):
-        self.env = env
-        if isinstance(self.env.observation_space, gym.spaces.Dict):
-            self.dict_obs = True
-            self.obs_shape = (np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()]),)
-        else:
-            self.dict_obs = False
-            self.obs_shape = self.env.observation_space.shape
-        assert isinstance(self.env.action_space, gym.spaces.Box), "only continuous action space is supported"
-
-        self.agent = Agent(self.env).to(device)
-        self.optimizer = optim.Adam(self.agent.parameters(), lr=learning_rate, eps=1e-5)
-
+    def __init__(
+        self,
+        env: Union[GymEnv, str],
+        learning_rate: float = 3e-4,
+        n_steps: int = 2048,
+        batch_size: int = 64,
+        n_epochs: int = 10,
+        gamma: float = 0.99,
+        gae_lambda: float = 0.95,
+        clip_range: float = 0.2,
+        clip_range_vf: Union[None, float] = None,
+        normalize_advantage: bool = True,
+        ent_coef: float = 0.0,
+        vf_coef: float = 0.5,
+        max_grad_norm: float = 0.5,
+    ):
+        self.num_timesteps = 0
         self.learning_rate = learning_rate
-        self.num_steps = num_steps
-        self.num_envs = num_envs
-        self.anneal_lr = anneal_lr
+        self._last_obs = None  # type: Optional[Union[np.ndarray, Dict[str, np.ndarray]]]
+        self._last_episode_starts = None  # type: Optional[np.ndarray]
+        # Buffers for logging
+        self.ep_info_buffer = None  # type: Optional[deque]
+
+        self.observation_space = env.observation_space
+        self.action_space = env.action_space
+        self.n_envs = env.num_envs
+        self.env = env
+
+        if isinstance(self.action_space, spaces.Box):
+            assert np.all(
+                np.isfinite(np.array([self.action_space.low, self.action_space.high]))
+            ), "Continuous action space must have a finite lower and upper bound"
+
+        self.n_steps = n_steps
         self.gamma = gamma
         self.gae_lambda = gae_lambda
-        self.update_epochs = update_epochs
-        self.clip_coef = clip_coef
-        self.norm_adv = norm_adv
-        self.clip_vloss = clip_vloss
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
         self.max_grad_norm = max_grad_norm
-        self.target_kl = target_kl
 
-        self.batch_size = int(self.num_envs * self.num_steps)
-        self.minibatch_size = int(self.batch_size // num_minibatches)
+        # Sanity check, otherwise it will lead to noisy gradient and NaN
+        # because of the advantage normalization
+        if normalize_advantage:
+            assert (
+                batch_size > 1
+            ), "`batch_size` must be greater than 1. See https://github.com/DLR-RM/stable-baselines3/issues/440"
 
-        # Storage setup
-        self.obs = torch.zeros((num_steps, num_envs) + self.obs_shape).to(device)
-        self.actions = torch.zeros((num_steps, num_envs) + self.env.action_space.shape).to(device)
-        self.logprobs = torch.zeros((num_steps, num_envs)).to(device)
-        self.rewards = torch.zeros((num_steps, num_envs)).to(device)
-        self.dones = torch.zeros((num_steps, num_envs)).to(device)
-        self.values = torch.zeros((num_steps, num_envs)).to(device)
-
-        self.num_timesteps = 0
-        self.n_updates = 0
+        # Check that `n_steps * n_envs > 1` to avoid NaN
+        # when doing advantage normalization
+        buffer_size = self.env.num_envs * self.n_steps
+        assert buffer_size > 1 or (
+            not normalize_advantage
+        ), f"`n_steps * n_envs` must be greater than 1. Currently n_steps={self.n_steps} and n_envs={self.env.num_envs}"
+        # Check that the rollout buffer size is a multiple of the mini-batch size
+        untruncated_batches = buffer_size // batch_size
+        if buffer_size % batch_size > 0:
+            warnings.warn(
+                f"You have specified a mini-batch size of {batch_size},"
+                f" but because the `RolloutBuffer` is of size `n_steps * n_envs = {buffer_size}`,"
+                f" after every {untruncated_batches} untruncated mini-batches,"
+                f" there will be a truncated mini-batch of size {buffer_size % batch_size}\n"
+                f"We recommend using a `batch_size` that is a factor of `n_steps * n_envs`.\n"
+                f"Info: (n_steps={self.n_steps} and n_envs={self.env.num_envs})"
+                )
+        self.batch_size = batch_size
+        self.n_epochs = n_epochs
+        self.clip_range = clip_range
+        self.clip_range_vf = clip_range_vf
+        self.normalize_advantage = normalize_advantage
         self.logger = None
-        self.callback = None
 
-    def learn(self, total_timesteps: int, callback, log_interval):
+        self._setup_model()
+
+    def _setup_model(self) -> None:
+        buffer_cls = DictRolloutBuffer if isinstance(self.observation_space, spaces.Dict) else RolloutBuffer
+
+        self.rollout_buffer = buffer_cls(
+            self.n_steps,
+            self.observation_space,
+            self.action_space,
+            device=device,
+            gamma=self.gamma,
+            gae_lambda=self.gae_lambda,
+            n_envs=self.n_envs,
+        )
+        self.policy = Agent(self.env).to(device)
+        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.learning_rate, eps=1e-5)
+
+    def train(self) -> None:
         """
-        learn to get a good reward for the environment
-        :param total_timesteps: the maximum number of timesteps to train the agent
-        :param callback: a Callback or CallbackList to call every step, e.g. EvalCallback
+        Update policy using the currently gathered rollout buffer.
         """
-        self.callback = callback
-        self.callback.init_callback(self)
+        entropy_losses = []
+        pg_losses, value_losses = [], []
+        clip_fractions = []
 
-        global_step = 0
-        next_obs = self.env.reset()
-        if self.dict_obs:
-            next_obs = flatten_obs(next_obs)
-        next_obs = torch.Tensor(next_obs).to(device)
-        next_done = torch.zeros(self.num_envs).to(device)
-        num_updates = total_timesteps // self.batch_size
+        # train for n_epochs epochs
+        for epoch in range(self.n_epochs):
+            # Do a complete pass on the rollout buffer
+            for rollout_data in self.rollout_buffer.get(self.batch_size):
+                actions = rollout_data.actions
+                if isinstance(self.action_space, spaces.Discrete):
+                    # Convert discrete action from float to long
+                    actions = rollout_data.actions.long().flatten()
 
-        for update in range(1, num_updates + 1):
-            # Annealing the rate if instructed to do so.
-            if self.anneal_lr:
-                frac = 1.0 - (update - 1.0) / num_updates
-                lrnow = frac * self.learning_rate
-                self.optimizer.param_groups[0]["lr"] = lrnow
+                _, log_prob, entropy, values = self.policy.get_action_and_value(rollout_data.observations, actions)
+                values = values.flatten()
+                # Normalize advantage
+                advantages = rollout_data.advantages
+                # Normalization does not make sense if mini batchsize == 1, see GH issue #325
+                if self.normalize_advantage and len(advantages) > 1:
+                    advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-            for step in range(0, self.num_steps):
-                global_step += 1 * self.num_envs
-                self.num_timesteps += 1 * self.num_envs  # this might skip some evaluations if self.num_envs > 1
-                self.obs[step] = next_obs
-                self.dones[step] = next_done
+                # ratio between old and new policy, should be one at the first iteration
+                ratio = torch.exp(log_prob - rollout_data.old_log_prob)
 
-                # action logic
-                with torch.no_grad():
-                    action, logprob, _, value = self.agent.get_action_and_value(next_obs)
-                    self.values[step] = value.flatten()
-                self.actions[step] = action
-                self.logprobs[step] = logprob
+                # clipped surrogate loss
+                policy_loss_1 = advantages * ratio
+                policy_loss_2 = advantages * torch.clamp(ratio, 1 - self.clip_range, 1 + self.clip_range)
+                policy_loss = -torch.min(policy_loss_1, policy_loss_2).mean()
 
-                # TRY NOT TO MODIFY: execute the game and log data.
-                next_obs, reward, done, infos = self.env.step(action.cpu().numpy())
-                if self.dict_obs:
-                    next_obs = flatten_obs(next_obs)
-                self.rewards[step] = torch.tensor(reward).to(device).view(-1)
-                next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
+                # Logging
+                pg_losses.append(policy_loss.item())
+                clip_fraction = torch.mean((torch.abs(ratio - 1) > self.clip_range).float()).item()
+                clip_fractions.append(clip_fraction)
 
-                if callback.on_step() is False:
-                    return
+                if self.clip_range_vf is None:
+                    # No clipping
+                    values_pred = values
+                else:
+                    # Clip the difference between old and new value
+                    # NOTE: this depends on the reward scaling
+                    values_pred = rollout_data.old_values + torch.clamp(
+                        values - rollout_data.old_values, -self.clip_range_vf, self.clip_range_vf
+                    )
+                # Value loss using the TD(gae_lambda) target
+                value_loss = F.mse_loss(rollout_data.returns, values_pred)
+                value_losses.append(value_loss.item())
 
-            # bootstrap value if not done
+                # Entropy loss favor exploration
+                if entropy is None:
+                    # Approximate entropy when no analytical form
+                    entropy_loss = -torch.mean(-log_prob)
+                else:
+                    entropy_loss = -torch.mean(entropy)
+
+                entropy_losses.append(entropy_loss.item())
+
+                loss = policy_loss + self.ent_coef * entropy_loss + self.vf_coef * value_loss
+
+                # Optimization step
+                self.optimizer.zero_grad()
+                loss.backward()
+                # Clip grad norm
+                torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
+                self.optimizer.step()
+
+        var_y = np.var(self.rollout_buffer.values.flatten())
+        explained_var = np.nan if var_y == 0 else (
+                1 - np.var(self.rollout_buffer.returns.flatten() - self.rollout_buffer.values.flatten()) / var_y)
+
+        # Logs
+        self.logger.record("train/entropy_loss", np.mean(entropy_losses))
+        self.logger.record("train/policy_gradient_loss", np.mean(pg_losses))
+        self.logger.record("train/value_loss", np.mean(value_losses))
+        self.logger.record("train/clip_fraction", np.mean(clip_fractions))
+        self.logger.record("train/loss", loss.item())
+        self.logger.record("train/explained_variance", explained_var)
+
+    def learn(
+        self,
+        total_timesteps: int,
+        callback: MaybeCallback = None,
+        log_interval: int = 1
+    ):
+        iteration = 0
+        self._last_obs = self.env.reset()
+        callback.init_callback(self)
+        callback.on_training_start(locals(), globals())
+
+        while self.num_timesteps < total_timesteps:
+            continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer)
+
+            if continue_training is False:
+                break
+
+            iteration += 1
+
+            # Display training infos
+            if log_interval is not None and iteration % log_interval == 0:
+                assert self.ep_info_buffer is not None
+                if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
+                    self.logger.record("rollout/ep_rew_mean",
+                                       np.mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
+                    self.logger.record("rollout/ep_len_mean",
+                                       np.mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+                self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
+                self.logger.dump(step=self.num_timesteps)
+
+            self.train()
+
+        callback.on_training_end()
+
+        return self
+
+    def collect_rollouts(
+        self,
+        env: VecEnv,
+        callback: BaseCallback,
+        rollout_buffer: RolloutBuffer,
+    ) -> bool:
+        """
+        Collect experiences using the current policy and fill a ``RolloutBuffer``.
+        The term rollout here refers to the model-free notion and should not
+        be used with the concept of rollout used in model-based RL or planning.
+
+        :param env: The training environment
+        :param callback: Callback that will be called at each step
+            (and at the beginning and end of the rollout)
+        :param rollout_buffer: Buffer to fill with rollouts
+        :return: True if function returned with at least `self.n_steps`
+            collected, False if callback terminated rollout prematurely.
+        """
+        assert self._last_obs is not None, "No previous observation was provided"
+
+        n_steps = 0
+        rollout_buffer.reset()
+
+        callback.on_rollout_start()
+
+        while n_steps < self.n_steps:
             with torch.no_grad():
-                next_value = self.agent.get_value(next_obs).reshape(1, -1)
-                advantages = torch.zeros_like(self.rewards).to(device)
-                lastgaelam = 0
-                for t in reversed(range(self.num_steps)):
-                    if t == self.num_steps - 1:
-                        nextnonterminal = 1.0 - next_done
-                        nextvalues = next_value
-                    else:
-                        nextnonterminal = 1.0 - self.dones[t + 1]
-                        nextvalues = self.values[t + 1]
-                    delta = self.rewards[t] + self.gamma * nextvalues * nextnonterminal - self.values[t]
-                    advantages[t] = lastgaelam = delta + self.gamma * self.gae_lambda * nextnonterminal * lastgaelam
-                returns = advantages + self.values
+                actions, log_probs, _, values = self.policy.get_action_and_value(self._last_obs)
+            actions = actions.cpu().numpy()
 
-            # flatten the batch
-            b_obs = self.obs.reshape((-1,) + self.obs_shape)
-            b_logprobs = self.logprobs.reshape(-1)
-            b_actions = self.actions.reshape((-1,) + self.env.action_space.shape)
-            b_advantages = advantages.reshape(-1)
-            b_returns = returns.reshape(-1)
-            b_values = self.values.reshape(-1)
+            # Rescale and perform action
+            clipped_actions = actions
+            # Clip the actions to avoid out of bound error
+            if isinstance(self.action_space, spaces.Box):
+                clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
 
-            # Optimizing the policy and value network
-            b_inds = np.arange(self.batch_size)
-            clipfracs = []
-            for epoch in range(self.update_epochs):
-                np.random.shuffle(b_inds)
-                for start in range(0, self.batch_size, self.minibatch_size):
-                    end = start + self.minibatch_size
-                    mb_inds = b_inds[start:end]
+            new_obs, rewards, dones, infos = env.step(clipped_actions)
 
-                    _, newlogprob, entropy, newvalue = self.agent.get_action_and_value(b_obs[mb_inds], b_actions[mb_inds])
-                    logratio = newlogprob - b_logprobs[mb_inds]
-                    ratio = logratio.exp()
+            self.num_timesteps += env.num_envs
 
+            # Give access to local variables
+            callback.update_locals(locals())
+            if callback.on_step() is False:
+                return False
+
+            n_steps += 1
+
+            if isinstance(self.action_space, spaces.Discrete):
+                # Reshape in case of discrete action
+                actions = actions.reshape(-1, 1)
+
+            # Handle timeout by bootstraping with value function
+            # see GitHub issue #633
+            for idx, done in enumerate(dones):
+                if (
+                    done
+                    and infos[idx].get("terminal_observation") is not None
+                    and infos[idx].get("TimeLimit.truncated", False)
+                ):
+                    terminal_obs = infos[idx]["terminal_observation"]
                     with torch.no_grad():
-                        # calculate approx_kl http://joschu.net/blog/kl-approx.html
-                        old_approx_kl = (-logratio).mean()
-                        approx_kl = ((ratio - 1) - logratio).mean()
-                        clipfracs += [((ratio - 1.0).abs() > self.clip_coef).float().mean().item()]
+                        terminal_value = self.policy.get_value(terminal_obs)[0]
+                    rewards[idx] += self.gamma * terminal_value
 
-                    mb_advantages = b_advantages[mb_inds]
-                    if self.norm_adv:
-                        mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
+            rollout_buffer.add(
+                self._last_obs,
+                actions,
+                rewards,
+                self._last_episode_starts,
+                values,
+                log_probs,
+            )
+            self._last_obs = new_obs
+            self._last_episode_starts = dones
 
-                    # Policy loss
-                    pg_loss1 = -mb_advantages * ratio
-                    pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - self.clip_coef, 1 + self.clip_coef)
-                    pg_loss = torch.max(pg_loss1, pg_loss2).mean()
-
-                    # Value loss
-                    newvalue = newvalue.view(-1)
-                    if self.clip_vloss:
-                        v_loss_unclipped = (newvalue - b_returns[mb_inds]) ** 2
-                        v_clipped = b_values[mb_inds] + torch.clamp(
-                            newvalue - b_values[mb_inds],
-                            -self.clip_coef,
-                            self.clip_coef,
-                        )
-                        v_loss_clipped = (v_clipped - b_returns[mb_inds]) ** 2
-                        v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
-                        v_loss = 0.5 * v_loss_max.mean()
-                    else:
-                        v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
-
-                    entropy_loss = entropy.mean()
-                    loss = pg_loss - self.ent_coef * entropy_loss + v_loss * self.vf_coef
-
-                    self.optimizer.zero_grad()
-                    loss.backward()
-                    nn.utils.clip_grad_norm_(self.agent.parameters(), self.max_grad_norm)
-                    self.optimizer.step()
-
-                if self.target_kl is not None:
-                    if approx_kl > self.target_kl:
-                        break
-
-            y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
-            var_y = np.var(y_true)
-            explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
-
-            self.logger.record("train/learning_rate", self.optimizer.param_groups[0]["lr"], global_step)
-            self.logger.record("train/value_loss", v_loss.item(), global_step)
-            self.logger.record("train/policy_loss", pg_loss.item(), global_step)
-            self.logger.record("train/entropy", entropy_loss.item(), global_step)
-            self.logger.record("train/old_approx_kl", old_approx_kl.item(), global_step)
-            self.logger.record("train/approx_kl", approx_kl.item(), global_step)
-            self.logger.record("train/clip_fraction", np.mean(clipfracs), global_step)
-            self.logger.record("train/explained_variance", explained_var, global_step)
-
-    def predict(self, obs, state, episode_start, deterministic):
         with torch.no_grad():
-            if self.dict_obs:
-                obs = flatten_obs(obs)
-            obs = torch.Tensor(obs).to(device)
-            action, _, _, _ = self.agent.get_action_and_value(obs, deterministic=deterministic)
-            action = action.cpu().numpy()
-        return action, state
+            # Compute value for the last timestep
+            values = self.policy.get_value(new_obs)
 
-    def save(self, path):
+        rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
+
+        callback.on_rollout_end()
+
+        return True
+
+    def predict(
+            self,
+            observation: Union[np.ndarray, Dict[str, np.ndarray]],
+            state: Optional[Tuple[np.ndarray, ...]] = None,
+            episode_start: Optional[np.ndarray] = None,
+            deterministic: bool = False,
+    ) -> Tuple[np.ndarray, Optional[Tuple[np.ndarray, ...]]]:
+        with torch.no_grad():
+            action, _, _, _ = self.policy.get_action_and_value(observation, deterministic=deterministic)
+        return action.cpu().numpy(), state
+
+    def save(
+            self,
+            path: Union[str, pathlib.Path, io.BufferedIOBase],
+    ) -> None:
         # Copy parameter list, so we don't mutate the original dict
         data = self.__dict__.copy()
-        for to_exclude in ["logger", "env", "num_timesteps", "n_updates", "callback", "agent",
-                           "obs", "actions", "logprobs", "rewards", "dones", "values"]:
+        for to_exclude in ["logger", "env", "num_timesteps", "policy",
+                           "_last_obs", "_last_episode_starts"]:
             del data[to_exclude]
         # save network parameters
-        data["_agent"] = self.agent.state_dict()
+        data["_policy"] = self.policy.state_dict()
         torch.save(data, path)
 
     @classmethod
@@ -312,10 +432,10 @@ class CLEANPPO:
         model = cls(env=env, **kwargs)
         loaded_dict = torch.load(path)
         for k in loaded_dict:
-            if k not in ["_agent"]:
+            if k not in ["_policy"]:
                 model.__dict__[k] = loaded_dict[k]
         # load network states
-        model.agent.load_state_dict(loaded_dict["_agent"])
+        model.policy.load_state_dict(loaded_dict["_policy"])
         return model
 
     def set_logger(self, logger):

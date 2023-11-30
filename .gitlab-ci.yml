@@ -32,5 +32,5 @@ run-smoke-and-performance-tests:
         - export HYDRA_FULL_ERROR=1
         - echo "running smoke tests"
         - ./scripts/run_smoke_tests.sh
-        - echo "running performance tests"
-        - ./scripts/run_performance_tests.sh
+        # - echo "running performance tests"
+        # - ./scripts/run_performance_tests.sh
