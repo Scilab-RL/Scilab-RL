@@ -316,8 +316,8 @@ class CLEANSACMC:
         w_prime_a_loss = -world_normal.log_prob(next_observations)
         loss = (fw_loss + w_prime_a_loss).mean()
 
-        self.logger.record("mc/fw_loss", fw_loss.item())
-        self.logger.record("mc/w_prime_a_loss", w_prime_a_loss.item())
+        self.logger.record("mc/fw_loss", fw_loss.mean().item())
+        self.logger.record("mc/w_prime_a_loss", w_prime_a_loss.mean().item())
         self.logger.record("mc/loss", loss.item())
         self.mc_optimizer.zero_grad()
         loss.backward()
