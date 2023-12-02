@@ -1,0 +1,5 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+
+algorithm:
+  name: 'random'
