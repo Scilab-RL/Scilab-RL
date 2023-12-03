@@ -47,7 +47,7 @@ class Reach1DOFEnv(MujocoFetchEnv, EzPickle):
     def _render_callback(self):
         goal_pos = self.initial_gripper_xpos.copy()
         goal_pos[0] = self.goal[0]
-        site_id = self._model_names.site_name2id('gripper_goal')
+        site_id = self._model_names.site_name2id['gripper_goal']
         self.model.site_pos[site_id] = goal_pos
 
     def _reset_sim(self):
