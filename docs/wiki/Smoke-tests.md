@@ -8,7 +8,7 @@ nav_order: 12
 
 Smoke tests check whether everything still works e.g. after the upgrade of a python package or changes in the code. To check the performance of an algorithm, use [performance tests](Performance-tests).
 
-> :bulb: The smoke- and performance-tests run in our [GitLab pipeline](GitLab-Pipeline) each time someone pushes to a merge request.
+> 💡 The smoke- and performance-tests run in our [GitLab pipeline](GitLab-Pipeline) each time someone pushes to a merge request.
 
 # Run the smoke tests
 - open the Scilab-RL project in a terminal

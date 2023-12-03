@@ -23,7 +23,7 @@ The resulting command looks like this:
 python src/main.py env=FetchReach-v2 algorithm=sac +restore_policy=/home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v2/15-26-33/early_stop_agent.zip render_args=[[none,1],[display,1]] wandb=0 n_epochs=1 eval_after_n_steps=1
 ```
 
-> :warning: Note that we do not store any replay buffers. That means that trained off-policy algorithms can be restored to be displayed, but not to be further trained as if the training had not been interrupted.
+> ⚠️ Note that we do not store any replay buffers. That means that trained off-policy algorithms can be restored to be displayed, but not to be further trained as if the training had not been interrupted.
 
 We can also record the evaluation. The video is stored in the log directory. The log directory has the same name as the directory from which the policy is restored, but with a `_restored` postfix. This is what 10 successful evaluation-episodes look like:
 

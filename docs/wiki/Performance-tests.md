@@ -9,7 +9,7 @@ nav_order: 11
 Performance tests check if the performance of an algorithm is still as before, e.g. after the upgrade of a python package, a common utility function or changes in the code. If you just want to check whether an algorithm or environment works with the rest of the framework _at all_, use [smoke tests](Smoke-tests).
 
 
-> :bulb: The performance- and smoke-tests run in our [GitLab pipeline](GitLab-Pipeline) each time someone pushes to a merge request.
+> 💡 The performance- and smoke-tests run in our [GitLab pipeline](GitLab-Pipeline) each time someone pushes to a merge request.
 
 We use `conf/performance/FetchReach/sac_her-test.yaml` as an example. Here is the config:
 ```

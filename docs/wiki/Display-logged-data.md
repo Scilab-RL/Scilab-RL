@@ -6,7 +6,7 @@ has_children: false
 nav_order: 5
 ---
 
-This tutorial shows you how to display logged data, e.g. `test/success_rate` (:warning: was meanwhile renamed to `eval/success_rate`), in MLFlow and in Weights and Biases. We recommend using Weights and Biases which is cloud-based, but MLFLow may be useful as a more lightweight alternative with local data storage. 
+This tutorial shows you how to display logged data, e.g. `test/success_rate` (⚠️ was meanwhile renamed to `eval/success_rate`), in MLFlow and in Weights and Biases. We recommend using Weights and Biases which is cloud-based, but MLFLow may be useful as a more lightweight alternative with local data storage. 
 
 # Weights and Biases (WandB)
 
