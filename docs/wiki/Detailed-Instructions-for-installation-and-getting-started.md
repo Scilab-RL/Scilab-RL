@@ -26,7 +26,7 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 4. Install the main Scilab-RL dependencies
 * In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `./scripts/setup.sh`. This will install all required dependencies, it will take a while. 
 
-5. Create an weights n biases account 
+5. Create a Weights & Biases account 
 * Go to [wandb.ai]([wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account. You will obtain a wandb API key that you can find on your wandb profile site. There, go to "settings" and copy your API key. Then assign it to the system variable 'WANDB_API_KEY'. Our recommendation is doing this by adding the line 'export WANDB_API_KEY=<YOUR KEY>' to your '~/.bashrc' file. 
 
 6. Test the installation from the Linux console
@@ -82,10 +82,12 @@ Then click "create" to create the interpreter, and finally "OK".
 
 ![image](uploads/09734f9557c6d9b97ae42769e5773381/image.png)
 
-Then, add the following Environment variable: 
-`LD_LIBRARY_PATH=/home/<user>/.mujoco/mujoco210/bin`
+[//]: # (Then, add the following Environment variable: )
 
-![image](uploads/c21c912aa1da4b728c226563a33219b5/image.png)
+[//]: # (`LD_LIBRARY_PATH=/home/<user>/.mujoco/mujoco210/bin`)
+
+[//]: # ()
+[//]: # (![image]&#40;uploads/c21c912aa1da4b728c226563a33219b5/image.png&#41;)
 
 Then close the debug configuration window.
 * Now run the debugger for the code by hitting the little "bug" symbol in the upper right: 
