@@ -276,9 +276,9 @@ class CLEANSACMC:
         """
         # Select action randomly or according to policy
         if self.num_timesteps < self.learning_starts:
-            actions = np.array([self.env.action_space.sample()])
+            actions, log_prob = np.array([self.env.action_space.sample()]), torch.zeros(1)
         else:
-            actions, _ = self.predict(self._last_obs)
+            actions, log_prob = self.predict(self._last_obs)
 
         # perform action
         new_obs, rewards, dones, infos = self.env.step(actions)
@@ -289,8 +289,9 @@ class CLEANSACMC:
             mc_obs.to(self.device), torch.from_numpy(actions).to(self.device)
         )
         kl_div = torch.distributions.kl_divergence(fw_normal, wm_normal)
-        self.logger.record("mc_mean", kl_div.cpu().mean().item(), exclude="tensorboard")
-        self.logger.record("mc_std", kl_div.cpu().std().item(), exclude="tensorboard")
+        self.logger.record("mc_mean", kl_div.mean().cpu().item(), exclude="tensorboard")
+        self.logger.record("mc_std", kl_div.std().cpu().item(), exclude="tensorboard")
+        self.logger.record("actor_entropy", -log_prob.mean().cpu().item(), exclude="tensorboard")
 
         self.num_timesteps += self.env.num_envs
 
@@ -444,8 +445,8 @@ class CLEANSACMC:
         :return: the model's action
         """
         observation = flatten_obs(obs, self.device)
-        action, _ = self.actor.get_action(observation)
-        return action.detach().cpu().numpy(), None
+        action, log_prob = self.actor.get_action(observation)
+        return action.detach().cpu().numpy(), log_prob
 
     def save(self, path: Union[str, pathlib.Path, io.BufferedIOBase]):
         # Copy parameter list, so we don't mutate the original dict
