@@ -40,7 +40,7 @@ Your experiments are grouped. All experiments that are not run with multiprocess
 
 ![image](uploads/9d62a7808e4a9a5289a7532c06472255/image.png)
 
-You can see how long ago your experiments started, how long they took and whether they finished :white_check_mark: or crashed :x:. You can also see the run name which is composed of the algorithm name and the environment name.
+You can see how long ago your experiments started, how long they took and whether they finished ✅ or crashed ❌. You can also see the run name which is composed of the algorithm name and the environment name.
 
 ![image](uploads/f12af50bf98ecd544bb5ddd38fac52de/image.png)
 
