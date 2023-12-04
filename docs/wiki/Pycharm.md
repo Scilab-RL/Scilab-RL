@@ -20,14 +20,6 @@ Creating the run/debug configuration for an experiment-run takes the following s
 > ⚠️ relative paths and dynamic path creation like `$(whoami)` don't work in the Pycharm run/debug config. You have to use the full paths!
 3. Specify your parameters, e.g. `env=Blocks-o1-gripper_random-v1
 algorithm=sac`
-4. Specify the user environment variables. These are the variables that you set with `./set_paths.sh`. It could look like this:
-
-| Name | Value |
-| ------ | ------ |
-| MUJOCO_PY_MUJOCO_PATH | /home/USER/mujoco210 |
-| LD_LIBRARY_PATH | LD_LIBRARY_PATH:/home/USER/mujoco210/bin |
-| HYDRA_FULL_ERROR | 1 |
-
 4. Choose your Python interpreter. It should be the one from your virtual environment.
 5. Set your working directory, e.g. `/home/USER/PycharmProjects/Scilab-RL`
 
