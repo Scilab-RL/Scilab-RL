@@ -6,21 +6,21 @@ has_children: false
 nav_order: 7
 ---
 
-The early-stopping policy of a run is always stored in the `data` folder for the run. Let's say we ran an experiment with `python src/main.py env=FetchReach-v2 algorithm=sac`. Then, at the start of the console output, it will have printed the Log directory:
+The early-stopping policy of a run is always stored in the `data` folder for the run. Let's say we ran an experiment with `python src/main.py env=FetchReach-v2 algorithm=sac`. Then, at the end of the console output, it will have printed where it saved the policy:
 ```
-Log directory: /home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v2/15-26-33
+Saving policy to /home/username/PycharmProjects/Scilab-RL/data/4955d5e/FetchReach-v2/08-51-58/rl_model_finished
 ```
-In this folder, we find the `early_stop_agent.zip`. 
+`rl_model_finished` is the last policy. In the same folder, we also find `rl_model_best.zip`, which is the best-performing policy. 
 
 A common use case is to use stored policies to observe visually (by rendering) how an agent behaves. For example, assume that we'd like to look at the early-stopping agent to see if it really solved the reacher-task well. Therefore, 
-- we use the `+restore_policy` parameter and set it to the path of the `early_stop_agent.zip` file. 
-- We also set the [render_args](Visualization) so that we display the evaluation.
+- we use the `+restore_policy` parameter and set it to the path of the `rl_model_best` file. 
+- We also set [render=display](Visualization) so that we display the evaluation.
 - Furthermore, we set `wandb=0`, because we do not want to track this run and `n_epochs=1` because we only want to display one epoch. 
 - Finally, we set `eval_after_n_steps` to 1 because we do not want the policy to train, as it is already trained. `eval_after_n_steps` hast to be at least 1.
 
 The resulting command looks like this:
 ```
-python src/main.py env=FetchReach-v2 algorithm=sac +restore_policy=/home/USER/PycharmProjects/Scilab-RL/data/fa32268/FetchReach-v2/15-26-33/early_stop_agent.zip render_args=[[none,1],[display,1]] wandb=0 n_epochs=1 eval_after_n_steps=1
+ python src/main.py env=FetchReach-v2 algorithm=sac wandb=0 render=display n_epochs=1 eval_after_n_steps=1 +restore_policy=/home/username/PycharmProjects/Scilab-RL/data/4955d5e/FetchReach-v2/08-51-58/rl_model_finished
 ```
 
 > ⚠️ Note that we do not store any replay buffers. That means that trained off-policy algorithms can be restored to be displayed, but not to be further trained as if the training had not been interrupted.
