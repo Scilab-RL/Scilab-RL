@@ -28,9 +28,9 @@ def create_nn(net_arch, input_dim, output_dim):
     return th.nn.Sequential(*modules).double()
 
 
-class BASIC:
+class ACTOR_CRITIC:
     """
-    This is a very basic algorithm that works with our framework.
+    This is a very basic actor-critic algorithm that works with our framework.
     It is an on-policy deep-Q-learning agent.
     This means we have
     - an actor-network, which chooses an action given the observation
@@ -82,9 +82,6 @@ class BASIC:
                 th.cat([self.actor(th.tensor(self._last_obs.flatten())), th.tensor(self._last_obs.flatten())]))
             q_value = float(th.mean(q.detach()))
             self.logger.record('q_val', q_value)
-            #ToDo Remove
-            #for testing purposed
-            self.logger.record('rand_val', np.random.random_sample())
             self._train(self._last_obs, obs, rewards)
             self._last_obs = obs
             self.num_timesteps += 1
@@ -94,6 +91,7 @@ class BASIC:
             if not callback.on_step():
                 return
         callback.on_training_end()
+
     def _train(self, last_obs, obs, reward):
         """
         Train the network with the new reward and observation from the environment.
