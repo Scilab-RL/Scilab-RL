@@ -5,6 +5,8 @@ defaults:
 
 env: 'FetchReach-v2'
 
+# This performance test just uses the parameters for SB3 SAC, so it is likely that better hyperparameters can be found
+# by running a hyperparameter optimization.
 algorithm:
   name: 'cleansac'
   learning_rate: 0.001
