@@ -23,7 +23,7 @@ algorithm:
     net_arch: [256, 256]
 
 early_stop_data_column: 'eval/mean_reward'
-early_stop_threshold: -10
+early_stop_threshold: -120
 
 performance_testing_conditions:
   # In 1 out of 3 tests, the eval/mean_reward should be at least -160 after 400k steps.
