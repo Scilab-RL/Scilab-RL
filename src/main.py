@@ -145,7 +145,7 @@ def main(cfg: DictConfig) -> (float, int):
         log_params_from_omegaconf_dict(cfg)
         OmegaConf.save(config=cfg, f='params.yaml')
         if cfg['seed'] == 0:
-            cfg['seed'] = int(time.time())
+            cfg['seed'] = int(time.time_ns())
         set_global_seeds(cfg.seed)
 
         train_env, eval_env = get_env_instance(cfg, logger)
