@@ -1,10 +1,11 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  - override /algorithm: ppo
+  - override /algorithm: cleanppo
 
 env: 'FetchReachDense-v2'
 
+# the parameters have not been optimized for this environment!
 algorithm:
   learning_rate: 0.0003
 
@@ -26,4 +27,4 @@ hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: ppo_FetchReach-test
+    study_name: cleanppo_FetchReach-test

@@ -19,7 +19,7 @@ configs_to_ignore+=("FetchReach/dense-ppo-test")
 configs_to_ignore+=("FetchSlide/sac_her-test")
 configs_to_ignore+=("HighwayParking/sac_her-test")
 configs_to_ignore+=("HighwayParking/cleansac_her-test")
-configs_to_ignore+=("Reach1DOF/basic-test")
+configs_to_ignore+=("Reach1DOF/actor_critic-test")
 # The following are known not to work:
 configs_to_ignore+=("AntMaze/AntMaze_Open_Diverse_GR-v4-sac_her-test")
 configs_to_ignore+=("AntMaze/AntMaze_Open_Diverse_GR_Dense-v4-sac_her-test")
