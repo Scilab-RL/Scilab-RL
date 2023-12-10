@@ -1,0 +1,42 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  - override /algorithm: ddpg
+
+env: 'FetchReach-v2'
+
+algorithm:
+  replay_buffer_class: HerReplayBuffer
+  buffer_size: 1000000
+  batch_size: 256
+  learning_rate: 0.0003
+  gamma: 0.96
+  tau: 0.07
+  policy_kwargs:
+    net_arch:
+      - 256
+      - 256
+      - 256
+  replay_buffer_kwargs:
+    n_sampled_goal: 4
+    goal_selection_strategy: 'future'
+
+performance_testing_conditions:
+  # In 2 out of 3 tests, the eval/success rate should be at least 0.9 after 25k steps.
+
+  total_runs: 3 # How many runs in total:
+
+  succ_runs: 2 # This number of runs should meet the conditions:
+
+  eval_columns: eval/success_rate # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
+
+  eval_value: 0.9 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
+
+  # ca. 5 minutes on GPU
+  max_steps: 25_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+
+hydra:
+  sweeper:
+    n_jobs: 3
+    _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
+    study_name: ddpg_her_FetchReach-test
