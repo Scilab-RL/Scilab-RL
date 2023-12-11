@@ -285,7 +285,8 @@ class CLEANSACMC:
         self.calc_reward(
                 flatten_obs(new_obs, self.device).float(),
                 torch.from_numpy(actions).to(self.device).float(),
-                torch.from_numpy(rewards).view(1, -1).to(self.device).float()
+                torch.from_numpy(rewards).view(1, -1).to(self.device).float(),
+                is_executing=True
         )
         self.logger.record("actor_entropy", -log_prob.mean().cpu().item(), exclude="tensorboard")
         self.logger.record("train/rollout_rewards_step", np.mean(rewards))
@@ -321,7 +322,7 @@ class CLEANSACMC:
         loss.backward()
         self.mc_optimizer.step()
 
-    def calc_reward(self, observations, actions, e_rewards):
+    def calc_reward(self, observations, actions, e_rewards, is_executing=False):
         forward_normal, world_normal = self.mc_network(observations, actions)
         _err = (
             torch.distributions.kl.kl_divergence(forward_normal, world_normal)
@@ -341,11 +342,15 @@ class CLEANSACMC:
                 i_rewards = (_err - min_err) / (max_err - min_err)
         else:
             i_rewards = _err
-
-        self.logger.record("mc/i_reward", i_rewards.mean().item())
-        self.logger.record("mc/e_reward", e_rewards.mean().item())
-        rewards =  e_rewards + (i_rewards.to(self.device) * self.mc["reward_eta"])
-        self.logger.record("mc/reward", rewards.mean().item())
+        rewards = e_rewards + (i_rewards.to(self.device) * self.mc["reward_eta"])
+        if is_executing: # If this action is actually executed, log only the current step for visualizing the value.
+            self.logger.record("mc/i_reward", i_rewards.mean().item())
+            self.logger.record("mc/e_reward", e_rewards.mean().item())
+            self.logger.record("mc/reward", rewards.mean().item())
+        else: # Take mean of all logged values until dump.
+            self.logger.record_mean("mc/i_reward", i_rewards.mean().item())
+            self.logger.record_mean("mc/e_reward", e_rewards.mean().item())
+            self.logger.record_mean("mc/reward", rewards.mean().item())
         return rewards
 
     def train(self):
