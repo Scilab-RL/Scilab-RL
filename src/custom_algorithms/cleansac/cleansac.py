@@ -135,7 +135,8 @@ class CLEANSAC:
             gamma: float = 0.99,
             ent_coef: Union[str, float] = "auto",
             use_her: bool = True,
-            n_critics: int = 2
+            n_critics: int = 2,
+            ignore_dones_for_qvalue: bool = False,
     ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.learning_rate = learning_rate
@@ -145,6 +146,7 @@ class CLEANSAC:
         self.tau = tau
         self.gamma = gamma
         self.n_critics = n_critics
+        self.ignore_dones_for_qvalue = ignore_dones_for_qvalue
 
         self.env = env
         if isinstance(self.env.action_space, spaces.Box):
@@ -293,8 +295,11 @@ class CLEANSAC:
             crit_next_targets = self.critic_target(next_observations, next_state_actions)
             min_crit_next_target = torch.min(crit_next_targets, dim=0).values
             min_crit_next_target -= ent_coef * next_state_log_pi
-            next_q_value = replay_data.rewards.flatten() + \
-                           (1 - replay_data.dones.flatten()) * self.gamma * min_crit_next_target.flatten()
+            if self.ignore_dones_for_qvalue:
+                next_q_value = replay_data.rewards.flatten() + self.gamma * min_crit_next_target.flatten()
+            else:
+                next_q_value = replay_data.rewards.flatten() + \
+                               (1 - replay_data.dones.flatten()) * self.gamma * min_crit_next_target.flatten()
 
         critic_a_values = self.critic(observations, replay_data.actions)
         crit_loss = torch.stack([F.mse_loss(_a_v, next_q_value.view(-1, 1)) for _a_v in critic_a_values]).sum()

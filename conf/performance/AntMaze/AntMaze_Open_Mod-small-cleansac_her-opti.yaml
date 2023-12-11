@@ -74,3 +74,7 @@ hydra:
         type: int
         low: 1
         high: 2
+      ++algorithm.ignore_dones_for_qvalue:
+        type: categorical
+        choices: [ False, True ]
+
