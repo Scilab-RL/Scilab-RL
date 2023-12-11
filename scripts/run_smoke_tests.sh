@@ -4,6 +4,8 @@
 # change into git root directory
 cd $(git rev-parse --show-toplevel)
 
+DISCRETE_ACTION_ALGOS=(dqn cleandqn onestepac)
+
 test_algos() {
   # test all algorithms that have a config in conf/algorithm.
   # For now, we only consider algorithms with a continuous action space, so DQN will not work.
@@ -11,14 +13,13 @@ test_algos() {
   for config in "conf/algorithm"/*
   do
     config="${config%.*}"
-    case "$(basename "$config")" in
-      "dqn" | "cleandqn" | "onestepac")
-        # dqn and cleandqn don't support continuous action spaces
-        ;;
-      *)
-        ALGOS+="$(basename "$config"),"
-        ;;
-    esac
+    algo_name=$(basename "$config")
+    if [[ " ${DISCRETE_ACTION_ALGOS[@]} " =~ " ${algo_name} " ]]; then
+      # Skip discrete action algorithms
+      continue
+    else
+      ALGOS+="${algo_name},"
+    fi
   done
   ALGOS="${ALGOS%,*}"
   echo "Smoke-testing algorithms $ALGOS"
@@ -82,20 +83,19 @@ test_loading() {
   # Otherwise, algorithm names would not be in the paths. That way it is easier
   # to restore trained policies.
   # Storing the policies with adapted base_logdir could also be done in test_algos().
-  local ALGOS=()
+  ALGOS=""
   for config in "conf/algorithm"/*
   do
     config="${config%.*}"
-    config="${config##*/}"
-    case "$(basename "$config")" in
-      "dqn" | "cleandqn")
-        # dqn and cleandqn don't support continuous action spaces
-        ;;
-      *)
-        ALGOS+=($config)
-        ;;
-    esac
+    algo_name=$(basename "$config")
+    if [[ " ${DISCRETE_ACTION_ALGOS[@]} " =~ " ${algo_name} " ]]; then
+      # Skip discrete action algorithms
+      continue
+    else
+      ALGOS+="${algo_name},"
+    fi
   done
+  ALGOS="${ALGOS%,*}"
   local ENVS="FetchReach-v2,parking-limited-v0"
   # delete directory for loading_tests so that we only load the policies that we save now
   rm -rf data/loading_tests
