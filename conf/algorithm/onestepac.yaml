@@ -3,3 +3,5 @@
 
 algorithm:
   name: 'onestepac'
+  learning_rate: 0.001
+  gamma: 0.99
