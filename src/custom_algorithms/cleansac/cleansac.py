@@ -92,8 +92,10 @@ class CriticEnsemble(nn.Module):
                 for _ in range(n_critics)
             ]
         )
+
     def forward(self, x, a):
         return torch.stack([critic(x, a) for critic in self._critics])
+
 
 def flatten_obs(obs, device):
     observation, ag, dg = obs['observation'], obs['achieved_goal'], obs['desired_goal']
@@ -182,6 +184,7 @@ class CLEANSAC:
         self.logger = None
         self._last_obs = None
         self.num_timesteps = 0
+        self.episode_steps = 0
         self._n_updates = 0
 
     def _create_actor_critic(self) -> None:
@@ -204,7 +207,7 @@ class CLEANSAC:
         self._last_obs = self.env.reset()
         self.episode_steps = 0
         while self.num_timesteps < total_timesteps:
-            continue_training = self.collect_rollout(callback=callback)
+            continue_training = self.step_env(callback=callback)
 
             if continue_training is False:
                 break
@@ -216,12 +219,12 @@ class CLEANSAC:
 
         return self
 
-    def collect_rollout(
+    def step_env(
             self,
             callback: BaseCallback
     ):
         """
-        Collect experiences and store them into a ``ReplayBuffer``.
+        Take one step in the environment and store the transition in a ``ReplayBuffer``.
 
         :param callback: Callback that will be called at each step
             (and at the beginning and end of the rollout)
@@ -229,12 +232,12 @@ class CLEANSAC:
         """
         # Select action randomly or according to policy
         if self.num_timesteps < self.learning_starts:
-            actions = np.array([self.env.action_space.sample()])
+            action = np.array([self.env.action_space.sample()])
         else:
-            actions, _ = self.predict(self._last_obs)
+            action, _ = self.predict(self._last_obs)
 
         # perform action
-        new_obs, rewards, dones, infos = self.env.step(actions)
+        new_obs, rewards, dones, infos = self.env.step(action)
         self.episode_steps += 1
         self.logger.record("train/rollout_rewards_step", np.mean(rewards))
         self.logger.record_mean("train/rollout_rewards_mean", np.mean(rewards))
@@ -249,7 +252,7 @@ class CLEANSAC:
                 next_obs_ = infos[i]["terminal_observation"]
                 for key in next_obs.keys():
                     next_obs[key][i] = next_obs_[key]
-        self.replay_buffer.add(self._last_obs, next_obs, actions, rewards, dones, infos)
+        self.replay_buffer.add(self._last_obs, next_obs, action, rewards, dones, infos)
 
         self._last_obs = new_obs
 
