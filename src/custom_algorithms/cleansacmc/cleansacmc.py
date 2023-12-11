@@ -11,7 +11,7 @@ from gymnasium import spaces
 from stable_baselines3.common.logger import Logger
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
-from stable_baselines3.common.buffers import ReplayBuffer
+from stable_baselines3.common.buffers import ReplayBuffer, DictReplayBuffer
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 from utils.custom_buffers import ErrorBuffer
 from .mc import MorphologicalNetworks
@@ -185,6 +185,14 @@ class CLEANSACMC:
                 env=self.env,
                 device=self.device,
                 n_envs=self.env.num_envs,
+            )
+        elif isinstance(self.env.observation_space, spaces.dict.Dict):
+            self.replay_buffer = DictReplayBuffer(
+                self.buffer_size,
+                self.env.observation_space,
+                self.env.action_space,
+                device=self.device,
+                n_envs=self.env.num_envs
             )
         else:
             self.replay_buffer = ReplayBuffer(
