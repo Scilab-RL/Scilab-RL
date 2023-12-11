@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.distributions.normal import Normal
+from torch.distributions.categorical import Categorical
 
 from stable_baselines3.common.buffers import DictRolloutBuffer, RolloutBuffer
 from stable_baselines3.common.callbacks import BaseCallback
@@ -49,6 +50,14 @@ class Agent(nn.Module):
         else:
             obs_shape = np.array(env.observation_space.shape).prod()
             self.flatten = False
+
+        if isinstance(env.action_space, spaces.Discrete):
+            action_shape = env.action_space.n
+            self.discrete_actions = True
+        else:
+            action_shape = np.prod(env.action_space.shape)
+            self.discrete_actions = False
+
         self.critic = nn.Sequential(
             layer_init(nn.Linear(obs_shape, 64)),
             nn.Tanh(),
@@ -61,9 +70,9 @@ class Agent(nn.Module):
             nn.Tanh(),
             layer_init(nn.Linear(64, 64)),
             nn.Tanh(),
-            layer_init(nn.Linear(64, np.prod(env.action_space.shape)), std=0.01),
+            layer_init(nn.Linear(64, action_shape), std=0.01),
         )
-        self.actor_logstd = nn.Parameter(torch.zeros(1, np.prod(env.action_space.shape)))
+        self.actor_logstd = nn.Parameter(torch.zeros(1, action_shape))
 
     def get_value(self, x):
         if self.flatten:
@@ -77,16 +86,27 @@ class Agent(nn.Module):
             x = flatten_obs(x)
         else:
             x = torch.tensor(x, device=device, dtype=torch.float32).detach().clone()
-        action_mean = self.actor_mean(x)
-        action_logstd = self.actor_logstd.expand_as(action_mean)
-        action_std = torch.exp(action_logstd)
-        probs = Normal(action_mean, action_std)
-        if action is None:
-            if deterministic:
-                action = action_mean
-            else:
-                action = probs.sample()
-        return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(x)
+
+        if self.discrete_actions:
+            action_mean = self.actor_mean(x)
+            distribution = Categorical(logits=action_mean)
+            if action is None:
+                if deterministic:
+                    action = torch.argmax(action_mean)
+                else:
+                    action = distribution.sample()
+            return action.unsqueeze(0), distribution.log_prob(action), distribution.entropy(), self.critic(x)
+        else:
+            action_mean = self.actor_mean(x)
+            action_logstd = self.actor_logstd.expand_as(action_mean)
+            action_std = torch.exp(action_logstd)
+            distribution = Normal(action_mean, action_std)
+            if action is None:
+                if deterministic:
+                    action = action_mean
+                else:
+                    action = distribution.sample()
+            return action, distribution.log_prob(action).sum(1), distribution.entropy().sum(1), self.critic(x)
 
 
 class CLEANPPO:
@@ -361,6 +381,8 @@ class CLEANPPO:
             # Clip the actions to avoid out of bound error
             if isinstance(self.action_space, spaces.Box):
                 clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
+            elif isinstance(self.action_space, spaces.Discrete):
+                clipped_actions = actions[0]
 
             new_obs, rewards, dones, infos = env.step(clipped_actions)
 
