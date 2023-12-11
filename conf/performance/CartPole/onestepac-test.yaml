@@ -1,0 +1,34 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  - override /algorithm: onestepac
+
+env: 'CartPole-v1'
+
+algorithm:
+  name: 'onestepac'
+  learning_rate: 3e-4
+  gamma: 0.99
+
+early_stop_data_column: 'eval/mean_reward'
+early_stop_threshold: 150
+
+performance_testing_conditions:
+  # In 1 out of 3 tests, the eval/mean_reward should be at least 100 after 500k steps.
+
+  total_runs: 3 # How many runs in total:
+
+  succ_runs: 1 # This number of runs should meet the conditions:
+
+  eval_columns: eval/mean_reward # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
+
+  eval_value: 100 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
+
+  # ca. 5 minutes with GPU
+  max_steps: 500_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+
+hydra:
+  sweeper:
+    n_jobs: 3
+    _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
+    study_name: onestepac_CartPole-test
