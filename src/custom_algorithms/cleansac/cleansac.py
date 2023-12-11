@@ -225,6 +225,8 @@ class CLEANSAC:
     ):
         """
         Take one step in the environment and store the transition in a ``ReplayBuffer``.
+        In the stable-baselines3 version, this function is called "collect_rollouts" and it is possible to take
+        multiple steps in the environment, but here we hard-code it to one step for simplicity.
 
         :param callback: Callback that will be called at each step
             (and at the beginning and end of the rollout)
