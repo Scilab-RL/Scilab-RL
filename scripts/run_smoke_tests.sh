@@ -12,7 +12,7 @@ test_algos() {
   do
     config="${config%.*}"
     case "$(basename "$config")" in
-      "dqn" | "cleandqn")
+      "dqn" | "cleandqn" | "onestepac")
         # dqn and cleandqn don't support continuous action spaces
         ;;
       *)
