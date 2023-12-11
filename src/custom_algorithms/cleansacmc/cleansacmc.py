@@ -282,17 +282,14 @@ class CLEANSACMC:
 
         # perform action
         new_obs, rewards, dones, infos = self.env.step(actions)
-        mc_obs = flatten_obs(self._last_obs, self.device)
-        if len(mc_obs.shape) == 1:
-            mc_obs.unsqueeze_(0)
-        fw_normal, wm_normal = self.mc_network(
-            mc_obs.to(self.device), torch.from_numpy(actions).to(self.device)
+        self.calc_reward(
+                flatten_obs(new_obs, self.device).float(),
+                torch.from_numpy(actions).to(self.device).float(),
+                torch.from_numpy(rewards).view(1, -1).to(self.device).float()
         )
-        kl_div = torch.distributions.kl_divergence(fw_normal, wm_normal)
-        self.logger.record("mc_mean", kl_div.mean().cpu().item(), exclude="tensorboard")
-        self.logger.record("mc_std", kl_div.std().cpu().item(), exclude="tensorboard")
         self.logger.record("actor_entropy", -log_prob.mean().cpu().item(), exclude="tensorboard")
-
+        self.logger.record("train/rollout_rewards_step", np.mean(rewards))
+        self.logger.record_mean("train/rollout_rewards_mean", np.mean(rewards))
         self.num_timesteps += self.env.num_envs
 
         # save data to replay buffer; handle `terminal_observation`
@@ -331,6 +328,7 @@ class CLEANSACMC:
             .mean(-1)
             .unsqueeze(1)
         )
+        self.logger.record("mc/kld", _err.mean().item())
         if self.mc["minimize"]:
             _err = _err * -1.0
         if self.mc["reward_type"] in ["sparse", "scaled"]:
@@ -407,6 +405,7 @@ class CLEANSACMC:
             [F.mse_loss(_a_v, next_q_value.view(-1, 1)) for _a_v in critic_a_values]
         ).sum()
         self.logger.record("train/critic_loss", crit_loss.item())
+        self.logger.record("train/train_rewards", replay_data.rewards.flatten().mean().item())
 
         self.critic_optimizer.zero_grad()
         crit_loss.backward()
