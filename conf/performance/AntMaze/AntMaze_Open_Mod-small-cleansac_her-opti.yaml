@@ -44,7 +44,7 @@ hydra:
   sweeper:
     study_name: cleansac_her_AntModOpen-small-DGR_dt15
     max_trials: 60
-    n_jobs: 12
+    n_jobs: 24
     direction: maximize
     max_duration_minutes: 36000
     min_trials_per_param: 1
