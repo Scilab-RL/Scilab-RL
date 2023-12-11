@@ -83,7 +83,7 @@ test_loading() {
   # Otherwise, algorithm names would not be in the paths. That way it is easier
   # to restore trained policies.
   # Storing the policies with adapted base_logdir could also be done in test_algos().
-  ALGOS=""
+  local ALGOS=()
   for config in "conf/algorithm"/*
   do
     config="${config%.*}"
@@ -92,10 +92,9 @@ test_loading() {
       # Skip discrete action algorithms
       continue
     else
-      ALGOS+="${algo_name},"
+      ALGOS+=("${algo_name}")
     fi
   done
-  ALGOS="${ALGOS%,*}"
   local ENVS="FetchReach-v2,parking-limited-v0"
   # delete directory for loading_tests so that we only load the policies that we save now
   rm -rf data/loading_tests
