@@ -329,8 +329,6 @@ class CLEANSACMC:
             .unsqueeze(1)
         )
         self.logger.record("mc/kld", _err.mean().item())
-        if self.mc["minimize"]:
-            _err = _err * -1.0
         if self.mc["reward_type"] in ["sparse", "scaled"]:
             self.mc_err_buffer.add(_err)
             min_err = self.mc_err_buffer.get_min().to(self.device)
@@ -346,10 +344,7 @@ class CLEANSACMC:
 
         self.logger.record("mc/i_reward", i_rewards.mean().item())
         self.logger.record("mc/e_reward", e_rewards.mean().item())
-        rewards = (
-            e_rewards * (1 - self.mc["reward_eta"])
-            + i_rewards.to(self.device) * self.mc["reward_eta"]
-        )
+        rewards =  e_rewards + (i_rewards.to(self.device) * self.mc["reward_eta"])
         self.logger.record("mc/reward", rewards.mean().item())
         return rewards
 

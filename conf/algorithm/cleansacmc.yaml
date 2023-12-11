@@ -18,4 +18,3 @@ mc:
   hidden_size: 256
   err_buffer_size: 200000
   reward_type: ""
-  minimize: False
