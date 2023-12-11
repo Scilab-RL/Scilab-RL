@@ -1,0 +1,43 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  - override /algorithm: cleandqn
+
+env: 'MountainCar-v0'
+
+# the following parameters were not optimized for this environment
+algorithm:
+  name: 'cleandqn'
+  learning_rate: 3e-3
+  start_e: 0.8
+  end_e: 0.07
+  exploration_fraction: 0.2
+  learning_starts: 1000
+  train_frequency: 10
+  target_network_frequency: 400
+  tau: 1.
+  gamma: 0.98
+  batch_size: 128
+
+early_stop_data_column: 'eval/mean_reward'
+early_stop_threshold: -120
+
+performance_testing_conditions:
+  # In 1 out of 3 tests, the eval/mean_reward should be at least -160 after 400k steps.
+
+  total_runs: 3 # How many runs in total:
+
+  succ_runs: 2 # This number of runs should meet the conditions:
+
+  eval_columns: eval/mean_reward # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
+
+  eval_value: -160 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
+
+  # ca. 5 minutes with GPU
+  max_steps: 400_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+
+hydra:
+  sweeper:
+    n_jobs: 3
+    _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
+    study_name: cleandqn_MountainCar-test

@@ -1,7 +1,7 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  - override /algorithm: basic
+  - override /algorithm: actor_critic
 
 env: 'Reach1DOF-v0'
 env_kwargs:
@@ -9,7 +9,7 @@ env_kwargs:
 
 hydra:
   sweeper:
-    study_name: basic_Reach1DOF
+    study_name: actor_critic_Reach1DOF
     max_trials: 128
     n_jobs: 8
     direction: maximize

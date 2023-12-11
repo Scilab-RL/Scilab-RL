@@ -26,7 +26,7 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 4. Install the main Scilab-RL dependencies
 * In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `./scripts/setup.sh`. This will install all required dependencies, it will take a while. 
 
-5. Create an weights n biases account 
+5. Create a Weights & Biases account 
 * Go to [wandb.ai]([wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account. You will obtain a wandb API key that you can find on your wandb profile site. There, go to "settings" and copy your API key. Then assign it to the system variable 'WANDB_API_KEY'. Our recommendation is doing this by adding the line 'export WANDB_API_KEY=<YOUR KEY>' to your '~/.bashrc' file. 
 
 6. Test the installation from the Linux console
@@ -82,10 +82,12 @@ Then click "create" to create the interpreter, and finally "OK".
 
 ![image](uploads/09734f9557c6d9b97ae42769e5773381/image.png)
 
-Then, add the following Environment variable: 
-`LD_LIBRARY_PATH=/home/<user>/.mujoco/mujoco210/bin`
+[//]: # (Then, add the following Environment variable: )
 
-![image](uploads/c21c912aa1da4b728c226563a33219b5/image.png)
+[//]: # (`LD_LIBRARY_PATH=/home/<user>/.mujoco/mujoco210/bin`)
+
+[//]: # ()
+[//]: # (![image]&#40;uploads/c21c912aa1da4b728c226563a33219b5/image.png&#41;)
 
 Then close the debug configuration window.
 * Now run the debugger for the code by hitting the little "bug" symbol in the upper right: 
@@ -95,13 +97,10 @@ Then close the debug configuration window.
 
 # General remarks
 * You should always use the debugger (the bug symbol) not just the interpreter (the "play" symbol left of the bug.). It is not much slower, and it enables you to use breakpoints and to monitor variables at runtime. These features are critical to your debugging process. 
-* To set a breakpoint, just click on any line right of the line number and left of the actual editor window. For example, in these instructions, you started the "basic" algorithm. You can now investigate and debug the algorithm, by opening `src/custom_algorithms/basic.py` and setting a breakpoint, e.g., in line 81, where the action is executed: 
-
-![image](uploads/4e4992ac4c6aafa5f56e1f5581e0d234/image.png)
-
+* To set a breakpoint, just click on any line right of the line number and left of the actual editor window. For example, in these instructions, you started the "cleansac" algorithm. You can now investigate and debug the algorithm, by opening `src/custom_algorithms/cleansac/cleansac.py` and setting a breakpoint, e.g., in line 237, where the action is executed.
 * This enables you to directly observe the observations and action values, so you can get an idea what the robot is doing. In this example, we control a robotic gripper with a 4D action space consisting of 3 coordinates to move the gripper towards, plus one value to set the opening of the gripper's fingers. In this case, the action is encoded as a python list of numpy arrays, `[array([ 1.        ,  0.48293757, -1.        , -1.        ])]`. 
 You can also observe the variables in the debug window below the code window: 
 
-![image](uploads/b7e1113854b8c44d37d6aab54c96503b/image.png)
+![image](uploads/debug_variables_example.png)
 
 We strongly recommend to get used to the debugger in this way.

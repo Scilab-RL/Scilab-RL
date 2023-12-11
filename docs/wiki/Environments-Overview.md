@@ -16,7 +16,7 @@ This page gives a short overview over the `custom_envs`.
 
 > Blocks-o2-gripper_random-v1
 
-The _blocks_ environment directly inherits from the `gym.envs.robotics.fetch_env`. The basic task is to stack up to 4 blocks on top of each other. The number of blocks is configured with the number after the `o`. There are three configurations for the gripper-goal:
+The _blocks_ environment directly inherits from the `gymnasium_robotics.envs.fetch.fetch_env.MujocoFetchEnv`. The basic task is to stack up to 4 blocks on top of each other. The number of blocks is configured with the number after the `o`. There are three configurations for the gripper-goal:
 - `gripper_none`: The position of the gripper is not relevant for the goal
 - `gripper_random`: The gripper should reach a random position after stacking the blocks
 - `gripper_above`: The gripper should be above the stacked blocks

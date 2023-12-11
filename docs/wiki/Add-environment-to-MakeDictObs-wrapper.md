@@ -15,7 +15,7 @@ reward given the achieved goal and desired goal.
 
 Not all environments, e.g. the MetaWorld environments, have the option to provide dict observations 
 or compute the reward retrospectively.
-Therefore, we implement this functionality with the `MakeDictObs` Wrapper, located in `custom_wrappers.py`.
+Therefore, we implement this functionality with the `MakeDictObs` Wrapper, located in `utils/custom_wrappers.py`.
 You can take a look at the implementations that are already there, e.g. for `MetaW-reach-v2-sparse` 
 which originally had the name `reach-v2-goal-observable`.
 
@@ -52,13 +52,16 @@ with
 - obs_obj_padded: 14 zeros that are sometimes filled with object info. If it is fully filled, it will be
                      `[obj_1_xyz (3 values), obj_1_quat (4 values), obj_2_xyz (3 values), obj_2_quat (4 values)]`
 
-# Add an if-condition to check for environment name(s)
+# Add an if-statement to check for environment name(s)
 The dict-obs conversion you will implement will probably only be valid for your environment and maybe a 
-few similar environments. Add an if-condition to check for your environment name in `MakeDictObs.__init__()`.
-Your code will be inside this if-condition.
+few similar environments.
+If your environment is similar to an environment for which a conversion is already available,
+you might be able to reuse that implementation by just adding your environment to its if-statement.
+Otherwise, add an if-statement to check for your environment name in `MakeDictObs.__init__()`.
+Your code will be inside this if-statement.
 
 # Define the observation-space
-You'll have to overwrite the observation-space to be a Dictionary observation-space. Chances are that you can
+You'll have to overwrite the observation-space to be a Dictionary-observation-space. Chances are that you can
 use the original observation-space for that. As an example, here is how it could be done for `reach-v2`:
 
 ```

@@ -6,27 +6,33 @@ has_children: false
 nav_order: 11
 ---
 
-Performance tests check if the performance of an algorithm is still as before, e.g. after the upgrade of a python package, a common utility function or changes in the code. If you just want to check whether an algorithm or environment works with the rest of the framework _at all_, use [smoke tests](Smoke-tests).
+Performance tests check if the performance of an algorithm is still as good as before, e.g. after the upgrade of a python package, a common utility function or changes in the code. If you just want to check whether an algorithm or environment works with the rest of the framework _at all_, use [smoke tests](Smoke-tests).
 
-
-> :bulb: The performance- and smoke-tests run in our [GitLab pipeline](GitLab-Pipeline) each time someone pushes to a merge request.
 
 We use `conf/performance/FetchReach/sac_her-test.yaml` as an example. Here is the config:
 ```
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  # access algorithm config group to get the default parameters of her
   - override /algorithm: sac
 
-# overwrite parameters of main.yaml
 env: 'FetchReach-v2'
 
 algorithm:
   replay_buffer_class: HerReplayBuffer
-  learning_rate: 0.0017
+  buffer_size: 1000000
+  batch_size: 256
+  learning_rate: 0.001
+  gamma: 0.96
+  tau: 0.07
+  policy_kwargs:
+    n_critics: 1
+    net_arch:
+      - 256
+      - 256
+      - 256
   replay_buffer_kwargs:
-    n_sampled_goal: 1
+    n_sampled_goal: 4
     goal_selection_strategy: 'future'
 
 ```
@@ -34,7 +40,7 @@ This just specifies that the performance test is for the `sac` algorithm with th
 
 ```
 performance_testing_conditions:
-  # In 2 out of 3 tests, the eval/success rate should be at least 0.9 after 10000 steps.
+  # In 2 out of 3 tests, the eval/success rate should be at least 0.9 after 10k steps.
 
   total_runs: 3 # How many runs in total:
 
@@ -44,7 +50,8 @@ performance_testing_conditions:
 
   eval_value: 0.9 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
-  max_steps: 10000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+  # ca. 15 minutes on GPU
+  max_steps: 10_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 ```
 As the comments in the config already explain, the performance test tests whether sac&her can achieve at least 90% `eval/success_rate` after 10k steps in 2 of 3 runs.
 

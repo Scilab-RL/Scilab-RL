@@ -32,7 +32,7 @@ performance_testing_conditions:
 
   eval_value: 400 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
-  # ca. 10 minutes with GPU
+  # ca. 24 minutes with GPU
   max_steps: 300_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:

@@ -5,9 +5,9 @@ has_children: true
 nav_order: 2
 ---
 
-First information about setting up this repository can be found in our [readme](../README). This wiki contains tutorials and some additional tips and tricks. Take a look at the tutorials below!
+First information about setting up this repository can be found in our [readme](https://github.com/Scilab-RL/Scilab-RL#readme). This wiki contains tutorials and some additional tips and tricks. Take a look at the tutorials below!
 
-The most common use case for a researcher is probably to extend an existing algorithm with a new feature or mechanism. This is covered in the tutorial to [create a copy of SAC and start modifying it](Adding-a-new-Algorithm). 
+The most common use case for a researcher is probably to extend an existing algorithm with a new feature or mechanism. This is covered in the tutorial to [Adding a new algorithm](Adding-a-new-Algorithm). 
 
 # Tutorials
 
@@ -28,7 +28,7 @@ How to [restore a saved policy](Restore-a-saved-policy).
 
 How to [set early stopping values](Setting-early-stopping-values).
 
-As an example of how to create a new different algorithm from an existing one, we [create a copy of SAC and start modifying it](Adding-a-new-Algorithm)
+As an example of how to create a new different algorithm from an existing one, we [create a copy of CLEANSAC and start modifying it](Adding-a-new-Algorithm)
 
 How to [perform hyperparameter optimization](Hyperparameter-optimization).
 
@@ -46,6 +46,6 @@ We created an [overview over our custom environments](Environments-Overview).
 
 [Tips for training on remote computers](Tips-for-training-on-remote-computers).
 
-Advice on [running on Windows with WSL2](Running-on-Windows-with-WSL2).
+Detailed instructions on [setting up the project, especially for Windows with WSL2](Detailed-Instructions-for-installation-and-getting-started.md).
 
 How our [GitLab pipeline](GitLab-Pipeline) works.

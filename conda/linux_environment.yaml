@@ -65,6 +65,7 @@ dependencies:
   - sympy=1.12=pypyh9d50eac_103
   - tk=8.6.12=h27826a3_0
   - typing_extensions=4.7.1=pyha770c72_0
+  - swig=4.1.1=he155508_1
   - wheel=0.41.2=pyhd8ed1ab_0
   - xz=5.2.6=h166bdaf_0
   - pip:

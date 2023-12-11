@@ -1,0 +1,5 @@
+name: 'dqn'
+
+verbose: True
+
+policy: 'MlpPolicy'

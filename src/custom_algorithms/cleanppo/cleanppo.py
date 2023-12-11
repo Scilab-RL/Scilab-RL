@@ -45,8 +45,10 @@ class Agent(nn.Module):
         super().__init__()
         if isinstance(env.observation_space, spaces.Dict):
             obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
+            self.flatten = True
         else:
             obs_shape = np.array(env.observation_space.shape).prod()
+            self.flatten = False
         self.critic = nn.Sequential(
             layer_init(nn.Linear(obs_shape, 64)),
             nn.Tanh(),
@@ -64,11 +66,17 @@ class Agent(nn.Module):
         self.actor_logstd = nn.Parameter(torch.zeros(1, np.prod(env.action_space.shape)))
 
     def get_value(self, x):
-        x = flatten_obs(x)
+        if self.flatten:
+            x = flatten_obs(x)
+        else:
+            x = torch.tensor(x, device=device, dtype=torch.float32).detach().clone()
         return self.critic(x)
 
     def get_action_and_value(self, x, action=None, deterministic=False):
-        x = flatten_obs(x)
+        if self.flatten:
+            x = flatten_obs(x)
+        else:
+            x = torch.tensor(x, device=device, dtype=torch.float32).detach().clone()
         action_mean = self.actor_mean(x)
         action_logstd = self.actor_logstd.expand_as(action_mean)
         action_std = torch.exp(action_logstd)

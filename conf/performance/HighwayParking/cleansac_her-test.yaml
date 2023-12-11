@@ -5,6 +5,7 @@ defaults:
 
 env: 'parking-limited-v0'
 
+# these parameters were not optimized for this environment!
 algorithm:
   use_her: True
   buffer_size: 1000000

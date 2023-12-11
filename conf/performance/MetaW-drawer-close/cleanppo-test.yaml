@@ -1,25 +1,27 @@
 # @package _global_
 # Changes specified in this config should be interpreted as relative to the _global_ package.
 defaults:
-  - override /algorithm: cleansac
+  - override /algorithm: cleanppo
 
-env: 'FetchReach-v2'
+env: 'MetaW-drawer-close'
 
-# This performance test just uses the parameters for SB3 SAC, so it is likely that better hyperparameters can be found
-# by running a hyperparameter optimization.
+# the parameters have not been optimized for this environment.
 algorithm:
-  name: 'cleansac'
-  learning_rate: 0.001
-  buffer_size: 1_000_000
-  learning_starts: 100
-  batch_size: 256
-  gamma: 0.96
-  tau: 0.07
-  use_her: True
-  n_critics: 1
+  learning_rate: 5e-4
+  n_steps: 4096
+  batch_size: 32
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  clip_range_vf: null
+  normalize_advantage: true
+  ent_coef: 0.0
+  vf_coef: 0.5
+  max_grad_norm: 0.5
 
 performance_testing_conditions:
-  # In 2 out of 3 tests, the eval/success rate should be at least 0.7 after 20k steps.
+  # In 2 out of 3 tests, the eval/success_rate should be at least 0.9 after 12K steps.
 
   total_runs: 3 # How many runs in total:
 
@@ -29,10 +31,11 @@ performance_testing_conditions:
 
   eval_value: 0.9 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
-  max_steps: 10_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+  # takes ~2.5 min with GPU
+  max_steps: 12_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:
   sweeper:
     n_jobs: 3
     _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
-    study_name: cleansac_her_FetchReach-test
+    study_name: cleanppo_drawer-close-test

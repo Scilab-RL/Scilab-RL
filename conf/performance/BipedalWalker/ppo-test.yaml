@@ -1,0 +1,41 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  - override /algorithm: ppo
+
+env: 'BipedalWalker-v3'
+
+# hyperparameters from here https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/ppo.yml
+algorithm:
+  policy: 'MlpPolicy'
+  n_steps: 2048
+  batch_size: 64
+  gae_lambda: 0.95
+  gamma: 0.999
+  n_epochs: 10
+  ent_coef: 0.0
+  learning_rate: !!float 3e-4
+  clip_range: 0.18
+
+early_stop_data_column: 'eval/mean_reward'
+early_stop_threshold: 260
+
+performance_testing_conditions:
+  # In 1 out of 3 tests, the eval/mean_reward should be at least 240 after 500K steps.
+
+  total_runs: 3 # How many runs in total:
+
+  succ_runs: 1 # This number of runs should meet the conditions:
+
+  eval_columns: eval/mean_reward # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
+
+  eval_value: 240 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
+
+  # ca. 1.5h on GPU
+  max_steps: 500_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+
+hydra:
+  sweeper:
+    n_jobs: 3
+    _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
+    study_name: ppo_BipedalWalker-test
