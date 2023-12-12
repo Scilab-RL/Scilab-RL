@@ -13,7 +13,6 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
 from stable_baselines3.common.buffers import ReplayBuffer, DictReplayBuffer
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
-from utils.custom_buffers import ErrorBuffer
 from .mc import MorphologicalNetworks
 
 
@@ -244,7 +243,6 @@ class CLEANSACMC:
         self.mc_optimizer = torch.optim.Adam(
             self.mc_network.parameters(), lr=self.mc["learning_rate"]
         )
-        self.mc_err_buffer = ErrorBuffer(self.mc["err_buffer_size"], self.device)
 
     def learn(
         self,
@@ -337,27 +335,17 @@ class CLEANSACMC:
             .mean(-1)
             .unsqueeze(1)
         )
-        self.logger.record("mc/kld", _err.mean().item())
-        if self.mc["reward_type"] in ["sparse", "scaled"]:
-            self.mc_err_buffer.add(_err)
-            min_err = self.mc_err_buffer.get_min().to(self.device)
-            max_err = self.mc_err_buffer.get_max().to(self.device)
-            if self.mc["reward_type"] == "sparse":
-                # reward in [-1, 0]
-                i_rewards = ((_err - min_err) / (max_err - min_err)) - 1.0
-            elif self.mc["reward_type"] == "scaled":
-                # reward in [0, 1]
-                i_rewards = (_err - min_err) / (max_err - min_err)
-        else:
-            i_rewards = _err
-        rewards = e_rewards + (i_rewards.to(self.device) * self.mc["reward_eta"])
+        i_rewards = _err.clone() * self.mc["reward_eta"]
+        rewards = e_rewards + i_rewards
         if is_executing: # If this action is actually executed, log only the current step for visualizing the value.
             self.logger.record("mc/i_reward", i_rewards.mean().item())
             self.logger.record("mc/e_reward", e_rewards.mean().item())
+            self.logger.record("mc/kld", _err.mean().item())
             self.logger.record("mc/reward", rewards.mean().item())
         else: # Take mean of all logged values until dump.
             self.logger.record_mean("mc/i_reward", i_rewards.mean().item())
             self.logger.record_mean("mc/e_reward", e_rewards.mean().item())
+            self.logger.record_mean("mc/kld", _err.mean().item())
             self.logger.record_mean("mc/reward", rewards.mean().item())
         return rewards
 

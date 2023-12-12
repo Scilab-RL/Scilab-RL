@@ -14,7 +14,5 @@ batch_size: 2048
 # morphological computation hyperparameters
 mc:
   learning_rate: 0.001
-  reward_eta: 1.0
+  reward_eta: 0.2 # small bonus by default
   hidden_size: 256
-  err_buffer_size: 200000
-  reward_type: ""
