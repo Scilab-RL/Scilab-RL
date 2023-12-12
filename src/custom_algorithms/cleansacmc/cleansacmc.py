@@ -486,8 +486,8 @@ class CLEANSACMC:
                 model.__dict__[k] = loaded_dict[k]
         # load network states
         model.actor.load_state_dict(loaded_dict["_actor"])
-        model.critic.load_state_dict(loaded_data["_critic"])
-        model.mc_network.load_state_dict(loaded_data["_mc"])
+        model.critic.load_state_dict(loaded_dict["_critic"])
+        model.mc_network.load_state_dict(loaded_dict["_mc"])
         return model
 
     def set_logger(self, logger: Logger) -> None:
