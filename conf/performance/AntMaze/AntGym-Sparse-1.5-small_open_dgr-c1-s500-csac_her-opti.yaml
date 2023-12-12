@@ -24,7 +24,7 @@ early_stop_data_column: 'eval/success_rate'
 # What to optimize for
 hyperopt_criterion: 'train/rollout_rewards_mean'
 
-env: 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-s500-v0'
+env: 'AntGym-sparse-1.5-small_open_dgr-c1-rt0-s500-v0'
 
 render: 'record' # 'display', 'record', or anything else for neither one
 render_freq: 2
@@ -81,10 +81,5 @@ hydra:
       ++algorithm.ignore_dones_for_qvalue:
         type: categorical
         choices: [ False, True ]
-#      env:
-#        type: categorical
-#        choices:
-##          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt1-s500-v0'
-#          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-s500-v0'
 
 
