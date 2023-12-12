@@ -9,6 +9,7 @@ import mlflow
 import gymnasium as gym
 # gym.register_envs()
 import wandb
+import myosuite
 
 from stable_baselines3.her import HerReplayBuffer
 from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
