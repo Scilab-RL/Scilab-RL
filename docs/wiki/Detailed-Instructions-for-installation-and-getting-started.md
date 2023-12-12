@@ -88,7 +88,7 @@ Note that if you had installed a different version of conda when executing the `
 ![image](uploads/7b9299485e8275ff4c6080b75ba3d5a8/image.png)
 
 Then click "create" to create the interpreter, and finally "OK". 
-* Setup the python paths appropriately. In the upper right of your screen, click on the dropdown box with "main" and select "edit configuration"
+* Setup the python paths appropriately. Go to `src/main.py` and double-click on the file. In the upper right of your screen, click on the dropdown box with "main" and select "edit configuration"
 
 ![image](uploads/09734f9557c6d9b97ae42769e5773381/image.png)
 
