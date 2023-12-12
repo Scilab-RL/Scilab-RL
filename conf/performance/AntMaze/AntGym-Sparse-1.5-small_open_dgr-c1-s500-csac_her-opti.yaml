@@ -88,8 +88,7 @@ hydra:
       env:
         type: categorical
         choices:
-#          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt1-cf1-s500-v0'
-#          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt1-cf0-s500-v0'
-          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-cf1-s500-v0'
-          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-cf0-s500-v0'
+#          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt1-s500-v0'
+          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-s500-v0'
+
 

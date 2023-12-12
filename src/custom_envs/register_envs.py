@@ -77,12 +77,11 @@ def register_custom_envs():
             for map in ["small_open_dgr"]:
                 for continuing_task in [1, 0]:
                     for reset_target in [1, 0]:
-                        for contact_forces in [1, 0]:
                             for max_ep_Steps in [300, 500, 700]:
                                 kwargs = {
                                     "reward_type": reward_type,
                                 }
-                                register(id=f'AntGym-{reward_type}-{dt}-{map}-c{continuing_task}-rt{reset_target}-cf{contact_forces}-s{max_ep_Steps}-v0',
+                                register(id=f'AntGym-{reward_type}-{dt}-{map}-c{continuing_task}-rt{reset_target}-s{max_ep_Steps}-v0',
                                     entry_point='custom_envs.ant.ant_env:AntGymMod',
                                     kwargs = _merge(
                                         {
@@ -90,7 +89,6 @@ def register_custom_envs():
                                             "maze_map": AntMap.name2map[map],
                                             "continuing_task": continuing_task,
                                             "reset_target": reset_target,
-                                            "contact_forces": contact_forces
                                         },
                                         kwargs,
                                     ),
