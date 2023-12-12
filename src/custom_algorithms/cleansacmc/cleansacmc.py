@@ -13,7 +13,6 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
 from stable_baselines3.common.buffers import ReplayBuffer, DictReplayBuffer
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
-from utils.custom_buffers import ErrorBuffer
 from .mc import MorphologicalNetworks
 
 
@@ -244,7 +243,6 @@ class CLEANSACMC:
         self.mc_optimizer = torch.optim.Adam(
             self.mc_network.parameters(), lr=self.mc["learning_rate"]
         )
-        self.mc_err_buffer = ErrorBuffer(self.mc["err_buffer_size"], self.device)
 
     def learn(
         self,
@@ -290,17 +288,15 @@ class CLEANSACMC:
 
         # perform action
         new_obs, rewards, dones, infos = self.env.step(actions)
-        mc_obs = flatten_obs(self._last_obs, self.device)
-        if len(mc_obs.shape) == 1:
-            mc_obs.unsqueeze_(0)
-        fw_normal, wm_normal = self.mc_network(
-            mc_obs.to(self.device), torch.from_numpy(actions).to(self.device)
+        self.calc_reward(
+                flatten_obs(new_obs, self.device).float(),
+                torch.from_numpy(actions).to(self.device).float(),
+                torch.from_numpy(rewards).view(1, -1).to(self.device).float(),
+                is_executing=True
         )
-        kl_div = torch.distributions.kl_divergence(fw_normal, wm_normal)
-        self.logger.record("mc_mean", kl_div.mean().cpu().item(), exclude="tensorboard")
-        self.logger.record("mc_std", kl_div.std().cpu().item(), exclude="tensorboard")
         self.logger.record("actor_entropy", -log_prob.mean().cpu().item(), exclude="tensorboard")
-
+        self.logger.record("train/rollout_rewards_step", np.mean(rewards))
+        self.logger.record_mean("train/rollout_rewards_mean", np.mean(rewards))
         self.num_timesteps += self.env.num_envs
 
         # save data to replay buffer; handle `terminal_observation`
@@ -332,35 +328,25 @@ class CLEANSACMC:
         loss.backward()
         self.mc_optimizer.step()
 
-    def calc_reward(self, observations, actions, e_rewards):
+    def calc_reward(self, observations, actions, e_rewards, is_executing=False):
         forward_normal, world_normal = self.mc_network(observations, actions)
         _err = (
             torch.distributions.kl.kl_divergence(forward_normal, world_normal)
             .mean(-1)
             .unsqueeze(1)
         )
-        if self.mc["minimize"]:
-            _err = _err * -1.0
-        if self.mc["reward_type"] in ["sparse", "scaled"]:
-            self.mc_err_buffer.add(_err)
-            min_err = self.mc_err_buffer.get_min().to(self.device)
-            max_err = self.mc_err_buffer.get_max().to(self.device)
-            if self.mc["reward_type"] == "sparse":
-                # reward in [-1, 0]
-                i_rewards = ((_err - min_err) / (max_err - min_err)) - 1.0
-            elif self.mc["reward_type"] == "scaled":
-                # reward in [0, 1]
-                i_rewards = (_err - min_err) / (max_err - min_err)
-        else:
-            i_rewards = _err
-
-        self.logger.record("mc/i_reward", i_rewards.mean().item())
-        self.logger.record("mc/e_reward", e_rewards.mean().item())
-        rewards = (
-            e_rewards * (1 - self.mc["reward_eta"])
-            + i_rewards.to(self.device) * self.mc["reward_eta"]
-        )
-        self.logger.record("mc/reward", rewards.mean().item())
+        i_rewards = _err.clone() * self.mc["reward_eta"]
+        rewards = e_rewards + i_rewards
+        if is_executing: # If this action is actually executed, log only the current step for visualizing the value.
+            self.logger.record("mc/i_reward", i_rewards.mean().item())
+            self.logger.record("mc/e_reward", e_rewards.mean().item())
+            self.logger.record("mc/kld", _err.mean().item())
+            self.logger.record("mc/reward", rewards.mean().item())
+        else: # Take mean of all logged values until dump.
+            self.logger.record_mean("mc/i_reward", i_rewards.mean().item())
+            self.logger.record_mean("mc/e_reward", e_rewards.mean().item())
+            self.logger.record_mean("mc/kld", _err.mean().item())
+            self.logger.record_mean("mc/reward", rewards.mean().item())
         return rewards
 
     def train(self):
@@ -415,6 +401,7 @@ class CLEANSACMC:
             [F.mse_loss(_a_v, next_q_value.view(-1, 1)) for _a_v in critic_a_values]
         ).sum()
         self.logger.record("train/critic_loss", crit_loss.item())
+        self.logger.record("train/train_rewards", replay_data.rewards.flatten().mean().item())
 
         self.critic_optimizer.zero_grad()
         crit_loss.backward()

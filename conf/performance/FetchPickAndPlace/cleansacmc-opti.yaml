@@ -1,0 +1,55 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  - override /algorithm: cleansacmc
+
+n_epochs: 100
+eval_after_n_steps: 4000
+early_stop_threshold: 0.6
+early_stop_data_column: 'eval/success_rate'
+hyperopt_criterion: 'train/rollout_rewards_mean'
+
+env: 'FetchPickAndPlace-v2'
+
+render: 'record' # 'display', 'record', or anything else for neither one
+render_freq: 2
+render_metrics_train: ['train/rollout_rewards_step',  'mc/i_reward', 'mc/kld', 'actor_entropy']
+render_metrics_test: ['eval/rollout_rewards_step', 'mc/i_reward', 'mc/kld', 'actor_entropy']
+render_frames_per_clip: 200
+
+algorithm:
+  use_her: True
+
+hydra:
+  sweeper:
+    study_name: cleansacmc_FetchPickAndPlace
+    max_trials: 64
+    n_jobs: 9
+    direction: maximize
+    max_duration_minutes: 18000
+    min_trials_per_param: 1
+    max_trials_per_param: 3
+    search_space:
+      # SAC
+      ++algorithm.learning_rate:
+        type: float
+        low: 0.0001
+        high: 0.005
+        log: true
+      ++algorithm.n_critics:
+        type: int
+        low: 1
+        high: 2
+      # Morphological Computation
+      ++algorithm.mc.learning_rate:
+        type: float
+        low: 0.0001
+        high: 0.005
+        log: true
+      ++algorithm.mc.reward_eta:
+        type: float
+        low: -10.0
+        high: 10.0
+      ++algorithm.mc.hidden_size:
+        type: categorical
+        choices: [ 64, 128, 256 ]
