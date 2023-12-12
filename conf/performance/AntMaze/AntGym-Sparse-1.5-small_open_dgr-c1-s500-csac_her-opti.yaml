@@ -39,12 +39,18 @@ render_frames_per_clip: 1500
 algorithm:
   use_her: True
   buffer_size: 1000000
-  batch_size: 256
   learning_starts: 1000
+  ent_coef: auto
+
+  learning_rate: !!float 1e-3
+  gamma: 0.95
+  tau: 0.05
+  batch_size: 2048
+  n_critics: 2
 
 hydra:
   sweeper:
-    study_name: cleansac_her_AntModOpen-small-DGR_dt15
+    study_name: csac_her_AntOpen-small-DGR
     max_trials: 60
     n_jobs: 24
     direction: maximize
@@ -52,26 +58,26 @@ hydra:
     min_trials_per_param: 1
     max_trials_per_param: 3
     search_space:
-      ++algorithm.learning_rate:
-        type: float
-        low: 0.0001
-        high: 0.005
-        log: true
-      ++algorithm.gamma:
-        type: float
-        low: 0.9
-        high: 0.99
-        log: true
-      ++algorithm.tau:
-        type: float
-        low: 0.005
-        high: 0.1
-        log: true
-      ++algorithm.batch_size:
-        type: int
-        low: 128
-        high: 8192
-        log: false
+#      ++algorithm.learning_rate:
+#        type: float
+#        low: 0.0001
+#        high: 0.005
+#        log: true
+#      ++algorithm.gamma:
+#        type: float
+#        low: 0.9
+#        high: 0.99
+#        log: true
+#      ++algorithm.tau:
+#        type: float
+#        low: 0.005
+#        high: 0.1
+#        log: true
+#      ++algorithm.batch_size:
+#        type: int
+#        low: 128
+#        high: 8192
+#        log: false
       ++algorithm.n_critics:
         type: int
         low: 1
@@ -82,8 +88,8 @@ hydra:
       env:
         type: categorical
         choices:
+#          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt1-cf1-s500-v0'
+#          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt1-cf0-s500-v0'
           - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-cf1-s500-v0'
-          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-cf1-s500-v0'
-          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt1-cf0-s500-v0'
-          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt1-cf0-s500-v0'
+          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-cf0-s500-v0'
 
