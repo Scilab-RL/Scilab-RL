@@ -25,13 +25,15 @@ early_stop_data_column: 'eval/success_rate'
 hyperopt_criterion: 'train/rollout_rewards_mean'
 
 #env: 'AntGymnasiumMod-v0'
-env: 'AntGymnasiumMod-dt15-small-openDGR-v0'
+#env: 'AntGymnasiumMod-dt15-small-openDGR-v0'
+#AntGym-{reward_type}-{dt}-{map}-c{continuing_task}-rt{reset_target}-cf{contact_forces}-s{max_ep_Steps}-v0
+#env: 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-cf1-s500-v0'
 
 render: 'record' # 'display', 'record', or anything else for neither one
 render_freq: 2
 render_metrics_train: ['train/rollout_rewards_step']
 render_metrics_test: ['eval/rollout_rewards_step']
-render_frames_per_clip: 1400
+render_frames_per_clip: 1500
 
 
 algorithm:
@@ -77,4 +79,11 @@ hydra:
       ++algorithm.ignore_dones_for_qvalue:
         type: categorical
         choices: [ False, True ]
+      env:
+        type: categorical
+        choices:
+          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-cf1-s500-v0'
+          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt0-cf1-s500-v0'
+          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt1-cf0-s500-v0'
+          - 'AntGym-Sparse-1.5-small_open_dgr-c1-rt1-cf0-s500-v0'
 
