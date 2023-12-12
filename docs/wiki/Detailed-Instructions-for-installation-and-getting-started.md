@@ -12,6 +12,14 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 
 1. [Required on Windows systems only] Install Ubuntu 22 LTS via WSL
 * Install Ubuntu from the Microsoft Store. Just search for Ubuntu and get Ubuntu 22 LTS. Alternatively, you can install it via Powershell, following these instructions: https://www.c-sharpcorner.com/article/how-to-install-windows-subsystem-for-linux-wsl2-on-windows-11/
+* If you have decided to download the Microsoft Store version, you might be required to do the following steps.
+    * If you get the error 'The Windows Subsystem for Linux has not been enabled.' while running Ubuntu:
+        * Open Control Panel -> Programs and Features -> Turn Windows Feature on or off -> Check Windows Subsystem for Linux -> Restart your machine
+    * If you get the error 'Error that requires update of WSL2':
+        * Download update from: https://learn.microsoft.com/en-gb/windows/wsl/install-manual#step-4---download-the-linux-kernel-update-package
+    * If you get the error 'Error : WslRegisterDistribution failed with error: 0x80370102':
+        * Run the following command and restart your pc afterwards: `dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart`
+
 * The Ubuntu version that you get when using Windows 10 will probably not work, because Windows 10 uses WSL 1 and not WSL 2. You can make it work if you update from WSL 1 to WSL 2 manually, but it will be painful. Windows 10 is not recommended, we will not be able to provide you with any further assistance if you use Windows 10. Use Windows 11 instead.
 
 2. Prepare Linux Installation
@@ -27,7 +35,7 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 * In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `./scripts/setup.sh`. This will install all required dependencies, it will take a while. 
 
 5. Create a Weights & Biases account 
-* Go to [wandb.ai]([wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account. You will obtain a wandb API key that you can find on your wandb profile site. There, go to "settings" and copy your API key. Then assign it to the system variable 'WANDB_API_KEY'. Our recommendation is doing this by adding the line 'export WANDB_API_KEY=<YOUR KEY>' to your '~/.bashrc' file. 
+* Go to [wandb.ai](wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account. You will obtain a wandb API key that you can find on your wandb profile site. There, go to "settings" and copy your API key. Then assign it to the system variable 'WANDB_API_KEY'. Our recommendation is doing this by adding the line 'export WANDB_API_KEY=<YOUR KEY>' to your '~/.bashrc' file. You can edit this using the following: `nano ~/.bashrc`.
 
 6. Test the installation from the Linux console
 * Activate Conda by running `source ~/.bashrc`
@@ -59,8 +67,10 @@ Click on `File-> Open... ` and select the `Scilab-RL` folder in your cloned repo
 ![image](uploads/39d27cb605719aaabf13a0e1b5f15d20/image.png)
 
 12. Setup a PyCharm debug configuration.
-* After opening the project, you should see the file structure on the left, and the README.md will be displayed. For starting a training process, you need to set up a debug configuration. To do so, open `src/main.py`, i.e., double-click on `src/main.py` in the file structure view on the left. Then press in the Menu `Run--> Debug` and then, in the little window that opens, `2 main`. This will auto-create a debug configuration for you, and it will also start the debugger to run the script. However, if you do it for the first time, this will fail because you still need to set up the Python Interpreter and environment variables as follows: 
-* Set up the Conda Python interpreter as follows: In the Menu click `File--> Settings`, and then `Project: Scilab-RL`
+* After opening the project, you should see the file structure on the left, and the README.md will be displayed. 
+* If you are running this project for the first time the debugger will fail because you need to set up the Python Interpreter and environment variables. For this, please do the following steps.
+
+* Conda Python interpreter setup is as follows: In the Menu click `File--> Settings`, and then `Project: Scilab-RL`
 
 ![image](uploads/cd48171c9d141f8e3da8bed79ae29a98/image.png)
 
@@ -90,10 +100,10 @@ Then click "create" to create the interpreter, and finally "OK".
 [//]: # (![image]&#40;uploads/c21c912aa1da4b728c226563a33219b5/image.png&#41;)
 
 Then close the debug configuration window.
-* Now run the debugger for the code by hitting the little "bug" symbol in the upper right: 
+
+* For starting a training process, you need to set up a debug configuration. To do so, open `src/main.py`, i.e., double-click on `src/main.py` in the file structure view on the left. Then press in the Menu `Run--> Debug` and then, in the little window that opens, `2 main`. This will auto-create a debug configuration for you, and it will also start the debugger to run the script. 
 
 ![image](uploads/02f1a27057c8c1f4c28a9cafaeb1b3a9/image.png)
-
 
 # General remarks
 * You should always use the debugger (the bug symbol) not just the interpreter (the "play" symbol left of the bug.). It is not much slower, and it enables you to use breakpoints and to monitor variables at runtime. These features are critical to your debugging process. 
