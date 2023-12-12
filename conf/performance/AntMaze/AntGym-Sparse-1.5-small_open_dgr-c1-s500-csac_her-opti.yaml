@@ -38,7 +38,6 @@ algorithm:
   buffer_size: 1000000
   learning_starts: 1000
   ent_coef: auto
-
   learning_rate: !!float 1e-3
   gamma: 0.95
   tau: 0.05

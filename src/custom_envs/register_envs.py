@@ -72,7 +72,7 @@ def register_custom_envs():
                      max_episode_steps=max(50, 50*n_objects))
 
     "Custom Ant environments"
-    for reward_type in ["Sparse", "Dense"]:
+    for reward_type in ["sparse", "dense"]:
         for dt in [0.5,1.0,1.5]:
             for map in ["small_open_dgr"]:
                 for continuing_task in [1, 0]:
