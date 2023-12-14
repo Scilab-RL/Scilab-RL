@@ -7,6 +7,7 @@ from typing import Callable
 import numpy as np
 from utils.animation_util import LiveAnimationPlot
 from gymnasium.envs.mujoco import MujocoEnv
+from moviepy.editor import vfx
 
 from gymnasium.wrappers.monitoring import video_recorder
 from moviepy.editor import VideoFileClip, clips_array
@@ -363,9 +364,9 @@ class RecordVideo(gym.Wrapper):
         metric_n_frames = int(metric_clip.fps * metric_clip.duration)
 
         render_clip = VideoFileClip(self.base_path + ".mp4")
-        render_n_frames = int(render_clip.fps * render_clip.duration)
-        metric_clip = metric_clip.set_duration(render_clip.duration)
-        metric_n_frames = int(metric_clip.fps * metric_clip.duration)
+        target_duration = max(metric_clip.duration, render_clip.duration)
+        metric_clip = metric_clip.fx(vfx.speedx, metric_clip.duration / target_duration)
+        render_clip = render_clip.fx(vfx.speedx, render_clip.duration / target_duration)
 
         joint_clip = clips_array([[render_clip, metric_clip]])
         joint_clip.write_videofile(self.base_path + ".joint.mp4")
@@ -592,4 +593,3 @@ class MakeDictObs(gym.Wrapper):
         observations, info = self.env.reset(**kwargs)
         observations = self.obs_to_dict_obs(observations)
         return observations, info
-
