@@ -24,7 +24,7 @@ early_stop_data_column: 'eval/success_rate'
 # What to optimize for
 hyperopt_criterion: 'train/rollout_rewards_mean'
 
-env: 'PointGym-sparse-1.5-small_open_dgr-c1-rt0-s500-v0'
+env: 'PointGym-sparse-0.5-small_open_dgr-c1-rt0-s500-v0'
 
 render: 'record' # 'display', 'record', or anything else for neither one
 render_freq: 2
