@@ -23,8 +23,9 @@ class LiveAnimationPlot:
         self.num_metrics = len(y_axis_labels)
         self.x_data = [[] for _ in range(self.num_metrics)]
         self.y_data = [[] for _ in range(self.num_metrics)]
-        self.fig, self.axs = plt.subplots(nrows=ceil(sqrt(self.num_metrics)),
-                                          ncols=ceil(sqrt(self.num_metrics)),
+        rows = ceil(sqrt(self.num_metrics))
+        self.fig, self.axs = plt.subplots(nrows=rows,
+                                          ncols=self.num_metrics // rows,
                                           constrained_layout=True,
                                           figsize=[5, 5])
 
