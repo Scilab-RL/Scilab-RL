@@ -28,6 +28,7 @@ class AntGymMod(GymnasiumAntMazeEnvClass):
             positive_reward = (distance <= self.distance_threshold).astype(np.float64)
             negative_reward = positive_reward - 1
             return negative_reward
+        else: assert False, "reward type of ant env must be either dense or sparse"
 
     def compute_terminated(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info
