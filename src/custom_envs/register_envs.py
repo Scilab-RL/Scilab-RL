@@ -46,11 +46,20 @@ class MazeMap:
         [1, G, G, G, 1],
         [1, 1, 1, 1, 1],
     ]
+    MEDIUM_CUSTOM_DIVERSE_GR = [[1, 1, 1, 1, 1, 1, 1, 1],
+                              [1, C, C, 1, 1, C, C, 1],
+                              [1, C, C, 1, C, C, C, 1],
+                              [1, 1, C, C, C, 1, 1, 1],
+                              [1, C, C, 1, C, C, C, 1],
+                              [1, C, 1, C, C, 1, C, 1],
+                              [1, C, C, C, 1, C, C, 1],
+                              [1, 1, 1, 1, 1, 1, 1, 1]]
     name2map = {"open": OPEN,
                 "open_dg": OPEN_DIVERSE_G,
                 "open_dgr": OPEN_DIVERSE_GR,
                 "small_open_dg": SMALL_OPEN_DIVERSE_G,
                 "small_open_dgr": SMALL_OPEN_DIVERSE_GR,
+                "medium_custom_dgr": MEDIUM_CUSTOM_DIVERSE_GR,
                 }
 
 def _merge(a, b):
@@ -71,7 +80,7 @@ def register_custom_envs():
     ## Custom Ant environments
     for reward_type in ["sparse", "dense"]:
         for dt in [0.5,1.0,1.5]:
-            for map in ["small_open_dgr"]:
+            for map in MazeMap.name2map.keys():
                 for continuing_task in [1, 0]:
                     for reset_target in [1, 0]:
                             for max_ep_Steps in [300, 500, 700]:
@@ -94,7 +103,7 @@ def register_custom_envs():
         ## Custom PointMaze environments
         for reward_type in ["sparse", "dense"]:
             for dt in [0.5, 1.0, 1.5]:
-                for map in ["small_open_dgr"]:
+                for map in MazeMap.name2map.keys():
                     for continuing_task in [1, 0]:
                         for reset_target in [1, 0]:
                             for max_ep_Steps in [300, 500, 700]:
