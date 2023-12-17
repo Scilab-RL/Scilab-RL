@@ -12,12 +12,7 @@ class AntGymMod(GymnasiumAntMazeEnvClass):
     def __init__(self, distance_threshold=0.45, **kwargs):
         self.distance_threshold = distance_threshold
         super().__init__(**kwargs)
-    # EnvSpec(id='AntMaze_Open_Diverse_GR-v4', entry_point='gymnasium_robotics.envs.maze.ant_maze_v4:AntMazeEnv',
-    #         reward_threshold=None, nondeterministic=False, max_episode_steps=700, order_enforce=True, autoreset=False,
-    #         disable_env_checker=False, apply_api_compatibility=False, kwargs={
-    #         'maze_map': [[1, 1, 1, 1, 1, 1, 1], [1, 'c', 'c', 'c', 'c', 'c', 1], [1, 'c', 'c', 'c', 'c', 'c', 1],
-    #                      [1, 'c', 'c', 'c', 'c', 'c', 1], [1, 1, 1, 1, 1, 1, 1]], 'reward_type': 'sparse'},
-    #         namespace=None, name='AntMaze_Open_Diverse_GR', version=4, additional_wrappers=(), vector_entry_point=None)
+        
     def compute_reward(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info
     ) -> float:
@@ -28,6 +23,7 @@ class AntGymMod(GymnasiumAntMazeEnvClass):
             positive_reward = (distance <= self.distance_threshold).astype(np.float64)
             negative_reward = positive_reward - 1
             return negative_reward
+        else: assert False, "reward type of ant env must be either dense or sparse"
 
     def compute_terminated(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info

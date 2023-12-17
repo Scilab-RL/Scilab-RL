@@ -9,3 +9,8 @@ gamma: 0.99
 ent_coef: auto
 use_her: True
 n_critics: 2
+
+# Whether to set future expected discounted cumulative reward to what the critic
+# computes or to just set it to 0 if the episode is done. The SB3 implementation sets it to 0 if done,
+# which is equivalent to false, so we set this as default here.
+ignore_dones_for_qvalue: False

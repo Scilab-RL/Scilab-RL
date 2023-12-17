@@ -9,45 +9,58 @@ RESET = R = "r"  # Initial Reset position of the agent
 GOAL = G = "g"
 COMBINED = C = "c"  # These cells can be selected as goal or reset locations
 
+class MazeMap:
 
-OPEN = [
-    [1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1],
-]
-OPEN_DIVERSE_G = [
-    [1, 1, 1, 1, 1, 1, 1],
-    [1, R, G, G, G, G, 1],
-    [1, G, G, G, G, G, 1],
-    [1, G, G, G, G, G, 1],
-    [1, 1, 1, 1, 1, 1, 1],
-]
-
-OPEN_DIVERSE_GR = [
-    [1, 1, 1, 1, 1, 1, 1],
-    [1, C, C, C, C, C, 1],
-    [1, C, C, C, C, C, 1],
-    [1, C, C, C, C, C, 1],
-    [1, 1, 1, 1, 1, 1, 1],
-]
-SMALL_OPEN_DIVERSE_GR = [
-    [1, 1, 1, 1, 1],
-    [1, C, C, C, 1],
-    [1, C, C, C, 1],
-    [1, C, C, C, 1],
-    [1, 1, 1, 1, 1],
-]
-
-SMALL_OPEN_DIVERSE_G = [
-    [1, 1, 1, 1, 1],
-    [1, G, G, G, 1],
-    [1, G, G, G, 1],
-    [1, G, G, G, 1],
-    [1, 1, 1, 1, 1],
-]
-
+    OPEN = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ]
+    OPEN_DIVERSE_G = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, R, G, G, G, G, 1],
+        [1, G, G, G, G, G, 1],
+        [1, G, G, G, G, G, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ]
+    OPEN_DIVERSE_GR = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, C, C, C, C, C, 1],
+        [1, C, C, C, C, C, 1],
+        [1, C, C, C, C, C, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ]
+    SMALL_OPEN_DIVERSE_GR = [
+        [1, 1, 1, 1, 1],
+        [1, C, C, C, 1],
+        [1, C, C, C, 1],
+        [1, C, C, C, 1],
+        [1, 1, 1, 1, 1],
+    ]
+    SMALL_OPEN_DIVERSE_G = [
+        [1, 1, 1, 1, 1],
+        [1, G, G, G, 1],
+        [1, G, G, G, 1],
+        [1, G, G, G, 1],
+        [1, 1, 1, 1, 1],
+    ]
+    MEDIUM_CUSTOM_DIVERSE_GR = [[1, 1, 1, 1, 1, 1, 1, 1],
+                              [1, C, C, 1, 1, C, C, 1],
+                              [1, C, C, 1, C, C, C, 1],
+                              [1, 1, C, C, C, 1, 1, 1],
+                              [1, C, C, 1, C, C, C, 1],
+                              [1, C, 1, C, C, 1, C, 1],
+                              [1, C, C, C, 1, C, C, 1],
+                              [1, 1, 1, 1, 1, 1, 1, 1]]
+    name2map = {"open": OPEN,
+                "open_dg": OPEN_DIVERSE_G,
+                "open_dgr": OPEN_DIVERSE_GR,
+                "small_open_dg": SMALL_OPEN_DIVERSE_G,
+                "small_open_dgr": SMALL_OPEN_DIVERSE_GR,
+                "medium_custom_dgr": MEDIUM_CUSTOM_DIVERSE_GR,
+                }
 
 def _merge(a, b):
     a.update(b)
@@ -64,60 +77,53 @@ def register_custom_envs():
                      kwargs={'n_objects': n_objects, 'gripper_goal': gripper_goal, 'distance_threshold': distance_threshold},
                      max_episode_steps=max(50, 50*n_objects))
 
+    ## Custom Ant environments
     for reward_type in ["sparse", "dense"]:
-        suffix = "Dense" if reward_type == "dense" else ""
-        kwargs = {
-            "reward_type": reward_type,
-        }
-
-        register(id=f'AntGymnasiumMod{suffix}-dt15-openDGR-v0',
-            entry_point='custom_envs.ant.ant_env:AntGymMod',
-            kwargs = _merge(
-                {
-                    "continuing_task": False,  # No new goal will be generated when a goal is reached
-                    "distance_threshold": 1.5,
-                    "maze_map": OPEN_DIVERSE_GR,
-                },
-                kwargs,
-            ),
-            max_episode_steps = 700,
-            )
-        register(id=f'AntGymnasiumMod{suffix}-dt15-openDG-v0',
-             entry_point='custom_envs.ant.ant_env:AntGymMod',
-             kwargs=_merge(
-                 {
-                     "continuing_task": False,  # No new goal will be generated when a goal is reached
-                     "distance_threshold": 1.5,
-                     "maze_map": OPEN_DIVERSE_G,
-                 },
-                 kwargs,
-             ),
-             max_episode_steps=700,
-             )
-        register(id=f'AntGymnasiumMod{suffix}-dt15-small-openDGR-v0',
-                 entry_point='custom_envs.ant.ant_env:AntGymMod',
-                 kwargs=_merge(
-                     {
-                         "continuing_task": False, # No new goal will be generated when a goal is reached
-                         "distance_threshold": 1.5,
-                         "maze_map": SMALL_OPEN_DIVERSE_GR,
-                     },
-                     kwargs,
-                 ),
-                 max_episode_steps=700,
-                 )
-        register(id=f'AntGymnasiumMod{suffix}-dt15-small-openDG-v0',
-                 entry_point='custom_envs.ant.ant_env:AntGymMod',
-                 kwargs=_merge(
-                     {
-                         "continuing_task": False,  # No new goal will be generated when a goal is reached
-                         "distance_threshold": 1.5,
-                         "maze_map": SMALL_OPEN_DIVERSE_G,
-                     },
-                     kwargs,
-                 ),
-                 max_episode_steps=700,
-                 )
+        for dt in [0.5,1.0,1.5]:
+            for map in MazeMap.name2map.keys():
+                for continuing_task in [1, 0]:
+                    for reset_target in [1, 0]:
+                            for max_ep_Steps in [300, 500, 700]:
+                                kwargs = {
+                                    "reward_type": reward_type,
+                                }
+                                register(id=f'AntGym-{reward_type}-{dt}-{map}-c{continuing_task}-rt{reset_target}-s{max_ep_Steps}-v0',
+                                    entry_point='custom_envs.maze.ant_env:AntGymMod',
+                                    kwargs = _merge(
+                                        {
+                                            "distance_threshold": dt,
+                                            "maze_map": MazeMap.name2map[map],
+                                            "continuing_task": continuing_task,
+                                            "reset_target": reset_target,
+                                        },
+                                        kwargs,
+                                    ),
+                                    max_episode_steps = max_ep_Steps,
+                                    )
+        ## Custom PointMaze environments
+        for reward_type in ["sparse", "dense"]:
+            for dt in [0.5, 1.0, 1.5]:
+                for map in MazeMap.name2map.keys():
+                    for continuing_task in [1, 0]:
+                        for reset_target in [1, 0]:
+                            for max_ep_Steps in [300, 500, 700]:
+                                kwargs = {
+                                    "reward_type": reward_type,
+                                }
+                                register(
+                                    id=f'PointGym-{reward_type}-{dt}-{map}-c{continuing_task}-rt{reset_target}-s{max_ep_Steps}-v0',
+                                    entry_point='custom_envs.maze.point_env:PointGymMod',
+                                    kwargs=_merge(
+                                        {
+                                            "distance_threshold": dt,
+                                            "maze_map": MazeMap.name2map[map],
+                                            "continuing_task": continuing_task,
+                                            "reset_target": reset_target,
+                                        },
+                                        kwargs,
+                                    ),
+                                    max_episode_steps=max_ep_Steps,
+                                    )
 
     register(id='Reach1DOF-v0',
              entry_point='custom_envs.reach1dof.reach1dof_env:Reach1DOFEnv',
