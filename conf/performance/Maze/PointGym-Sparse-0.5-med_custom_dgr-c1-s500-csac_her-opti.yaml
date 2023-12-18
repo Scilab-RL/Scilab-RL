@@ -46,9 +46,9 @@ algorithm:
 
 hydra:
   sweeper:
-    study_name: csac_her_PointOpen-small-DGR
+    study_name: csac_her_PointCust-medium-DGR
     max_trials: 60
-    n_jobs: 24
+    n_jobs: 18
     direction: maximize
     max_duration_minutes: 36000
     min_trials_per_param: 1
