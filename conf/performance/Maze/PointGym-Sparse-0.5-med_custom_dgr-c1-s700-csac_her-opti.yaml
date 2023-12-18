@@ -48,7 +48,7 @@ hydra:
   sweeper:
     study_name: csac_her_PointCust-medium-DGR
     max_trials: 60
-    n_jobs: 18
+    n_jobs: 12
     direction: maximize
     max_duration_minutes: 36000
     min_trials_per_param: 1
