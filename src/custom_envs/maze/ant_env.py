@@ -12,6 +12,8 @@ class AntGymMod(GymnasiumAntMazeEnvClass):
     def __init__(self, distance_threshold=0.45, **kwargs):
         self.distance_threshold = distance_threshold
         super().__init__(**kwargs)
+        # self.action_space = self.action_space / 4.0
+        return
         
     def compute_reward(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info
