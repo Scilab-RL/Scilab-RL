@@ -21,7 +21,8 @@ LOG_STD_MIN = -20
 
 
 class Actor(nn.Module):
-    def __init__(self, env):
+    def __init__(self, env, action_scale_factor=1.0):
+        self.action_scale_factor = action_scale_factor
         super().__init__()
         obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
         self.fc1 = nn.Linear(obs_shape, 256)
@@ -30,11 +31,14 @@ class Actor(nn.Module):
         self.fc_mean = nn.Linear(256, np.prod(env.action_space.shape))
         self.fc_logstd = nn.Linear(256, np.prod(env.action_space.shape))
         # action rescaling
+        action_scale = torch.tensor((env.action_space.high - env.action_space.low) / 2.0 * self.action_scale_factor, dtype=torch.float32)
+        action_bias = torch.tensor((env.action_space.high + env.action_space.low) / 2.0, dtype=torch.float32)
+
         self.register_buffer(
-            "action_scale", torch.tensor((env.action_space.high - env.action_space.low) / 2.0, dtype=torch.float32)
+            "action_scale", action_scale
         )
         self.register_buffer(
-            "action_bias", torch.tensor((env.action_space.high + env.action_space.low) / 2.0, dtype=torch.float32)
+            "action_bias", action_bias
         )
 
     def forward(self, x):
@@ -137,6 +141,7 @@ class CLEANSAC:
             use_her: bool = True,
             n_critics: int = 2,
             ignore_dones_for_qvalue: bool = False,
+            action_scale_factor: float = 1.0,
     ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.learning_rate = learning_rate
@@ -147,6 +152,7 @@ class CLEANSAC:
         self.gamma = gamma
         self.n_critics = n_critics
         self.ignore_dones_for_qvalue = ignore_dones_for_qvalue
+        self.action_scale_factor = action_scale_factor
 
         self.env = env
         if isinstance(self.env.action_space, spaces.Box):
@@ -190,7 +196,7 @@ class CLEANSAC:
         self._n_updates = 0
 
     def _create_actor_critic(self) -> None:
-        self.actor = Actor(self.env).to(self.device)
+        self.actor = Actor(self.env, self.action_scale_factor).to(self.device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.learning_rate)
         self.critic = CriticEnsemble(self.env, self.n_critics).to(self.device)
         self.critic_target = CriticEnsemble(self.env, self.n_critics).to(self.device)
