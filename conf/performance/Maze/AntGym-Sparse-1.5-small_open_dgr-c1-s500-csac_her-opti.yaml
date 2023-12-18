@@ -48,7 +48,7 @@ hydra:
   sweeper:
     study_name: csac_her_AntOpen-small-DGR
     max_trials: 60
-    n_jobs: 24
+    n_jobs: 4
     direction: maximize
     max_duration_minutes: 36000
     min_trials_per_param: 1
@@ -84,7 +84,7 @@ hydra:
       ++algorithm.action_scale_factor:
         type: float
         low: 0.2
-        high: 1.0
+        high: 0.6
         step: 0.2
 
 
