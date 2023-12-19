@@ -28,6 +28,8 @@ If you'd like to create a second, different configuration, you don't have to go 
 
 > ⚠️  Mujoco may raise [this error](https://github.com/openai/mujoco-py/issues/544) when debugging. You can unset "Attach to subprocess automatically while debugging" in the Python Debugger Settings (File | Settings | Build, Execution, Deployment | Python Debugger) to avoid this error, or just press `F9` to continue when the error occurs.
 
+> ⚠️ If you run into the error 'Can not save PyCharm settings', change the owner of your `.idea` folder to your WSL username using `chown` 
+
 # Other tips
 - `Ctrl + Shift + F` to search in the whole project or whole directory. 
 - `Ctrl + Shift + R` to search-replace in the whole project or whole directory. 
@@ -35,4 +37,3 @@ If you'd like to create a second, different configuration, you don't have to go 
 - You can switch between _Project_ (Directories overview) and _Structure_ (Classes and Methods of current file overview) on the left.
 - You can use the integrated git functions of Pycharm
 
-Feel free to edit this page and add to this list.

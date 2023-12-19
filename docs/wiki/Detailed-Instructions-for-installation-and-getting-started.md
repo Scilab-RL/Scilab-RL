@@ -10,7 +10,7 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
 
 # Detailed Instructions
 
-1. [Required on Windows systems only] Install Ubuntu 22 LTS via WSL
+## 1. [Required on Windows systems only] Install Ubuntu 22 LTS via WSL
 * Install Ubuntu from the Microsoft Store. Just search for Ubuntu and get Ubuntu 22 LTS. Alternatively, you can install it via Powershell, following these instructions: https://www.c-sharpcorner.com/article/how-to-install-windows-subsystem-for-linux-wsl2-on-windows-11/
 * If you have decided to download the Microsoft Store version, you might be required to do the following steps.
     * If you get the error 'The Windows Subsystem for Linux has not been enabled.' while running Ubuntu:
@@ -20,45 +20,47 @@ These instructions work for Windows 11, Linux and Mac Systems. The framework sho
     * If you get the error 'Error : WslRegisterDistribution failed with error: 0x80370102':
         * Run the following command and restart your pc afterwards: `dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart`
 
-* The Ubuntu version that you get when using Windows 10 will probably not work, because Windows 10 uses WSL 1 and not WSL 2. You can make it work if you update from WSL 1 to WSL 2 manually, but it will be painful. Windows 10 is not recommended, we will not be able to provide you with any further assistance if you use Windows 10. Use Windows 11 instead.
+* Windows 10 is not recommended.
 
-2. Prepare Linux Installation
+## 2. Prepare Linux Installation
 * [Windows] Start the WSL2 console (E.g. start Ubuntu from the start menu, or open a Powershell and run `wsl`) 
 * [Native Ubuntu] Open a terminal window
 * Update the apt repository: `sudo apt update`
-* Install gcc and other tools: `sudo apt install libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf gcc ffmpeg`
+* Install gcc and other tools: `sudo apt install -y libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf gcc ffmpeg python3-dev python3-pip python3-setuptools libbox2d-dev
+`
 
-3. Clone this repository 
+## 3. Clone this repository 
 * Clone this repository by navigating to your home folder in the Ubuntu WSL2 console and running `git clone https://github.com/Scilab-RL/Scilab-RL.git`. This creates a folder `Scilab-RL`.
 
-4. Install the main Scilab-RL dependencies
-* In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. From there, run `./scripts/setup.sh`. This will install all required dependencies, it will take a while. 
+## 4. Install the main Scilab-RL dependencies
+* In the Ubuntu console, navigate to the Scilab-RL folder , e.g., `cd Scilab-RL`. 
+* Run `./scripts/setup.sh` to install all required dependencies. 
 
-5. Create a Weights & Biases account 
-* Go to [wandb.ai](https://wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account. You will obtain a wandb API key that you can find on your wandb profile site. There, go to "settings" and copy your API key. Then assign it to the system variable 'WANDB_API_KEY'. Our recommendation is doing this by adding the line 'export WANDB_API_KEY=<YOUR KEY>' to your '~/.bashrc' file. You can edit this using the following: `nano ~/.bashrc`.
-
-6. Test the installation from the Linux console
-* Activate Conda by running `source ~/.bashrc`
-* Activate the correct Conda environment with `conda activate scilabrl`
-* run `python src/main.py`
+## 5. Create a Weights & Biases account 
+* Go to [wandb.ai](https://wandb.ai) and create an account. If you are affiliated with a research institution or university, you should use that email address to get a free educational account.
+* To obtain your API key, go to "settings" in your wandb profile and copy your API key. Then assign it to the system variable 'WANDB_API_KEY'. 
+* Add the line 'export WANDB_API_KEY="YOUR KEY" ' to your '~/.bashrc' file. 
+## 6. Test the installation from the Linux console
+* Activate Conda by running: `source ~/.bashrc`
+* Activate Conda environment with: `conda activate scilabrl`
+* run: `python src/main.py`
 * When running for the first time, MuJoCo is being compiled, and gcc will produce some additional output. 
 * Once compilation is finished, you should see console output similar to the following: 
 ![image](uploads/c6d784811a62fc1b85653a91aa1dee00/image.png)
 
-7. Accessing visualizations and debugging information. 
+## 7. Accessing visualizations and debugging information. 
 * By default, Scilab-RL will store all data of the currently running experiment in the `data` subfolder. The structure is `<Scilab-Rl-root>/data/<git commit hash>/<Environment name>/<Time of Day>`. If the `render_args` variable is set to `record` in the config, you will  also find a subfolder "videos" with renderings of the experiment in this subfolder. 
 * To monitor all other training metrics, go to wandb.ai and find your experiment data there. 
 
-9. [Optional] Test real-time rendering
+## 9. [Optional] Test real-time rendering
 * To test the real-time rendering, start `python src/main.py source render=display`. 
-* [Windows] You cannot do real-time rendering on Windows  because then you would need to install an X-Server first and export the $DISPLAY variable appropriately. Generally, we recommend not using real-time rendering on Windows. 
-However, if you want that, it is necessary to install an X-Server on Windows. We recommend using the free version of [VcxSrv](https://sourceforge.net/projects/vcxsrv/). Download and install it. Start the X-Server with `XLaunch` (cf. the shortcut on your Windows Desktop). Then press "Next->Next", and in the "Extra Settings" dialog make sure to select "Disable access control". Press "Next->Finish". There are some other details that we leave unspecified here for now. 
+* [Windows] You cannot do real-time rendering on Windows and is not recommended.
 
 # Instructions for debugging with PyCharm
 
-10. Install Pycharm professional
+## 10. Install Pycharm professional
 * As an IDE, we recommend PyCharm professional. On Windows, this is required to work with WSL, on other platforms you may use other IDEs, but we do not recommend this. 
-To install PyCharm professional for free, you need an affiliation with a university or public research institution. Register on the JetBrains website (https://www.jetbrains.com/pycharm/download) with your institution's (e.g. @tuhh.de) email address and request an educational license. On WSL/Windows, you will really need the professional version, so you cannot skip this step. 
+* To install PyCharm professional for free, you need an affiliation with a university or public research institution. Register on the JetBrains website (https://www.jetbrains.com/pycharm/download) with your institution's (e.g. @tuhh.de) email address and request an educational license. On WSL/Windows, you will really need the professional version, so you cannot skip this step. 
 * Download Pycharm, install on Windows, and start it. Then you can activate it with your JetBrains login credentials. 
 
 11. Open Scilab-RL in Pycharm
