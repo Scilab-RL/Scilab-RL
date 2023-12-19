@@ -20,6 +20,8 @@ The `render` args specify how and when to render and plot during training and te
 
 `render_frames_per_clip` determine the number of frames per clip when recording. 0 for recording one episode.
 
+### Default `main.yaml` settings:
+
 ```
 render: 'none' # 'display', 'record', or anything else for neither one
 render_freq: 5

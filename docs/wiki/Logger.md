@@ -15,3 +15,28 @@ This logger allows to log to different outputs. Currently we log to four differe
 - To _Weights and Biases_ with the `WandBOutputFormat`
 
 These output formats are specified in `src/util/custom_logger.py`. You could create another custom output format, e.g. for another experiment tracking software, and add it to the logger with `logger.output_formats.append(AnotherCustomOutputFormat())`.
+
+# Logger and WandB
+
+* Integration with Weights & Biases
+The WandBOutputFormat class allows data logged by a Python application to be seamlessly integrated and visualized in WandB.
+* It supports logging not only standard numerical metrics but also more complex data types like videos, which is particularly useful in contexts where visual data is essential (e.g., training computer vision models).
+
+## Usage of Logger
+* `logger.record`: is used to capture and store individual data points or metrics during the execution of a machine learning model. When you call logger.record, it takes key-value pairs as input, where the key is a string representing the name of the metric, and the value is the metric itself.
+    * `self.logger.record("metric_name", metric_value)`
+
+* `logger.dump`: is responsible for two main actions: displaying and uploading the recorded values.
+    * Displaying: outputting the logged data to a console, file, or other display systems. It's about making the recorded metrics visible. This could be a printout in the terminal, entries in a log file, or visualizations in a GUI.
+    * Uploading: logged data is sent to an external system or service. For example, in our case this is regarding uploading metrics to a dashboard or tracking service like Weights & Biases (WandB) or MLflow for further analysis and visualization.
+    * `logger.dump(step=self.num_timesteps)`
+
+    * `logger.dump` processes the most recent value of each metric that was recorded by `logger.record`. It dumps the latest value of each metric that has been logged.
+
+* `logger.record_mean`: is used to record the average (mean) of a particular metric over a specified period or set of events. This is distinct from logger.record, which logs individual or instantaneous values of metrics.
+    * `logger.record_mean("train/loss", loss.item())`
+
+* Capturing Data: During model training, logger.record is used to capture various metrics and statistics. These are temporarily stored in the logger's internal state.
+
+* Formatting and Logging: Periodically, or at specific points in the training process (like the end of an epoch), the logger's data is passed to its output formats for processing and logging. If WandBOutputFormat is one of the logger's output formats, it receives this data.
+* WandB Logging: WandBOutputFormat processes the received data and logs it to WandB. It ensures that the data is in the correct format for WandB and uses WandB's API to send the data to the WandB server. This allows the data to be visualized and analyzed on the WandB dashboard.
