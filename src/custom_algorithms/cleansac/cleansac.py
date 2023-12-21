@@ -256,11 +256,11 @@ class CLEANSAC:
         self.logger.record("train/rollout_rewards_step", np.mean(rewards))
         self.logger.record_mean("train/rollout_rewards_mean", np.mean(rewards))
         if self.log_obs_step:
-            for n,v in enumerate(new_obs['observation']):
+            for n in range(new_obs['observation'].shape[1]):
                 dim_obs = new_obs['observation'][:,n]
                 self.logger.record(f"train/obs_{n}", np.mean(dim_obs))
         if self.log_act_step:
-            for n, v in enumerate(action):
+            for n in range(action.shape[1]):
                 dim_act = action[:, n]
                 self.logger.record(f"train/act_{n}", np.mean(dim_act))
 
