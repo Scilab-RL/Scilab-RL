@@ -55,8 +55,6 @@ hydra:
     max_duration_minutes: 36000
     min_trials_per_param: 1
     max_trials_per_param: 3
-    log_act_step: True
-    log_obs_step: True
     search_space:
       ++algorithm.learning_rate:
         type: float
