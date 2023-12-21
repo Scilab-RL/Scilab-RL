@@ -18,6 +18,7 @@ class AntGymMod(GymnasiumAntMazeEnvClass):
     def compute_reward(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info
     ) -> float:
+
         distance = np.linalg.norm(achieved_goal - desired_goal, axis=-1)
         if self.reward_type == "dense":
             return np.exp(-distance)
@@ -56,3 +57,21 @@ class AntGymMod(GymnasiumAntMazeEnvClass):
 
             # Update the position of the target site for visualization
             self.update_target_site_pos()
+
+    def step(self, action):
+        ant_obs, _, _, _, info = self.ant_env.step(action)
+        obs = self._get_obs(ant_obs)
+
+        reward = self.compute_reward(obs["achieved_goal"], self.goal, info)
+        terminated = self.compute_terminated(obs["achieved_goal"], self.goal, info)
+        truncated = self.compute_truncated(obs["achieved_goal"], self.goal, info)
+        info["success"] = bool(np.linalg.norm(obs["achieved_goal"] - self.goal) <= self.distance_threshold)
+
+        if self.render_mode == "human":
+            self.render()
+
+        # Update the goal position if necessary
+        self.update_goal(obs["achieved_goal"])
+
+        return obs, reward, terminated, truncated, info
+
