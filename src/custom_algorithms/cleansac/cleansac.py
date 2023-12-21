@@ -142,6 +142,8 @@ class CLEANSAC:
             n_critics: int = 2,
             ignore_dones_for_qvalue: bool = False,
             action_scale_factor: float = 1.0,
+            log_obs_step: bool = False,
+            log_act_step: bool = False,
     ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.learning_rate = learning_rate
@@ -153,6 +155,8 @@ class CLEANSAC:
         self.n_critics = n_critics
         self.ignore_dones_for_qvalue = ignore_dones_for_qvalue
         self.action_scale_factor = action_scale_factor
+        self.log_obs_step = log_obs_step
+        self.log_act_step = log_act_step
 
         self.env = env
         if isinstance(self.env.action_space, spaces.Box):
@@ -251,6 +255,15 @@ class CLEANSAC:
         self.episode_steps += 1
         self.logger.record("train/rollout_rewards_step", np.mean(rewards))
         self.logger.record_mean("train/rollout_rewards_mean", np.mean(rewards))
+        if self.log_obs_step:
+            for n,v in enumerate(new_obs['observation']):
+                dim_obs = new_obs['observation'][:,n]
+                self.logger.record(f"train/obs_{n}", np.mean(dim_obs))
+        if self.log_act_step:
+            for n, v in enumerate(action):
+                dim_act = action[:, n]
+                self.logger.record(f"train/act_{n}", np.mean(dim_act))
+
         self.num_timesteps += self.env.num_envs
 
         # save data to replay buffer; handle `terminal_observation`

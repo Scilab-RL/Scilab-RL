@@ -19,3 +19,8 @@ ignore_dones_for_qvalue: False
 # desireable to not max out the full scale and reduce the action intensity. For this purpose,
 # action_scale_factor is multiplied with the action space of the environment.
 action_scale_factor: 1.0
+
+# Whether to log each observation and action dimension in each step. This might slow down everything, but it can help
+# debugging because it logs each action and observation dimension per step. It only holds for training, not for eval.
+log_obs_step: False
+log_act_step: False
