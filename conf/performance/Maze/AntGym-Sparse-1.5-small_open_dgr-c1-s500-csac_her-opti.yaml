@@ -28,7 +28,7 @@ env: 'AntGym-sparse-1.5-small_open_dgr-c1-rt0-s500-v0'
 
 render: 'record' # 'display', 'record', or anything else for neither one
 render_freq: 2
-render_metrics_train: ['train/rollout_rewards_step']
+render_metrics_train: ['train/rollout_rewards_step', 'train/obs_0', 'train/obs_1', 'train/obs_2', 'train/obs_3', 'train/obs_4']
 render_metrics_test: ['eval/rollout_rewards_step']
 render_frames_per_clip: 1500
 wandb: 1
@@ -53,6 +53,8 @@ hydra:
     max_duration_minutes: 36000
     min_trials_per_param: 1
     max_trials_per_param: 3
+    log_act_step: True
+    log_obs_step: True
     search_space:
       ++algorithm.learning_rate:
         type: float
