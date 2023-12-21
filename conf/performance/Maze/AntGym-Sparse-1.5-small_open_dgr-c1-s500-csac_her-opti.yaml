@@ -31,7 +31,7 @@ render_freq: 2
 render_metrics_train: ['train/rollout_rewards_step']
 render_metrics_test: ['eval/rollout_rewards_step']
 render_frames_per_clip: 1500
-
+wandb: 1
 
 algorithm:
   use_her: True
@@ -48,7 +48,7 @@ hydra:
   sweeper:
     study_name: csac_her_AntOpen-small-DGR
     max_trials: 70
-    n_jobs: 4
+    n_jobs: 24
     direction: maximize
     max_duration_minutes: 36000
     min_trials_per_param: 1
@@ -84,7 +84,7 @@ hydra:
       ++algorithm.action_scale_factor:
         type: float
         low: 0.2
-        high: 0.6
+        high: 1.0
         step: 0.2
 
 
