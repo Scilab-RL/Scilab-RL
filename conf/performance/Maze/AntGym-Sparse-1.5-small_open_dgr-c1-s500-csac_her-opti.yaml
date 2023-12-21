@@ -44,7 +44,7 @@ algorithm:
   batch_size: 2048
   n_critics: 2
   log_obs_step: True
-  log_act_Step: False
+  log_act_step: False
 
 hydra:
   sweeper:
