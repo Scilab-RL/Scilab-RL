@@ -66,7 +66,7 @@ class AntGymMod(GymnasiumAntMazeEnvClass):
         terminated = self.compute_terminated(obs["achieved_goal"], self.goal, info)
         truncated = self.compute_truncated(obs["achieved_goal"], self.goal, info)
         info["success"] = bool(np.linalg.norm(obs["achieved_goal"] - self.goal) <= self.distance_threshold)
-
+        # TODO: observarion[0]=0.25 seems to denote that ant has flipped. add penalty for this.
         if self.render_mode == "human":
             self.render()
 
