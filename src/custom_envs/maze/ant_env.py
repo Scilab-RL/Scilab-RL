@@ -1,18 +1,31 @@
 import gymnasium_robotics
 import numpy as np
-
+from gymnasium.envs.mujoco import MujocoEnv
 
 # ParentClass = gymnasium_robotics.envs.maze.ant_maze_v4
 from gymnasium.envs.registration import load_env_creator
 GymnasiumAntMazeEnvClass = load_env_creator('gymnasium_robotics.envs.maze.ant_maze_v4:AntMazeEnv')
-
+CAMERA_CONFIG = {
+        "distance": 5.0,
+    }
 class AntGymMod(GymnasiumAntMazeEnvClass):
     metadata = GymnasiumAntMazeEnvClass.metadata
     metadata['render_fps'] = 30
-    def __init__(self, distance_threshold=0.45, **kwargs):
+
+    def __init__(self, distance_threshold=0.45, frame_skip=5, **kwargs):
         self.distance_threshold = distance_threshold
         super().__init__(**kwargs)
-        # self.action_space = self.action_space / 4.0
+        #
+        # xml_file = self.tmp_xml_file_path
+        # mj_kwargs = {'render_mode': self.render_mode}
+        # MujocoEnv.__init__(
+        #     self,
+        #     xml_file,
+        #     frame_skip,
+        #     observation_space=self.observation_space,
+        #     default_camera_config=CAMERA_CONFIG,
+        #     **mj_kwargs,
+        # )
         return
         
     def compute_reward(
