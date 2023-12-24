@@ -98,26 +98,26 @@ def register_custom_envs():
                                         kwargs = kwargs,
                                         max_episode_steps = max_ep_Steps,
                                         )
-        ## Custom PointMaze environments
-        for reward_type in ["sparse", "dense"]:
-                for dt in [0.5, 1.0, 1.5]:
-                    for map in MazeMap.name2map.keys():
-                        for continuing_task in [1, 0]:
-                            for reset_target in [1, 0]:
-                                for max_ep_Steps in [300, 500, 700]:
-                                    kwargs = {
-                                        "reward_type": reward_type,
-                                        "distance_threshold": dt,
-                                        "maze_map": MazeMap.name2map[map],
-                                        "continuing_task": continuing_task,
-                                        "reset_target": reset_target,
-                                    }
-                                    register(
-                                        id=f'PointGym-{reward_type}-{dt}-{map}-c{continuing_task}-rt{reset_target}-s{max_ep_Steps}-v0',
-                                        entry_point='custom_envs.maze.point_env:PointGymMod',
-                                        kwargs=kwargs,
-                                        max_episode_steps=max_ep_Steps,
-                                        )
+    ## Custom PointMaze environments
+    for reward_type in ["sparse", "dense"]:
+            for dt in [0.5, 1.0, 1.5]:
+                for map in MazeMap.name2map.keys():
+                    for continuing_task in [1, 0]:
+                        for reset_target in [1, 0]:
+                            for max_ep_Steps in [300, 500, 700]:
+                                kwargs = {
+                                    "reward_type": reward_type,
+                                    "distance_threshold": dt,
+                                    "maze_map": MazeMap.name2map[map],
+                                    "continuing_task": continuing_task,
+                                    "reset_target": reset_target,
+                                }
+                                register(
+                                    id=f'PointGym-{reward_type}-{dt}-{map}-c{continuing_task}-rt{reset_target}-s{max_ep_Steps}-v0',
+                                    entry_point='custom_envs.maze.point_env:PointGymMod',
+                                    kwargs=kwargs,
+                                    max_episode_steps=max_ep_Steps,
+                                    )
 
     register(id='Reach1DOF-v0',
              entry_point='custom_envs.reach1dof.reach1dof_env:Reach1DOFEnv',
