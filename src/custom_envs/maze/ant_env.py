@@ -15,17 +15,7 @@ class AntGymMod(GymnasiumAntMazeEnvClass):
     def __init__(self, distance_threshold=0.45, frame_skip=5, **kwargs):
         self.distance_threshold = distance_threshold
         super().__init__(**kwargs)
-        #
-        # xml_file = self.tmp_xml_file_path
-        # mj_kwargs = {'render_mode': self.render_mode}
-        # MujocoEnv.__init__(
-        #     self,
-        #     xml_file,
-        #     frame_skip,
-        #     observation_space=self.observation_space,
-        #     default_camera_config=CAMERA_CONFIG,
-        #     **mj_kwargs,
-        # )
+        self.ant_env.frame_skip = frame_skip
         return
         
     def compute_reward(
