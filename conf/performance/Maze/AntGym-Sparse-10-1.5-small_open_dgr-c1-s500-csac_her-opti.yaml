@@ -24,12 +24,11 @@ early_stop_data_column: 'eval/success_rate'
 # What to optimize for
 hyperopt_criterion: 'train/rollout_rewards_mean'
 
-#env: 'AntGym-sparse-5-1.5-small_open_dgr-c1-rt0-s500-v0'
 env: 'AntGym-sparse-10-1.5-small_open_dgr-c1-rt0-s500-v0'
 
 render: 'record' # 'display', 'record', or anything else for neither one
 render_freq: 2
-render_metrics_train: ['train/rollout_rewards_step', 'train/obs_0', 'train/obs_1', 'train/obs_2', 'train/obs_3', 'train/obs_4']
+render_metrics_train: ['train/rollout_rewards_step']
 render_metrics_test: ['eval/rollout_rewards_step']
 render_frames_per_clip: 1500
 wandb: 1
@@ -44,7 +43,7 @@ algorithm:
   tau: 0.05
   batch_size: 2048
   n_critics: 2
-  log_obs_step: True
+  log_obs_step: False
   log_act_step: False
 
 hydra:
