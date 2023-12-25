@@ -34,6 +34,6 @@ An example of the side-by-side visualization might look like this, here we highl
 
 `python main.py env='FetchPush-v2' render='display' render_metrics_train=['critic_variance']`
 
-![](uploads/latest/critics_variance_side_by_side.mp4)
+![](uploads/latest/critics_variance_side_by_side.gif)
 
 ## TODO add video for FetchPush-v2 with performance settings
