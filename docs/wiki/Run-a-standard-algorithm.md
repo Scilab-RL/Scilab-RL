@@ -148,3 +148,5 @@ wandb: Find logs at: ./wandb/run-20220527_180745-122u2g70/logs
 Process finished with exit code 0
 ```
 At the end of each experiment, we calculate a score for the hyperparameter optimization (hyperopt) and return it. In this case, we did not run hyperopt, so this is not important for us. Learn more about hyperopt in the [hyperparameter optimization tutorial](Hyperparameter-optimization).
+
+If you would like to add your own algorithm you may go to [adding a new algorithm](Adding-a-new-Algorithm)

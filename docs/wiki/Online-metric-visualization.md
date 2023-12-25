@@ -36,4 +36,4 @@ An example of the side-by-side visualization might look like this, here we highl
 
 ![](uploads/latest/critics_variance_side_by_side.gif)
 
-## TODO add video for FetchPush-v2 with performance settings
+[Link Text](relative/path/to/other/file.md)
