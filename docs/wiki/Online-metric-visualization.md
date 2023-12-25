@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Visualization
+title: Online metric visualization
 parent: Wiki
 has_children: false
 nav_order: 6
