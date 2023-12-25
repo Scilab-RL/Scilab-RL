@@ -34,6 +34,7 @@ n_epochs: 20
 eval_after_n_steps: 2000
 early_stop_threshold: 0.6
 early_stop_data_column: 'eval/success_rate'
+hyperopt_criterion: 'train/rollout_rewards_mean'
 
 env: 'FetchReach-v2'
 
@@ -104,6 +105,7 @@ env: 'FetchReach-v2'
 eval_after_n_steps: 2000
 early_stop_threshold: 0.6
 early_stop_data_column: 'eval/success_rate'
+hyperopt_criterion: 'train/rollout_rewards_mean'
 
 env: 'FetchReach-v2'
 
