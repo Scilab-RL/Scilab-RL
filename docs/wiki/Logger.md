@@ -40,4 +40,4 @@ The WandBOutputFormat class allows data logged by a Python application to be sea
 * Formatting and Logging: Periodically, or at specific points in the training process (like the end of an epoch), the logger's data is passed to its output formats for processing and logging. If WandBOutputFormat is one of the logger's output formats, it receives this data.
 * WandB Logging: WandBOutputFormat processes the received data and logs it to WandB. It ensures that the data is in the correct format for WandB and uses WandB's API to send the data to the WandB server. This allows the data to be visualized and analyzed on the WandB dashboard.
 
-You may also check the [display logged data](/docs/wiki/Display-logged-data) section for detailed information on how the WandB and MLFlow data can be seen and interpreted.
+You may also check the [display logged data](/docs/wiki/Display-logged-data.md) section for detailed information on how the WandB and MLFlow data can be seen and interpreted.
