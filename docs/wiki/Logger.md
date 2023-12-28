@@ -33,7 +33,7 @@ The WandBOutputFormat class allows data logged by a Python application to be sea
 
 &nbsp;
 
-* `logger.dump`: when ever it is called, the data is automatically transfered to WandB for visualization.
+* `logger.dump`: This command is used to output or save the recorded metrics. When called it automatically writes the logged data to a file, console, or external monitoring tools such as WandB and MLFlow for visualization. 
 
 * Capturing Data: During model training, logger.record is used to capture various metrics and statistics. These are temporarily stored in the logger's internal state.
 
