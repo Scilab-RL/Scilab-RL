@@ -53,7 +53,7 @@ hydra:
     n_jobs: 32
     direction: maximize
     max_duration_minutes: 6000
-    min_trials_per_param: 1
+    min_trials_per_param: 3
     max_trials_per_param: 3
     search_space:
       ++algorithm.learning_rate:
