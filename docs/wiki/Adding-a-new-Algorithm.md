@@ -53,7 +53,7 @@ actor_loss = ((ent_coef * log_pi) - max_crit_pi).mean()
 
 It would be more convenient to have a command line parameter with which we can choose between min and max. 
 - add the line `critic_select: 'min' # allows values ['min', 'max']` to `cleansac_mod.yaml`. 
-- add the new parameter to the constructor of _CLEANSAC_MOD_ : `critic_select: str = 'min',`. You could also add other constructor parameters like the `learning_rate` to the config or just use hydras overwrite syntax (e.g. `++algorithm.learning_rate=0.007`, see also the [hydra tutorial](Hyperparameter-management-with-Hydra)).
+- add the new parameter to the constructor of _CLEANSAC_MOD_ : `critic_select: str = 'min',`. You could also add other constructor parameters like the `learning_rate` to the config or just use hydras overwrite syntax (e.g. `++algorithm.learning_rate=0.007`, see also the [hydra tutorial](/docs/wiki/Hyperparameter-management-with-Hydra.md)).
 - add the parameter to the instance of the _CLEANSAC_MOD_ object with `self.critic_select = critic_select`.
 - now you can modify the code accordingly:
 

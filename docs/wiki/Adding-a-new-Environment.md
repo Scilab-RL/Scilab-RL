@@ -126,4 +126,4 @@ to the imports.
 
 Finally, you could find out how fast your environment can be solved with [hyperparameter optimization](Hyperparameter-optimization) or check whether it runs with all algorithms by adding it to the `ENVS` in `test_algos()` in `scripts/run_smoke_tests.sh` ([more on smoke tests](Smoke-tests)).
 
-Further details can be found in [Add environment to MakeDictObs wrapper](Add-environment-to-MakeDictObs-wrapper)
+Further details can be found in [add environment to MakeDictObs wrapper](Add-environment-to-MakeDictObs-wrapper)
