@@ -23,13 +23,14 @@ class AntGymMod(GymnasiumAntMazeEnvClass):
     ) -> float:
 
         distance = np.linalg.norm(achieved_goal - desired_goal, axis=-1)
+        success = (distance <= self.distance_threshold).astype(np.float64)
         if self.reward_type == "dense":
             return np.exp(-distance)
         elif self.reward_type == "sparse":
-            positive_reward = (distance <= self.distance_threshold).astype(np.float64)
-            negative_reward = positive_reward - 1
-            return negative_reward
-        else: assert False, "reward type of ant env must be either dense or sparse"
+            return success
+        elif self.reward_type == "sparseneg":
+            return success - 1
+        else: assert False, "reward type of ant env must be either dense or sparse or sparseneg"
 
     def compute_terminated(
         self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info

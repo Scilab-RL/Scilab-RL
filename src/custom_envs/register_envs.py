@@ -78,7 +78,7 @@ def register_custom_envs():
                      max_episode_steps=max(50, 50*n_objects))
 
     ## Custom Ant environments
-    for reward_type in ["sparse", "dense"]:
+    for reward_type in ["sparse", "sparseneg", "dense"]:
         for fs in [5,10,15,20]:
             for dt in [0.5,1.0,1.5]:
                 for map in MazeMap.name2map.keys():
@@ -99,7 +99,7 @@ def register_custom_envs():
                                         max_episode_steps = max_ep_Steps,
                                         )
     ## Custom PointMaze environments
-    for reward_type in ["sparse", "dense"]:
+    for reward_type in ["sparse", "sparseneg", "dense"]:
             for dt in [0.5, 1.0, 1.5]:
                 for map in MazeMap.name2map.keys():
                     for continuing_task in [1, 0]:
