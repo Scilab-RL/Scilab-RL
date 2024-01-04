@@ -1,0 +1,85 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+defaults:
+  - override /algorithm: cleansac
+
+# The max. number of training epochs to run. One epoch consists of 'eval_after_n_steps' actions.
+n_epochs: 20
+
+# The number of training steps after which to evaluate the policy.
+eval_after_n_steps: 30000
+
+# The number of testing rollouts.
+n_test_rollouts: 10
+
+# The n last epochs over which to average for determining early stopping condition.
+early_stop_last_n: 3
+
+# The early stopping threshold.
+early_stop_threshold: 0.5
+
+# The data column on which early stopping is based.
+early_stop_data_column: 'eval/success_rate'
+
+# What to optimize for
+hyperopt_criterion: 'train/rollout_rewards_mean'
+
+env: 'PointGym-sparse-0.5-medium_custom_dgr-c1-rt0-s500-v0'
+
+render: 'record' # 'display', 'record', or anything else for neither one
+render_freq: 2
+render_metrics_train: ['train/rollout_rewards_step']
+render_metrics_test: ['eval/rollout_rewards_step']
+render_frames_per_clip: 1500
+
+
+algorithm:
+  use_her: True
+  buffer_size: 1000000
+  learning_starts: 1000
+  ent_coef: auto
+  learning_rate: !!float 1e-3
+  gamma: 0.95
+  tau: 0.05
+  batch_size: 2048
+  n_critics: 2
+
+hydra:
+  sweeper:
+    study_name: csac_her_PointCust-medium-DGR
+    max_trials: 60
+    n_jobs: 18
+    direction: maximize
+    max_duration_minutes: 36000
+    min_trials_per_param: 1
+    max_trials_per_param: 3
+    search_space:
+      ++algorithm.learning_rate:
+        type: float
+        low: 0.0001
+        high: 0.01
+        log: true
+#      ++algorithm.gamma:
+#        type: float
+#        low: 0.9
+#        high: 0.99
+#        log: true
+#      ++algorithm.tau:
+#        type: float
+#        low: 0.005
+#        high: 0.1
+#        log: true
+#      ++algorithm.batch_size:
+#        type: int
+#        low: 128
+#        high: 8192
+#        log: false
+      ++algorithm.n_critics:
+        type: int
+        low: 1
+        high: 2
+      ++algorithm.ignore_dones_for_qvalue:
+        type: categorical
+        choices: [ False, True ]
+
+

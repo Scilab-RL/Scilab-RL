@@ -24,7 +24,7 @@ early_stop_data_column: 'eval/success_rate'
 # What to optimize for
 hyperopt_criterion: 'train/rollout_rewards_mean'
 
-env: 'AntGym-sparse-1.5-small_open_dgr-c1-rt0-s500-v0'
+env: 'PointGym-sparse-0.5-medium_custom_dgr-c1-rt0-s700-v0'
 
 render: 'record' # 'display', 'record', or anything else for neither one
 render_freq: 2
@@ -42,13 +42,13 @@ algorithm:
   gamma: 0.95
   tau: 0.05
   batch_size: 2048
-  n_critics: 2
+  n_critics: 1
 
 hydra:
   sweeper:
-    study_name: csac_her_AntOpen-small-DGR
+    study_name: csac_her_PointCust-medium-DGR
     max_trials: 60
-    n_jobs: 24
+    n_jobs: 12
     direction: maximize
     max_duration_minutes: 36000
     min_trials_per_param: 1
@@ -57,7 +57,7 @@ hydra:
       ++algorithm.learning_rate:
         type: float
         low: 0.0001
-        high: 0.005
+        high: 0.01
         log: true
 #      ++algorithm.gamma:
 #        type: float
@@ -74,10 +74,10 @@ hydra:
 #        low: 128
 #        high: 8192
 #        log: false
-      ++algorithm.n_critics:
-        type: int
-        low: 1
-        high: 2
+#      ++algorithm.n_critics:
+#        type: int
+#        low: 1
+#        high: 2
       ++algorithm.ignore_dones_for_qvalue:
         type: categorical
         choices: [ False, True ]
