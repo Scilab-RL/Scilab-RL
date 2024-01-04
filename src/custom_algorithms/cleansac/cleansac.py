@@ -247,12 +247,24 @@ class CLEANSAC:
         # Select action randomly or according to policy
         if self.num_timesteps < self.learning_starts:
             action = np.array([self.env.action_space.sample()])
+            log_pi = 0.0
         else:
-            action, _ = self.predict(self._last_obs)
+            action, log_pi = self.predict(self._last_obs)
+            log_pi = float(log_pi.mean())
         flat_obs = flatten_obs(self._last_obs, self.device)
         torch_obs = torch.tensor(flat_obs)
         torch_action = torch.tensor(action,device=self.device)
         q_val = float(self.critic(torch_obs, torch_action).mean())
+        if self.ent_coef == "auto":
+            ent_coef = self.log_ent_coef.exp().item()
+        else:
+            ent_coef = self.ent_coef_tensor
+        ent_coef = float(ent_coef)
+        self.logger.record_mean("train/rollout_ent_coef", ent_coef)
+        self.logger.record("train/rollout_logpi_times_coef_step", log_pi * ent_coef)
+        self.logger.record_mean("train/rollout_logpi_times_coef_mean", log_pi * ent_coef)
+        self.logger.record("train/rollout_logpi_step", log_pi)
+        self.logger.record_mean("train/rollout_logpi_mean", log_pi)
         self.logger.record("train/rollout_q_step", q_val)
         self.logger.record_mean("train/rollout_q_mean", q_val)
 
@@ -364,8 +376,8 @@ class CLEANSAC:
         :return: the model's action
         """
         observation = flatten_obs(obs, self.device)
-        action, _ = self.actor.get_action(observation, deterministic=deterministic)
-        return action.detach().cpu().numpy(), None
+        action, log_pi = self.actor.get_action(observation, deterministic=deterministic)
+        return action.detach().cpu().numpy(), log_pi.detach().cpu().numpy()
 
     def save(self, path: Union[str, pathlib.Path, io.BufferedIOBase]):
         # Copy parameter list, so we don't mutate the original dict
