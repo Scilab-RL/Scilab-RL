@@ -249,6 +249,12 @@ class CLEANSAC:
             action = np.array([self.env.action_space.sample()])
         else:
             action, _ = self.predict(self._last_obs)
+        flat_obs = flatten_obs(self._last_obs, self.device)
+        torch_obs = torch.tensor(flat_obs)
+        torch_action = torch.tensor(action,device=self.device)
+        q_val = float(self.critic(torch_obs, torch_action).mean())
+        self.logger.record("train/rollout_q_step", q_val)
+        self.logger.record_mean("train/rollout_q_mean", q_val)
 
         # perform action
         new_obs, rewards, dones, infos = self.env.step(action)
