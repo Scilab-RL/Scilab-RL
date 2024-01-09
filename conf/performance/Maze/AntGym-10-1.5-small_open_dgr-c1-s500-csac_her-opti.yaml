@@ -26,7 +26,7 @@ hyperopt_criterion: 'eval/success_rate'
 
 env: 'AntGym-sparse-10-1.5-small_open_dgr-c1-rt0-s500-v0'
 
-render: 'none' # 'display', 'record', or anything else for neither one
+render: 'record' # 'display', 'record', or anything else for neither one
 render_freq: 2
 render_metrics_train: ['train/rollout_rewards_step']
 render_metrics_test: ['eval/rollout_rewards_step']
@@ -53,7 +53,7 @@ hydra:
   sweeper:
     study_name: csac_her_AntOpen-small-DGR
     max_trials: 320
-    n_jobs: 24
+    n_jobs: 12
     direction: maximize
     max_duration_minutes: 6000
     min_trials_per_param: 1
