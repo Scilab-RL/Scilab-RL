@@ -22,7 +22,7 @@ algorithm:
 
 render: 'record'
 
-render_freq: 5 # epochs
+render_freq: 20 # epochs
 render_metrics_train: ['train/rollout_rewards_step', 'train/rollout_logprob_step']
 render_metrics_test: ['eval/rollout_rewards_step']
 render_frames_per_clip: 0 # Number of frames per clip when recording. If set to 0, one episode is recorded.
@@ -32,7 +32,7 @@ wandb: 1
 
 early_stop_data_column: 'eval/mean_reward'
 early_stop_threshold: 260
-n_epochs: 20
+n_epochs: 200
 eval_after_n_steps: 2000
 hyperopt_criterion: 'eval/mean_reward'
 
