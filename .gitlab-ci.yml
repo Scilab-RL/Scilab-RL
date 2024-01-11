@@ -25,7 +25,7 @@ run-smoke-and-performance-tests:
         - source ~/.bashrc
         - source scripts/set_paths.sh
         - conda activate scilabrl
-        - nvidia-smi
+        - which nvidia-smi && nvidia-smi || echo "nvidia-smi is not available"
         - conda install -c conda-forge ncurses -y
         - export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
         - pip install "importlib-metadata~=4.13" # bug fix for gym issues/3122
