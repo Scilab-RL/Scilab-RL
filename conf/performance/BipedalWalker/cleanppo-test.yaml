@@ -5,9 +5,15 @@ defaults:
 
 env: 'BipedalWalker-v3'
 
-# the parameters have not been optimized for this environment!
 algorithm:
-  learning_rate: 0.0003
+  n_epochs: 14
+  gamma: 0.99
+  batch_size: 768
+  clip_range: 0.25
+  vf_coef: 0.6
+  learning_rate: 0.0011
+  n_steps: 1024
+  gae_lambda: 0.91
 
 early_stop_data_column: 'eval/mean_reward'
 early_stop_threshold: 260
@@ -21,10 +27,10 @@ performance_testing_conditions:
 
   eval_columns: eval/mean_reward # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
 
-  eval_value: 240 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
+  eval_value: 150 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
 
   # ca. 1.5h on GPU
-  max_steps: 500_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+  max_steps: 250_000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
 
 hydra:
   sweeper:
