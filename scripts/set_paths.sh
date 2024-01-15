@@ -6,4 +6,5 @@ if [ -x "$(command -v nvidia-smi)" ]; then
   #export LD_PRELOAD=$LD_PRELOAD:/usr/lib/x86_64-linux-gnu/libGLEW.so # Had to comment this out with NVIDIA driver 460 version.
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia-000
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+  export MUJOCO_GL=osmesa
 fi
