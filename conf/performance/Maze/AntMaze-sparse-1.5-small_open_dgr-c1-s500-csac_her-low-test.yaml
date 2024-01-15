@@ -1,0 +1,53 @@
+# @package _global_
+# Changes specified in this config should be interpreted as relative to the _global_ package.
+
+# This version is the low-performance test that requires only a success rate of 0.25 but is much faster than the high-performance version.
+
+defaults:
+  - override /algorithm: cleansac
+
+env: 'AntGym-sparse-10-1.5-small_open_dgr-c1-rt0-s500-v0'
+
+# The number of training steps after which to evaluate the policy.
+eval_after_n_steps: 30000
+
+# The number of testing rollouts.
+n_test_rollouts: 10
+
+# The n last epochs over which to average for determining early stopping condition.
+early_stop_last_n: 3
+
+# The data column on which early stopping is based.
+early_stop_data_column: 'eval/success_rate'
+
+render: none
+
+algorithm:
+  use_her: True
+  buffer_size: 1000000
+  learning_starts: 1000
+  action_scale_factor: 0.4
+  n_critics: 2
+  batch_size: 2048
+  learning_rate: 0.0004
+  gamma: 0.95
+  tau: 0.05
+
+performance_testing_conditions:
+  # In 2 out of 3 tests, the eval/success rate should be at least 0.5 after 200k steps.
+
+  total_runs: 3 # How many runs in total:
+
+  succ_runs: 2 # This number of runs should meet the conditions:
+
+  eval_columns: eval/success_rate # This is what we evaluate to determine success. Will use this to override the \'early_stop_data_column\' parameter of main.yaml
+
+  eval_value: 0.25 # This is the value we determine for success. Will use this to determine and override the \'early_stop_threshold\' parameter of main.yaml
+
+  max_steps: 300000 # This is the time limit for checking the success. Will use this and the \'eval_after_n_steps\' parameter of main.yaml to determine the n_epochs parameter in main.yaml.
+
+hydra:
+  sweeper:
+    n_jobs: 3
+    _target_: hydra_plugins.hydra_custom_optuna_sweeper.performance_testing_sweeper.PerformanceTestingSweeper
+    study_name: csac_her_PointOpen-small-DGR-test

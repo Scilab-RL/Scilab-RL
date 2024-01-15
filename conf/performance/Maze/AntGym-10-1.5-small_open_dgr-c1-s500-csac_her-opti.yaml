@@ -44,6 +44,7 @@ algorithm:
   gamma: 0.95
   tau: 0.05
   batch_size: 2048
+  action_scale_factor: 0.4
   n_critics: 2
   log_obs_step: False
   log_act_step: False
@@ -59,11 +60,11 @@ hydra:
     min_trials_per_param: 1
     max_trials_per_param: 3
     search_space:
-#      ++algorithm.learning_rate:
-#        type: float
-#        low: 0.0001
-#        high: 0.01
-#        log: true
+      ++algorithm.learning_rate:
+        type: float
+        low: 0.0001
+        high: 0.01
+        log: true
 #      ++algorithm.gamma:
 #        type: float
 #        low: 0.9
