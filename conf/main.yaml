@@ -14,19 +14,17 @@ env: 'FetchReach-v2'
 env_kwargs: {}
 
 # The render* args specify how and when to render and plot during training and testing.
-# 'record' is for recording the rendered scene as a video file without on-screen display.
-# We record one frame per step with 30fps.
-# 'display' for direct visualization (requires an x-server).
-# 'none' (or any other string) for not rendering at all.
+# 'record' is for recording the rendered scene as a video file without on-screen display,
+# 'display' for direct visualization, neither one, e.g. 'none' for not rendering at all.
 # render_freq determine the number of epochs after which we render the training/testing.
-# render_metrics* determine a list of metric values to render. For training, they have to be provided by the
-# learning algorithm and for evaluation by the evaluation callback (e.g. '_log_data_callback') in custom_callback.py.
+# render_metrics* determine the metric values to render. They have to be provided by the
+# learning algorithm.
 # TODO: maybe there is a better place to put render_metrics_* because they depend on the
 # algorithm. Maybe put them in the algorithm/xyz.yaml
 render: 'none' # 'display', 'record', or anything else for neither one
 render_freq: 5 # epochs
-render_metrics_train: ['train/rollout_rewards_step']
-render_metrics_test: ['eval/rollout_rewards_step']
+render_metrics_train: ['train/rollout_rewards_step',  'mc/i_reward', 'mc/kld', 'actor_entropy']
+render_metrics_test: ['eval/rollout_rewards_step', 'mc/i_reward', 'mc/kld', 'actor_entropy']
 render_frames_per_clip: 0 # Number of frames per clip when recording. If set to 0, one episode is recorded.
 
 # If the seed is 0, it will be set to a pseudo-random value (int(time.time()))

@@ -3,7 +3,7 @@ cffi==1.15.1
 cloudpickle==2.2.1
 Cython==3.0.2
 glfw==2.6.2
-gymnasium==0.29.1
+gymnasium[box2d,mujoco]==0.29.1
 gymnasium-robotics==1.2.3
 hydra-core==1.3.2
 joblib==1.3.2
@@ -18,4 +18,5 @@ stable-baselines3==2.1.0
 tqdm==4.66.1
 wandb==0.15.10
 highway-env==1.8.2
+myosuite @ git+https://collaborating.tuhh.de/e-21/myosuite.git
 git+https://github.com/Farama-Foundation/Metaworld.git@master#egg=metaworld
