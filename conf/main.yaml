@@ -23,7 +23,7 @@ env_kwargs: {}
 # algorithm. Maybe put them in the algorithm/xyz.yaml
 render: 'none' # 'display', 'record', or anything else for neither one
 render_freq: 5 # epochs
-render_metrics_train: ['train/rollout_rewards_step', 'train/rollout_q_step', 'train/logpi_times_coeff_step', 'train/logpi_step']
+render_metrics_train: ['train/rollout_rewards_step']
 render_metrics_test: ['eval/rollout_rewards_step']
 render_frames_per_clip: 0 # Number of frames per clip when recording. If set to 0, one episode is recorded.
 
