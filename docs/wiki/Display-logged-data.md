@@ -34,7 +34,11 @@ And get a very clear result:
 
 # MLFlow
 
-Open a terminal in the Scilab-RL project and run `mlflow ui --host 0.0.0.0` to start an MLFlow server. The `--host` flag means that you can also access it from another computer which is convenient if you run your experiments on a remote computer. Now you can open MLFlow in your browser at http://0.0.0.0:5000/#/.
+Open a terminal in the Scilab-RL project and run `mlflow ui` to start an MLFlow server. 
+*  Alternatively the `--host 0.0.0.0` can be used so you can also access it from another computer which is convenient if you run your experiments on a remote computer. 
+
+Now you can open MLFlow in your browser at http://0.0.0.0:5000/#/ or http://localhost:5000/#/ .
+
 
 Your experiments are grouped. All experiments that are not run with multiprocessing are in the _Default_ group.
 
