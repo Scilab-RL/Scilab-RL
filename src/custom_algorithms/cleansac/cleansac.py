@@ -21,7 +21,8 @@ LOG_STD_MIN = -20
 
 
 class Actor(nn.Module):
-    def __init__(self, env):
+    def __init__(self, env, action_scale_factor=1.0):
+        self.action_scale_factor = action_scale_factor
         super().__init__()
         obs_shape = np.sum([obs_space.shape for obs_space in env.observation_space.spaces.values()])
         self.fc1 = nn.Linear(obs_shape, 256)
@@ -30,11 +31,14 @@ class Actor(nn.Module):
         self.fc_mean = nn.Linear(256, np.prod(env.action_space.shape))
         self.fc_logstd = nn.Linear(256, np.prod(env.action_space.shape))
         # action rescaling
+        action_scale = torch.tensor((env.action_space.high - env.action_space.low) / 2.0 * self.action_scale_factor, dtype=torch.float32)
+        action_bias = torch.tensor((env.action_space.high + env.action_space.low) / 2.0, dtype=torch.float32)
+
         self.register_buffer(
-            "action_scale", torch.tensor((env.action_space.high - env.action_space.low) / 2.0, dtype=torch.float32)
+            "action_scale", action_scale
         )
         self.register_buffer(
-            "action_bias", torch.tensor((env.action_space.high + env.action_space.low) / 2.0, dtype=torch.float32)
+            "action_bias", action_bias
         )
 
     def forward(self, x):
@@ -137,6 +141,9 @@ class CLEANSAC:
             use_her: bool = True,
             n_critics: int = 2,
             ignore_dones_for_qvalue: bool = False,
+            action_scale_factor: float = 1.0,
+            log_obs_step: bool = False,
+            log_act_step: bool = False,
     ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.learning_rate = learning_rate
@@ -147,6 +154,9 @@ class CLEANSAC:
         self.gamma = gamma
         self.n_critics = n_critics
         self.ignore_dones_for_qvalue = ignore_dones_for_qvalue
+        self.action_scale_factor = action_scale_factor
+        self.log_obs_step = log_obs_step
+        self.log_act_step = log_act_step
 
         self.env = env
         if isinstance(self.env.action_space, spaces.Box):
@@ -190,7 +200,7 @@ class CLEANSAC:
         self._n_updates = 0
 
     def _create_actor_critic(self) -> None:
-        self.actor = Actor(self.env).to(self.device)
+        self.actor = Actor(self.env, self.action_scale_factor).to(self.device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.learning_rate)
         self.critic = CriticEnsemble(self.env, self.n_critics).to(self.device)
         self.critic_target = CriticEnsemble(self.env, self.n_critics).to(self.device)
@@ -237,14 +247,41 @@ class CLEANSAC:
         # Select action randomly or according to policy
         if self.num_timesteps < self.learning_starts:
             action = np.array([self.env.action_space.sample()])
+            log_pi = 0.0
         else:
-            action, _ = self.predict(self._last_obs)
+            action, log_pi = self.predict(self._last_obs)
+            log_pi = float(log_pi.mean())
+        flat_obs = flatten_obs(self._last_obs, self.device)
+        torch_obs = torch.tensor(flat_obs)
+        torch_action = torch.tensor(action,device=self.device)
+        q_val = float(self.critic(torch_obs, torch_action).mean())
+        if self.ent_coef == "auto":
+            ent_coef = self.log_ent_coef.exp().item()
+        else:
+            ent_coef = self.ent_coef_tensor
+        ent_coef = float(ent_coef)
+        self.logger.record_mean("train/rollout_ent_coef", ent_coef)
+        self.logger.record("train/rollout_logpi_times_coef_step", log_pi * ent_coef)
+        self.logger.record_mean("train/rollout_logpi_times_coef_mean", log_pi * ent_coef)
+        self.logger.record("train/rollout_logpi_step", log_pi)
+        self.logger.record_mean("train/rollout_logpi_mean", log_pi)
+        self.logger.record("train/rollout_q_step", q_val)
+        self.logger.record_mean("train/rollout_q_mean", q_val)
 
         # perform action
         new_obs, rewards, dones, infos = self.env.step(action)
         self.episode_steps += 1
         self.logger.record("train/rollout_rewards_step", np.mean(rewards))
         self.logger.record_mean("train/rollout_rewards_mean", np.mean(rewards))
+        if self.log_obs_step:
+            for n in range(new_obs['observation'].shape[1]):
+                dim_obs = new_obs['observation'][:,n]
+                self.logger.record(f"train/obs_{n}", np.mean(dim_obs))
+        if self.log_act_step:
+            for n in range(action.shape[1]):
+                dim_act = action[:, n]
+                self.logger.record(f"train/act_{n}", np.mean(dim_act))
+
         self.num_timesteps += self.env.num_envs
 
         # save data to replay buffer; handle `terminal_observation`
@@ -339,8 +376,8 @@ class CLEANSAC:
         :return: the model's action
         """
         observation = flatten_obs(obs, self.device)
-        action, _ = self.actor.get_action(observation, deterministic=deterministic)
-        return action.detach().cpu().numpy(), None
+        action, log_pi = self.actor.get_action(observation, deterministic=deterministic)
+        return action.detach().cpu().numpy(), log_pi.detach().cpu().numpy()
 
     def save(self, path: Union[str, pathlib.Path, io.BufferedIOBase]):
         # Copy parameter list, so we don't mutate the original dict
