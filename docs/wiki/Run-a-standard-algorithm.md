@@ -27,7 +27,7 @@ wandb: Syncing run rose-breeze-83
 wandb: ⭐️ View project at https://wandb.ai/USER/sac_FetchReach-v2
 wandb: 🚀 View run at https://wandb.ai/USER/sac_FetchReach-v2/runs/2872w2rk
 ```
-These lines are displayed because we use _MLFlow_ and _Weights and Biases_ to track our experiments (more on that in the [Display logged data tutorial](Display-logged-data).
+These lines are displayed because we use _MLFlow_ and _Weights and Biases_ to track our experiments more on that in the [Display logged data tutorial](Display-logged-data).
 
 After that, the experiment configuration is printed ([configuration tutorial](Hyperparameter-management-with-Hydra)). The first lines show us that we run SAC with hindsight experience replay (HER) and that we train on the _FetchReach_ environment.
 
@@ -148,3 +148,5 @@ wandb: Find logs at: ./wandb/run-20220527_180745-122u2g70/logs
 Process finished with exit code 0
 ```
 At the end of each experiment, we calculate a score for the hyperparameter optimization (hyperopt) and return it. In this case, we did not run hyperopt, so this is not important for us. Learn more about hyperopt in the [hyperparameter optimization tutorial](Hyperparameter-optimization).
+
+If you would like to add your own algorithm you may go to [adding a new algorithm](Adding-a-new-Algorithm)
