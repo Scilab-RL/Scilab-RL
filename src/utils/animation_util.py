@@ -71,6 +71,7 @@ class LiveAnimationPlot:
 
     def save_animation(self, base_path):
         FFwriter = matplotlib.animation.FFMpegWriter(fps=self.output_frames_per_sec, codec="h264")
+        # PillowWriter = matplotlib.animation.PillowWriter(fps=self.output_frames_per_sec, codec="h264")
         for i, ax_i in enumerate(self.axs):
             y_range = max(self.y_data[i]) - min(self.y_data[i])
             x_range = max(self.x_data[i]) - min(self.x_data[i])

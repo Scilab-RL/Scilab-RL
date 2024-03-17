@@ -266,6 +266,8 @@ class CustomOptunaSweeperImpl(Sweeper):
                     enqueued_param_runs += 1
                 else:
                     enqueued_param_runs = 0
+                # Wait until starting next study. This helps if e.g. a temporary file is generated with a study, and the next study uses the same file name.
+                time.sleep(0.2)
 
             returns = self.launcher.launch(overrides, initial_job_idx=self.job_idx)
             self.job_idx += len(returns)

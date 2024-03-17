@@ -316,7 +316,13 @@ class CLEANSACMC:
         return True
 
     def train_mc(self, observations, next_observations, actions):
+        # Generate a normal distribution over forward_normal and world_normal given observations and actions.
         forward_normal, world_normal = self.mc_network(observations, actions)
+        # The loss is the negative log likelihood of the next obs being sampled from a distribution given by mu, sigma
+        # Likelihood is a value between 0 and 1.
+        # Therefore, the log likelihood is negative
+        # So we negate the log likelihood it to obtain a value that we can minimize.
+        #
         fw_loss = -forward_normal.log_prob(next_observations)
         w_prime_a_loss = -world_normal.log_prob(next_observations)
         loss = (fw_loss + w_prime_a_loss).mean()

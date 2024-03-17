@@ -117,7 +117,30 @@ def register_custom_envs():
                                     entry_point='custom_envs.maze.point_env:PointGymMod',
                                     kwargs=kwargs,
                                     max_episode_steps=max_ep_Steps,
+                                )
+                                for n_obj in range(5):
+                                    obj_kwargs = kwargs.copy()
+                                    obj_kwargs['n_objects'] = n_obj
+                                    register(
+                                        id=f'PointObjGym-{reward_type}-o{n_obj}-{dt}-{map}-c{continuing_task}-rt{reset_target}-s{max_ep_Steps}-v0',
+                                        entry_point='custom_envs.maze.point_obj_env:PointObjEnv',
+                                        kwargs=obj_kwargs,
+                                        max_episode_steps=max_ep_Steps,
                                     )
+    # kwargs = {
+    #     "reward_type": reward_type,
+    #     "distance_threshold": 0.45,
+    #     "maze_map": MazeMap.name2map["small_open_dgr"],
+    #     "continuing_task": 1,
+    #     "reset_target": 0,
+    #     "n_objects": 4,
+    # }
+    # register(
+    #     id=f'PointObjGym-v0',
+    #     entry_point='custom_envs.maze.point_obj_env:PointObjEnv',
+    #     kwargs=kwargs,
+    #     max_episode_steps=700,
+    # )
 
     register(id='Reach1DOF-v0',
              entry_point='custom_envs.reach1dof.reach1dof_env:Reach1DOFEnv',
