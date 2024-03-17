@@ -220,7 +220,7 @@ class PointObjEnv(GymnasiumPointMazeEnvClass):
         **kwargs,
     ):
         MazeEnv.reset(self, seed=seed, **kwargs)
-        self.point_env.model.site_rgba[self.target_site_id] = [0, 0, 0, 0]
+        self.point_env.model.site_rgba[self.target_site_id] = [0.5, 0.5, 0.5, 0.3]
 
         self.point_env.init_qpos[:2] = self.reset_pos
         positions = [self.reset_pos]
