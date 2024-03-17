@@ -54,7 +54,10 @@ def get_train_render_schedule(every_n_epochs):
 
 def get_eval_render_schedule(every_n_epochs, n_eval_episodes):
     def eval_schedule(episode_id):
-        return episode_id % (every_n_epochs * n_eval_episodes) == 0
+        if (every_n_epochs * n_eval_episodes) == 0:
+            return 0
+        else:
+            return episode_id % (every_n_epochs * n_eval_episodes) == 0
     return eval_schedule
 
 
