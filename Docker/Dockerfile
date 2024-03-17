@@ -38,19 +38,4 @@ RUN apt-get update -q \
     && apt-get autoclean -y && apt-get autoremove -y && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# # Get mujoco
-# # adapted from https://github.com/openai/mujoco-py/issues/676#issuecomment-1107798580
-# RUN mkdir -p /root/.mujoco \
-#     && wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz -O mujoco.tar.gz \
-#     && tar -xf mujoco.tar.gz -C /root/.mujoco/ \
-#     && rm mujoco.tar.gz
-#
-# # # Install miniconda
-# RUN wget \
-#     https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-#     && bash Miniconda3-latest-Linux-x86_64.sh -b \
-#     && rm -f Miniconda3-latest-Linux-x86_64.sh
-#
 ENV PATH="/root/miniconda3/bin:${PATH}"
-# RUN . $(conda info --base)/etc/profile.d/conda.sh \
-# 	&& conda create --name scilabrl python=3.8

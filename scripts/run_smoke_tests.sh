@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # We first test all the algorithms and then test a selection of environments
 
+export OMP_NUM_THREADS=1
 # change into git root directory
 cd $(git rev-parse --show-toplevel)
 

@@ -1,4 +1,6 @@
 #!/bin/bash
+
+export OMP_NUM_THREADS=1
 # Run all performance-tests, except for those: (useful when you don't want to repeat already successful tests)
 configs_to_ignore=()
 # The following are known to work:
@@ -68,4 +70,3 @@ else
   done
   exit 1
 fi
-
