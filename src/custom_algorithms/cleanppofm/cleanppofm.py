@@ -541,8 +541,8 @@ class CLEANPPOFM:
                         observation_height=observation_height,
                         observation_width=observation_width,
                         agent_size=agent_size, task=task)
-                    obs_after_every_action = torch.cat((obs_after_every_action, obs_after_action), dim=1)
-                new_obs = obs_after_every_action
+                    obs_after_every_action = torch.cat((obs_after_every_action.to(device=device), obs_after_action.to(device=device)), dim=1)
+                new_obs = obs_after_every_action.to(device=device)
 
             # Compute value for the last timestep
             values = self.policy.get_value(new_obs)
