@@ -84,6 +84,7 @@ class MetaEnvPretrained(gym.Env):
              "SoC_collect": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
              "reward_dodge": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
              "reward_collect": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+             "task_switching_costs": gym.spaces.Box(low=0, high=0.5, shape=(1,), dtype=np.float32),
              "task_action": gym.spaces.Box(low=0, high=2, shape=(1,), dtype=np.int64),
              "meta_action": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.int64),
              "crashed_objects": gym.spaces.Box(low=0, high=74, shape=(1,), dtype=np.int64),
@@ -158,7 +159,8 @@ class MetaEnvPretrained(gym.Env):
         # self.state = np.append(self.state, [self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
         # self.state = np.array([self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
         self.state = {"image": state_image, "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect,
-                      "reward_dodge": 0, "reward_collect": 0, "task_action": 0, "meta_action": 0, "crashed_objects": 0,
+                      "reward_dodge": 0, "reward_collect": 0, "task_switching_costs": 0, "task_action": 0,
+                      "meta_action": 0, "crashed_objects": 0,
                       "collected_objects": 0}
 
         # for rendering
@@ -514,7 +516,8 @@ class MetaEnvPretrained(gym.Env):
         # self.state = np.append(self.state, [self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
         # self.state = np.array([self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
         self.state = {"image": state_image, "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect,
-                      "reward_dodge": 0, "reward_collect": 0, "task_action": 0, "meta_action": 0, "crashed_objects": 0,
+                      "reward_dodge": 0, "reward_collect": 0, "task_switching_costs": 0, "task_action": 0,
+                      "meta_action": 0, "crashed_objects": 0,
                       "collected_objects": 0}
 
         # counter
