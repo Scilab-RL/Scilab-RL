@@ -211,6 +211,7 @@ class MetaEnvPretrained(gym.Env):
         # FIXME: hardcoded forward model prediction
         active_gold_label = get_next_position_observation_moonlander(
             observations=active_agent_and_object_positions_tensor,
+            #current_state=torch.tensor(active_last_state, device=device),
             actions=action_of_task_agent,
             observation_width=self.observation_width,
             observation_height=self.observation_height,
@@ -226,6 +227,12 @@ class MetaEnvPretrained(gym.Env):
             actions=torch.tensor(action_of_task_agent).float(),
             # forward_normal=active_belief_state_normal_distribution)
             forward_normal=active_gold_label)
+        active_agent_and_object_positions_tensor_new = get_position_and_object_positions_of_observation(
+            torch.tensor(new_state, device=device),
+            observation_width=self.observation_width,
+            observation_height=self.observation_height,
+            maximum_number_of_objects=active_model.maximum_number_of_objects,
+            agent_size=self.agent_size)
 
         ### INACTIVE TASK ###
         # set input noise to zero
@@ -234,20 +241,13 @@ class MetaEnvPretrained(gym.Env):
         # only four return value because DummyVecEnv only returns observation, reward, done, info
         # but meta agent does not see actual state and reward
         observation, _, inactive_is_done, inactive_info = inactive_model.env.step(torch.tensor([1], device=device))
-        if action == 0:
-            print('dodge')
-        else:
-            print('collect')
-        print('observation: ', observation)
-        # get position and object positions of observation
+        ## get position and object positions of observation
         inactive_agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(
             torch.tensor(observation, device=device),
             observation_width=self.observation_width,
             observation_height=self.observation_height,
             maximum_number_of_objects=inactive_model.maximum_number_of_objects,
             agent_size=self.agent_size)
-        print('active: ', active_agent_and_object_positions_tensor)
-        print('inactive: ', inactive_agent_and_object_positions_tensor)
         # forward model predictions once with state and action to get next belief state
         # inactive_belief_state_normal_distribution = inactive_model.fm_network(
         #     inactive_agent_and_object_positions_tensor,
@@ -255,6 +255,7 @@ class MetaEnvPretrained(gym.Env):
         # FIXME: hardcoded forward model prediction
         inactive_gold_label = get_next_position_observation_moonlander(
             observations=inactive_agent_and_object_positions_tensor,
+            #current_state=torch.tensor(observation, device=device),
             actions=torch.tensor([1]),
             observation_width=self.observation_width,
             observation_height=self.observation_height,
@@ -344,7 +345,7 @@ class MetaEnvPretrained(gym.Env):
                             inactive_gold_label.mean.cpu().detach().numpy()[0][0]),
                         self.observation_width - self.agent_size + 1))
                 objects_collect = inactive_agent_and_object_positions_tensor
-                objects_dodge = active_agent_and_object_positions_tensor
+                objects_dodge = active_agent_and_object_positions_tensor_new
             case 1:
                 # collect task
                 self.state_of_dodge_asteroids = belief_state
@@ -378,7 +379,7 @@ class MetaEnvPretrained(gym.Env):
                 predicted_next_collect_position = round(
                     # min(max(1, active_belief_state_normal_distribution.mean.cpu().detach().numpy()[0][0]), 10))
                     min(max(1, active_gold_label.mean.cpu().detach().numpy()[0][0]), 10))
-                objects_collect = active_agent_and_object_positions_tensor
+                objects_collect = active_agent_and_object_positions_tensor_new
                 objects_dodge = inactive_agent_and_object_positions_tensor
             case _:
                 raise ValueError("action must be 0, 1")
