@@ -317,9 +317,11 @@ class MetaEnvPretrained(gym.Env):
         # inactive_summed_up_rewards is a numpy array
         if self.last_action == action:
             self.counter_without_switch += 1
+            task_switch = False
         else:
             self.counter_without_switch = 0
             self.last_action = action
+            task_switch = True
         # FIXME: put in?
         # not needed because already introduced by inactive SoC
         # inactive_summed_up_rewards = min(max(0, inactive_summed_up_rewards - (self.counter_without_switch * 0.1)), 1)
@@ -417,15 +419,21 @@ class MetaEnvPretrained(gym.Env):
         #                         action])
         # self.state = np.array(
         #     [self.SoC_dodge, self.SoC_collect, reward_dodge, reward_collect, action_of_task_agent, action])
+        if task_switch:
+            task_switch_costs = 0.5
+        else:
+            task_switch_costs = 0
         self.state = {"image": state_image, "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect,
                       "reward_dodge": reward_dodge, "reward_collect": reward_collect,
+                      "task_switching_costs": task_switch_costs,
                       "task_action": action_of_task_agent, "meta_action": action,
                       "crashed_objects": info_dodge[0]["number_of_crashed_or_collected_objects"],
                       "collected_objects": info_collect[0]["number_of_crashed_or_collected_objects"]}
 
         self.step_counter += 1
         info = {"info_dodge": info_dodge, "info_collect": info_collect, "reward_dodge": reward_dodge,
-                "reward_collect": reward_collect, "action_meta": action, "dodge_position_before": last_dodge_position,
+                "reward_collect": reward_collect, "task_switching_costs": task_switch_costs, "action_meta": action,
+                "dodge_position_before": last_dodge_position,
                 "collect_position_before": last_collect_position, "dodge_action": dodge_action,
                 "collect_action": collect_action, "input_noise": input_noise,
                 "dodge_next_position": next_dodge_position, "collect_next_position": next_collect_position,
@@ -442,7 +450,7 @@ class MetaEnvPretrained(gym.Env):
         return (
             self.state,
             # active_reward_estimation_corrected_by_SoC + inactive_reward_estimation_corrected_by_SoC,
-            reward_dodge + reward_collect,
+            reward_dodge + reward_collect - task_switch_costs,
             active_is_done or inactive_is_done,
             False,
             info,
