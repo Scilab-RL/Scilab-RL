@@ -328,6 +328,7 @@ class CLEANPPOFM:
         No changes were made by me.
         """
         iteration = 0
+        print("resetting env")
         self._last_obs = self.env.reset()
         callback.init_callback(self)
         callback.on_training_start(locals(), globals())
@@ -541,7 +542,8 @@ class CLEANPPOFM:
                         observation_height=observation_height,
                         observation_width=observation_width,
                         agent_size=agent_size, task=task)
-                    obs_after_every_action = torch.cat((obs_after_every_action.to(device=device), obs_after_action.to(device=device)), dim=1)
+                    obs_after_every_action = torch.cat(
+                        (obs_after_every_action.to(device=device), obs_after_action.to(device=device)), dim=1)
                 new_obs = obs_after_every_action.to(device=device)
 
             # Compute value for the last timestep
@@ -774,6 +776,7 @@ class CLEANPPOFM:
             del data[to_exclude]
         # save network parameters
         data["_policy"] = self.policy.state_dict()
+        print("save", self.policy.state_dict())
         # changed to save the best forward model
         data["_fm"] = self.best_model
         torch.save(data, path)

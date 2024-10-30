@@ -92,6 +92,7 @@ def evaluate_policy(
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
     current_number_of_crashed_or_collected_objects = np.zeros(n_envs, dtype="int")
+    print("reset")
     observations = env.reset()
     states = None
 
@@ -119,6 +120,7 @@ def evaluate_policy(
         observations, rewards, dones, infos, prediction_error, difficulty, soc, reward_with_future_reward_estimation_corrective, _ = model.step_in_env(
             actions=actions,
             forward_normal=forward_normal)
+        print("infos", infos)
 
         new_position = get_position_and_object_positions_of_observation(torch.tensor(observations),
                                                                         observation_width=observation_width,
