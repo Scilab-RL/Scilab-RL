@@ -95,14 +95,10 @@ class MoonlanderWorldEnv(Env):
 
         self.config = config
         self.reward_function = config["reward_function"]
-        self.already_crashed_objects = []
         if self.reward_function not in ["simple", "gaussian", "pos_neg"]:
             raise ValueError(
                 "Reward function {} not implemented".format(self.reward_function)
             )
-        self.pos_neg_reward_info_dict_per_step = {}
-        self.gaussian_reward_info_per_step = 0
-        self.simple_reward_info_per_step = 0
 
         if "no_crashes" in config:
             self.no_crashes = config["no_crashes"]
@@ -127,25 +123,12 @@ class MoonlanderWorldEnv(Env):
             logging.basicConfig(level=logging.DEBUG)
 
         self.current_time = str(datetime.datetime.now())
-        self.episode_counter = 0
-        self.step_counter = 0
-
-        # DYNAMIC VARIABLES
-        logging.info("initialisation" + self.current_time + str(self.episode_counter))
-        self.current_object_sizes = None
 
         agent_config = config["agent"]
         world_config = config["world"]
         drift_config = world_config["drift"]
         objects_config = world_config["objects"]
-
         size = agent_config["size"]
-        # random x position of agent
-        if agent_config["initial_x_position"] is None:
-            x_width = world_config["x_width"]
-            self.x_position_of_agent = rnd.randint(size, x_width - size + 1)
-        else:
-            self.x_position_of_agent = agent_config["initial_x_position"]
 
         # needed to read out the sizes of the moonlander world
         self.first_possible_x_position = size
@@ -154,6 +137,24 @@ class MoonlanderWorldEnv(Env):
         self.observation_width = world_config["x_width"]
         self.task = task
         self.size = size
+
+        # DYNAMIC VARIABLES
+        self.episode_counter = 0
+        self.step_counter = 0
+
+        logging.info("initialisation" + self.current_time + str(self.episode_counter))
+        self.current_object_sizes = None
+        self.already_crashed_objects = []
+        self.pos_neg_reward_info_dict_per_step = {}
+        self.gaussian_reward_info_per_step = 0
+        self.simple_reward_info_per_step = 0
+
+        # random x position of agent
+        if agent_config["initial_x_position"] is None:
+            x_width = world_config["x_width"]
+            self.x_position_of_agent = rnd.randint(size, x_width - size + 1)
+        else:
+            self.x_position_of_agent = agent_config["initial_x_position"]
 
         self.y_position_of_agent = agent_config["size"]
 
@@ -870,10 +871,6 @@ class MoonlanderWorldEnv(Env):
         else:
             self.x_position_of_agent = agent_config["initial_x_position"]
 
-        # needed to read out the sizes of the moonlander world
-        self.first_possible_x_position = size
-        self.last_possible_x_position = world_config["x_width"] - size + 1
-
         self.y_position_of_agent = size
 
         (
@@ -894,7 +891,7 @@ class MoonlanderWorldEnv(Env):
         )
         drift_at_whole_level = drift_config["drift_at_whole_level"]
         if drift_at_whole_level == "ranges":
-            self.drift_ranges_with_drift_number = drift_ranges
+            self.drift_ranges_with_drift_number = list_of_drift_ranges_with_drift_number
         elif drift_at_whole_level == "no":
             self.drift_ranges_with_drift_number = []
         elif drift_at_whole_level == "left":
@@ -986,6 +983,7 @@ class MoonlanderWorldEnv(Env):
                         + "_vis.csv"
                 )
 
+        self.already_crashed_objects = []
         # set placeholder for info
         self.pos_neg_reward_info_dict_per_step = {}
         self.gaussian_reward_info_per_step = 0
