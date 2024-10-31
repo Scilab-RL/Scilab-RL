@@ -22,6 +22,7 @@ from custom_algorithms.cleanppofm.utils import flatten_obs, get_position_and_obj
     get_next_position_observation_moonlander, calculate_difficulty, normalize_rewards, get_next_whole_observation, \
     get_observation_of_position_and_object_positions
 from custom_algorithms.cleanppofm.agent import Agent
+from custom_envs.moonlander.helper_functions import calculate_gaussian_reward
 from utils.custom_buffer import CustomDictRolloutBuffer as DictRolloutBuffer
 from utils.custom_buffer import CustomRolloutBuffer as RolloutBuffer
 
@@ -521,6 +522,11 @@ class CLEANPPOFM:
                 cop_tensor = torch.tensor(comb_obj_positions).float()
 
                 obs_after_every_action = comb_obs.clone().detach()
+                rewards_for_every_action = {}
+                if task == "dodge":
+                    task_type = "obstacle"
+                elif task == "collect":
+                    task_type = "coin"
 
                 for i in range(0, env.action_space.n):
                     # Fixme: for hardcoded next obs, we had to change the ordering
@@ -542,8 +548,62 @@ class CLEANPPOFM:
                         observation_height=observation_height,
                         observation_width=observation_width,
                         agent_size=agent_size, task=task)
+
+                    # calculate reward for new obs
+                    x_position_of_agent = int(
+                        min(max(agent_size, next_positions[0][0]), observation_width - agent_size + 1))
+                    y_position_of_agent = int(next_positions[0][1])
+
+                    collected_objects = []
+                    for index in range(2, len(next_positions[0]), 2):
+                        if not (next_positions[0][index] == 0 and next_positions[0][index + 1] == 0):
+
+                            if (
+                                    (
+                                            ((next_positions[0][index] - 1) == (x_position_of_agent - 1))
+                                            or ((next_positions[0][index] - 1) == x_position_of_agent)
+                                            or ((next_positions[0][index] - 1) == (x_position_of_agent + 1))
+                                            or (next_positions[0][index] == (x_position_of_agent - 1))
+                                            or (next_positions[0][index] == x_position_of_agent)
+                                            or (next_positions[0][index] == (x_position_of_agent + 1))
+                                            or ((next_positions[0][index] + 1) == (x_position_of_agent - 1))
+                                            or ((next_positions[0][index] + 1) == x_position_of_agent)
+                                            or ((next_positions[0][index] + 1) == (x_position_of_agent + 1))
+                                    )
+                                    and
+                                    (
+                                            ((next_positions[0][index + 1] - 1) == (y_position_of_agent - 1))
+                                            or ((next_positions[0][index + 1] - 1) == y_position_of_agent)
+                                            or ((next_positions[0][index + 1] - 1) == (y_position_of_agent + 1))
+                                            or (next_positions[0][index + 1] == (y_position_of_agent - 1))
+                                            or (next_positions[0][index + 1] == y_position_of_agent)
+                                            or (next_positions[0][index + 1] == (y_position_of_agent + 1))
+                                            or ((next_positions[0][index + 1] + 1) == (y_position_of_agent - 1))
+                                            or ((next_positions[0][index + 1] + 1) == y_position_of_agent)
+                                            or ((next_positions[0][index + 1] + 1) == (y_position_of_agent + 1))
+                                    )
+                            ):
+                                collected_objects.append(
+                                    {'x': int(next_positions[0][index]),
+                                     'y': int(next_positions[0][index + 1]),
+                                     'size': agent_size})
+
+                    rewards_for_every_action[i] = [calculate_gaussian_reward(
+                        state=np.array(row).reshape(observation_height, observation_width + 2),
+                        collected_objects=collected_objects,
+                        agent_size=agent_size,
+                        task_type=task_type,
+                        current_reward_function="gaussian",
+                        x_position_of_agent=x_position_of_agent,
+                        y_position_of_agent=y_position_of_agent)[0] for row in obs_after_action]
+
                     obs_after_every_action = torch.cat(
                         (obs_after_every_action.to(device=device), obs_after_action.to(device=device)), dim=1)
+                for i in range(0, env.action_space.n):
+                    rewards_for_every_action_tensor = torch.tensor(rewards_for_every_action[i]).reshape(
+                        obs_after_every_action.shape[0],
+                        1)
+                    obs_after_every_action = torch.cat((obs_after_every_action, rewards_for_every_action_tensor), dim=1)
                 new_obs = obs_after_every_action.to(device=device)
 
             # Compute value for the last timestep

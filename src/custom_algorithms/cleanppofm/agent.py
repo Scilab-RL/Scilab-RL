@@ -7,6 +7,7 @@ from stable_baselines3.common.logger import Logger
 from custom_algorithms.cleanppofm.utils import flatten_obs, layer_init, \
     get_position_and_object_positions_of_observation, get_observation_of_position_and_object_positions, \
     get_next_position_observation_moonlander
+from custom_envs.moonlander.helper_functions import calculate_gaussian_reward
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -29,15 +30,16 @@ class Agent(nn.Module):
 
         # this is implemented for the gridworld envs
         if isinstance(env.observation_space, spaces.Dict):
-            obs_shape = actor_obs_shape = np.sum(
+            obs_shape = np.sum(
                 [obs_space.shape for obs_space in env.observation_space.spaces.values()])
             self.flatten = True
         # this is implemented for the moonlander env?
         else:
-            obs_shape = actor_obs_shape = np.array(env.observation_space.shape).prod()
+            obs_shape = np.array(env.observation_space.shape).prod()
             self.flatten = False
         if model_based:
-            obs_shape = obs_shape * 4
+            # actual obs + 3 predicted obs + 3 predicted rewards
+            obs_shape = obs_shape * 4 + 3
 
         self.critic = nn.Sequential(
             layer_init(nn.Linear(obs_shape, 64)),
@@ -128,6 +130,11 @@ class Agent(nn.Module):
             cop_tensor = torch.tensor(comb_obj_positions).float()
 
             obs_after_every_action = comb_obs.clone().detach()
+            rewards_for_every_action = {}
+            if task == "dodge":
+                task_type = "obstacle"
+            elif task == "collect":
+                task_type = "coin"
 
             for i in range(0, self.number_of_actions):
                 # Fixme: for hardcoded next obs, we had to change the ordering
@@ -154,7 +161,62 @@ class Agent(nn.Module):
                     observation_height=observation_height,
                     observation_width=observation_width,
                     agent_size=agent_size, task=task)
+
+                # calculate reward for new obs
+                x_position_of_agent = int(
+                    min(max(agent_size, next_positions[0][0]), observation_width - agent_size + 1))
+                y_position_of_agent = int(next_positions[0][1])
+
+                collected_objects = []
+                for index in range(2, len(next_positions[0]), 2):
+                    if not (next_positions[0][index] == 0 and next_positions[0][index + 1] == 0):
+
+                        if (
+                                (
+                                        ((next_positions[0][index] - 1) == (x_position_of_agent - 1))
+                                        or ((next_positions[0][index] - 1) == x_position_of_agent)
+                                        or ((next_positions[0][index] - 1) == (x_position_of_agent + 1))
+                                        or (next_positions[0][index] == (x_position_of_agent - 1))
+                                        or (next_positions[0][index] == x_position_of_agent)
+                                        or (next_positions[0][index] == (x_position_of_agent + 1))
+                                        or ((next_positions[0][index] + 1) == (x_position_of_agent - 1))
+                                        or ((next_positions[0][index] + 1) == x_position_of_agent)
+                                        or ((next_positions[0][index] + 1) == (x_position_of_agent + 1))
+                                )
+                                and
+                                (
+                                        ((next_positions[0][index + 1] - 1) == (y_position_of_agent - 1))
+                                        or ((next_positions[0][index + 1] - 1) == y_position_of_agent)
+                                        or ((next_positions[0][index + 1] - 1) == (y_position_of_agent + 1))
+                                        or (next_positions[0][index + 1] == (y_position_of_agent - 1))
+                                        or (next_positions[0][index + 1] == y_position_of_agent)
+                                        or (next_positions[0][index + 1] == (y_position_of_agent + 1))
+                                        or ((next_positions[0][index + 1] + 1) == (y_position_of_agent - 1))
+                                        or ((next_positions[0][index + 1] + 1) == y_position_of_agent)
+                                        or ((next_positions[0][index + 1] + 1) == (y_position_of_agent + 1))
+                                )
+                        ):
+                            collected_objects.append(
+                                {'x': int(next_positions[0][index]),
+                                 'y': int(next_positions[0][index + 1]),
+                                 'size': agent_size})
+
+                # possibly a batch of 64, so call the function for each observation
+                rewards_for_every_action[i] = [calculate_gaussian_reward(
+                    state=np.array(row).reshape(observation_height, observation_width + 2),
+                    collected_objects=collected_objects,
+                    agent_size=agent_size,
+                    task_type=task_type,
+                    current_reward_function="gaussian",
+                    x_position_of_agent=x_position_of_agent,
+                    y_position_of_agent=y_position_of_agent)[0] for row in obs_after_action]
                 obs_after_every_action = torch.cat((obs_after_every_action, obs_after_action), dim=1)
+
+            for i in range(0, self.number_of_actions):
+                rewards_for_every_action_tensor = torch.tensor(rewards_for_every_action[i]).reshape(
+                    obs_after_every_action.shape[0],
+                    1)
+                obs_after_every_action = torch.cat((obs_after_every_action, rewards_for_every_action_tensor), dim=1)
             obs_for_agent = obs_after_every_action
 
         ##### PREDICT NEXT ACTION #####
