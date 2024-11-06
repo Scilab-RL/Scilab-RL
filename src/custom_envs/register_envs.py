@@ -263,8 +263,7 @@ def register_custom_envs():
     register(id="MetaEnv-pretrained-human-subtask-modelbased-v0",
              entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
              kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
-                     'collect_best_model_name': "collect_reward_in_mb_rl_model_best",
-                     "model_based": True},
+                     'collect_best_model_name': "collect_reward_in_mb_rl_model_best"},
              max_episode_steps=500)
     register(id="MetaEnv-pretrained-benchmark-small-v0",
              entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
