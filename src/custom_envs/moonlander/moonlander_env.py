@@ -851,7 +851,6 @@ class MoonlanderWorldEnv(Env):
         """
         resets the environment
         """
-        print("reset")
         super().reset(seed=seed)
         # logging.info("reset " + self.current_time + str(self.episode_counter))
         self.episode_counter += 1

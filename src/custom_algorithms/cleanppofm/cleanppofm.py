@@ -848,6 +848,8 @@ class CLEANPPOFM:
         for k in loaded_dict:
             if k not in ["_policy", "_fm"]:
                 model.__dict__[k] = loaded_dict[k]
+        # FIXME: help needed to update agent again to modelbased observation shape
+        model._setup_model()
         # load network states
         model.policy.load_state_dict(loaded_dict["_policy"])
         model.fm_network.load_state_dict(loaded_dict["_fm"])
