@@ -741,6 +741,7 @@ class CLEANPPOFM:
         Args:
             actions: action to take in the environment
             forward_normal: prediction of the forward model (normal distribution)
+            use_reward_of_env: if the reward of the environment should be used to calculate the reward estimation or from the forward model prediction
 
         Returns:
             new_obs: new observation
