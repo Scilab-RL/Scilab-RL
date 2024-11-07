@@ -265,6 +265,24 @@ def register_custom_envs():
              kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
                      'collect_best_model_name': "collect_reward_in_mb_rl_model_best"},
              max_episode_steps=500)
+    register(id="MetaEnv-pretrained-human-subtask-modelbased-v0-no-SoC-in-reward",
+             entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
+             kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
+                     'collect_best_model_name': "collect_reward_in_mb_rl_model_best", 'with_SoC_in_reward': False},
+             max_episode_steps=500)
+    register(id="MetaEnv-pretrained-human-subtask-modelbased-v0-no-SoC-in-obs",
+             entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
+             kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
+                     'collect_best_model_name': "collect_reward_in_mb_rl_model_best", 'with_SoC_in_observation': False},
+             max_episode_steps=500)
+    register(id="MetaEnv-pretrained-human-subtask-modelbased-v0-no-SoC-in-reward-no-SoC-in-obs",
+             entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
+             kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
+                     'collect_best_model_name': "collect_reward_in_mb_rl_model_best", 'with_SoC_in_reward': False,
+                     'with_SoC_in_observation': False},
+             max_episode_steps=500)
+
+    # benchmarks
     register(id="MetaEnv-pretrained-benchmark-small-v0",
              entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
              kwargs={'dodge_best_model_name': "dodge_best_fm_23_08_rl_model_best",
