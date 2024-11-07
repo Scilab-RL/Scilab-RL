@@ -172,6 +172,8 @@ class MetaEnvPretrained(gym.Env):
             self.state["SoC_dodge"] = self.SoC_dodge
             self.state["SoC_collect"] = self.SoC_collect
 
+        # make subagents use normalized rewards
+
         # for rendering
         plt.ion()
         self.fig, self.ax = plt.subplots()
@@ -256,8 +258,9 @@ class MetaEnvPretrained(gym.Env):
                                                            [[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
                                                              1., 1., 1., 1., 1., 1., 1., 1.]]))
         # perform action & SoC calculation & reward estimation corrected by SoC
-        (new_state, active_reward, active_is_done, active_info, active_prediction_error, active_difficulty, active_SoC,
-         active_reward_estimation_corrected_by_SoC, input_noise) = active_model.step_in_env(
+        (new_state, _, active_is_done, active_info, active_prediction_error, active_difficulty, active_SoC,
+         active_normalized_reward_estimation_corrected_by_SoC, input_noise,
+         active_normalized_reward) = active_model.step_in_env(
             actions=torch.tensor(action_of_task_agent).float(),
             # forward_normal=active_belief_state_normal_distribution)
             forward_normal=active_gold_label,
@@ -321,8 +324,7 @@ class MetaEnvPretrained(gym.Env):
             reward_from_env=True,
             env_name="MoonlanderWorldEnv",
             position_predicting=True,
-            # FIXME: this is hardcoded and should be deleted in cleanppofm --> meta env decision
-            number_of_future_steps=5,
+            number_of_future_steps=int(self.observation_height / 2),
             maximum_number_of_objects=inactive_model.maximum_number_of_objects)
 
         # task switch
@@ -346,9 +348,9 @@ class MetaEnvPretrained(gym.Env):
                 self.state_of_dodge_asteroids = new_state
                 info_dodge = active_info
                 if self.with_SoC_in_reward:
-                    reward_dodge = active_reward_estimation_corrected_by_SoC
+                    reward_dodge = active_normalized_reward_estimation_corrected_by_SoC
                 else:
-                    reward_dodge = active_reward
+                    reward_dodge = active_normalized_reward
                 self.SoC_dodge = active_SoC
                 self.state_of_collect_asteroids = belief_state
                 info_collect = inactive_info
@@ -395,9 +397,9 @@ class MetaEnvPretrained(gym.Env):
                 self.state_of_collect_asteroids = new_state
                 info_collect = active_info
                 if self.with_SoC_in_reward:
-                    reward_collect = active_reward_estimation_corrected_by_SoC
+                    reward_collect = active_normalized_reward_estimation_corrected_by_SoC
                 else:
-                    reward_collect = active_reward
+                    reward_collect = active_normalized_reward
                 self.SoC_collect = active_SoC
                 # for debugging
                 last_dodge_position = int(inactive_agent_and_object_positions_tensor[0][0])

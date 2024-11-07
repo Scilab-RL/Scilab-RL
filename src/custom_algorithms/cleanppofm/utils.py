@@ -103,7 +103,7 @@ def get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(env, fm_networ
     Args:
         env: environment
         fm_network: forward model network
-        last_observation: last known observation
+        last_observation: last known observation in form of positions
         reward_from_env: boolean if the reward is calculated from the environment or the forward model
         position_predicting: boolean if the forward model is predicting the position or actual observation
         env_name: name of the current environment
@@ -131,26 +131,6 @@ def get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(env, fm_networ
     observation_width = env.env_method("get_wrapper_attr", "observation_width")[0]
     agent_size = env.env_method("get_wrapper_attr", "size")[0]
 
-    # last_observation = np.expand_dims(env.env_method("get_wrapper_attr", "state")[0].flatten(), axis=0)
-
-    # simulate the default and optimal trajectory
-    # copied_env = copy.deepcopy(env)
-    #
-    # # set last_observation in env
-    # # environment assumes a numpy array as state
-    # copied_env.env_method("set_state", last_observation)
-    #
-    # # remove possible input noise in the environment
-    # copied_env.env_method("set_input_noise", 0)
-    #
-    # done = copied_env.env_method("is_done")[0]
-
-    last_observation_state = np.expand_dims(
-        get_observation_of_position_and_object_positions(agent_and_object_positions=last_observation,
-                                                         observation_height=observation_height,
-                                                         observation_width=observation_width,
-                                                         agent_size=agent_size,
-                                                         task=task).flatten().cpu().numpy(), axis=0)
     summed_up_reward = 0
     for i in range(number_of_future_steps):
         # if not done:
@@ -173,29 +153,19 @@ def get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(env, fm_networ
                 # FIXME: why 4?
                 max=4)
         else:
-            # FIXME: not needed?
-            # _, rewards, done, _ = copied_env.step(default_action)
-            # state: (30,42), collected_objects: [{'x': 16, 'y':43, 'size':2}]
-            # world_config["x_width"] - size + 1
             # define state for env
             # FIXME: only when reward is predicted by the forward model
             # FIXME: get last observation hardcoded:
-            gold_label = get_next_position_observation_moonlander(
+            # last_observation = forward_model_prediction_normal_distribution.mean[0][:-1].cpu().unsqueeze(0)
+            last_observation = get_next_position_observation_moonlander(
                 observations=last_observation,
                 actions=default_action[0],
                 observation_width=observation_width,
                 observation_height=observation_height,
                 agent_size=agent_size,
                 maximum_number_of_objects=maximum_number_of_objects)
-            # form to normal distribution
-            gold_label = torch.distributions.Normal(gold_label, scale=torch.tensor(
-                [[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]]))
-            last_observation = gold_label.mean
             last_observation_state = np.expand_dims(
-                get_observation_of_position_and_object_positions(agent_and_object_positions=
-                                                                 # forward_model_prediction_normal_distribution.mean[
-                                                                 #     0][:-1].cpu().unsqueeze(0),
-                                                                 last_observation,
+                get_observation_of_position_and_object_positions(agent_and_object_positions=last_observation,
                                                                  observation_height=observation_height,
                                                                  observation_width=observation_width,
                                                                  agent_size=agent_size,
@@ -224,10 +194,6 @@ def get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(env, fm_networ
                 current_reward_function="gaussian",
                 x_position_of_agent=x_position_of_agent,
                 y_position_of_agent=y_position_of_agent)
-
-            # set state in env
-            # environment assumes a numpy array as state
-            # copied_env.env_method("set_state", last_observation)
 
         # normalize reward
         normalized_reward = normalize_rewards(task=task, absolute_reward=rewards)

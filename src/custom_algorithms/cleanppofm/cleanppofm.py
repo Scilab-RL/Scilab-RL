@@ -408,7 +408,7 @@ class CLEANPPOFM:
             elif isinstance(self.action_space, spaces.Discrete):
                 clipped_actions = actions[0]
 
-            new_obs, rewards, dones, infos, prediction_error, difficulty, soc, reward_with_future_reward_estimation_corrective, _ = self.step_in_env(
+            new_obs, rewards, dones, infos, prediction_error, difficulty, soc, reward_with_future_reward_estimation_corrective, _, _ = self.step_in_env(
                 actions=clipped_actions, forward_normal=forward_normal)
 
             # FIXME: is it possible that multiple actions are taken here?
@@ -735,7 +735,7 @@ class CLEANPPOFM:
     def step_in_env(self, actions, forward_normal, use_reward_of_env: bool = False,
                     # for the moment only for meta env
                     use_prediction_error: bool = True, use_difficulty: bool = True) -> tuple[
-        np.ndarray, float, bool, dict, float, float, float, float, int]:
+        np.ndarray, float, bool, dict, float, float, float, float, int, float]:
         """
         Step in the environment with the given actions and the forward model prediction.
         This includes the displaying of the forward model prediction and the calculation of the prediction error.
@@ -757,6 +757,7 @@ class CLEANPPOFM:
             soc: calculated sense of control
             reward_with_future_reward_estimation_corrective: reward corrected by prediction error
             input_noise: applied input noise
+            rewards_normalized: normalized rewards
         """
         ##### DISPLAYING THE FORWARD MODEL PREDICTION #####
         # modify the env attributes as described here:
@@ -831,7 +832,7 @@ class CLEANPPOFM:
         reward_estimation = (rewards_normalized + self.soc) / 2
 
         # input noise only for debugging
-        return new_obs, rewards, dones, infos, prediction_error, difficulty, self.soc, reward_estimation, input_noise
+        return new_obs, rewards, dones, infos, prediction_error, difficulty, self.soc, reward_estimation, input_noise, rewards_normalized
 
     def save(
             self,
