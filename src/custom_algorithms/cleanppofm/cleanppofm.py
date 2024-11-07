@@ -732,7 +732,9 @@ class CLEANPPOFM:
                 position_predicting=self.position_predicting, maximum_number_of_objects=self.maximum_number_of_objects)
         return action.cpu().numpy(), state, forward_model_prediction_normal_distribution
 
-    def step_in_env(self, actions, forward_normal, use_reward_of_env: bool = False) -> tuple[
+    def step_in_env(self, actions, forward_normal, use_reward_of_env: bool = False,
+                    # for the moment only for meta env
+                    use_prediction_error: bool = True, use_difficulty: bool = True) -> tuple[
         np.ndarray, float, bool, dict, float, float, float, float, int]:
         """
         Step in the environment with the given actions and the forward model prediction.
@@ -742,6 +744,8 @@ class CLEANPPOFM:
             actions: action to take in the environment
             forward_normal: prediction of the forward model (normal distribution)
             use_reward_of_env: if the reward of the environment should be used to calculate the reward estimation or from the forward model prediction
+            use_prediction_error: if the prediction error should be used to calculate the SoC
+            use_difficulty: if the difficulty should be used to calculate the SoC
 
         Returns:
             new_obs: new observation
@@ -786,21 +790,24 @@ class CLEANPPOFM:
         # dones = terminated or truncated
         new_obs, rewards, dones, infos = self.env.step(actions)
 
-        ##### CALCULATING PREDICTION ERROR #####
-        prediction_error = calculate_prediction_error(env_name=self.env_name, env=self.env,
-                                                      next_obs=torch.tensor(new_obs, device=device),
-                                                      forward_model_prediction_normal_distribution=forward_normal,
-                                                      maximum_number_of_objects=self.maximum_number_of_objects)
-
-        ##### CALCULATING DIFFICULTY #####
-        difficulty, summed_up_rewards_default = calculate_difficulty(env=self.env, policy=self.policy,
-                                                                     fm_network=self.fm_network,
-                                                                     logger=self.logger, env_name=self.env_name,
-                                                                     prediction_error=prediction_error,
-                                                                     position_predicting=self.position_predicting,
-                                                                     maximum_number_of_objects=self.maximum_number_of_objects,
-                                                                     reward_predicting=self.reward_predicting,
-                                                                     use_reward_of_env=use_reward_of_env)
+        prediction_error = 0
+        difficulty = 0
+        if use_prediction_error:
+            ##### CALCULATING PREDICTION ERROR #####
+            prediction_error = calculate_prediction_error(env_name=self.env_name, env=self.env,
+                                                          next_obs=torch.tensor(new_obs, device=device),
+                                                          forward_model_prediction_normal_distribution=forward_normal,
+                                                          maximum_number_of_objects=self.maximum_number_of_objects)
+        if use_difficulty:
+            ##### CALCULATING DIFFICULTY #####
+            difficulty, summed_up_rewards_default = calculate_difficulty(env=self.env, policy=self.policy,
+                                                                         fm_network=self.fm_network,
+                                                                         logger=self.logger, env_name=self.env_name,
+                                                                         prediction_error=prediction_error,
+                                                                         position_predicting=self.position_predicting,
+                                                                         maximum_number_of_objects=self.maximum_number_of_objects,
+                                                                         reward_predicting=self.reward_predicting,
+                                                                         use_reward_of_env=use_reward_of_env)
 
         ##### CALCULATING SOC #####
         # prediction error is high, if the prediction and actual observation do not match

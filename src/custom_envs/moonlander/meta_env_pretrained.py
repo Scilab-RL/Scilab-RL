@@ -31,7 +31,8 @@ class MetaEnvPretrained(gym.Env):
     def __init__(self, dodge_best_model_name: str, collect_best_model_name: str,
                  dodge_list_of_object_dict_lists: List[Dict] = None,
                  collect_list_of_object_dict_lists: List[Dict] = None, render_mode=None,
-                 with_SoC_in_reward: bool = True, with_SoC_in_observation: bool = True):
+                 with_SoC_in_reward: bool = True, with_SoC_in_observation: bool = True,
+                 use_prediction_error: bool = True, use_difficulty: bool = True):
         self.ROOT_DIR = "."
         config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)), "standard_config.yaml")
         config_path_collect_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -96,6 +97,8 @@ class MetaEnvPretrained(gym.Env):
             self.observation_space["SoC_collect"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
 
         self.with_SoC_in_reward = with_SoC_in_reward
+        self.use_prediction_error = use_prediction_error
+        self.use_difficulty = use_difficulty
 
         # logger
         tmp_path = "/tmp/sb3_log/"
@@ -258,7 +261,7 @@ class MetaEnvPretrained(gym.Env):
             actions=torch.tensor(action_of_task_agent).float(),
             # forward_normal=active_belief_state_normal_distribution)
             forward_normal=active_gold_label,
-            use_reward_of_env=True)
+            use_reward_of_env=True, use_prediction_error=self.use_prediction_error, use_difficulty=self.use_difficulty)
 
         ### INACTIVE TASK ###
         # set input noise to zero

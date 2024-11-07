@@ -281,6 +281,16 @@ def register_custom_envs():
                      'collect_best_model_name': "collect_reward_in_mb_rl_model_best", 'with_SoC_in_reward': False,
                      'with_SoC_in_observation': False},
              max_episode_steps=500)
+    register(id="MetaEnv-pretrained-human-subtask-modelbased-SoC-without-PE-v0",
+             entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
+             kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
+                     'collect_best_model_name': "collect_reward_in_mb_rl_model_best", "use_prediction_error": False},
+             max_episode_steps=500)
+    register(id="MetaEnv-pretrained-human-subtask-modelbased-SoC-without-diff-v0",
+             entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
+             kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
+                     'collect_best_model_name': "collect_reward_in_mb_rl_model_best", "use_difficulty": False},
+             max_episode_steps=500)
 
     # benchmarks
     register(id="MetaEnv-pretrained-benchmark-small-v0",
