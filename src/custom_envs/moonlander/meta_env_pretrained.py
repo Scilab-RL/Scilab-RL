@@ -313,8 +313,9 @@ class MetaEnvPretrained(gym.Env):
                                                                             "get_wrapper_attr", "task")[
                                                                             0]).flatten().cpu().numpy()
         belief_state = np.expand_dims(belief_state, 0)
-        # SoC update --> degrade SoC by 0.1
-        inactive_SoC = min(max(0, inactive_SoC - 0.1), 1)
+        # SoC update --> degrade SoC by factor of observation heigth, so that after half of the steps of the observation
+        # the SoC is 0.5 and after all steps the SoC is 0
+        inactive_SoC = min(max(0, inactive_SoC - (1 / self.observation_height)), 1)
         # simulate future n steps
         # FIXME: for now it is hardcoded 5 steps + can be deleted in cleanppofm?
         # reward estimation -> predict next state -> get reward of environment
@@ -342,7 +343,8 @@ class MetaEnvPretrained(gym.Env):
 
         # FIXME: put in?
         # not needed because already introduced by inactive SoC
-        # inactive_summed_up_rewards = min(max(0, inactive_summed_up_rewards - (self.counter_without_switch * 0.1)), 1)
+        # inactive_summed_up_rewards =
+        # min(max(0, inactive_summed_up_rewards - (self.counter_without_switch * (1/self.observation_height))), 1)
         # reward estimation corrected by SoC
         inactive_reward_estimation_corrected_by_SoC = (inactive_summed_up_rewards + inactive_SoC) / 2
 
