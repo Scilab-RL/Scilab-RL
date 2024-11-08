@@ -117,7 +117,7 @@ def evaluate_policy(
         predicted_x_position = min(max(1, forward_normal.mean.cpu().detach().numpy()[0][0]), 10)
         expected_new_positon = min(max(1, position + (actions[0] - 1)), 10)
 
-        observations, rewards, dones, infos, prediction_error, difficulty, soc, reward_with_future_reward_estimation_corrective, _ = model.step_in_env(
+        observations, rewards, dones, infos, prediction_error, difficulty, soc, reward_with_future_reward_estimation_corrective, _, _ = model.step_in_env(
             actions=actions,
             forward_normal=forward_normal)
 
