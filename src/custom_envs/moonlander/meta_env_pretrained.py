@@ -92,6 +92,10 @@ class MetaEnvPretrained(gym.Env):
              }
         )
         self.with_SoC_in_observation = with_SoC_in_observation
+        # FIXME: this doesn't work for old trained models, because the sorting is different
+        # old version --> alphabetically, SoC_collect, SoC_dodge at the end
+        # when adding SoC_dodge and SoC_collect later, they are added at the beginning (SoC_collect, SoC_dodge)
+        # quickfix -> put SoCs hardcoded in the observation space above
         if self.with_SoC_in_observation:
             self.observation_space["SoC_dodge"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
             self.observation_space["SoC_collect"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)

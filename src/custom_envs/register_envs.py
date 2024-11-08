@@ -331,8 +331,8 @@ def register_custom_envs():
              max_episode_steps=500)
     register(id="MetaEnv-pretrained-benchmark-hard-hard-v0",
              entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
-             kwargs={'dodge_best_model_name': "dodge_human_27_09_rl_model_best",
-                     'collect_best_model_name': "collect_human_27_09_rl_model_best",
+             kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
+                     'collect_best_model_name': "collect_reward_in_mb_rl_model_best",
                      'dodge_list_of_object_dict_lists': dict_of_filename_to_object_dict_list[
                          "dodge_hard_object_list_30_times_40.csv"],
                      'collect_list_of_object_dict_lists': dict_of_filename_to_object_dict_list[
