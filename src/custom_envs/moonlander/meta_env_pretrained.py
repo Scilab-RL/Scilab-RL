@@ -21,6 +21,8 @@ from custom_algorithms.cleanppofm.utils import get_summed_up_reward_of_env_or_fm
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+# HUMANS MINIMAL SWITCHING TIME IS 0.462424S WHICH ARE ~ 5 FRAMES/STEP
+
 class MetaEnvPretrained(gym.Env):
     render_mode = None
     metadata = {
@@ -32,7 +34,8 @@ class MetaEnvPretrained(gym.Env):
                  dodge_list_of_object_dict_lists: List[Dict] = None,
                  collect_list_of_object_dict_lists: List[Dict] = None, render_mode=None,
                  with_SoC_in_reward: bool = True, with_SoC_in_observation: bool = True,
-                 use_prediction_error: bool = True, use_difficulty: bool = True):
+                 use_prediction_error: bool = True, use_difficulty: bool = True,
+                 can_only_switch_as_often_as_humans: bool = False):
         self.ROOT_DIR = "."
         config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)), "standard_config.yaml")
         config_path_collect_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -103,6 +106,7 @@ class MetaEnvPretrained(gym.Env):
         self.with_SoC_in_reward = with_SoC_in_reward
         self.use_prediction_error = use_prediction_error
         self.use_difficulty = use_difficulty
+        self.can_only_switch_as_often_as_humans = can_only_switch_as_often_as_humans
 
         # logger
         tmp_path = "/tmp/sb3_log/"
@@ -205,6 +209,32 @@ class MetaEnvPretrained(gym.Env):
                                                           self.collect_list_of_object_dict_lists[self.episode_counter])
 
     def step(self, action: int):
+        # task switch
+        if self.last_action == action:
+            self.counter_without_switch += 1
+            task_switch = False
+        else:
+            self.counter_without_switch = 0
+            self.last_action = action
+            task_switch = True
+
+        if not self.can_only_switch_as_often_as_humans:
+            state, reward, is_done, truncated, info = self.actual_step_logic(action=action,
+                                                                             task_switch=task_switch)
+        else:
+            # restrict switching to at least 5 frames
+            if task_switch:
+                # do 5 steps with the same action
+                state, reward, is_done, truncated, info = self.actual_step_logic(action=action, task_switch=task_switch)
+                for _ in range(4):
+                    # FIXME: all stuff is just overwritten -> is this a good solution?
+                    state, reward, is_done, truncated, info = self.actual_step_logic(action=action, task_switch=False)
+            else:
+                state, reward, is_done, truncated, info = self.actual_step_logic(action=action, task_switch=task_switch)
+
+        return state, reward, is_done, truncated, info
+
+    def actual_step_logic(self, action: int, task_switch: bool):
         """
         action: selects the task
                 0: one
@@ -331,15 +361,6 @@ class MetaEnvPretrained(gym.Env):
             position_predicting=True,
             number_of_future_steps=int(self.observation_height / 2),
             maximum_number_of_objects=inactive_model.maximum_number_of_objects)
-
-        # task switch
-        if self.last_action == action:
-            self.counter_without_switch += 1
-            task_switch = False
-        else:
-            self.counter_without_switch = 0
-            self.last_action = action
-            task_switch = True
 
         # FIXME: put in?
         # not needed because already introduced by inactive SoC

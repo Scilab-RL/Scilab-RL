@@ -265,6 +265,12 @@ def register_custom_envs():
              kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
                      'collect_best_model_name': "collect_reward_in_mb_rl_model_best"},
              max_episode_steps=500)
+    register(id="MetaEnv-pretrained-human-subtask-modelbased-switch-as-humans-v0",
+             entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
+             kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
+                     'collect_best_model_name': "collect_reward_in_mb_rl_model_best",
+                     'can_only_switch_as_often_as_humans': True},
+             max_episode_steps=500)
     register(id="MetaEnv-pretrained-human-subtask-modelbased-v0-no-SoC-in-reward",
              entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
              kwargs={'dodge_best_model_name': "dodge_MB_reward_included_rl_model_best",
