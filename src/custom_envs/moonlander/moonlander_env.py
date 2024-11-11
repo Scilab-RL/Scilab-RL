@@ -155,6 +155,12 @@ class MoonlanderWorldEnv(Env):
         self.observation_width = world_config["x_width"]
         self.task = task
         self.size = size
+        self.difficulty = world_config["difficulty"]
+
+        if world_config["drift"]["drift_at_whole_level"] == "empty":
+            self.drift = "no"
+        else:
+            self.drift = "yes"
 
         self.y_position_of_agent = agent_config["size"]
 

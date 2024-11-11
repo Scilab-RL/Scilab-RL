@@ -5,6 +5,7 @@ import gymnasium as gym
 import numpy as np
 import torch
 import pandas as pd
+import os
 
 from stable_baselines3.common import base_class
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
@@ -290,12 +291,14 @@ def evaluate_policy_meta_agent(
     n_envs = env.num_envs
     episode_rewards = []
     episode_lengths = []
+    first_step = True
 
     dict_avoid = {"timesteps": [], "player_pos": [], "active_task": [], "current_reward": [],
                   "list_of_visible_objects": [], "number_of_visible_objects": [], "distance_to_closest_object": []}
 
     dict_collect = {"timesteps": [], "player_pos": [], "active_task": [], "current_reward": [],
                     "list_of_visible_objects": [], "number_of_visible_objects": [], "distance_to_closest_object": []}
+
 
     episode_counts = np.zeros(n_envs, dtype="int")
     # Divides episodes among different sub environments in the vector as evenly as possible
@@ -400,10 +403,11 @@ def evaluate_policy_meta_agent(
 
         info_dict = infos[0]
 
-        difficulty_dodge = info_dict['difficulty_dodge']
-        difficulty_collect = info_dict['difficulty_collect']
-
-        drift = info_dict['drift']
+        if first_step:
+            difficulty_dodge = info_dict['difficulty_dodge']
+            difficulty_collect = info_dict['difficulty_collect']
+            drift = info_dict['drift']
+            first_step = False
 
         list_of_visible_objects_dodge = []
         list_of_visible_objects_collect = []
@@ -423,6 +427,10 @@ def evaluate_policy_meta_agent(
         # remove player position
         player_dodge = list_of_visible_objects_dodge.pop(0)
         player_collect = list_of_visible_objects_collect.pop(0)
+
+        # remove y of player position
+        list_of_visible_objects_dodge.pop(0)
+        list_of_visible_objects_collect.pop(0)
 
         # remove entrys without objects
         list_of_visible_objects_dodge = [i for i in list_of_visible_objects_dodge if i != [0.0, 0.0]]
@@ -563,13 +571,15 @@ def evaluate_policy_meta_agent(
         if render:
             env.render()
 
+    dir_path = os.path.join(os.path.dirname(__file__),'..','..','agent_data', 'agent')
+
     avoid_df = pd.DataFrame.from_dict(data=dict_avoid)
     collect_df = pd.DataFrame.from_dict(data=dict_collect)
     avoid_df.to_csv(
-        '/home/ohneland/Jobs/COMPAS/multi-tasking-data-analysis/agent_data/agent_' + difficulty_dodge + '_' + difficulty_collect + '_' + drift + '_' + str(
+        dir_path + '_' + difficulty_dodge + '_' + difficulty_collect + '_' + drift + '_' + str(
             counter) + '_avoid.csv', index=False)
     collect_df.to_csv(
-        '/home/ohneland/Jobs/COMPAS/multi-tasking-data-analysis/agent_data/agent_' + difficulty_dodge + '_' + difficulty_collect + '_' + drift + '_' + str(
+        dir_path + '_' + difficulty_dodge + '_' + difficulty_collect + '_' + drift + '_' + str(
             counter) + '_collect.csv', index=False)
 
     mean_reward = np.mean(episode_rewards)

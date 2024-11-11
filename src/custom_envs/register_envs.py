@@ -267,8 +267,7 @@ def register_custom_envs():
                      'dodge_list_of_object_dict_lists': dict_of_filename_to_object_dict_list[
                          "hard_object_list_10_times_10.csv"],
                      'collect_list_of_object_dict_lists': dict_of_filename_to_object_dict_list[
-                         "hard_object_list_10_times_10_1.csv"], 'difficulty_dodge': 'hard', 'difficulty_collect': 'hard',
-                     'input_noise': 'no'},
+                         "hard_object_list_10_times_10_1.csv"]},
              max_episode_steps=500)
     register(id="MetaEnv-pretrained-benchmark-easy-easy-v0",
              entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",

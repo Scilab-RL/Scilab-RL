@@ -28,13 +28,9 @@ class MetaEnvPretrained(gym.Env):
         "render_fps": 10,
     }
 
-    def __init__(self, dodge_best_model_name: str, collect_best_model_name: str, difficulty_dodge, difficulty_collect,
-                 input_noise,
+    def __init__(self, dodge_best_model_name: str, collect_best_model_name: str,
                  dodge_list_of_object_dict_lists: List[Dict] = None,
                  collect_list_of_object_dict_lists: List[Dict] = None):
-        self.difficulty_dodge = difficulty_dodge
-        self.difficulty_collect = difficulty_collect
-        self.input_noise_yes_or_no = input_noise
         self.ROOT_DIR = "."
         config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)), "standard_config.yaml")
         config_path_collect_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -122,6 +118,10 @@ class MetaEnvPretrained(gym.Env):
         self.agent_size = self.trained_dodge_asteroids.env.env_method("get_wrapper_attr", "size")[0]
         self.maximum_number_of_objects = self.trained_dodge_asteroids.maximum_number_of_objects
 
+        self.difficulty_dodge = self.trained_dodge_asteroids.env.env_method("get_wrapper_attr", "difficulty")[0]
+        self.difficulty_collect = self.trained_collect_asteroids.env.env_method("get_wrapper_attr", "difficulty")[0]
+        self.input_noise_yes_or_no = self.trained_dodge_asteroids.env.env_method("get_wrapper_attr", "drift")[0]
+
         # the state could possibly be a belief state of the forward model
         # only one return value because DummyVecEnv only returns one observation
         self.state_of_dodge_asteroids = self.trained_dodge_asteroids.env.reset()
@@ -163,6 +163,7 @@ class MetaEnvPretrained(gym.Env):
                 self.collect_list_of_object_dict_lists):
             self.trained_collect_asteroids.env.env_method("set_object_dict_list",
                                                           self.collect_list_of_object_dict_lists[self.episode_counter])
+
 
     def step(self, action: int):
         """
@@ -211,7 +212,6 @@ class MetaEnvPretrained(gym.Env):
         # FIXME: hardcoded forward model prediction
         active_gold_label = get_next_position_observation_moonlander(
             observations=active_agent_and_object_positions_tensor,
-            #current_state=torch.tensor(active_last_state, device=device),
             actions=action_of_task_agent,
             observation_width=self.observation_width,
             observation_height=self.observation_height,
@@ -219,9 +219,8 @@ class MetaEnvPretrained(gym.Env):
             maximum_number_of_objects=self.maximum_number_of_objects)
         # form to normal distribution
         active_gold_label = torch.distributions.Normal(active_gold_label,
-                                                       scale=torch.tensor(
-                                                           [[1., 1., 1., 1.,
-                                                             1., 1., 1., 1., 1., 1., 1., 1.]]))
+                                                       scale=torch.tensor([[1., 1., 1., 1.,
+                                                                            1., 1., 1., 1., 1., 1., 1., 1.,]]))
         # perform action & SoC calculation & reward estimation corrected by SoC
         new_state, active_reward, active_is_done, active_info, active_prediction_error, active_difficulty, active_SoC, active_reward_estimation_corrected_by_SoC, input_noise = active_model.step_in_env(
             actions=torch.tensor(action_of_task_agent).float(),
@@ -240,10 +239,10 @@ class MetaEnvPretrained(gym.Env):
         # perform default action 1 in inactive task
         # only four return value because DummyVecEnv only returns observation, reward, done, info
         # but meta agent does not see actual state and reward
-        observation, _, inactive_is_done, inactive_info = inactive_model.env.step(torch.tensor([1], device=device))
-        ## get position and object positions of observation
+        inactive_observation, _, inactive_is_done, inactive_info = inactive_model.env.step(torch.tensor([1], device=device))
+        # get position and object positions of observation
         inactive_agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(
-            torch.tensor(observation, device=device),
+            torch.tensor(inactive_observation, device=device),
             observation_width=self.observation_width,
             observation_height=self.observation_height,
             maximum_number_of_objects=inactive_model.maximum_number_of_objects,
@@ -265,7 +264,7 @@ class MetaEnvPretrained(gym.Env):
         inactive_gold_label = torch.distributions.Normal(inactive_gold_label,
                                                          scale=torch.tensor(
                                                              [[1., 1., 1., 1.,
-                                                               1., 1., 1., 1., 1., 1., 1., 1.]]))
+                                                               1., 1., 1., 1., 1., 1., 1., 1.,]]))
         # get new inactive state from forward model
         belief_state = get_observation_of_position_and_object_positions(agent_and_object_positions=
                                                                         # inactive_belief_state_normal_distribution.mean[
@@ -400,9 +399,6 @@ class MetaEnvPretrained(gym.Env):
         with open(config_path_collect_asteroids, "r") as file:
             config_collect_asteroids = yaml.safe_load(file)
 
-        difficulty_dodge = self.difficulty_dodge
-        difficulty_collect = self.difficulty_collect
-        input_noise = self.input_noise_yes_or_no
 
         drift_bool = config_dodge_asteroids['world']['drift']['drift_at_whole_level']
 
@@ -422,8 +418,8 @@ class MetaEnvPretrained(gym.Env):
                 "prediction_error": active_prediction_error, "difficulty": active_difficulty,
                 "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect,
                 "objects_dodge": objects_dodge, "objects_collect": objects_collect,
-                "difficulty_dodge": difficulty_dodge, "difficulty_collect": difficulty_collect,
-                "drift": drift}
+                "difficulty_dodge": self.difficulty_dodge, "difficulty_collect": self.difficulty_collect,
+                "drift": self.input_noise_yes_or_no}
         return (
             self.state,
             active_reward_estimation_corrected_by_SoC + inactive_reward_estimation_corrected_by_SoC,
