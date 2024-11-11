@@ -83,7 +83,7 @@ class MetaEnvPretrained(gym.Env):
         # FIXME: this is an ugly hack to load the trained agents
         with open(
                 os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                f"../../../policies/{dodge_best_model_name}"), "rb"
+                                f"/home/ohneland/Jobs/COMPAS/Scilab-RL/models/dodge_best_fm_23_08_rl_model_best"), "rb"
         ) as file:
             print("start loading agents", file)
             self.trained_dodge_asteroids = CLEANPPOFM.load(path=file,
@@ -92,7 +92,7 @@ class MetaEnvPretrained(gym.Env):
             self.trained_dodge_asteroids.set_logger(logger=self.logger)
         with open(
                 os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                f"../../../policies/{collect_best_model_name}"), "rb"
+                                f"/home/ohneland/Jobs/COMPAS/Scilab-RL/models/collect_best_fm_23_08_rl_model_best"), "rb"
         ) as file:
             # same model cannot be loaded twice -> copy does also not work
             self.trained_collect_asteroids = CLEANPPOFM.load(path=file,
@@ -120,7 +120,7 @@ class MetaEnvPretrained(gym.Env):
 
         self.difficulty_dodge = self.trained_dodge_asteroids.env.env_method("get_wrapper_attr", "difficulty")[0]
         self.difficulty_collect = self.trained_collect_asteroids.env.env_method("get_wrapper_attr", "difficulty")[0]
-        self.input_noise_yes_or_no = self.trained_dodge_asteroids.env.env_method("get_wrapper_attr", "drift")[0]
+        #self.input_noise_yes_or_no = self.trained_dodge_asteroids.env.env_method("get_wrapper_attr", "input_noise")[0]
 
         # the state could possibly be a belief state of the forward model
         # only one return value because DummyVecEnv only returns one observation
@@ -209,6 +209,7 @@ class MetaEnvPretrained(gym.Env):
         # forward model predictions once with state and action
         # active_belief_state_normal_distribution = active_model.fm_network(active_agent_and_object_positions_tensor,
         #                                                                   torch.tensor([action_of_task_agent]).float())
+        scale_tensor = torch.ones(self.maximum_number_of_objects * 2 + 2)
         # FIXME: hardcoded forward model prediction
         active_gold_label = get_next_position_observation_moonlander(
             observations=active_agent_and_object_positions_tensor,
@@ -219,8 +220,7 @@ class MetaEnvPretrained(gym.Env):
             maximum_number_of_objects=self.maximum_number_of_objects)
         # form to normal distribution
         active_gold_label = torch.distributions.Normal(active_gold_label,
-                                                       scale=torch.tensor([[1., 1., 1., 1.,
-                                                                            1., 1., 1., 1., 1., 1., 1., 1.,]]))
+                                                       scale=scale_tensor)
         # perform action & SoC calculation & reward estimation corrected by SoC
         new_state, active_reward, active_is_done, active_info, active_prediction_error, active_difficulty, active_SoC, active_reward_estimation_corrected_by_SoC, input_noise = active_model.step_in_env(
             actions=torch.tensor(action_of_task_agent).float(),
@@ -262,9 +262,7 @@ class MetaEnvPretrained(gym.Env):
             maximum_number_of_objects=self.maximum_number_of_objects)
         # form to normal distribution
         inactive_gold_label = torch.distributions.Normal(inactive_gold_label,
-                                                         scale=torch.tensor(
-                                                             [[1., 1., 1., 1.,
-                                                               1., 1., 1., 1., 1., 1., 1., 1.,]]))
+                                                         scale=scale_tensor)
         # get new inactive state from forward model
         belief_state = get_observation_of_position_and_object_positions(agent_and_object_positions=
                                                                         # inactive_belief_state_normal_distribution.mean[
@@ -391,23 +389,9 @@ class MetaEnvPretrained(gym.Env):
             axis=1,
         ).flatten()
 
-        config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)), "standard_config.yaml")
-        config_path_collect_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                     "standard_config_second_task.yaml")
-        with open(config_path_dodge_asteroids, "r") as file:
-            config_dodge_asteroids = yaml.safe_load(file)
-        with open(config_path_collect_asteroids, "r") as file:
-            config_collect_asteroids = yaml.safe_load(file)
-
-
-        drift_bool = config_dodge_asteroids['world']['drift']['drift_at_whole_level']
-
-        if drift_bool:
-            drift = "yes"
-        else:
-            drift = "no"
-
         self.step_counter += 1
+
+
         info = {"info_dodge": info_dodge, "info_collect": info_collect, "reward_dodge": reward_dodge,
                 "reward_collect": reward_collect, "action_meta": action, "dodge_position_before": last_dodge_position,
                 "collect_position_before": last_collect_position, "dodge_action": dodge_action,
@@ -418,8 +402,7 @@ class MetaEnvPretrained(gym.Env):
                 "prediction_error": active_prediction_error, "difficulty": active_difficulty,
                 "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect,
                 "objects_dodge": objects_dodge, "objects_collect": objects_collect,
-                "difficulty_dodge": self.difficulty_dodge, "difficulty_collect": self.difficulty_collect,
-                "drift": self.input_noise_yes_or_no}
+                "difficulty_dodge": self.difficulty_dodge, "difficulty_collect": self.difficulty_collect}
         return (
             self.state,
             active_reward_estimation_corrected_by_SoC + inactive_reward_estimation_corrected_by_SoC,

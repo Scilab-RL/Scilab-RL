@@ -406,7 +406,11 @@ def evaluate_policy_meta_agent(
         if first_step:
             difficulty_dodge = info_dict['difficulty_dodge']
             difficulty_collect = info_dict['difficulty_collect']
-            drift = info_dict['drift']
+            noise = info_dict['input_noise']
+            if noise == 0:
+                input_noise = 'no'
+            else:
+                input_noise = 'yes'
             first_step = False
 
         list_of_visible_objects_dodge = []
@@ -568,15 +572,21 @@ def evaluate_policy_meta_agent(
         if render:
             env.render()
 
+    test_path = os.path.join(os.path.dirname(__file__),'..','..','agent_data')
+
+    if not os.path.isdir(test_path):
+        print("test no dir")
+        os.mkdir(test_path)
+
     dir_path = os.path.join(os.path.dirname(__file__),'..','..','agent_data', 'agent')
 
     avoid_df = pd.DataFrame.from_dict(data=dict_avoid)
     collect_df = pd.DataFrame.from_dict(data=dict_collect)
     avoid_df.to_csv(
-        dir_path + '_' + difficulty_dodge + '_' + difficulty_collect + '_' + drift + '_' + str(
+        dir_path + '_' + difficulty_dodge + '_' + difficulty_collect + '_' + input_noise + '_' + str(
             counter) + '_avoid.csv', index=False)
     collect_df.to_csv(
-        dir_path + '_' + difficulty_dodge + '_' + difficulty_collect + '_' + drift + '_' + str(
+        dir_path + '_' + difficulty_dodge + '_' + difficulty_collect + '_' + input_noise + '_' + str(
             counter) + '_collect.csv', index=False)
 
     mean_reward = np.mean(episode_rewards)
