@@ -428,9 +428,6 @@ def evaluate_policy_meta_agent(
         player_dodge = list_of_visible_objects_dodge.pop(0)
         player_collect = list_of_visible_objects_collect.pop(0)
 
-        # remove y of player position
-        list_of_visible_objects_dodge.pop(0)
-        list_of_visible_objects_collect.pop(0)
 
         # remove entrys without objects
         list_of_visible_objects_dodge = [i for i in list_of_visible_objects_dodge if i != [0.0, 0.0]]
