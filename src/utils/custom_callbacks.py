@@ -318,7 +318,7 @@ class CustomEvalCallbackMetaAgent(EvalCallback):
             # Sync training and eval env if there is VecNormalize
             sync_envs_normalization(self.training_env, self.eval_env)
 
-            episode_rewards, episode_lengths, episode_number_of_crashed_objects, episode_number_of_collected_objects = custom_evaluate_policy_meta_agent(
+            episode_rewards, episode_lengths, episode_number_of_crashed_objects, episode_number_of_collected_objects, episode_number_of_switches, episode_number_of_dodge_actions, episode_number_of_collect_actions = custom_evaluate_policy_meta_agent(
                 self.model,
                 self.eval_env,
                 n_eval_episodes=self.n_eval_episodes,
@@ -341,6 +341,9 @@ class CustomEvalCallbackMetaAgent(EvalCallback):
                     ep_lengths=self.evaluations_length,
                     number_of_crashed_objects=[episode_number_of_crashed_objects],
                     number_of_collected_objects=[episode_number_of_collected_objects],
+                    number_of_switches=[episode_number_of_switches],
+                    number_of_dodge_actions=[episode_number_of_dodge_actions],
+                    number_of_collect_actions=[episode_number_of_collect_actions],
                 )
 
             mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
@@ -349,6 +352,13 @@ class CustomEvalCallbackMetaAgent(EvalCallback):
                 episode_number_of_crashed_objects), np.std(episode_number_of_crashed_objects)
             mean_number_of_collected_objects, std_number_of_collected_objects = np.mean(
                 episode_number_of_collected_objects), np.std(episode_number_of_collected_objects)
+            mean_number_of_switches, std_number_of_switches = np.mean(episode_number_of_switches), np.std(
+                episode_number_of_switches)
+            mean_number_of_dodge_actions, std_number_of_dodge_actions = np.mean(
+                episode_number_of_dodge_actions), np.std(
+                episode_number_of_dodge_actions)
+            mean_number_of_collect_actions, std_number_of_collect_actions = np.mean(
+                episode_number_of_collect_actions), np.std(episode_number_of_collected_objects)
             self.last_mean_reward = mean_reward
 
             if self.verbose > 0:
@@ -359,11 +369,20 @@ class CustomEvalCallbackMetaAgent(EvalCallback):
                     f"Number of crashed objects: {mean_number_of_crashed_objects:.2f} +/- {std_number_of_crashed_objects:.2f}")
                 print(
                     f"Number of collected objects: {mean_number_of_collected_objects:.2f} +/- {std_number_of_collected_objects:.2f}")
+                print(
+                    f"Number of switches: {mean_number_of_switches:.2f} +/- {std_number_of_switches:.2f}")
+                print(
+                    f"Number of dodge actions: {mean_number_of_dodge_actions:.2f} +/- {std_number_of_dodge_actions:.2f}")
+                print(
+                    f"Number of collect actions: {mean_number_of_collect_actions:.2f} +/- {std_number_of_collect_actions:.2f}")
             # Add to current Logger
             self.logger.record("eval/mean_reward", float(mean_reward))
             self.logger.record("eval/mean_ep_length", mean_ep_length)
             self.logger.record("eval/mean_number_of_crashed_objects", mean_number_of_crashed_objects)
             self.logger.record("eval/mean_number_of_collected_objects", mean_number_of_collected_objects)
+            self.logger.record("eval/mean_number_of_switches", mean_number_of_switches)
+            self.logger.record("eval/mean_number_of_dodge_actions", mean_number_of_dodge_actions)
+            self.logger.record("eval/mean_number_of_collect_actions", mean_number_of_collect_actions)
 
             # Dump log so the evaluation results are printed with the correct timestep
             self.logger.record("time/total timesteps", self.num_timesteps, exclude="tensorboard")

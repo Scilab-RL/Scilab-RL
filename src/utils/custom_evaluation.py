@@ -300,10 +300,17 @@ def evaluate_policy_meta_agent(
     episode_starts = np.ones((env.num_envs,), dtype=bool)
 
     ### from me
+    last_action = np.array([0])
     current_number_of_crashed_objects = np.zeros(n_envs, dtype="int")
     current_number_of_collected_objects = np.zeros(n_envs, dtype="int")
+    current_number_of_switches = np.zeros(n_envs, dtype="int")
+    current_number_of_dodge_actions = np.zeros(n_envs, dtype="int")
+    current_number_of_collect_actions = np.zeros(n_envs, dtype="int")
     episode_number_of_crashed_objects = []
     episode_number_of_collected_objects = []
+    episode_number_of_switches = []
+    episode_number_of_dodge_actions = []
+    episode_number_of_collect_actions = []
     ###
 
     while (episode_counts < episode_count_targets).any():
@@ -451,6 +458,14 @@ def evaluate_policy_meta_agent(
 
         current_number_of_crashed_objects += info_dict["info_dodge"][0]["number_of_crashed_or_collected_objects"]
         current_number_of_collected_objects += info_dict["info_collect"][0]["number_of_crashed_or_collected_objects"]
+        if not (last_action == actions).item():
+            current_number_of_switches += 1
+            last_action = actions
+        if actions == np.array([0]):
+            current_number_of_dodge_actions += 1
+        elif actions == np.array([1]):
+            current_number_of_collect_actions += 1
+
         ### until here
 
         current_rewards += rewards
@@ -487,6 +502,9 @@ def evaluate_policy_meta_agent(
                         ### from me
                         episode_number_of_crashed_objects.append(current_number_of_crashed_objects[i])
                         episode_number_of_collected_objects.append(current_number_of_collected_objects[i])
+                        episode_number_of_switches.append(current_number_of_switches[i])
+                        episode_number_of_dodge_actions.append(current_number_of_dodge_actions[i])
+                        episode_number_of_collect_actions.append(current_number_of_collect_actions[i])
                         ###
                     current_rewards[i] = 0
                     current_lengths[i] = 0
@@ -494,6 +512,9 @@ def evaluate_policy_meta_agent(
                     ### from me
                     current_number_of_crashed_objects[i] = 0
                     current_number_of_collected_objects[i] = 0
+                    current_number_of_switches[i] = 0
+                    current_number_of_dodge_actions[i] = 0
+                    current_number_of_collect_actions[i] = 0
 
         observations = new_observations
 
@@ -505,5 +526,5 @@ def evaluate_policy_meta_agent(
     if reward_threshold is not None:
         assert mean_reward > reward_threshold, "Mean reward below threshold: " f"{mean_reward:.2f} < {reward_threshold:.2f}"
     if return_episode_rewards:
-        return episode_rewards, episode_lengths, episode_number_of_crashed_objects, episode_number_of_collected_objects
+        return episode_rewards, episode_lengths, episode_number_of_crashed_objects, episode_number_of_collected_objects, episode_number_of_switches, episode_number_of_dodge_actions, episode_number_of_collect_actions
     return mean_reward, std_reward
