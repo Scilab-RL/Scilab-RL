@@ -329,7 +329,6 @@ class CLEANPPOFM:
         No changes were made by me.
         """
         iteration = 0
-        print("resetting env")
         self._last_obs = self.env.reset()
         callback.init_callback(self)
         callback.on_training_start(locals(), globals())
@@ -845,7 +844,6 @@ class CLEANPPOFM:
             del data[to_exclude]
         # save network parameters
         data["_policy"] = self.policy.state_dict()
-        print("save", self.policy.state_dict())
         # changed to save the best forward model
         data["_fm"] = self.best_model
         torch.save(data, path)

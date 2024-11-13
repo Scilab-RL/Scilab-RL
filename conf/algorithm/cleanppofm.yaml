@@ -20,7 +20,6 @@ number_of_future_steps: 15 # int: the number of future steps to predict the rewa
 fm_trained_with_input_noise: false # boolean: if the forward model is trained with data including input noise
 input_noise_on: true # boolean: if the input noise is added to action
 maximum_number_of_objects: 10 # int: maximal number of objects that are considered in the forward model prediction
-# FIXME: this does not work yet! the critic get_value function fails
 model_based: true # boolean: if the agent itself uses the forward model predictions to predict the next action
 
 # forward model computation hyperparameters

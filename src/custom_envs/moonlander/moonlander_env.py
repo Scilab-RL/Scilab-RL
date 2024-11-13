@@ -29,7 +29,7 @@ class MoonlanderWorldEnv(Env):
     }
 
     def __init__(self, task: str = "dodge", reward_function: str = "pos_neg",
-                 list_of_object_dict_lists: List[Dict] = None):
+                 list_of_object_dict_lists: List[Dict] = None, config_file_name: str = None):
         """
         initialises the environment
         Args:
@@ -37,10 +37,16 @@ class MoonlanderWorldEnv(Env):
         self.name = "MoonlanderWorldEnv"
         self.ROOT_DIR = "."
         if task == "dodge":
-            config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "standard_config.yaml")
+            if config_file_name is not None:
+                config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config_file_name)
+            else:
+                config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "standard_config.yaml")
         elif task == "collect":
-            config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       "standard_config_second_task.yaml")
+            if config_file_name is not None:
+                config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config_file_name)
+            else:
+                config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                           "standard_config_second_task.yaml")
         else:
             raise ValueError("Task {} not implemented".format(task))
 

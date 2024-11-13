@@ -92,7 +92,6 @@ def evaluate_policy(
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
     current_number_of_crashed_or_collected_objects = np.zeros(n_envs, dtype="int")
-    print("reset")
     observations = env.reset()
     states = None
 

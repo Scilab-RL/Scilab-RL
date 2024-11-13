@@ -21,6 +21,9 @@ def setup_logger(run_dir, run_name, cfg):
         project_name = cfg.project_name
         if project_name is None:
             project_name = run_name
+        if 'algorithm.input_noise_on' in non_nested_cfg:
+            if non_nested_cfg['algorithm.input_noise_on']:
+                project_name += "_input_noise"
         wandb_args = dict(project=project_name,
                           config=non_nested_cfg)
         if 'entity' in cfg:

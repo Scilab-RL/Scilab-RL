@@ -1,0 +1,47 @@
+world:
+  # Dimensions of the world (width excludes walls)
+  x_width: 40
+  y_height: 500
+  # Difficulty (empty, easy, middle, hard) scaling the number of objects and drifts
+  difficulty: hard
+  # whether ranges where a funnel can possibly occur should be created
+  funnel_ranges: True
+  drift:
+    # Length of a drift range
+    length: 15
+    # Whether to (randomly) use drifts of intensities 1, 2 and 3 or just drift of intensity 1
+    variable_intensity: False
+    # Probability of a drift being applied without being shown in the observation
+    invisible_drift_probability: 0.0
+    # Probability of a drift being shown but not applied.
+    # The sum with invisible_drift_probability must be <= 1.
+    fake_drift_probability: 0.0
+    # empty/left/right/ranges depending on whether drift should happen in certain
+    # ranges (with length specified above) or for the whole level
+    drift_at_whole_level: empty
+  objects:
+    # obstacle (avoiding task) or coin (collecting task)
+    type: obstacle
+    # When set to true, objects will be more likely to be placed in the middle of the level
+    # instead of being uniformly distributed.
+    normalized_placement: True
+    # Setting this to False slows training down significantly and should thus be used only for
+    # levels played by humans.
+    allow_overlap: True
+
+agent:
+  # Size of the agent. A size of 1 corresponds to the agent taking up one cell,
+  # a size of 2 corresponds to the agent taking up a 3x3 square, etc.
+  # Note: Size also affects objects
+  size: 2
+  # Number of cells that the observation contains
+  observation_height: 30
+  # Fixed initial position for testing
+  initial_x_position:
+
+# Reward Function (simple, gaussian, pos_neg)
+reward_function: pos_neg
+
+# Level of logging, affecting both printing and files
+verbose_level: 0
+no_crashes: True
