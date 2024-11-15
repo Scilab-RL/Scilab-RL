@@ -37,7 +37,7 @@ class MetaEnvPretrained(gym.Env):
                  collect_list_of_object_dict_lists: List[Dict] = None, render_mode=None,
                  with_SoC_in_reward: bool = True, with_SoC_in_observation: bool = True,
                  use_prediction_error: bool = True, use_difficulty: bool = True,
-                 can_only_switch_as_often_as_humans: bool = False):
+                 can_only_switch_as_often_as_humans: bool = False, obs_is_SoC: bool = False):
         self.ROOT_DIR = "."
         config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)), "standard_config.yaml")
         config_path_collect_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -65,6 +65,12 @@ class MetaEnvPretrained(gym.Env):
         self.use_prediction_error = use_prediction_error
         self.use_difficulty = use_difficulty
         self.can_only_switch_as_often_as_humans = can_only_switch_as_often_as_humans
+        self.obs_is_SoC = obs_is_SoC
+
+        if not self.with_SoC_in_observation and self.obs_is_SoC:
+            raise ValueError(
+                f"SoC in observation is needed when observation is SoC, but you defined "
+                f"with_SoC_in_observation={self.with_SoC_in_observation} and obs_is_SoC={self.obs_is_SoC}")
 
         ### ACTION SPACE ###
         # one action to decide which task to control
@@ -89,24 +95,25 @@ class MetaEnvPretrained(gym.Env):
         #     ),
         #     dtype=np.int64,
         # )
-        self.observation_space = gym.spaces.Dict(
-            {"image": gym.spaces.Box(low=-10, high=5,
-                                     shape=(self.following_observations_size * (world_config["x_width"] + 2) * 2,),
-                                     dtype=np.int64),
-             "reward_dodge": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64),
-             "reward_collect": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64),
-             "task_switching_costs": gym.spaces.Box(low=0, high=0.5, shape=(1,), dtype=np.float64),
-             "task_action": gym.spaces.Box(low=0, high=2, shape=(1,), dtype=np.int64),
-             "meta_action": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.int64),
-             "crashed_objects": gym.spaces.Box(low=0, high=74, shape=(1,), dtype=np.int64),
-             "collected_objects": gym.spaces.Box(low=0, high=30, shape=(1,), dtype=np.int64)
-             }
-        )
-        # FIXME: this doesn't work for old trained models, because the sorting is different
-        # old version --> alphabetically, SoC_collect, SoC_dodge at the end
-        # when adding SoC_dodge and SoC_collect later, they are added at the beginning (SoC_collect, SoC_dodge)
-        # quickfix -> put SoCs hardcoded in the observation space above
-        if self.with_SoC_in_observation:
+        self.observation_space = gym.spaces.Dict({})
+        if not self.obs_is_SoC:
+            self.observation_space["image"] = gym.spaces.Box(low=-10, high=5,
+                                                             shape=(self.following_observations_size * (
+                                                                         world_config["x_width"] + 2) * 2,),
+                                                             dtype=np.int64),
+            self.observation_space["reward_dodge"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64),
+            self.observation_space["reward_collect"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64),
+            self.observation_space["task_switching_costs"] = gym.spaces.Box(low=0, high=0.5, shape=(1,),
+                                                                            dtype=np.float64),
+            self.observation_space["task_action"] = gym.spaces.Box(low=0, high=2, shape=(1,), dtype=np.int64),
+            self.observation_space["meta_action"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.int64),
+            self.observation_space["crashed_objects"] = gym.spaces.Box(low=0, high=74, shape=(1,), dtype=np.int64),
+            self.observation_space["collected_objects"] = gym.spaces.Box(low=0, high=30, shape=(1,), dtype=np.int64)
+            # FIXME: this doesn't work for old trained models, because the sorting is different
+            # old version --> alphabetically, SoC_collect, SoC_dodge at the end
+            # when adding SoC_dodge and SoC_collect later, they are added at the beginning (SoC_collect, SoC_dodge)
+            # quickfix -> put SoCs hardcoded in the observation space above
+        if self.with_SoC_in_observation or self.obs_is_SoC:
             self.observation_space["SoC_collect"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64)
             self.observation_space["SoC_dodge"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64)
 
@@ -177,17 +184,18 @@ class MetaEnvPretrained(gym.Env):
         # self.state = np.append(self.state, [self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
         # self.state = np.array([self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
         self.state = OrderedDict()
-        # order alphabetically and afterward the SoCs
-        self.state["collected_objects"] = np.array([0])
-        self.state["crashed_objects"] = np.array([0])
-        self.state["image"] = state_image
-        self.state["meta_action"] = np.array([0])
-        self.state["reward_collect"] = np.array([0.0])
-        self.state["reward_dodge"] = np.array([0.0])
-        self.state["task_action"] = np.array([0])
-        self.state["task_switching_costs"] = np.array([0.0])
+        if not self.obs_is_SoC:
+            # order alphabetically and afterward the SoCs
+            self.state["collected_objects"] = np.array([0])
+            self.state["crashed_objects"] = np.array([0])
+            self.state["image"] = state_image
+            self.state["meta_action"] = np.array([0])
+            self.state["reward_collect"] = np.array([0.0])
+            self.state["reward_dodge"] = np.array([0.0])
+            self.state["task_action"] = np.array([0])
+            self.state["task_switching_costs"] = np.array([0.0])
 
-        if self.with_SoC_in_observation:
+        if self.with_SoC_in_observation or self.obs_is_SoC:
             self.state["SoC_collect"] = self.SoC_collect
             self.state["SoC_dodge"] = self.SoC_dodge
 
@@ -493,15 +501,18 @@ class MetaEnvPretrained(gym.Env):
             task_switch_costs = 0.5
         else:
             task_switch_costs = 0.0
-        self.state = {"image": state_image,
-                      "reward_dodge": reward_dodge.astype(np.float64),
-                      "reward_collect": reward_collect.astype(np.float64),
-                      "task_switching_costs": np.array([task_switch_costs]),
-                      "task_action": action_of_task_agent,
-                      "meta_action": np.array([action]),
-                      "crashed_objects": np.array([info_dodge[0]["number_of_crashed_or_collected_objects"]]),
-                      "collected_objects": np.array([info_collect[0]["number_of_crashed_or_collected_objects"]])}
-        if self.with_SoC_in_observation:
+        if not self.obs_is_SoC:
+            self.state = {
+                "image": state_image,
+                "reward_dodge": reward_dodge.astype(np.float64),
+                "reward_collect": reward_collect.astype(np.float64),
+                "task_switching_costs": np.array([task_switch_costs]),
+                "task_action": action_of_task_agent,
+                "meta_action": np.array([action]),
+                "crashed_objects": np.array([info_dodge[0]["number_of_crashed_or_collected_objects"]]),
+                "collected_objects": np.array([info_collect[0]["number_of_crashed_or_collected_objects"]])
+            }
+        if self.with_SoC_in_observation or self.obs_is_SoC:
             self.state["SoC_collect"] = self.SoC_collect
             self.state["SoC_dodge"] = self.SoC_dodge
 
@@ -526,41 +537,44 @@ class MetaEnvPretrained(gym.Env):
         )
 
     def render(self):
-        # observation = copy.deepcopy(self.state).reshape(self.observation_height, self.observation_width * 2 + 4)
-        observation = copy.deepcopy(self.state["image"]).reshape(self.observation_height,
-                                                                 self.observation_width * 2 + 4)
-        # place frame around current task
-        if self.current_task == 0:
-            first_fill_value = -10
-            second_fill_value = -1
-            tmp = np.array([-10, -1])
-            # +2 for walls + 2 for frame
-            row = np.expand_dims(np.repeat(tmp, self.observation_width + 4), axis=0)
+        if not self.obs_is_SoC:
+            # observation = copy.deepcopy(self.state).reshape(self.observation_height, self.observation_width * 2 + 4)
+            observation = copy.deepcopy(self.state["image"]).reshape(self.observation_height,
+                                                                     self.observation_width * 2 + 4)
+            # place frame around current task
+            if self.current_task == 0:
+                first_fill_value = -10
+                second_fill_value = -1
+                tmp = np.array([-10, -1])
+                # +2 for walls + 2 for frame
+                row = np.expand_dims(np.repeat(tmp, self.observation_width + 4), axis=0)
+            else:
+                first_fill_value = -1
+                second_fill_value = -10
+                tmp = np.array([-1, -10])
+                # +2 for walls + 2 for frame
+                row = np.expand_dims(np.repeat(tmp, self.observation_width + 4), axis=0)
+
+            observation = np.concatenate(
+                (
+                    np.full((self.observation_height, 1), first_fill_value),
+                    observation[:, :self.observation_width + 2],
+                    np.full((self.observation_height, 1), first_fill_value),
+                    np.full((self.observation_height, 1), second_fill_value),
+                    observation[:, self.observation_width + 2:],
+                    np.full((self.observation_height, 1), second_fill_value)),
+                axis=1)
+            observation = np.concatenate((row, observation, row), axis=0)
+
+            self.im.set_data(observation)
+            if self.render_mode == "human":
+                self.fig.canvas.draw_idle()
+            elif self.render_mode == "rgb_array":
+                self.fig.canvas.draw()
+                return np.frombuffer(self.fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(
+                    self.fig.canvas.get_width_height()[::-1] + (3,))
         else:
-            first_fill_value = -1
-            second_fill_value = -10
-            tmp = np.array([-1, -10])
-            # +2 for walls + 2 for frame
-            row = np.expand_dims(np.repeat(tmp, self.observation_width + 4), axis=0)
-
-        observation = np.concatenate(
-            (
-                np.full((self.observation_height, 1), first_fill_value),
-                observation[:, :self.observation_width + 2],
-                np.full((self.observation_height, 1), first_fill_value),
-                np.full((self.observation_height, 1), second_fill_value),
-                observation[:, self.observation_width + 2:],
-                np.full((self.observation_height, 1), second_fill_value)),
-            axis=1)
-        observation = np.concatenate((row, observation, row), axis=0)
-
-        self.im.set_data(observation)
-        if self.render_mode == "human":
-            self.fig.canvas.draw_idle()
-        elif self.render_mode == "rgb_array":
-            self.fig.canvas.draw()
-            return np.frombuffer(self.fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(
-                self.fig.canvas.get_width_height()[::-1] + (3,))
+            raise NotImplementedError("Rendering for observation just consisting of the SoC is not implemented")
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -587,17 +601,18 @@ class MetaEnvPretrained(gym.Env):
         # self.state = np.append(self.state, [self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
         # self.state = np.array([self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
         self.state = OrderedDict()
-        # order alphabetically and afterward the SoCs
-        self.state["collected_objects"] = np.array([0])
-        self.state["crashed_objects"] = np.array([0])
-        self.state["image"] = state_image
-        self.state["meta_action"] = np.array([0])
-        self.state["reward_collect"] = np.array([0.0])
-        self.state["reward_dodge"] = np.array([0.0])
-        self.state["task_action"] = np.array([0])
-        self.state["task_switching_costs"] = np.array([0.0])
+        if not self.obs_is_SoC:
+            # order alphabetically and afterward the SoCs
+            self.state["collected_objects"] = np.array([0])
+            self.state["crashed_objects"] = np.array([0])
+            self.state["image"] = state_image
+            self.state["meta_action"] = np.array([0])
+            self.state["reward_collect"] = np.array([0.0])
+            self.state["reward_dodge"] = np.array([0.0])
+            self.state["task_action"] = np.array([0])
+            self.state["task_switching_costs"] = np.array([0.0])
 
-        if self.with_SoC_in_observation:
+        if self.with_SoC_in_observation or self.obs_is_SoC:
             self.state["SoC_collect"] = self.SoC_collect
             self.state["SoC_dodge"] = self.SoC_dodge
 
