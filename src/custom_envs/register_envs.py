@@ -266,6 +266,7 @@ def register_custom_envs():
              kwargs={'reward_function': 'pos_neg'},
              max_episode_steps=500)
 
+    # FIXME: this one doesn't work at the moment
     register(id="MetaEnv-pretrained-small-v0",
              entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
              kwargs={'dodge_best_model_name': "dodge_best_fm_23_08_rl_model_best",

@@ -15,6 +15,7 @@ import yaml
 from gymnasium import Env
 from gymnasium import spaces
 from matplotlib import pyplot as plt
+import matplotlib
 
 # FIXME: needed for rendering rgb array
 # print with two decimals
@@ -776,6 +777,12 @@ class MoonlanderWorldEnv(Env):
         return self.state.flatten(), reward, self.is_done(), truncated, info
 
     def render(self):
+        # needed to avoid error X Error of failed request:  BadWindow (invalid Window parameter)
+        # Major opcode of failed request:  15 (X_QueryTree)
+        # Resource id in failed request:  0x3e000a7
+        # Serial number of failed request:  1360
+        # Current serial number in output stream:  1360
+        matplotlib.use('agg')
         if self.rendering_first_time:
             plt.ion()
             if self.forward_model_prediction is None:
@@ -858,6 +865,9 @@ class MoonlanderWorldEnv(Env):
         resets the environment
         """
         super().reset(seed=seed)
+        # we have to manually reset the seed for random because it is used for the agent and object positions
+        if seed:
+            rnd.seed(seed)
         # logging.info("reset " + self.current_time + str(self.episode_counter))
         self.episode_counter += 1
         self.step_counter = 0

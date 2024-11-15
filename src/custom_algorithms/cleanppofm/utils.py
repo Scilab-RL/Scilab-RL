@@ -520,6 +520,9 @@ def get_observation_of_position_and_object_positions(agent_and_object_positions:
 
         observations.append(matrix)
 
+    # form observations list to numpy array for faster calculations
+    observations = np.array(observations)
+
     observations_tensor = torch.flatten(torch.tensor(observations, device=device, dtype=torch.float32), start_dim=1)
 
     return observations_tensor
