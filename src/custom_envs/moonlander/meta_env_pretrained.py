@@ -37,7 +37,8 @@ class MetaEnvPretrained(gym.Env):
                  collect_list_of_object_dict_lists: List[Dict] = None, render_mode=None,
                  with_SoC_in_reward: bool = True, with_SoC_in_observation: bool = True,
                  use_prediction_error: bool = True, use_difficulty: bool = True,
-                 can_only_switch_as_often_as_humans: bool = False, obs_is_SoC: bool = False):
+                 can_only_switch_as_often_as_humans: bool = False, obs_is_SoC: bool = False,
+                 reward_good_switch_decision: bool = False):
         self.ROOT_DIR = "."
         config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)), "standard_config.yaml")
         config_path_collect_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -66,6 +67,7 @@ class MetaEnvPretrained(gym.Env):
         self.use_difficulty = use_difficulty
         self.can_only_switch_as_often_as_humans = can_only_switch_as_often_as_humans
         self.obs_is_SoC = obs_is_SoC
+        self.reward_good_switch_decision = reward_good_switch_decision
 
         if not self.with_SoC_in_observation and self.obs_is_SoC:
             raise ValueError(
@@ -99,15 +101,15 @@ class MetaEnvPretrained(gym.Env):
         if not self.obs_is_SoC:
             self.observation_space["image"] = gym.spaces.Box(low=-10, high=5,
                                                              shape=(self.following_observations_size * (
-                                                                         world_config["x_width"] + 2) * 2,),
-                                                             dtype=np.int64),
-            self.observation_space["reward_dodge"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64),
-            self.observation_space["reward_collect"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64),
+                                                                     world_config["x_width"] + 2) * 2,),
+                                                             dtype=np.int64)
+            self.observation_space["reward_dodge"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64)
+            self.observation_space["reward_collect"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64)
             self.observation_space["task_switching_costs"] = gym.spaces.Box(low=0, high=0.5, shape=(1,),
-                                                                            dtype=np.float64),
-            self.observation_space["task_action"] = gym.spaces.Box(low=0, high=2, shape=(1,), dtype=np.int64),
-            self.observation_space["meta_action"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.int64),
-            self.observation_space["crashed_objects"] = gym.spaces.Box(low=0, high=74, shape=(1,), dtype=np.int64),
+                                                                            dtype=np.float64)
+            self.observation_space["task_action"] = gym.spaces.Box(low=0, high=2, shape=(1,), dtype=np.int64)
+            self.observation_space["meta_action"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.int64)
+            self.observation_space["crashed_objects"] = gym.spaces.Box(low=0, high=74, shape=(1,), dtype=np.int64)
             self.observation_space["collected_objects"] = gym.spaces.Box(low=0, high=30, shape=(1,), dtype=np.int64)
             # FIXME: this doesn't work for old trained models, because the sorting is different
             # old version --> alphabetically, SoC_collect, SoC_dodge at the end
@@ -528,9 +530,34 @@ class MetaEnvPretrained(gym.Env):
                 "prediction_error": active_prediction_error, "difficulty": active_difficulty,
                 "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect}
 
+        if not self.reward_good_switch_decision:
+            meta_reward = reward_dodge + reward_collect - task_switch_costs
+        else:
+            if not self.with_SoC_in_reward:
+                reward_and_SoC_of_dodge = (reward_dodge + self.SoC_dodge) / 2
+                reward_and_SoC_of_collect = (reward_collect + self.SoC_collect) / 2
+            else:
+                reward_and_SoC_of_dodge = reward_dodge
+                reward_and_SoC_of_collect = reward_collect
+
+            if action == 0:
+                if reward_and_SoC_of_dodge > reward_and_SoC_of_collect:
+                    meta_reward = np.array([-1.0])
+                elif reward_and_SoC_of_dodge < reward_and_SoC_of_collect:
+                    meta_reward = np.array([1.0])
+                else:
+                    meta_reward = np.array([0.0])
+            else:
+                if reward_and_SoC_of_dodge < reward_and_SoC_of_collect:
+                    meta_reward = np.array([-1.0])
+                elif reward_and_SoC_of_dodge > reward_and_SoC_of_collect:
+                    meta_reward = np.array([1.0])
+                else:
+                    meta_reward = np.array([0.0])
+
         return (
             self.state,
-            (reward_dodge + reward_collect - task_switch_costs).item(),  # not as numpy array
+            meta_reward.item(),  # not as numpy array
             (active_is_done or inactive_is_done).item(),  # not as numpy array
             False,
             info,
