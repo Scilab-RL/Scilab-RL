@@ -207,7 +207,10 @@ class MetaEnvPretrained(gym.Env):
         # Resource id in failed request:  0x3e000a7
         # Serial number of failed request:  1360
         # Current serial number in output stream:  1360
-        matplotlib.use('agg')
+        # FIXME: However, Agg does not open any display window.
+        # Agg, is a non-interactive backend that can only write to files.
+        # It is used on Linux, if Matplotlib cannot connect to either an X display or a Wayland display.
+        # matplotlib.use('agg')
         plt.ion()
         self.fig, self.ax = plt.subplots()
         eximg = np.zeros((self.observation_height, self.observation_width * 2 + 4))
