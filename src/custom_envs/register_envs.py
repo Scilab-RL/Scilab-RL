@@ -326,6 +326,30 @@ def register_custom_envs():
                      'collect_best_model_name': "collect_reward_in_mb_rl_model_best",
                      'reward_good_switch_decision': True},
              max_episode_steps=500)
+    register(id="MetaEnv-pretrained-human-two-collect-tasks-easy-easy-v0",
+             entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
+             kwargs={'dodge_best_model_name': "collect_easy_no_input_noise_15_11_rl_model_best",
+                     'collect_best_model_name': "collect_easy_no_input_noise_15_11_rl_model_best"},
+             # TODO: use these models when using input noise
+             #              kwargs={'dodge_best_model_name': "collect_easy_input_noise_15_11_rl_model_best",
+             #                      'collect_best_model_name': "collect_easy_input_noise_15_11_rl_model_best"},
+             max_episode_steps=500)
+    register(id="MetaEnv-pretrained-human-two-collect-tasks-easy-hard-v0",
+             entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
+             kwargs={'dodge_best_model_name': "collect_easy_no_input_noise_15_11_rl_model_best",
+                     'collect_best_model_name': "collect_hard_no_input_noise_15_11_rl_model_best"},
+             # TODO: use these models when using input noise
+             #              kwargs={'dodge_best_model_name': "collect_easy_input_noise_15_11_rl_model_best",
+             #                      'collect_best_model_name': "collect_hard_input_noise_15_11_rl_model_best"},
+             max_episode_steps=500)
+    register(id="MetaEnv-pretrained-human-two-collect-tasks-hard-hard-v0",
+             entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
+             kwargs={'dodge_best_model_name': "collect_hard_no_input_noise_15_11_rl_model_best",
+                     'collect_best_model_name': "collect_hard_no_input_noise_15_11_rl_model_best"},
+             # TODO: use these models when using input noise
+             #              kwargs={'dodge_best_model_name': "collect_hard_input_noise_15_11_rl_model_best",
+             #                      'collect_best_model_name': "collect_hard_input_noise_15_11_rl_model_best"},
+             max_episode_steps=500)
 
     # benchmarks
     register(id="MetaEnv-pretrained-benchmark-small-v0",
