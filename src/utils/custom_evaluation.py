@@ -293,10 +293,10 @@ def evaluate_policy_meta_agent(
     episode_lengths = []
     first_step = True
 
-    dict_avoid = {"timesteps": [], "player_pos": [], "active_task": [], "current_reward": [],
+    dict_avoid = {"timesteps": [], "player_pos": [], "active_task": [], "input_noise": [], "current_reward": [],
                   "list_of_visible_objects": [], "number_of_visible_objects": [], "distance_to_closest_object": []}
 
-    dict_collect = {"timesteps": [], "player_pos": [], "active_task": [], "current_reward": [],
+    dict_collect = {"timesteps": [], "player_pos": [], "active_task": [], "input_noise": [], "current_reward": [],
                     "list_of_visible_objects": [], "number_of_visible_objects": [], "distance_to_closest_object": []}
 
 
@@ -403,10 +403,11 @@ def evaluate_policy_meta_agent(
 
         info_dict = infos[0]
 
+        noise = info_dict['input_noise']
+
         if first_step:
             difficulty_dodge = info_dict['difficulty_dodge']
             difficulty_collect = info_dict['difficulty_collect']
-            noise = info_dict['input_noise']
             if noise == 0:
                 input_noise = 'no'
             else:
@@ -431,6 +432,7 @@ def evaluate_policy_meta_agent(
         # remove player position
         player_dodge = list_of_visible_objects_dodge.pop(0)
         player_collect = list_of_visible_objects_collect.pop(0)
+
 
 
         # remove entrys without objects
@@ -462,6 +464,9 @@ def evaluate_policy_meta_agent(
 
         dict_avoid["player_pos"].append(info_dict['dodge_position_before'])
         dict_collect["player_pos"].append(info_dict['collect_position_before'])
+
+        dict_avoid["input_noise"].append(noise)
+        dict_collect["input_noise"].append(noise)
 
         dict_avoid["current_reward"].append(info_dict['reward_dodge'])
         dict_collect["current_reward"].append(info_dict['reward_collect'])

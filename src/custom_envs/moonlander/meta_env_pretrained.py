@@ -120,7 +120,6 @@ class MetaEnvPretrained(gym.Env):
 
         self.difficulty_dodge = self.trained_dodge_asteroids.env.env_method("get_wrapper_attr", "difficulty")[0]
         self.difficulty_collect = self.trained_collect_asteroids.env.env_method("get_wrapper_attr", "difficulty")[0]
-        #self.input_noise_yes_or_no = self.trained_dodge_asteroids.env.env_method("get_wrapper_attr", "input_noise")[0]
 
         # the state could possibly be a belief state of the forward model
         # only one return value because DummyVecEnv only returns one observation
@@ -226,7 +225,7 @@ class MetaEnvPretrained(gym.Env):
             actions=torch.tensor(action_of_task_agent).float(),
             # forward_normal=active_belief_state_normal_distribution)
             forward_normal=active_gold_label)
-        active_agent_and_object_positions_tensor_new = get_position_and_object_positions_of_observation(
+        active_agent_and_object_positions_tensor_after_step = get_position_and_object_positions_of_observation(
             torch.tensor(new_state, device=device),
             observation_width=self.observation_width,
             observation_height=self.observation_height,
@@ -242,6 +241,12 @@ class MetaEnvPretrained(gym.Env):
         inactive_observation, _, inactive_is_done, inactive_info = inactive_model.env.step(torch.tensor([1], device=device))
         # get position and object positions of observation
         inactive_agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(
+            torch.tensor(inactive_last_state, device=device),
+            observation_width=self.observation_width,
+            observation_height=self.observation_height,
+            maximum_number_of_objects=inactive_model.maximum_number_of_objects,
+            agent_size=self.agent_size)
+        actual_inactive_agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(
             torch.tensor(inactive_observation, device=device),
             observation_width=self.observation_width,
             observation_height=self.observation_height,
@@ -341,8 +346,8 @@ class MetaEnvPretrained(gym.Env):
                             # inactive_belief_state_normal_distribution.mean.cpu().detach().numpy()[0][0]),
                             inactive_gold_label.mean.cpu().detach().numpy()[0][0]),
                         self.observation_width - self.agent_size + 1))
-                objects_collect = inactive_agent_and_object_positions_tensor
-                objects_dodge = active_agent_and_object_positions_tensor_new
+                objects_collect = actual_inactive_agent_and_object_positions_tensor
+                objects_dodge = active_agent_and_object_positions_tensor_after_step
             case 1:
                 # collect task
                 self.state_of_dodge_asteroids = belief_state
@@ -376,8 +381,8 @@ class MetaEnvPretrained(gym.Env):
                 predicted_next_collect_position = round(
                     # min(max(1, active_belief_state_normal_distribution.mean.cpu().detach().numpy()[0][0]), 10))
                     min(max(1, active_gold_label.mean.cpu().detach().numpy()[0][0]), 10))
-                objects_collect = active_agent_and_object_positions_tensor_new
-                objects_dodge = inactive_agent_and_object_positions_tensor
+                objects_collect = active_agent_and_object_positions_tensor_after_step
+                objects_dodge = actual_inactive_agent_and_object_positions_tensor
             case _:
                 raise ValueError("action must be 0, 1")
 
