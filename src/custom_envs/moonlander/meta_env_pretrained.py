@@ -207,6 +207,8 @@ class MetaEnvPretrained(gym.Env):
 
         self.SoC_collect = np.array([1.0])
         self.SoC_dodge = np.array([1.0])
+        self.dodge_difficulty = -1
+        self.collect_difficulty = -1
 
         # add SoC_dodge, SoC_collect, reward_dodge, reward_collect, task_action, meta_action
         # self.state = np.append(self.state, [self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
@@ -441,6 +443,7 @@ class MetaEnvPretrained(gym.Env):
                 else:
                     reward_dodge = active_normalized_reward
                 self.SoC_dodge = active_SoC
+                self.dodge_difficulty = active_difficulty
                 self.state_of_collect_asteroids = belief_state
                 info_collect = inactive_info
                 if self.with_SoC_in_reward:
@@ -448,6 +451,7 @@ class MetaEnvPretrained(gym.Env):
                 else:
                     reward_collect = inactive_summed_up_rewards
                 self.SoC_collect = inactive_SoC
+                self.collect_difficulty = -1
                 # for debugging
                 last_dodge_position = int(active_agent_and_object_positions_tensor[0][0])
                 last_collect_position = int(inactive_agent_and_object_positions_tensor[0][0])
@@ -483,6 +487,7 @@ class MetaEnvPretrained(gym.Env):
                 else:
                     reward_dodge = inactive_summed_up_rewards
                 self.SoC_dodge = inactive_SoC
+                self.dodge_difficulty = -1
                 self.state_of_collect_asteroids = new_state
                 info_collect = active_info
                 if self.with_SoC_in_reward:
@@ -490,6 +495,7 @@ class MetaEnvPretrained(gym.Env):
                 else:
                     reward_collect = active_normalized_reward
                 self.SoC_collect = active_SoC
+                self.collect_difficulty = active_difficulty
                 # for debugging
                 last_dodge_position = int(inactive_agent_and_object_positions_tensor[0][0])
                 last_collect_position = int(active_agent_and_object_positions_tensor[0][0])
@@ -559,7 +565,8 @@ class MetaEnvPretrained(gym.Env):
                 "predicted_dodge_next_position": predicted_next_dodge_position,
                 "predicted_collect_next_position": predicted_next_collect_position,
                 "prediction_error": active_prediction_error, "difficulty": active_difficulty,
-                "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect}
+                "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect,
+                "dodge_difficulty": self.dodge_difficulty, "collect_difficulty": self.collect_difficulty}
 
         if not self.reward_good_switch_decision:
             meta_reward = reward_dodge + reward_collect - task_switch_costs
@@ -654,6 +661,8 @@ class MetaEnvPretrained(gym.Env):
 
         self.SoC_collect = np.array([1.0])
         self.SoC_dodge = np.array([1.0])
+        self.dodge_difficulty = -1
+        self.collect_difficulty = -1
 
         # add SoC_dodge, SoC_collect, reward_dodge, reward_collect, task_action, meta_action
         # self.state = np.append(self.state, [self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])

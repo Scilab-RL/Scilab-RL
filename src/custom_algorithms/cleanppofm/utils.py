@@ -645,7 +645,7 @@ def get_next_position_observation_moonlander(observations: torch.Tensor, actions
         next_observation_without_input_noise[index][1::2] -= 1
 
         # check if there is an object that already is on position -1 -> removed or if it is collected in the collect task
-        while counter < (maximum_number_of_objects * 2):
+        while counter <= (maximum_number_of_objects * 2):
             if not next_observation_without_input_noise[index][counter] == 0 and \
                     next_observation_without_input_noise[index][counter + 1] == -agent_size:
                 next_observation_without_input_noise[index][counter] = 0
@@ -945,34 +945,37 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
             y_position_of_agent = int(last_observation_optimal[0][1])
             collected_objects = []
             for index in range(2, len(last_observation_optimal[0]), 2):
-                if (
-                        (
-                                ((last_observation_optimal[0][index] - 1) == (x_position_of_agent - 1))
-                                or ((last_observation_optimal[0][index] - 1) == x_position_of_agent)
-                                or ((last_observation_optimal[0][index] - 1) == (x_position_of_agent + 1))
-                                or (last_observation_optimal[0][index] == (x_position_of_agent - 1))
-                                or (last_observation_optimal[0][index] == x_position_of_agent)
-                                or (last_observation_optimal[0][index] == (x_position_of_agent + 1))
-                                or ((last_observation_optimal[0][index] + 1) == (x_position_of_agent - 1))
-                                or ((last_observation_optimal[0][index] + 1) == x_position_of_agent)
-                                or ((last_observation_optimal[0][index] + 1) == (x_position_of_agent + 1))
-                        )
-                        and
-                        (
-                                ((last_observation_optimal[0][index + 1] - 1) == (y_position_of_agent - 1))
-                                or ((last_observation_optimal[0][index + 1] - 1) == y_position_of_agent)
-                                or ((last_observation_optimal[0][index + 1] - 1) == (y_position_of_agent + 1))
-                                or (last_observation_optimal[0][index + 1] == (y_position_of_agent - 1))
-                                or (last_observation_optimal[0][index + 1] == y_position_of_agent)
-                                or (last_observation_optimal[0][index + 1] == (y_position_of_agent + 1))
-                                or ((last_observation_optimal[0][index + 1] + 1) == (y_position_of_agent - 1))
-                                or ((last_observation_optimal[0][index + 1] + 1) == y_position_of_agent)
-                                or ((last_observation_optimal[0][index + 1] + 1) == (y_position_of_agent + 1))
-                        )
-                ):
-                    collected_objects.append(
-                        {'x': int(last_observation_optimal[0][index]), 'y': int(last_observation_optimal[0][index + 1]),
-                         'size': agent_size})
+                if not last_observation_optimal[0][index] == 0 and last_observation_optimal[0][index + 1] == 0:
+
+                    if (
+                            (
+                                    ((last_observation_optimal[0][index] - 1) == (x_position_of_agent - 1))
+                                    or ((last_observation_optimal[0][index] - 1) == x_position_of_agent)
+                                    or ((last_observation_optimal[0][index] - 1) == (x_position_of_agent + 1))
+                                    or (last_observation_optimal[0][index] == (x_position_of_agent - 1))
+                                    or (last_observation_optimal[0][index] == x_position_of_agent)
+                                    or (last_observation_optimal[0][index] == (x_position_of_agent + 1))
+                                    or ((last_observation_optimal[0][index] + 1) == (x_position_of_agent - 1))
+                                    or ((last_observation_optimal[0][index] + 1) == x_position_of_agent)
+                                    or ((last_observation_optimal[0][index] + 1) == (x_position_of_agent + 1))
+                            )
+                            and
+                            (
+                                    ((last_observation_optimal[0][index + 1] - 1) == (y_position_of_agent - 1))
+                                    or ((last_observation_optimal[0][index + 1] - 1) == y_position_of_agent)
+                                    or ((last_observation_optimal[0][index + 1] - 1) == (y_position_of_agent + 1))
+                                    or (last_observation_optimal[0][index + 1] == (y_position_of_agent - 1))
+                                    or (last_observation_optimal[0][index + 1] == y_position_of_agent)
+                                    or (last_observation_optimal[0][index + 1] == (y_position_of_agent + 1))
+                                    or ((last_observation_optimal[0][index + 1] + 1) == (y_position_of_agent - 1))
+                                    or ((last_observation_optimal[0][index + 1] + 1) == y_position_of_agent)
+                                    or ((last_observation_optimal[0][index + 1] + 1) == (y_position_of_agent + 1))
+                            )
+                    ):
+                        collected_objects.append(
+                            {'x': int(last_observation_optimal[0][index]),
+                             'y': int(last_observation_optimal[0][index + 1]),
+                             'size': agent_size})
             # state for env
             last_observation_state_optimal = np.expand_dims(
                 get_observation_of_position_and_object_positions(agent_and_object_positions=last_observation_optimal,
