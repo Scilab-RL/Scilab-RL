@@ -416,6 +416,8 @@ def evaluate_policy_meta_agent(
         logger.record("eval/predicted_collect_next_position", info_dict["predicted_collect_next_position"])
         logger.record("eval/prediction_error", info_dict["prediction_error"])
         logger.record("eval/difficulty", info_dict["difficulty"])
+        logger.record("eval/dodge_difficulty", info_dict["dodge_difficulty"])
+        logger.record("eval/collect_difficulty", info_dict["collect_difficulty"])
         logger.record("eval/SoC_dodge", info_dict["SoC_dodge"])
         logger.record("eval/SoC_collect", info_dict["SoC_collect"])
         logger.record("eval/reward_dodge", info_dict["reward_dodge"])
