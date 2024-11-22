@@ -777,10 +777,6 @@ def calculate_gaussian_reward(state, collected_objects: list[dict], agent_size: 
 
     if len(collected_objects) > 0:
         for obj in collected_objects:
-            # Prevent coins from being collected multiple times
-            if task_type == "coin" and current_reward_function == "gaussian" and object_dict_list is not None:
-                object_dict_list.remove(obj)
-
             # find positions where agent is on object --> only last row of agent is possible
             x_positions_of_agent = []
             y_positions_of_agent = []

@@ -4,6 +4,7 @@ import sys
 from typing import List, Dict
 import torch
 import gymnasium as gym
+from gymnasium import logger as gymnasium_logger
 import numpy as np
 import yaml
 from collections import OrderedDict
@@ -38,11 +39,21 @@ class MetaEnvPretrained(gym.Env):
                  with_SoC_in_reward: bool = True, with_SoC_in_observation: bool = True,
                  use_prediction_error: bool = True, use_difficulty: bool = True,
                  can_only_switch_as_often_as_humans: bool = False, obs_is_SoC: bool = False,
-                 reward_good_switch_decision: bool = False):
+                 reward_good_switch_decision: bool = False, two_collect_task: bool = False,
+                 config_file_name_dodge_asteroids: str = None, config_file_name_collect_asteroids: str = None):
         self.ROOT_DIR = "."
-        config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)), "standard_config.yaml")
-        config_path_collect_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                     "standard_config_second_task.yaml")
+        if config_file_name_dodge_asteroids is None:
+            config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                       "standard_config.yaml")
+        else:
+            config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                       config_file_name_dodge_asteroids)
+        if config_file_name_collect_asteroids is None:
+            config_path_collect_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                         "standard_config_second_task.yaml")
+        else:
+            config_path_collect_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                         config_file_name_collect_asteroids)
 
         with open(config_path_dodge_asteroids, "r") as file:
             config_dodge_asteroids = yaml.safe_load(file)
@@ -56,7 +67,7 @@ class MetaEnvPretrained(gym.Env):
         config_collect_asteroids_copy["world"]["objects"].pop("type")
 
         if not config_dodge_asteroids_copy == config_collect_asteroids_copy:
-            raise ValueError("Configurations are not the same")
+            gymnasium_logger.warn("Configurations are not the same")
 
         agent_config = config_dodge_asteroids["agent"]
         world_config = config_dodge_asteroids["world"]
@@ -68,6 +79,7 @@ class MetaEnvPretrained(gym.Env):
         self.can_only_switch_as_often_as_humans = can_only_switch_as_often_as_humans
         self.obs_is_SoC = obs_is_SoC
         self.reward_good_switch_decision = reward_good_switch_decision
+        self.two_collect_task = two_collect_task
 
         if not self.with_SoC_in_observation and self.obs_is_SoC:
             raise ValueError(
@@ -125,6 +137,8 @@ class MetaEnvPretrained(gym.Env):
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
 
+        dodge_task_difficulty = config_dodge_asteroids["world"]["difficulty"]
+        collect_task_difficulty = config_collect_asteroids["world"]["difficulty"]
         # Load the trained agents
         # FIXME: this is an ugly hack to load the trained agents
         with open(
@@ -133,9 +147,20 @@ class MetaEnvPretrained(gym.Env):
                 # f"/home/annika/coding_projects/Scilab-RL-github/Scilab-RL/policies/{dodge_best_model_name}", "rb"
         ) as file:
             print("start loading agents", file)
-            self.trained_dodge_asteroids = CLEANPPOFM.load(path=file,
-                                                           env=make_vec_env("MoonlanderWorld-dodge-gaussian-v0",
-                                                                            n_envs=1))
+            if not self.two_collect_task:
+                self.trained_dodge_asteroids = CLEANPPOFM.load(path=file,
+                                                               env=make_vec_env(
+                                                                   f"MoonlanderWorld-dodge-gaussian-{dodge_task_difficulty}-v0",
+                                                                   n_envs=1))
+            else:
+                # FIXME: better naming in whole file + obs
+                # use gymnasium logger for yellow colored logging
+                gymnasium_logger.warn(
+                    "You are training two collect tasks, but the naming is still for dodge and collect task")
+                self.trained_dodge_asteroids = CLEANPPOFM.load(path=file,
+                                                               env=make_vec_env(
+                                                                   f"MoonlanderWorld-collect-gaussian-{dodge_task_difficulty}-v0",
+                                                                   n_envs=1))
             self.trained_dodge_asteroids.set_logger(logger=self.logger)
         with open(
                 os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -144,8 +169,9 @@ class MetaEnvPretrained(gym.Env):
         ) as file:
             # same model cannot be loaded twice -> copy does also not work
             self.trained_collect_asteroids = CLEANPPOFM.load(path=file,
-                                                             env=make_vec_env("MoonlanderWorld-collect-gaussian-v0",
-                                                                              n_envs=1))
+                                                             env=make_vec_env(
+                                                                 f"MoonlanderWorld-collect-gaussian-{collect_task_difficulty}-v0",
+                                                                 n_envs=1))
             self.trained_collect_asteroids.set_logger(logger=self.logger)
             print("finish loading agents")
 
@@ -313,7 +339,8 @@ class MetaEnvPretrained(gym.Env):
             observation_width=self.observation_width,
             observation_height=self.observation_height,
             agent_size=self.agent_size,
-            maximum_number_of_objects=self.maximum_number_of_objects)
+            maximum_number_of_objects=self.maximum_number_of_objects,
+            task="dodge" if self.current_task == 0 else "collect")
         # form to normal distribution
         active_gold_label = torch.distributions.Normal(active_gold_label,
                                                        scale=torch.tensor(
@@ -357,7 +384,8 @@ class MetaEnvPretrained(gym.Env):
             observation_width=self.observation_width,
             observation_height=self.observation_height,
             agent_size=self.agent_size,
-            maximum_number_of_objects=self.maximum_number_of_objects)
+            maximum_number_of_objects=self.maximum_number_of_objects,
+            task="collect" if self.current_task == 0 else "dodge")
         # form to normal distribution
         inactive_gold_label = torch.distributions.Normal(inactive_gold_label,
                                                          scale=torch.tensor(

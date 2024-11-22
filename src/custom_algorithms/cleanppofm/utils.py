@@ -153,17 +153,7 @@ def get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(env, fm_networ
                 # FIXME: why 4?
                 max=4)
         else:
-            # define state for env
-            # FIXME: only when reward is predicted by the forward model
-            # FIXME: get last observation hardcoded:
-            # last_observation = forward_model_prediction_normal_distribution.mean[0][:-1].cpu().unsqueeze(0)
-            last_observation = get_next_position_observation_moonlander(
-                observations=last_observation,
-                actions=default_action[0],
-                observation_width=observation_width,
-                observation_height=observation_height,
-                agent_size=agent_size,
-                maximum_number_of_objects=maximum_number_of_objects)
+            # get reward of first prediction of the next step
             last_observation_state = np.expand_dims(
                 get_observation_of_position_and_object_positions(agent_and_object_positions=last_observation,
                                                                  observation_height=observation_height,
@@ -176,16 +166,37 @@ def get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(env, fm_networ
             y_position_of_agent = int(last_observation[0][1])
             collected_objects = []
             for index in range(2, len(last_observation[0]), 2):
-                if (((last_observation[0][index] == x_position_of_agent - 1)
-                     or (last_observation[0][index] == x_position_of_agent)
-                     or (last_observation[0][index] == x_position_of_agent + 1))
-                        and ((last_observation[0][index + 1] == y_position_of_agent - 1)
-                             or (last_observation[0][index + 1] == y_position_of_agent)
-                             or (last_observation[0][index + 1] == y_position_of_agent + 1))
-                ):
-                    collected_objects.append(
-                        {'x': int(last_observation[0][index]), 'y': int(last_observation[0][index + 1]),
-                         'size': agent_size})
+                if not (last_observation[0][index] == 0 and last_observation[0][index + 1] == 0):
+
+                    if (
+                            (
+                                    ((last_observation[0][index] - 1) == (x_position_of_agent - 1))
+                                    or ((last_observation[0][index] - 1) == x_position_of_agent)
+                                    or ((last_observation[0][index] - 1) == (x_position_of_agent + 1))
+                                    or (last_observation[0][index] == (x_position_of_agent - 1))
+                                    or (last_observation[0][index] == x_position_of_agent)
+                                    or (last_observation[0][index] == (x_position_of_agent + 1))
+                                    or ((last_observation[0][index] + 1) == (x_position_of_agent - 1))
+                                    or ((last_observation[0][index] + 1) == x_position_of_agent)
+                                    or ((last_observation[0][index] + 1) == (x_position_of_agent + 1))
+                            )
+                            and
+                            (
+                                    ((last_observation[0][index + 1] - 1) == (y_position_of_agent - 1))
+                                    or ((last_observation[0][index + 1] - 1) == y_position_of_agent)
+                                    or ((last_observation[0][index + 1] - 1) == (y_position_of_agent + 1))
+                                    or (last_observation[0][index + 1] == (y_position_of_agent - 1))
+                                    or (last_observation[0][index + 1] == y_position_of_agent)
+                                    or (last_observation[0][index + 1] == (y_position_of_agent + 1))
+                                    or ((last_observation[0][index + 1] + 1) == (y_position_of_agent - 1))
+                                    or ((last_observation[0][index + 1] + 1) == y_position_of_agent)
+                                    or ((last_observation[0][index + 1] + 1) == (y_position_of_agent + 1))
+                            )
+                    ):
+                        collected_objects.append(
+                            {'x': int(last_observation[0][index]),
+                             'y': int(last_observation[0][index + 1]),
+                             'size': agent_size})
             rewards, _ = calculate_gaussian_reward(
                 state=last_observation_state.reshape(observation_height, observation_width + 2),
                 collected_objects=collected_objects,
@@ -194,6 +205,19 @@ def get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(env, fm_networ
                 current_reward_function="gaussian",
                 x_position_of_agent=x_position_of_agent,
                 y_position_of_agent=y_position_of_agent)
+
+            # define state for env
+            # FIXME: only when reward is predicted by the forward model
+            # FIXME: get last observation hardcoded:
+            # last_observation = forward_model_prediction_normal_distribution.mean[0][:-1].cpu().unsqueeze(0)
+            last_observation = get_next_position_observation_moonlander(
+                observations=last_observation,
+                actions=default_action[0],
+                observation_width=observation_width,
+                observation_height=observation_height,
+                agent_size=agent_size,
+                maximum_number_of_objects=maximum_number_of_objects,
+                task=task)
 
         # normalize reward
         normalized_reward = normalize_rewards(task=task, absolute_reward=rewards)
@@ -331,6 +355,17 @@ def get_position_and_object_positions_of_observation(obs: torch.Tensor,
                 x_coordinate = (index % (observation_width + 2)) + agent_size - 1
                 # get to the middle of the object
                 y_coordinate = math.floor(index / (observation_width + 2))
+                # check if object is only in the first line (then y_coordinate is -1) or also in the second line
+                if y_coordinate == 0:
+                    # check if second line has also an object at the x position
+                    if not (obs_element[(x_coordinate + observation_width + 1):(
+                            x_coordinate + observation_width + 4)] == search_value).all():
+                        y_coordinate = -1
+                elif y_coordinate == (observation_height - 1):
+                    if not (obs_element[((x_coordinate - 1) + (observation_width + 2) * (observation_height - 2)):(
+                            (x_coordinate + 2) + (observation_width + 2) * (
+                            observation_height - 2))] == search_value).all():
+                        y_coordinate = observation_height
                 # remove agent from indices with two or three --> agent is added later at the beginning of the list
                 if not (x_coordinate == (first_index_with_one + agent_size - 1) and y_coordinate == (agent_size - 1)):
                     x_y_coordinates.append([x_coordinate, y_coordinate])
@@ -485,14 +520,25 @@ def get_observation_of_position_and_object_positions(agent_and_object_positions:
             x_position_of_object = int(torch.round(copy_of_agent_and_object_position[counter]))
             if agent_size <= x_position_of_object <= observation_width + 1 - agent_size:
                 matrix[
-                max(0, min(observation_height - (2 * agent_size - 1),
-                           int(torch.round(
-                               copy_of_agent_and_object_position[
-                                   counter + 1]) - agent_size + 1))):  # y start of object
-                max(2 * agent_size - 2, min(observation_height - 1, int(torch.round(
-                    copy_of_agent_and_object_position[counter + 1]) + agent_size - 1))) + 1,  # y end of object
+                # objects can also fly into the grid
+                max(
+                    0,
+                    min(
+                        observation_height - 1,
+                        int(torch.round(copy_of_agent_and_object_position[counter + 1]) - agent_size + 1)
+                    )
+                ):  # y start of object
+                # objects can also fly out of the grid
+                max(
+                    0,
+                    min(
+                        observation_height - 1,
+                        int(torch.round(copy_of_agent_and_object_position[counter + 1]) + agent_size - 1)
+                    )
+                ) + 1,  # y end of object
                 x_position_of_object - agent_size + 1:  # x start of object
-                x_position_of_object + agent_size] = object_value  # x end of object
+                x_position_of_object + agent_size  # x end of object
+                ] = object_value
             counter += 2
 
         # add agent
@@ -565,12 +611,17 @@ def get_next_observation_gridworld(observations: torch.Tensor, actions: torch.Te
 
 def get_next_position_observation_moonlander(observations: torch.Tensor, actions: torch.Tensor, observation_width: int,
                                              observation_height: int, agent_size: int,
-                                             maximum_number_of_objects: int) -> torch.Tensor:
+                                             maximum_number_of_objects: int, task: str) -> torch.Tensor:
     """
     Calculate the next observation in the moonlander environment manually to exclude random observations through input noise.
     Args:
         observations: observations
         actions: actions
+        observation_width: width of the observation
+        observation_height: height of the observation
+        agent_size: size of the agent in the observation
+        maximum_number_of_objects: the number of objects that are considered in the observation
+        task: task of the moonlander environment
 
     Returns:
         next observation in the moonlander environment without input noise
@@ -590,22 +641,25 @@ def get_next_position_observation_moonlander(observations: torch.Tensor, actions
         next_observation_without_input_noise[index][0] = torch.clamp(next_observation_without_input_noise[index][0],
                                                                      agent_size, observation_width - agent_size + 1)
 
-        # check if there is an object that already is on position 0 -> removed
+        # apply step to every y position (agent and objects)
+        next_observation_without_input_noise[index][1::2] -= 1
+
+        # check if there is an object that already is on position -1 -> removed or if it is collected in the collect task
         while counter < (maximum_number_of_objects * 2):
             if not next_observation_without_input_noise[index][counter] == 0 and \
-                    next_observation_without_input_noise[index][counter + 1] == 0:
+                    next_observation_without_input_noise[index][counter + 1] == -agent_size:
                 next_observation_without_input_noise[index][counter] = 0
+                next_observation_without_input_noise[index][counter + 1] = 0
+            # FIXME: this is hardcoded for size 2
+            # clamp y-position of empty object positions back to 0
+            elif next_observation_without_input_noise[index][counter] == 0 and \
+                    next_observation_without_input_noise[index][counter + 1] == -1:
                 next_observation_without_input_noise[index][counter + 1] = 0
             counter += 2
 
-        # apply step to every y position (agent and objects)
-        next_observation_without_input_noise[index][1::2] -= 1
         # clip agent (cannot go out of the grid)
         next_observation_without_input_noise[index][1] = torch.clamp(
             next_observation_without_input_noise[index][1], agent_size - 1, observation_height - agent_size)
-        # clip objects (can be at y position zero, when they go out of the grid)
-        next_observation_without_input_noise[index][3::2] = torch.clamp(
-            next_observation_without_input_noise[index][3::2], 0, observation_height - agent_size)
 
     return next_observation_without_input_noise
 
@@ -757,7 +811,8 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
                 observation_width=observation_width,
                 observation_height=observation_height,
                 agent_size=agent_size,
-                maximum_number_of_objects=maximum_number_of_objects)
+                maximum_number_of_objects=maximum_number_of_objects,
+                task=task)
 
             # get reward from forward model prediction or environment
             # if reward_predicting and not use_reward_of_env:
@@ -778,6 +833,7 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
             y_position_of_agent = int(last_observation_default[0][1])
 
             collected_objects = []
+            # FIXME: this is hardcoded for size 2
             for index in range(2, len(last_observation_default[0]), 2):
                 if not (last_observation_default[0][index] == 0 and last_observation_default[0][index + 1] == 0):
 
@@ -869,7 +925,8 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
                 observation_width=observation_width,
                 observation_height=observation_height,
                 agent_size=agent_size,
-                maximum_number_of_objects=maximum_number_of_objects)
+                maximum_number_of_objects=maximum_number_of_objects,
+                task=task)
 
             # get reward from forward model prediction or environment
             # if reward_predicting and not use_reward_of_env:

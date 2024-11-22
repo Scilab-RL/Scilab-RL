@@ -127,7 +127,7 @@ class Agent(nn.Module):
                                                                                   agent_size=agent_size)
 
             # Convert comb_obj_positions to a tensor
-            cop_tensor = torch.tensor(comb_obj_positions).float()
+            cop_tensor = comb_obj_positions.clone().detach().float()
 
             obs_after_every_action = comb_obs.clone().detach()
             rewards_for_every_action = {}
@@ -153,7 +153,8 @@ class Agent(nn.Module):
                     observation_width=observation_width,
                     observation_height=observation_height,
                     agent_size=agent_size,
-                    maximum_number_of_objects=maximum_number_of_objects)
+                    maximum_number_of_objects=maximum_number_of_objects,
+                    task=task)
 
                 obs_after_action = get_observation_of_position_and_object_positions(
                     # agent_and_object_positions=nra_mean,
@@ -168,6 +169,7 @@ class Agent(nn.Module):
                 y_position_of_agent = int(next_positions[0][1])
 
                 collected_objects = []
+                # FIXME: this is hardcoded for size 2
                 for index in range(2, len(next_positions[0]), 2):
                     if not (next_positions[0][index] == 0 and next_positions[0][index + 1] == 0):
 

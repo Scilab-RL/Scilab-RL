@@ -529,6 +529,11 @@ class MoonlanderWorldEnv(Env):
             if self.reward_function == "pos_neg":
                 actual_reward = reward_pos_neg
 
+        # remove objects that are collected after every reward function was calculated
+        if self.config["world"]["objects"]["type"] == "coin":
+            for coin in collected_objects:
+                self.object_dict_list.remove(coin)
+
         return actual_reward, number_of_crashed_or_collected_objects
 
     def calculate_simple_reward(self, collected_objects: list[dict]) -> int:
@@ -567,10 +572,6 @@ class MoonlanderWorldEnv(Env):
             if len(collected_objects) > 0:
                 self.simple_reward_info_per_step = len(collected_objects) * 10
                 current_simple_reward = len(collected_objects) * 10
-                if self.reward_function == "simple":
-                    # Prevent coins from being collected multiple times
-                    for coin in collected_objects:
-                        self.object_dict_list.remove(coin)
             else:
                 self.simple_reward_info_per_step = 0
                 current_simple_reward = 0
@@ -636,9 +637,6 @@ class MoonlanderWorldEnv(Env):
                 if crash not in self.already_crashed_objects:
                     if self.config["world"]["difficulty"] == "easy":
                         if self.config["world"]["objects"]["type"] == "coin":
-                            # Prevent coins from being collected multiple times
-                            if self.reward_function == "pos_neg":
-                                self.object_dict_list.remove(crash)
                             current_reward_pos_neg += 7
                             if self.pos_neg_reward_info_dict_per_step["pos"] != [0]:
                                 self.pos_neg_reward_info_dict_per_step["pos"].append(7)
@@ -652,9 +650,6 @@ class MoonlanderWorldEnv(Env):
                                 self.pos_neg_reward_info_dict_per_step["neg"] = [-7]
                     elif self.config["world"]["difficulty"] == "hard":
                         if self.config["world"]["objects"]["type"] == "coin":
-                            # Prevent coins from being collected multiple times
-                            if self.reward_function == "pos_neg":
-                                self.object_dict_list.remove(crash)
                             current_reward_pos_neg += 3
                             if self.pos_neg_reward_info_dict_per_step["pos"] != [0]:
                                 self.pos_neg_reward_info_dict_per_step["pos"].append(3)

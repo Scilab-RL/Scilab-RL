@@ -539,7 +539,8 @@ class CLEANPPOFM:
                         observation_width=observation_width,
                         observation_height=observation_height,
                         agent_size=agent_size,
-                        maximum_number_of_objects=self.maximum_number_of_objects)
+                        maximum_number_of_objects=self.maximum_number_of_objects,
+                        task=task)
 
                     obs_after_action = get_observation_of_position_and_object_positions(
                         # agent_and_object_positions=nra_mean,
@@ -634,6 +635,7 @@ class CLEANPPOFM:
         observation_height = self.env.env_method("get_wrapper_attr", "observation_height")[0]
         observation_width = self.env.env_method("get_wrapper_attr", "observation_width")[0]
         agent_size = self.env.env_method("get_wrapper_attr", "size")[0]
+        task = self.env.env_method("get_wrapper_attr", "task")[0]
 
         ##### FORMAT OBSERVATION FOR FORWARD MODEL #####
         # 1. with or without reward (line 572)
@@ -670,7 +672,8 @@ class CLEANPPOFM:
                                                                                        observation_width=observation_width,
                                                                                        observation_height=observation_height,
                                                                                        agent_size=agent_size,
-                                                                                       maximum_number_of_objects=self.maximum_number_of_objects)
+                                                                                       maximum_number_of_objects=self.maximum_number_of_objects,
+                                                                                       task=task)
             else:
                 next_observations_formatted = get_position_and_object_positions_of_observation(next_observations,
                                                                                                maximum_number_of_objects=self.maximum_number_of_objects,
