@@ -4,6 +4,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import gymnasium as gym
 import numpy as np
 import torch
+import pandas as pd
+import os
 
 from stable_baselines3.common import base_class
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
@@ -229,6 +231,7 @@ def evaluate_policy_meta_agent(
         # from us
         callback_metric_viz=None,
         logger=None,
+        counter=None,
 ) -> Union[Tuple[float, float], Tuple[List[float], List[int]]]:
     """
     From the stable-baselines3 evaluation implementation.
@@ -262,6 +265,7 @@ def evaluate_policy_meta_agent(
         per episode will be returned instead of the mean.
     :param warn: If True (default), warns user about lack of a Monitor wrapper in the
         evaluation environment.
+    :param counter: Counter to name csv files for analysis
     :return: Mean reward per episode, std of reward per episode.
         Returns ([float], [int]) when ``return_episode_rewards`` is True, first
         list containing per-episode rewards and second containing per-episode lengths
@@ -287,11 +291,20 @@ def evaluate_policy_meta_agent(
     n_envs = env.num_envs
     episode_rewards = []
     episode_lengths = []
+    first_step = True
+
+    dict_avoid = {"timesteps": [], "player_pos": [], "active_task": [], "input_noise": [], "current_reward": [],
+                  "list_of_visible_objects": [], "number_of_visible_objects": [], "distance_to_closest_object": []}
+
+    dict_collect = {"timesteps": [], "player_pos": [], "active_task": [], "input_noise": [], "current_reward": [],
+                    "list_of_visible_objects": [], "number_of_visible_objects": [], "distance_to_closest_object": []}
+
 
     episode_counts = np.zeros(n_envs, dtype="int")
     # Divides episodes among different sub environments in the vector as evenly as possible
     episode_count_targets = np.array([(n_eval_episodes + i) // n_envs for i in range(n_envs)], dtype="int")
 
+    duration = 0
     current_rewards = np.zeros(n_envs)
     current_lengths = np.zeros(n_envs, dtype="int")
     observations = env.reset()
@@ -404,6 +417,91 @@ def evaluate_policy_meta_agent(
         # 'SoC_dodge': array([0.94], dtype=float32), 'SoC_collect': 0.9, 'TimeLimit.truncated': False}]
 
         info_dict = infos[0]
+
+        noise = info_dict['input_noise']
+
+        if first_step:
+            difficulty_dodge = info_dict['difficulty_dodge']
+            difficulty_collect = info_dict['difficulty_collect']
+            if noise == 0:
+                input_noise = 'no'
+            else:
+                input_noise = 'yes'
+            first_step = False
+
+        list_of_visible_objects_dodge = []
+        list_of_visible_objects_collect = []
+
+        for i in range(1, info_dict["objects_dodge"].size(dim=1), 2):
+            x = info_dict["objects_dodge"][0, i - 1]
+            y = info_dict["objects_dodge"][0, i]
+            temp_list = [x.item(), y.item()]
+            list_of_visible_objects_dodge.append(temp_list)
+
+        for i in range(1, info_dict["objects_collect"].size(dim=1), 2):
+            x = info_dict["objects_collect"][0, i - 1]
+            y = info_dict["objects_collect"][0, i]
+            temp_list = [x.item(), y.item()]
+            list_of_visible_objects_collect.append(temp_list)
+
+        # remove player position
+        player_dodge = list_of_visible_objects_dodge.pop(0)
+        player_collect = list_of_visible_objects_collect.pop(0)
+
+
+
+        # remove entrys without objects
+        list_of_visible_objects_dodge = [i for i in list_of_visible_objects_dodge if i != [0.0, 0.0]]
+        list_of_visible_objects_collect = [i for i in list_of_visible_objects_dodge if i != [0.0, 0.0]]
+
+        distances_dodge = []
+        distance_to_closest_object_dodge = 0
+        for object in list_of_visible_objects_dodge:
+            distances_dodge.append(np.linalg.norm(np.array(player_dodge) - np.array(object)))
+        if distances_dodge:
+            distance_to_closest_object_dodge = min(distances_dodge)
+        else:
+            distance_to_closest_object_dodge = np.nan
+
+        distances_collect = []
+        distance_to_closest_object_collect = 0
+        for object in list_of_visible_objects_collect:
+            distances_collect.append(np.linalg.norm(np.array(player_collect) - np.array(object)))
+        if distances_collect:
+            distance_to_closest_object_collect = min(distances_collect)
+        else:
+            distance_to_closest_object_collect = np.nan
+
+        dict_avoid["timesteps"].append(duration)
+        dict_collect["timesteps"].append(duration)
+
+        duration = duration + 1
+
+        dict_avoid["player_pos"].append(info_dict['dodge_position_before'])
+        dict_collect["player_pos"].append(info_dict['collect_position_before'])
+
+        dict_avoid["input_noise"].append(noise)
+        dict_collect["input_noise"].append(noise)
+
+        dict_avoid["current_reward"].append(info_dict['reward_dodge'])
+        dict_collect["current_reward"].append(info_dict['reward_collect'])
+
+        if info_dict['action_meta'] == 0:
+            active_task = True
+        else:
+            active_task = False
+        dict_avoid["active_task"].append(active_task)
+        dict_collect["active_task"].append(not active_task)
+
+        dict_avoid["list_of_visible_objects"].append(list_of_visible_objects_dodge)
+        dict_collect["list_of_visible_objects"].append(list_of_visible_objects_collect)
+
+        dict_avoid["number_of_visible_objects"].append(len(list_of_visible_objects_dodge))
+        dict_collect["number_of_visible_objects"].append(len(list_of_visible_objects_collect))
+
+        dict_avoid["distance_to_closest_object"].append(distance_to_closest_object_dodge)
+        dict_collect["distance_to_closest_object"].append(distance_to_closest_object_collect)
+
         logger.record("eval/action_meta", info_dict["action_meta"])
         logger.record("eval/dodge_position_before", info_dict["dodge_position_before"])
         logger.record("eval/collect_position_before", info_dict["collect_position_before"])
@@ -521,6 +619,21 @@ def evaluate_policy_meta_agent(
 
         if render:
             env.render()
+
+    dir_path = os.path.join(os.path.dirname(__file__),'..','..','agent_data')
+
+    if not os.path.isdir(dir_path):
+        print("Creating directory for evaluation files of agent")
+        os.mkdir(dir_path)
+
+    avoid_df = pd.DataFrame.from_dict(data=dict_avoid)
+    collect_df = pd.DataFrame.from_dict(data=dict_collect)
+    avoid_df.to_csv(
+        dir_path + '/agent_' + difficulty_dodge + '_' + difficulty_collect + '_' + input_noise + '_' + str(
+            counter) + '_avoid.csv', index=False)
+    collect_df.to_csv(
+        dir_path + '/agent_' + difficulty_dodge + '_' + difficulty_collect + '_' + input_noise + '_' + str(
+            counter) + '_collect.csv', index=False)
 
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)

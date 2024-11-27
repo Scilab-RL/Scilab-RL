@@ -199,6 +199,9 @@ class MetaEnvPretrained(gym.Env):
         self.agent_size = self.trained_dodge_asteroids.env.env_method("get_wrapper_attr", "size")[0]
         self.maximum_number_of_objects = self.trained_dodge_asteroids.maximum_number_of_objects
 
+        self.difficulty_dodge = self.trained_dodge_asteroids.env.env_method("get_wrapper_attr", "difficulty")[0]
+        self.difficulty_collect = self.trained_collect_asteroids.env.env_method("get_wrapper_attr", "difficulty")[0]
+
         # the state could possibly be a belief state of the forward model
         # only one return value because DummyVecEnv only returns one observation
         self.state_of_dodge_asteroids = self.trained_dodge_asteroids.env.reset()
@@ -341,6 +344,7 @@ class MetaEnvPretrained(gym.Env):
         # forward model predictions once with state and action to get next agent and object positions
         # active_belief_state_normal_distribution = active_model.fm_network(active_agent_and_object_positions_tensor,
         #                                                                   torch.tensor([action_of_task_agent]).float())
+        scale_tensor = torch.ones(self.maximum_number_of_objects * 2 + 2)
         # FIXME: hardcoded forward model prediction
         active_gold_label = get_next_position_observation_moonlander(
             observations=active_agent_and_object_positions_tensor,
@@ -352,9 +356,7 @@ class MetaEnvPretrained(gym.Env):
             task="dodge" if self.current_task == 0 else "collect")
         # form to normal distribution
         active_gold_label = torch.distributions.Normal(active_gold_label,
-                                                       scale=torch.tensor(
-                                                           [[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
-                                                             1., 1., 1., 1., 1., 1., 1., 1.]]))
+                                                       scale=scale_tensor)
         # perform action & SoC calculation & reward estimation corrected by SoC
         (new_state, _, active_is_done, active_info, active_prediction_error, active_difficulty, active_SoC,
          active_normalized_reward_estimation_corrected_by_SoC, input_noise,
@@ -368,16 +370,30 @@ class MetaEnvPretrained(gym.Env):
         if not isinstance(active_SoC, np.ndarray):
             active_SoC = np.array([active_SoC]).astype(np.float64)
 
+        active_agent_and_object_positions_tensor_after_step = get_position_and_object_positions_of_observation(
+            torch.tensor(new_state, device=device),
+            observation_width=self.observation_width,
+            observation_height=self.observation_height,
+            maximum_number_of_objects=active_model.maximum_number_of_objects,
+            agent_size=self.agent_size)
+
         ### INACTIVE TASK ###
         # set input noise to zero
         inactive_model.env.env_method("set_input_noise", 0)
         # perform default action 1 in inactive task
         # only four return value because DummyVecEnv only returns observation, reward, done, info
         # but meta agent does not see actual state and reward
-        _, _, inactive_is_done, inactive_info = inactive_model.env.step(torch.tensor([1], device=device))
+        inactive_observation, _, inactive_is_done, inactive_info = inactive_model.env.step(
+            torch.tensor([1], device=device))
         # get position and object positions of observation
         inactive_agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(
             torch.tensor(inactive_last_state, device=device),
+            observation_width=self.observation_width,
+            observation_height=self.observation_height,
+            maximum_number_of_objects=inactive_model.maximum_number_of_objects,
+            agent_size=self.agent_size)
+        actual_inactive_agent_and_object_positions_tensor_after_step = get_position_and_object_positions_of_observation(
+            torch.tensor(inactive_observation, device=device),
             observation_width=self.observation_width,
             observation_height=self.observation_height,
             maximum_number_of_objects=inactive_model.maximum_number_of_objects,
@@ -389,6 +405,7 @@ class MetaEnvPretrained(gym.Env):
         # FIXME: hardcoded forward model prediction
         inactive_gold_label = get_next_position_observation_moonlander(
             observations=inactive_agent_and_object_positions_tensor,
+            # current_state=torch.tensor(observation, device=device),
             actions=torch.tensor([1]),
             observation_width=self.observation_width,
             observation_height=self.observation_height,
@@ -397,10 +414,8 @@ class MetaEnvPretrained(gym.Env):
             task="collect" if self.current_task == 0 else "dodge")
         # form to normal distribution
         inactive_gold_label = torch.distributions.Normal(inactive_gold_label,
-                                                         scale=torch.tensor(
-                                                             [[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
-                                                               1., 1., 1., 1., 1., 1., 1., 1.]]))
-        # get new inactive state from forward model position prediction
+                                                         scale=scale_tensor)
+        # get new inactive state from forward model
         belief_state = get_observation_of_position_and_object_positions(agent_and_object_positions=
                                                                         # inactive_belief_state_normal_distribution.mean[
                                                                         #     0][:-1].cpu().unsqueeze(0),
@@ -485,6 +500,8 @@ class MetaEnvPretrained(gym.Env):
                             # inactive_belief_state_normal_distribution.mean.cpu().detach().numpy()[0][0]),
                             inactive_gold_label.mean.cpu().detach().numpy()[0][0]),
                         self.observation_width - self.agent_size + 1))
+                objects_collect = actual_inactive_agent_and_object_positions_tensor_after_step
+                objects_dodge = active_agent_and_object_positions_tensor_after_step
             case 1:
                 # collect task
                 self.state_of_dodge_asteroids = belief_state
@@ -526,6 +543,8 @@ class MetaEnvPretrained(gym.Env):
                 predicted_next_collect_position = round(
                     # min(max(1, active_belief_state_normal_distribution.mean.cpu().detach().numpy()[0][0]), 10))
                     min(max(1, active_gold_label.mean.cpu().detach().numpy()[0][0]), 10))
+                objects_collect = active_agent_and_object_positions_tensor_after_step
+                objects_dodge = actual_inactive_agent_and_object_positions_tensor_after_step
             case _:
                 raise ValueError("action must be 0, 1")
 
@@ -563,6 +582,7 @@ class MetaEnvPretrained(gym.Env):
             self.state["SoC_dodge"] = self.SoC_dodge
 
         self.step_counter += 1
+
         info = {"info_dodge": info_dodge, "info_collect": info_collect, "reward_dodge": reward_dodge,
                 "reward_collect": reward_collect, "task_switching_costs": task_switch_costs, "action_meta": action,
                 "dodge_position_before": last_dodge_position,
@@ -573,7 +593,8 @@ class MetaEnvPretrained(gym.Env):
                 "predicted_collect_next_position": predicted_next_collect_position,
                 "prediction_error": active_prediction_error, "difficulty": active_difficulty,
                 "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect,
-                "dodge_difficulty": self.dodge_difficulty, "collect_difficulty": self.collect_difficulty}
+                "objects_dodge": objects_dodge, "objects_collect": objects_collect,
+                "difficulty_dodge": self.difficulty_dodge, "difficulty_collect": self.difficulty_collect}
 
         if self.reward_good_switch_decision:
             if not self.with_SoC_in_reward:
@@ -599,7 +620,7 @@ class MetaEnvPretrained(gym.Env):
                     meta_reward = np.array([0.0])
         elif self.reward_function_paper:
             meta_reward = 1 / (
-                        1 + pow(base=math.e, exp=(-pow(base=math.e, exp=2) * (self.counter_without_switch - 0.5))))
+                    1 + pow(base=math.e, exp=(-pow(base=math.e, exp=2) * (self.counter_without_switch - 0.5))))
         else:
             meta_reward = reward_dodge + reward_collect - task_switch_costs
         return (

@@ -144,6 +144,8 @@ class MoonlanderWorldEnv(Env):
         self.observation_width = world_config["x_width"]
         self.task = task
         self.size = size
+        self.difficulty = world_config["difficulty"]
+
 
         # DYNAMIC VARIABLES
         self.episode_counter = 0
