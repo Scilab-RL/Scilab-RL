@@ -1,4 +1,5 @@
 import copy
+import math
 import os
 import sys
 from typing import List, Dict
@@ -39,8 +40,9 @@ class MetaEnvPretrained(gym.Env):
                  with_SoC_in_reward: bool = True, with_SoC_in_observation: bool = True,
                  use_prediction_error: bool = True, use_difficulty: bool = True,
                  can_only_switch_as_often_as_humans: bool = False, obs_is_SoC: bool = False,
-                 reward_good_switch_decision: bool = False, two_collect_task: bool = False,
-                 config_file_name_dodge_asteroids: str = None, config_file_name_collect_asteroids: str = None):
+                 reward_good_switch_decision: bool = False, reward_function_paper: bool = False,
+                 two_collect_task: bool = False, config_file_name_dodge_asteroids: str = None,
+                 config_file_name_collect_asteroids: str = None):
         self.ROOT_DIR = "."
         if config_file_name_dodge_asteroids is None:
             config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -79,12 +81,17 @@ class MetaEnvPretrained(gym.Env):
         self.can_only_switch_as_often_as_humans = can_only_switch_as_often_as_humans
         self.obs_is_SoC = obs_is_SoC
         self.reward_good_switch_decision = reward_good_switch_decision
+        self.reward_function_paper = reward_function_paper
         self.two_collect_task = two_collect_task
 
         if not self.with_SoC_in_observation and self.obs_is_SoC:
             raise ValueError(
                 f"SoC in observation is needed when observation is SoC, but you defined "
                 f"with_SoC_in_observation={self.with_SoC_in_observation} and obs_is_SoC={self.obs_is_SoC}")
+        if self.reward_good_switch_decision and self.reward_function_paper:
+            raise ValueError(
+                f"reward_good_switch_decision and reward_function_paper cannot be both True, you have to decide for one "
+                f"reward function.")
 
         ### ACTION SPACE ###
         # one action to decide which task to control
@@ -568,9 +575,7 @@ class MetaEnvPretrained(gym.Env):
                 "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect,
                 "dodge_difficulty": self.dodge_difficulty, "collect_difficulty": self.collect_difficulty}
 
-        if not self.reward_good_switch_decision:
-            meta_reward = reward_dodge + reward_collect - task_switch_costs
-        else:
+        if self.reward_good_switch_decision:
             if not self.with_SoC_in_reward:
                 reward_and_SoC_of_dodge = (reward_dodge + self.SoC_dodge) / 2
                 reward_and_SoC_of_collect = (reward_collect + self.SoC_collect) / 2
@@ -592,7 +597,11 @@ class MetaEnvPretrained(gym.Env):
                     meta_reward = np.array([1.0])
                 else:
                     meta_reward = np.array([0.0])
-
+        elif self.reward_function_paper:
+            meta_reward = 1 / (
+                        1 + pow(base=math.e, exp=(-pow(base=math.e, exp=2) * (self.counter_without_switch - 0.5))))
+        else:
+            meta_reward = reward_dodge + reward_collect - task_switch_costs
         return (
             self.state,
             meta_reward.item(),  # not as numpy array
