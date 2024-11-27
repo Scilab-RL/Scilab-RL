@@ -577,21 +577,19 @@ def evaluate_policy_meta_agent(
         if render:
             env.render()
 
-    test_path = os.path.join(os.path.dirname(__file__),'..','..','agent_data')
+    dir_path = os.path.join(os.path.dirname(__file__),'..','..','agent_data')
 
-    if not os.path.isdir(test_path):
-        print("test no dir")
-        os.mkdir(test_path)
-
-    dir_path = os.path.join(os.path.dirname(__file__),'..','..','agent_data', 'agent')
+    if not os.path.isdir(dir_path):
+        print("Creating directory for evaluation files of agent")
+        os.mkdir(dir_path)
 
     avoid_df = pd.DataFrame.from_dict(data=dict_avoid)
     collect_df = pd.DataFrame.from_dict(data=dict_collect)
     avoid_df.to_csv(
-        dir_path + '_' + difficulty_dodge + '_' + difficulty_collect + '_' + input_noise + '_' + str(
+        dir_path + '/agent_' + difficulty_dodge + '_' + difficulty_collect + '_' + input_noise + '_' + str(
             counter) + '_avoid.csv', index=False)
     collect_df.to_csv(
-        dir_path + '_' + difficulty_dodge + '_' + difficulty_collect + '_' + input_noise + '_' + str(
+        dir_path + '/agent_' + difficulty_dodge + '_' + difficulty_collect + '_' + input_noise + '_' + str(
             counter) + '_collect.csv', index=False)
 
     mean_reward = np.mean(episode_rewards)

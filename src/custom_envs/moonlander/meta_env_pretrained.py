@@ -83,7 +83,7 @@ class MetaEnvPretrained(gym.Env):
         # FIXME: this is an ugly hack to load the trained agents
         with open(
                 os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                f"/home/ohneland/Jobs/COMPAS/Scilab-RL/models/dodge_best_fm_23_08_rl_model_best"), "rb"
+                                                             f"../../../policies/{dodge_best_model_name}"), "rb"
         ) as file:
             print("start loading agents", file)
             self.trained_dodge_asteroids = CLEANPPOFM.load(path=file,
@@ -92,7 +92,7 @@ class MetaEnvPretrained(gym.Env):
             self.trained_dodge_asteroids.set_logger(logger=self.logger)
         with open(
                 os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                f"/home/ohneland/Jobs/COMPAS/Scilab-RL/models/collect_best_fm_23_08_rl_model_best"), "rb"
+                                                             f"../../../policies/{collect_best_model_name}"), "rb"
         ) as file:
             # same model cannot be loaded twice -> copy does also not work
             self.trained_collect_asteroids = CLEANPPOFM.load(path=file,
@@ -246,7 +246,7 @@ class MetaEnvPretrained(gym.Env):
             observation_height=self.observation_height,
             maximum_number_of_objects=inactive_model.maximum_number_of_objects,
             agent_size=self.agent_size)
-        actual_inactive_agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(
+        actual_inactive_agent_and_object_positions_tensor_after_step = get_position_and_object_positions_of_observation(
             torch.tensor(inactive_observation, device=device),
             observation_width=self.observation_width,
             observation_height=self.observation_height,
@@ -346,7 +346,7 @@ class MetaEnvPretrained(gym.Env):
                             # inactive_belief_state_normal_distribution.mean.cpu().detach().numpy()[0][0]),
                             inactive_gold_label.mean.cpu().detach().numpy()[0][0]),
                         self.observation_width - self.agent_size + 1))
-                objects_collect = actual_inactive_agent_and_object_positions_tensor
+                objects_collect = actual_inactive_agent_and_object_positions_tensor_after_step
                 objects_dodge = active_agent_and_object_positions_tensor_after_step
             case 1:
                 # collect task
@@ -382,7 +382,7 @@ class MetaEnvPretrained(gym.Env):
                     # min(max(1, active_belief_state_normal_distribution.mean.cpu().detach().numpy()[0][0]), 10))
                     min(max(1, active_gold_label.mean.cpu().detach().numpy()[0][0]), 10))
                 objects_collect = active_agent_and_object_positions_tensor_after_step
-                objects_dodge = actual_inactive_agent_and_object_positions_tensor
+                objects_dodge = actual_inactive_agent_and_object_positions_tensor_after_step
             case _:
                 raise ValueError("action must be 0, 1")
 
