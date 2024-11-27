@@ -619,8 +619,12 @@ class MetaEnvPretrained(gym.Env):
                 else:
                     meta_reward = np.array([0.0])
         elif self.reward_function_paper:
-            meta_reward = 1 / (
-                    1 + pow(base=math.e, exp=(-pow(base=math.e, exp=2) * (self.counter_without_switch - 0.5))))
+            # in paper, the reward was low when switches where done under one second
+            # we use the counter_without_switch to calculate the reward and the reward is 1 when the counter is 5
+            # FIXME: 5 is just for an idea, we don't have a specific number of steps to solve the task
+            # solving the task is very dependent on the current difficulty and task
+            meta_reward = np.array(1 / (
+                    1 + pow(base=math.e, exp=-2 * (self.counter_without_switch - 2.5))))
         else:
             meta_reward = reward_dodge + reward_collect - task_switch_costs
         return (
