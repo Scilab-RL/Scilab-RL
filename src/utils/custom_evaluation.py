@@ -299,7 +299,6 @@ def evaluate_policy_meta_agent(
     dict_collect = {"timesteps": [], "player_pos": [], "active_task": [], "input_noise": [], "current_reward": [],
                     "list_of_visible_objects": [], "number_of_visible_objects": [], "distance_to_closest_object": []}
 
-
     episode_counts = np.zeros(n_envs, dtype="int")
     # Divides episodes among different sub environments in the vector as evenly as possible
     episode_count_targets = np.array([(n_eval_episodes + i) // n_envs for i in range(n_envs)], dtype="int")
@@ -448,8 +447,6 @@ def evaluate_policy_meta_agent(
         player_dodge = list_of_visible_objects_dodge.pop(0)
         player_collect = list_of_visible_objects_collect.pop(0)
 
-
-
         # remove entrys without objects
         list_of_visible_objects_dodge = [i for i in list_of_visible_objects_dodge if i != [0.0, 0.0]]
         list_of_visible_objects_collect = [i for i in list_of_visible_objects_dodge if i != [0.0, 0.0]]
@@ -514,8 +511,8 @@ def evaluate_policy_meta_agent(
         logger.record("eval/predicted_collect_next_position", info_dict["predicted_collect_next_position"])
         logger.record("eval/prediction_error", info_dict["prediction_error"])
         logger.record("eval/difficulty", info_dict["difficulty"])
-        logger.record("eval/dodge_difficulty", info_dict["dodge_difficulty"])
-        logger.record("eval/collect_difficulty", info_dict["collect_difficulty"])
+        logger.record("eval/dodge_difficulty", info_dict["difficulty_dodge"])
+        logger.record("eval/collect_difficulty", info_dict["difficulty_collect"])
         logger.record("eval/SoC_dodge", info_dict["SoC_dodge"])
         logger.record("eval/SoC_collect", info_dict["SoC_collect"])
         logger.record("eval/reward_dodge", info_dict["reward_dodge"])
@@ -620,7 +617,7 @@ def evaluate_policy_meta_agent(
         if render:
             env.render()
 
-    dir_path = os.path.join(os.path.dirname(__file__),'..','..','agent_data')
+    dir_path = os.path.join(os.path.dirname(__file__), '..', '..', 'agent_data')
 
     if not os.path.isdir(dir_path):
         print("Creating directory for evaluation files of agent")
