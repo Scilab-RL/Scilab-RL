@@ -53,6 +53,7 @@ def layer_init(layer, std: np.float64 = np.sqrt(2), bias_const: float = 0.0) -> 
     return layer
 
 
+# FIXME: only used in a function that is not used anymore
 def get_reward_estimation_of_forward_model(fm_network, obs: torch.Tensor,
                                            position_predicting: bool,
                                            default_action: torch.Tensor = torch.Tensor([[1]]),
@@ -214,10 +215,7 @@ def get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(env, fm_networ
                 observations=last_observation,
                 actions=default_action[0],
                 observation_width=observation_width,
-                observation_height=observation_height,
-                agent_size=agent_size,
-                maximum_number_of_objects=maximum_number_of_objects,
-                task=task)
+                agent_size=agent_size)
 
         # normalize reward
         normalized_reward = normalize_rewards(task=task, absolute_reward=rewards)
@@ -227,6 +225,7 @@ def get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(env, fm_networ
     return summed_up_reward / number_of_future_steps
 
 
+# FIXME: only used in a function that is not used anymore
 def get_reward_with_future_reward_estimation_corrective(rewards: torch.Tensor, future_reward_estimation: float,
                                                         prediction_error: float) -> torch.Tensor:
     """
@@ -257,6 +256,7 @@ def get_reward_with_future_reward_estimation_corrective(rewards: torch.Tensor, f
     return reward_with_future_reward_estimation_corrective
 
 
+# FIXME: not used
 def reward_estimation(fm_network, new_obs: np.array, env_name: str, rewards, prediction_error: float,
                       position_predicting: bool, number_of_future_steps: int = 10, maximum_number_of_objects: int = 5):
     # default action is stay at same position
@@ -518,7 +518,9 @@ def get_observation_of_position_and_object_positions(agent_and_object_positions:
         counter = 2
         while counter < len(copy_of_agent_and_object_position):
             x_position_of_object = int(torch.round(copy_of_agent_and_object_position[counter]))
-            if agent_size <= x_position_of_object <= observation_width + 1 - agent_size:
+            y_position_of_object = int(torch.round(copy_of_agent_and_object_position[counter + 1]))
+            if (agent_size <= x_position_of_object <= observation_width + 1 - agent_size) and (
+                    -agent_size + 1 <= y_position_of_object <= observation_height):
                 matrix[
                 # objects can also fly into the grid
                 max(
@@ -610,24 +612,21 @@ def get_next_observation_gridworld(observations: torch.Tensor, actions: torch.Te
 
 
 def get_next_position_observation_moonlander(observations: torch.Tensor, actions: torch.Tensor, observation_width: int,
-                                             observation_height: int, agent_size: int,
-                                             maximum_number_of_objects: int, task: str) -> torch.Tensor:
+                                             agent_size: int) -> torch.Tensor:
     """
     Calculate the next observation in the moonlander environment manually to exclude random observations through input noise.
     Args:
         observations: observations
         actions: actions
         observation_width: width of the observation
-        observation_height: height of the observation
         agent_size: size of the agent in the observation
-        maximum_number_of_objects: the number of objects that are considered in the observation
-        task: task of the moonlander environment
 
     Returns:
         next observation in the moonlander environment without input noise
     """
     next_observation_without_input_noise = observations.clone().detach()
 
+    # loop through every observation in batch
     for index, obs in enumerate(observations):
         # first two elements are agent x and y position
         counter = 2
@@ -641,25 +640,21 @@ def get_next_position_observation_moonlander(observations: torch.Tensor, actions
         next_observation_without_input_noise[index][0] = torch.clamp(next_observation_without_input_noise[index][0],
                                                                      agent_size, observation_width - agent_size + 1)
 
-        # apply step to every y position (agent and objects)
-        next_observation_without_input_noise[index][1::2] -= 1
+        # apply step to every object y position
+        next_observation_without_input_noise[index][3::2] -= 1
 
-        # check if there is an object that already is on position -1 -> removed or if it is collected in the collect task
-        while counter <= (maximum_number_of_objects * 2):
+        # check if there is an object that already is now on position -2 (for agent size 2) or -3 (for agent size 3)
+        # after doing a step -> remove it
+        while counter <= (observations.shape[1] - 2):
             if not next_observation_without_input_noise[index][counter] == 0 and \
                     next_observation_without_input_noise[index][counter + 1] == -agent_size:
                 next_observation_without_input_noise[index][counter] = 0
                 next_observation_without_input_noise[index][counter + 1] = 0
-            # FIXME: this is hardcoded for size 2
             # clamp y-position of empty object positions back to 0
             elif next_observation_without_input_noise[index][counter] == 0 and \
                     next_observation_without_input_noise[index][counter + 1] == -1:
                 next_observation_without_input_noise[index][counter + 1] = 0
             counter += 2
-
-        # clip agent (cannot go out of the grid)
-        next_observation_without_input_noise[index][1] = torch.clamp(
-            next_observation_without_input_noise[index][1], agent_size - 1, observation_height - agent_size)
 
     return next_observation_without_input_noise
 
@@ -762,8 +757,6 @@ def calculate_need_for_control(env, policy, fm_network, logger, env_name: str,
         raise NotImplementedError("Using the forward model for calculating the next states is not implemented yet.")
     elif not position_predicting:
         raise NotImplementedError("Using the actual states instead of positions is not implemented yet.")
-    elif not use_reward_of_env:
-        raise NotImplementedError("Using the reward of the forward model is not implemented yet.")
 
     task = env.env_method("get_wrapper_attr", "task")[0]
     if task == "dodge":
@@ -815,10 +808,7 @@ def calculate_need_for_control(env, policy, fm_network, logger, env_name: str,
                 observations=last_observation_default,
                 actions=default_action[0],
                 observation_width=observation_width,
-                observation_height=observation_height,
-                agent_size=agent_size,
-                maximum_number_of_objects=maximum_number_of_objects,
-                task=task)
+                agent_size=agent_size)
 
             # get collected objects to calculate reward
             x_position_of_agent = int(
@@ -906,10 +896,7 @@ def calculate_need_for_control(env, policy, fm_network, logger, env_name: str,
                 observations=last_observation_optimal,
                 actions=actions[0],
                 observation_width=observation_width,
-                observation_height=observation_height,
-                agent_size=agent_size,
-                maximum_number_of_objects=maximum_number_of_objects,
-                task=task)
+                agent_size=agent_size)
 
             # get collected objects to calculate reward
             x_position_of_agent = int(
@@ -997,6 +984,8 @@ def normalize_rewards(task: str, absolute_reward) -> float:
         # we choose to clip the smallest 1% -> which is a clipping from -100 to -3 -> clip to -3
         if absolute_reward < -3:
             absolute_reward = np.array([-3])
+        elif absolute_reward > 10:
+            raise ValueError("Reward should not be higher than 10.")
         # normalized_reward = (absolute_reward - (-3)) / (10 - (-3))
         # FIXME: try different normalization!!!
         # reward between 0 and 0.5
@@ -1018,6 +1007,6 @@ def normalize_rewards(task: str, absolute_reward) -> float:
         # reward between 0 and 0.5
         normalized_reward = (((1 - 0.5) * (absolute_reward - 0)) / (62 - 0)) + 0.5
     else:
-        raise ValueError("Task {} not implemented".format(task))
+        raise NotImplementedError("Task {} not implemented".format(task))
 
     return normalized_reward

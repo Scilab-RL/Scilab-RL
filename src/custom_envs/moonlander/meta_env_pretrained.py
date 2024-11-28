@@ -364,10 +364,7 @@ class MetaEnvPretrained(gym.Env):
             observations=active_agent_and_object_positions_tensor,
             actions=action_of_task_agent,
             observation_width=self.observation_width,
-            observation_height=self.observation_height,
-            agent_size=self.agent_size,
-            maximum_number_of_objects=self.maximum_number_of_objects,
-            task="dodge" if self.current_task == 0 else "collect")
+            agent_size=self.agent_size)
         # form to normal distribution
         active_gold_label = torch.distributions.Normal(active_gold_label,
                                                        scale=scale_tensor)
@@ -424,10 +421,7 @@ class MetaEnvPretrained(gym.Env):
             # current_state=torch.tensor(observation, device=device),
             actions=torch.tensor([1]),
             observation_width=self.observation_width,
-            observation_height=self.observation_height,
-            agent_size=self.agent_size,
-            maximum_number_of_objects=self.maximum_number_of_objects,
-            task="collect" if self.current_task == 0 else "dodge")
+            agent_size=self.agent_size)
         # form to normal distribution
         inactive_gold_label = torch.distributions.Normal(inactive_gold_label,
                                                          scale=scale_tensor)

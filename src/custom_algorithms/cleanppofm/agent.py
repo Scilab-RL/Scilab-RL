@@ -151,10 +151,7 @@ class Agent(nn.Module):
                     observations=cop_tensor,
                     actions=current_action_hardcoded[0],
                     observation_width=observation_width,
-                    observation_height=observation_height,
-                    agent_size=agent_size,
-                    maximum_number_of_objects=maximum_number_of_objects,
-                    task=task)
+                    agent_size=agent_size)
 
                 obs_after_action = get_observation_of_position_and_object_positions(
                     # agent_and_object_positions=nra_mean,
