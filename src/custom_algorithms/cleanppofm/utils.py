@@ -727,7 +727,8 @@ def calculate_prediction_error(env_name: str, env, next_obs, forward_model_predi
 def calculate_need_for_control(env, policy, fm_network, logger, env_name: str,
                                prediction_error: float, position_predicting: bool, maximum_number_of_objects: int = 5,
                                reward_predicting: bool = False, use_reward_of_env: bool = False,
-                               use_fm_for_next_states: bool = False) -> tuple[float, float]:
+                               use_fm_for_next_states: bool = False, last_observation_state: np.array = None) -> tuple[
+    float, float]:
     """
     Calculate the need for control of the environment by simulating the default trajectory
     and the "optimal" trajectory the agent would choose.
@@ -743,6 +744,7 @@ def calculate_need_for_control(env, policy, fm_network, logger, env_name: str,
         reward_predicting: if the forward model is predicting the reward or the environment
         use_reward_of_env: if the reward of the environment should be used
         use_fm_for_next_states: if the forward model should be used to predict the next states or if they are hardcoded
+        last_observation_state: last observation state can be given and not selected by the environment
     Returns:
         need for control between 0 and 1
         summed up rewards when executing the default action (trajectory length is calculated by prediction error)
@@ -776,8 +778,13 @@ def calculate_need_for_control(env, policy, fm_network, logger, env_name: str,
     agent_size = env.env_method("get_wrapper_attr", "size")[0]
     trajectory_length = - (observation_height / 2) * prediction_error + observation_height / 2
 
-    last_observation_state_default = np.expand_dims(env.env_method("get_wrapper_attr", "state")[0].flatten(), axis=0)
-    last_observation_state_optimal = copy.deepcopy(last_observation_state_default)
+    if last_observation_state is None:
+        last_observation_state_default = np.expand_dims(env.env_method("get_wrapper_attr", "state")[0].flatten(),
+                                                        axis=0)
+        last_observation_state_optimal = copy.deepcopy(last_observation_state_default)
+    else:
+        last_observation_state_default = last_observation_state
+        last_observation_state_optimal = copy.deepcopy(last_observation_state_default)
 
     # simulate the default and optimal trajectory
     copied_env_default = copy.deepcopy(env)

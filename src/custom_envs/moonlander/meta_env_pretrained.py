@@ -475,7 +475,8 @@ class MetaEnvPretrained(gym.Env):
             position_predicting=inactive_model.position_predicting,
             maximum_number_of_objects=inactive_model.maximum_number_of_objects,
             reward_predicting=inactive_model.reward_predicting,
-            use_reward_of_env=True)
+            use_reward_of_env=True,
+            last_observation_state=belief_state)
 
         # FIXME: put in?
         # not needed because already introduced by inactive SoC
