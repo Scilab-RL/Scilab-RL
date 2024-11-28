@@ -118,7 +118,7 @@ def evaluate_policy(
         predicted_x_position = min(max(1, forward_normal.mean.cpu().detach().numpy()[0][0]), 10)
         expected_new_positon = min(max(1, position + (actions[0] - 1)), 10)
 
-        observations, rewards, dones, infos, prediction_error, difficulty, soc, reward_with_future_reward_estimation_corrective, _, _ = model.step_in_env(
+        observations, rewards, dones, infos, prediction_error, need_for_control, soc, reward_with_future_reward_estimation_corrective, _, _ = model.step_in_env(
             actions=actions,
             forward_normal=forward_normal)
 
@@ -136,8 +136,8 @@ def evaluate_policy(
                                reward_with_future_reward_estimation_corrective.mean())
         logger.record("eval/prediction_error", prediction_error)
         logger.record_mean("eval/prediction_error_mean", prediction_error)
-        logger.record("eval/difficulty", difficulty)
-        logger.record_mean("eval/difficulty_mean", difficulty)
+        logger.record("eval/need_for_control", need_for_control)
+        logger.record_mean("eval/need_for_control_mean", need_for_control)
         logger.record("eval/soc", soc)
         logger.record_mean("eval/soc_mean", soc)
         logger.record("eval/action", actions[0])
@@ -404,16 +404,6 @@ def evaluate_policy_meta_agent(
         # print("positions_of_new_observation", positions_of_new_observation)
 
         ### custom code
-        # EXAMPLE INFOS:
-        # [{'info_dodge': [{'simple': 10, 'gaussian': 10, 'pos_neg': {'pos': [0], 'neg': [0]}, 'number_of_crashed_or_collected_objects': 0, 'TimeLimit.truncated': False}],
-        # 'info_collect': [{'simple': 0, 'gaussian': 0, 'pos_neg': {'pos': [0], 'neg': [0]}, 'number_of_crashed_or_collected_objects': 0, 'TimeLimit.truncated': False}],
-        # 'reward_dodge': array([0.96], dtype=float32), 'reward_collect': 0.45,
-        # 'action_meta': 0, 'dodge_position_before': 1, 'collect_position_before': 5,
-        # 'dodge_action': array([0]), 'collect_action': 1, 'input_noise': 2,
-        # 'dodge_next_position': 2, 'collect_next_position': 5,
-        # 'predicted_dodge_next_position': 1, 'predicted_collect_next_position': 5,
-        # 'prediction_error': 0.11068782380292025, 'difficulty': array([0.01], dtype=float32),
-        # 'SoC_dodge': array([0.94], dtype=float32), 'SoC_collect': 0.9, 'TimeLimit.truncated': False}]
 
         info_dict = infos[0]
 
@@ -509,10 +499,10 @@ def evaluate_policy_meta_agent(
         logger.record("eval/collect_next_position", info_dict["collect_next_position"])
         logger.record("eval/predicted_dodge_next_position", info_dict["predicted_dodge_next_position"])
         logger.record("eval/predicted_collect_next_position", info_dict["predicted_collect_next_position"])
-        logger.record("eval/prediction_error", info_dict["prediction_error"])
-        logger.record("eval/difficulty", info_dict["difficulty"])
-        logger.record("eval/dodge_difficulty", info_dict["difficulty_dodge"])
-        logger.record("eval/collect_difficulty", info_dict["difficulty_collect"])
+        logger.record("eval/prediction_error_dodge", info_dict["prediction_error_dodge"])
+        logger.record("eval/prediction_error_collect", info_dict["prediction_error_collect"])
+        logger.record("eval/need_for_control_dodge", info_dict["need_for_control_dodge"])
+        logger.record("eval/need_for_control_collect", info_dict["need_for_control_collect"])
         logger.record("eval/SoC_dodge", info_dict["SoC_dodge"])
         logger.record("eval/SoC_collect", info_dict["SoC_collect"])
         logger.record("eval/reward_dodge", info_dict["reward_dodge"])
@@ -521,26 +511,6 @@ def evaluate_policy_meta_agent(
                       info_dict["info_dodge"][0]["number_of_crashed_or_collected_objects"])
         logger.record("eval/collect_object_collected",
                       info_dict["info_collect"][0]["number_of_crashed_or_collected_objects"])
-        # print("eval/action_meta", info_dict["action_meta"])
-        # print("eval/dodge_position_before", info_dict["dodge_position_before"])
-        # print("eval/collect_position_before", info_dict["collect_position_before"])
-        # print("eval/dodge_action", info_dict["dodge_action"])
-        # print("eval/collect_action", info_dict["collect_action"])
-        # print("eval/input_noise", info_dict["input_noise"])
-        # print("eval/dodge_next_position", info_dict["dodge_next_position"])
-        # print("eval/collect_next_position", info_dict["collect_next_position"])
-        # print("eval/predicted_dodge_next_position", info_dict["predicted_dodge_next_position"])
-        # print("eval/predicted_collect_next_position", info_dict["predicted_collect_next_position"])
-        # print("eval/prediction_error", info_dict["prediction_error"])
-        # print("eval/difficulty", info_dict["difficulty"])
-        # print("eval/SoC_dodge", info_dict["SoC_dodge"])
-        # print("eval/SoC_collect", info_dict["SoC_collect"])
-        # print("eval/reward_dodge", info_dict["reward_dodge"])
-        # print("eval/reward_collect", info_dict["reward_collect"])
-        # print("eval/dodge_object_crashed_or_collected",
-        #       info_dict["info_dodge"][0]["number_of_crashed_or_collected_objects"])
-        # print("eval/collect_object_crashed_or_collected",
-        #       info_dict["info_collect"][0]["number_of_crashed_or_collected_objects"])
         logger.record("eval/rollout_rewards_step", float(rewards.mean()))
         logger.record_mean("eval/rollout_rewards_mean", float(rewards.mean()))
 

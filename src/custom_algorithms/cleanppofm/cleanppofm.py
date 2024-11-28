@@ -19,7 +19,7 @@ from custom_algorithms.cleanppofm.forward_model import ProbabilisticSimpleForwar
     ProbabilisticForwardNetPositionPredictionIncludingReward
 from custom_algorithms.cleanppofm.utils import flatten_obs, get_position_and_object_positions_of_observation, \
     get_next_observation_gridworld, reward_estimation, calculate_prediction_error, \
-    get_next_position_observation_moonlander, calculate_difficulty, normalize_rewards, get_next_whole_observation, \
+    get_next_position_observation_moonlander, calculate_need_for_control, normalize_rewards, get_next_whole_observation, \
     get_observation_of_position_and_object_positions
 from custom_algorithms.cleanppofm.agent import Agent
 from custom_envs.moonlander.helper_functions import calculate_gaussian_reward
@@ -407,7 +407,7 @@ class CLEANPPOFM:
             elif isinstance(self.action_space, spaces.Discrete):
                 clipped_actions = actions[0]
 
-            new_obs, rewards, dones, infos, prediction_error, difficulty, soc, reward_with_future_reward_estimation_corrective, _, _ = self.step_in_env(
+            new_obs, rewards, dones, infos, prediction_error, need_for_control, soc, reward_with_future_reward_estimation_corrective, _, _ = self.step_in_env(
                 actions=clipped_actions, forward_normal=forward_normal)
 
             # FIXME: is it possible that multiple actions are taken here?
@@ -421,8 +421,8 @@ class CLEANPPOFM:
                                         reward_with_future_reward_estimation_corrective.mean())
             self.logger.record("train/prediction_error", prediction_error)
             self.logger.record_mean("train/prediction_error_mean", prediction_error)
-            self.logger.record("train/difficulty", difficulty)
-            self.logger.record_mean("train/difficulty_mean", difficulty)
+            self.logger.record("train/need_for_control", need_for_control)
+            self.logger.record_mean("train/need_for_control_mean", need_for_control)
             self.logger.record("train/soc", soc)
             self.logger.record_mean("train/soc_mean", soc)
             self.logger.record("train/rollout_rewards_step", float(rewards.mean()))
@@ -736,7 +736,7 @@ class CLEANPPOFM:
 
     def step_in_env(self, actions, forward_normal, use_reward_of_env: bool = False,
                     # for the moment only for meta env
-                    use_prediction_error: bool = True, use_difficulty: bool = True) -> tuple[
+                    use_prediction_error: bool = True, use_need_for_control: bool = True) -> tuple[
         np.ndarray, float, bool, dict, float, float, float, float, int, float]:
         """
         Step in the environment with the given actions and the forward model prediction.
@@ -747,7 +747,7 @@ class CLEANPPOFM:
             forward_normal: prediction of the forward model (normal distribution)
             use_reward_of_env: if the reward of the environment should be used to calculate the reward estimation or from the forward model prediction
             use_prediction_error: if the prediction error should be used to calculate the SoC
-            use_difficulty: if the difficulty should be used to calculate the SoC
+            use_need_for_control: if the need_for_control should be used to calculate the SoC
 
         Returns:
             new_obs: new observation
@@ -755,7 +755,7 @@ class CLEANPPOFM:
             dones: if the episode is done
             infos: additional information
             prediction_error: calculated prediction error
-            difficulty: calculated difficulty
+            need_for_control: calculated need_for_control
             soc: calculated sense of control
             reward_with_future_reward_estimation_corrective: reward corrected by prediction error
             input_noise: applied input noise
@@ -794,29 +794,30 @@ class CLEANPPOFM:
         new_obs, rewards, dones, infos = self.env.step(actions)
 
         prediction_error = 0
-        difficulty = 0
+        need_for_control = 0
         if use_prediction_error:
             ##### CALCULATING PREDICTION ERROR #####
             prediction_error = calculate_prediction_error(env_name=self.env_name, env=self.env,
                                                           next_obs=torch.tensor(new_obs, device=device),
                                                           forward_model_prediction_normal_distribution=forward_normal,
                                                           maximum_number_of_objects=self.maximum_number_of_objects)
-        if use_difficulty:
-            ##### CALCULATING DIFFICULTY #####
-            difficulty, summed_up_rewards_default = calculate_difficulty(env=self.env, policy=self.policy,
-                                                                         fm_network=self.fm_network,
-                                                                         logger=self.logger, env_name=self.env_name,
-                                                                         prediction_error=prediction_error,
-                                                                         position_predicting=self.position_predicting,
-                                                                         maximum_number_of_objects=self.maximum_number_of_objects,
-                                                                         reward_predicting=self.reward_predicting,
-                                                                         use_reward_of_env=use_reward_of_env)
+        if use_need_for_control:
+            ##### CALCULATING NEED FOR CONTROL #####
+            need_for_control, summed_up_rewards_default = calculate_need_for_control(env=self.env, policy=self.policy,
+                                                                                     fm_network=self.fm_network,
+                                                                                     logger=self.logger,
+                                                                                     env_name=self.env_name,
+                                                                                     prediction_error=prediction_error,
+                                                                                     position_predicting=self.position_predicting,
+                                                                                     maximum_number_of_objects=self.maximum_number_of_objects,
+                                                                                     reward_predicting=self.reward_predicting,
+                                                                                     use_reward_of_env=use_reward_of_env)
 
         ##### CALCULATING SOC #####
         # prediction error is high, if the prediction and actual observation do not match
-        # difficulty is high if the rewards of the optimal trajectory are quite different to the rewards of the default trajectory
-        # soc = mean of prediction error and difficulty
-        self.soc = 1 - ((prediction_error + difficulty) / 2)
+        # need for control is high if the rewards of the optimal trajectory are quite different to the rewards of the default trajectory
+        # soc = mean of prediction error and need_for_control
+        self.soc = 1 - ((prediction_error + need_for_control) / 2)
 
         task = self.env.env_method("get_wrapper_attr", "task")[0]
         # normalize actual reward
@@ -834,7 +835,7 @@ class CLEANPPOFM:
         reward_estimation = (rewards_normalized + self.soc) / 2
 
         # input noise only for debugging
-        return new_obs, rewards, dones, infos, prediction_error, difficulty, self.soc, reward_estimation, input_noise, rewards_normalized
+        return new_obs, rewards, dones, infos, prediction_error, need_for_control, self.soc, reward_estimation, input_noise, rewards_normalized
 
     def save(
             self,

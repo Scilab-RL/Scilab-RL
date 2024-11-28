@@ -20,7 +20,7 @@ np.set_printoptions(threshold=sys.maxsize)
 from custom_algorithms.cleanppofm.cleanppofm import CLEANPPOFM
 from custom_algorithms.cleanppofm.utils import get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm, \
     get_position_and_object_positions_of_observation, get_observation_of_position_and_object_positions, \
-    get_next_position_observation_moonlander
+    get_next_position_observation_moonlander, calculate_need_for_control
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -38,7 +38,7 @@ class MetaEnvPretrained(gym.Env):
                  dodge_list_of_object_dict_lists: List[Dict] = None,
                  collect_list_of_object_dict_lists: List[Dict] = None, render_mode=None,
                  with_SoC_in_reward: bool = True, with_SoC_in_observation: bool = True,
-                 use_prediction_error: bool = True, use_difficulty: bool = True,
+                 use_prediction_error: bool = True, use_need_for_control: bool = True,
                  can_only_switch_as_often_as_humans: bool = False, obs_is_SoC: bool = False,
                  reward_good_switch_decision: bool = False, reward_function_paper: bool = False,
                  two_collect_task: bool = False, config_file_name_dodge_asteroids: str = None,
@@ -77,7 +77,7 @@ class MetaEnvPretrained(gym.Env):
         self.with_SoC_in_observation = with_SoC_in_observation
         self.with_SoC_in_reward = with_SoC_in_reward
         self.use_prediction_error = use_prediction_error
-        self.use_difficulty = use_difficulty
+        self.use_need_for_control = use_need_for_control
         self.can_only_switch_as_often_as_humans = can_only_switch_as_often_as_humans
         self.obs_is_SoC = obs_is_SoC
         self.reward_good_switch_decision = reward_good_switch_decision
@@ -137,6 +137,14 @@ class MetaEnvPretrained(gym.Env):
         if self.with_SoC_in_observation or self.obs_is_SoC:
             self.observation_space["SoC_collect"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64)
             self.observation_space["SoC_dodge"] = gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float64)
+            self.observation_space["prediction_error_collect"] = gym.spaces.Box(low=0, high=1, shape=(1,),
+                                                                                dtype=np.float64)
+            self.observation_space["prediction_error_dodge"] = gym.spaces.Box(low=0, high=1, shape=(1,),
+                                                                              dtype=np.float64)
+            self.observation_space["need_for_control_collect"] = gym.spaces.Box(low=0, high=1, shape=(1,),
+                                                                                dtype=np.float64)
+            self.observation_space["need_for_control_dodge"] = gym.spaces.Box(low=0, high=1, shape=(1,),
+                                                                              dtype=np.float64)
 
         # logger
         tmp_path = "/tmp/sb3_log/"
@@ -217,8 +225,10 @@ class MetaEnvPretrained(gym.Env):
 
         self.SoC_collect = np.array([1.0])
         self.SoC_dodge = np.array([1.0])
-        self.dodge_difficulty = -1
-        self.collect_difficulty = -1
+        self.prediction_error_dodge = -1
+        self.prediction_error_collect = -1
+        self.need_for_control_dodge = -1
+        self.need_for_control_collect = -1
 
         # add SoC_dodge, SoC_collect, reward_dodge, reward_collect, task_action, meta_action
         # self.state = np.append(self.state, [self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
@@ -238,6 +248,10 @@ class MetaEnvPretrained(gym.Env):
         if self.with_SoC_in_observation or self.obs_is_SoC:
             self.state["SoC_collect"] = self.SoC_collect
             self.state["SoC_dodge"] = self.SoC_dodge
+            self.state["prediction_error_collect"] = self.prediction_error_collect
+            self.state["prediction_error_dodge"] = self.prediction_error_dodge
+            self.state["need_for_control_collect"] = self.need_for_control_collect
+            self.state["need_for_control_dodge"] = self.need_for_control_dodge
 
         # for rendering
         # needed to avoid error X Error of failed request:  BadWindow (invalid Window parameter)
@@ -358,13 +372,14 @@ class MetaEnvPretrained(gym.Env):
         active_gold_label = torch.distributions.Normal(active_gold_label,
                                                        scale=scale_tensor)
         # perform action & SoC calculation & reward estimation corrected by SoC
-        (new_state, _, active_is_done, active_info, active_prediction_error, active_difficulty, active_SoC,
+        (new_state, _, active_is_done, active_info, active_prediction_error, active_need_for_control, active_SoC,
          active_normalized_reward_estimation_corrected_by_SoC, input_noise,
          active_normalized_reward) = active_model.step_in_env(
             actions=torch.tensor(action_of_task_agent).float(),
             # forward_normal=active_belief_state_normal_distribution)
             forward_normal=active_gold_label,
-            use_reward_of_env=True, use_prediction_error=self.use_prediction_error, use_difficulty=self.use_difficulty)
+            use_reward_of_env=True, use_prediction_error=self.use_prediction_error,
+            use_need_for_control=self.use_need_for_control)
         # form active_SoC to numpy array to match observation space
         # FIXME: this happens only sometimes, but when?
         if not isinstance(active_SoC, np.ndarray):
@@ -383,17 +398,18 @@ class MetaEnvPretrained(gym.Env):
         # perform default action 1 in inactive task
         # only four return value because DummyVecEnv only returns observation, reward, done, info
         # but meta agent does not see actual state and reward
-        inactive_observation, _, inactive_is_done, inactive_info = inactive_model.env.step(
+        actual_inactive_observation, _, inactive_is_done, inactive_info = inactive_model.env.step(
             torch.tensor([1], device=device))
-        # get position and object positions of observation
-        inactive_agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(
-            torch.tensor(inactive_last_state, device=device),
+        actual_inactive_agent_and_object_positions_tensor_after_step = get_position_and_object_positions_of_observation(
+            torch.tensor(actual_inactive_observation, device=device),
             observation_width=self.observation_width,
             observation_height=self.observation_height,
             maximum_number_of_objects=inactive_model.maximum_number_of_objects,
             agent_size=self.agent_size)
-        actual_inactive_agent_and_object_positions_tensor_after_step = get_position_and_object_positions_of_observation(
-            torch.tensor(inactive_observation, device=device),
+
+        # get position and object positions of last observation
+        inactive_agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(
+            torch.tensor(inactive_last_state, device=device),
             observation_width=self.observation_width,
             observation_height=self.observation_height,
             maximum_number_of_objects=inactive_model.maximum_number_of_objects,
@@ -448,6 +464,19 @@ class MetaEnvPretrained(gym.Env):
         # form inactive_summed_up_rewards to numpy array to match observation space
         inactive_summed_up_rewards = np.array([inactive_summed_up_rewards]).astype(np.float64)
 
+        # calculate inactive need for control
+        inactive_need_for_control, inactive_summed_up_rewards_default = calculate_need_for_control(
+            env=inactive_model.env,
+            policy=inactive_model.policy,
+            fm_network=inactive_model.fm_network,
+            logger=inactive_model.logger,
+            env_name=inactive_model.env_name,
+            prediction_error=0,
+            position_predicting=inactive_model.position_predicting,
+            maximum_number_of_objects=inactive_model.maximum_number_of_objects,
+            reward_predicting=inactive_model.reward_predicting,
+            use_reward_of_env=True)
+
         # FIXME: put in?
         # not needed because already introduced by inactive SoC
         # inactive_summed_up_rewards =
@@ -465,7 +494,8 @@ class MetaEnvPretrained(gym.Env):
                 else:
                     reward_dodge = active_normalized_reward
                 self.SoC_dodge = active_SoC
-                self.dodge_difficulty = active_difficulty
+                self.prediction_error_dodge = active_prediction_error
+                self.need_for_control_dodge = active_need_for_control
                 self.state_of_collect_asteroids = belief_state
                 info_collect = inactive_info
                 if self.with_SoC_in_reward:
@@ -473,7 +503,8 @@ class MetaEnvPretrained(gym.Env):
                 else:
                     reward_collect = inactive_summed_up_rewards
                 self.SoC_collect = inactive_SoC
-                self.collect_difficulty = -1
+                self.prediction_error_collect = -1
+                self.need_for_control_collect = inactive_need_for_control
                 # for debugging
                 last_dodge_position = int(active_agent_and_object_positions_tensor[0][0])
                 last_collect_position = int(inactive_agent_and_object_positions_tensor[0][0])
@@ -511,7 +542,8 @@ class MetaEnvPretrained(gym.Env):
                 else:
                     reward_dodge = inactive_summed_up_rewards
                 self.SoC_dodge = inactive_SoC
-                self.dodge_difficulty = -1
+                self.prediction_error_dodge = -1
+                self.need_for_control_dodge = inactive_need_for_control
                 self.state_of_collect_asteroids = new_state
                 info_collect = active_info
                 if self.with_SoC_in_reward:
@@ -519,7 +551,8 @@ class MetaEnvPretrained(gym.Env):
                 else:
                     reward_collect = active_normalized_reward
                 self.SoC_collect = active_SoC
-                self.collect_difficulty = active_difficulty
+                self.prediction_error_collect = active_prediction_error
+                self.need_for_control_collect = active_need_for_control
                 # for debugging
                 last_dodge_position = int(inactive_agent_and_object_positions_tensor[0][0])
                 last_collect_position = int(active_agent_and_object_positions_tensor[0][0])
@@ -580,6 +613,10 @@ class MetaEnvPretrained(gym.Env):
         if self.with_SoC_in_observation or self.obs_is_SoC:
             self.state["SoC_collect"] = self.SoC_collect
             self.state["SoC_dodge"] = self.SoC_dodge
+            self.state["prediction_error_collect"] = self.prediction_error_collect
+            self.state["prediction_error_dodge"] = self.prediction_error_dodge
+            self.state["need_for_control_collect"] = self.need_for_control_collect
+            self.state["need_for_control_dodge"] = self.need_for_control_dodge
 
         self.step_counter += 1
 
@@ -591,7 +628,10 @@ class MetaEnvPretrained(gym.Env):
                 "dodge_next_position": next_dodge_position, "collect_next_position": next_collect_position,
                 "predicted_dodge_next_position": predicted_next_dodge_position,
                 "predicted_collect_next_position": predicted_next_collect_position,
-                "prediction_error": active_prediction_error, "difficulty": active_difficulty,
+                "prediction_error_dodge": self.prediction_error_dodge,
+                "prediction_error_collect": self.prediction_error_collect,
+                "need_for_control_dodge": self.need_for_control_dodge,
+                "need_for_control_collect": self.need_for_control_collect,
                 "SoC_dodge": self.SoC_dodge, "SoC_collect": self.SoC_collect,
                 "objects_dodge": objects_dodge, "objects_collect": objects_collect,
                 "difficulty_dodge": self.difficulty_dodge, "difficulty_collect": self.difficulty_collect}
@@ -627,6 +667,7 @@ class MetaEnvPretrained(gym.Env):
                     1 + pow(base=math.e, exp=-2 * (self.counter_without_switch - 2.5))))
         else:
             meta_reward = reward_dodge + reward_collect - task_switch_costs
+
         return (
             self.state,
             meta_reward.item(),  # not as numpy array
@@ -695,8 +736,10 @@ class MetaEnvPretrained(gym.Env):
 
         self.SoC_collect = np.array([1.0])
         self.SoC_dodge = np.array([1.0])
-        self.dodge_difficulty = -1
-        self.collect_difficulty = -1
+        self.prediction_error_dodge = -1
+        self.prediction_error_collect = -1
+        self.need_for_control_dodge = -1
+        self.need_for_control_collect = -1
 
         # add SoC_dodge, SoC_collect, reward_dodge, reward_collect, task_action, meta_action
         # self.state = np.append(self.state, [self.SoC_dodge, self.SoC_collect, 0, 0, 0, 0])
@@ -716,6 +759,10 @@ class MetaEnvPretrained(gym.Env):
         if self.with_SoC_in_observation or self.obs_is_SoC:
             self.state["SoC_collect"] = self.SoC_collect
             self.state["SoC_dodge"] = self.SoC_dodge
+            self.state["prediction_error_collect"] = self.prediction_error_collect
+            self.state["prediction_error_dodge"] = self.prediction_error_dodge
+            self.state["need_for_control_collect"] = self.need_for_control_collect
+            self.state["need_for_control_dodge"] = self.need_for_control_dodge
 
         # counter
         self.episode_counter += 1

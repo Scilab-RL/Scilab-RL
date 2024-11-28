@@ -724,11 +724,12 @@ def calculate_prediction_error(env_name: str, env, next_obs, forward_model_predi
     return prediction_error
 
 
-def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
-                         prediction_error: float, position_predicting: bool, maximum_number_of_objects: int = 5,
-                         reward_predicting: bool = False, use_reward_of_env: bool = False) -> tuple[float, float]:
+def calculate_need_for_control(env, policy, fm_network, logger, env_name: str,
+                               prediction_error: float, position_predicting: bool, maximum_number_of_objects: int = 5,
+                               reward_predicting: bool = False, use_reward_of_env: bool = False,
+                               use_fm_for_next_states: bool = False) -> tuple[float, float]:
     """
-    Calculate the difficulty of the environment by simulating the default trajectory
+    Calculate the need for control of the environment by simulating the default trajectory
     and the "optimal" trajectory the agent would choose.
     Args:
         env: environment
@@ -741,8 +742,9 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
         maximum_number_of_objects: the number of objects that are considered in the forward model prediction
         reward_predicting: if the forward model is predicting the reward or the environment
         use_reward_of_env: if the reward of the environment should be used
+        use_fm_for_next_states: if the forward model should be used to predict the next states or if they are hardcoded
     Returns:
-        difficulty between 0 and 1
+        need for control between 0 and 1
         summed up rewards when executing the default action (trajectory length is calculated by prediction error)
     """
     # default action is stay at same position
@@ -751,7 +753,16 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
     # using reward model of other envs is not implemented by now
     else:
         raise ValueError(
-            "The current environment does not support the difficulty calculation.")
+            "The current environment does not support the need for control calculation.")
+
+    # TODO: implement!
+    if use_fm_for_next_states:
+        raise NotImplementedError("Using the forward model for calculating the next states is not implemented yet.")
+    elif not position_predicting:
+        raise NotImplementedError("Using the actual states instead of positions is not implemented yet.")
+    elif not use_reward_of_env:
+        raise NotImplementedError("Using the reward of the forward model is not implemented yet.")
+
     task = env.env_method("get_wrapper_attr", "task")[0]
     if task == "dodge":
         task_type = "obstacle"
@@ -786,18 +797,6 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
     for i in range(max(round(trajectory_length), 1)):
         if not done_default:
             # we manually predict the next state
-            # FIXME: don't want to use the forward model prediction here?
-            # positions for forward model
-            # if position_predicting:
-            #     last_observation_default = get_position_and_object_positions_of_observation(
-            #         torch.tensor(last_observation_default, device=device),
-            #         maximum_number_of_objects=maximum_number_of_objects,
-            #         observation_width=observation_width, observation_height=observation_height, agent_size=agent_size)
-            # else:
-            #     last_observation_default = torch.tensor(last_observation_default, device=device,
-            #                                             dtype=torch.float32).detach().clone()
-
-            # forward_model_prediction_normal_distribution_default = fm_network(last_observation_default, default_action)
 
             # get positions
             last_observation_default = get_position_and_object_positions_of_observation(
@@ -814,20 +813,7 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
                 maximum_number_of_objects=maximum_number_of_objects,
                 task=task)
 
-            # get reward from forward model prediction or environment
-            # if reward_predicting and not use_reward_of_env:
-            #     # state for env
-            #     last_observation_default = np.expand_dims(
-            #         get_observation_of_position_and_object_positions(agent_and_object_positions=
-            #         forward_model_prediction_normal_distribution_default.mean[0][:-1].cpu().unsqueeze(
-            #             0), observation_height=observation_height,
-            #             observation_width=observation_width, agent_size=agent_size, task=task).flatten().cpu().numpy(),
-            #         axis=0)
-            #     rewards_default = np.expand_dims(forward_model_prediction_normal_distribution_default.mean[0][
-            #                                          -1].cpu().detach().numpy(), axis=0)
-            # else:
-            # _, rewards_default, done_default, _ = copied_env_default.step(default_action)
-
+            # get collected objects to calculate reward
             x_position_of_agent = int(
                 min(max(agent_size, last_observation_default[0][0]), observation_width - agent_size + 1))
             y_position_of_agent = int(last_observation_default[0][1])
@@ -875,7 +861,8 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
                                                                  agent_size=agent_size,
                                                                  task=task).flatten().cpu().numpy(),
                 axis=0)
-            # calculate reward
+
+            # calculate reward by environment
             rewards_default, _ = calculate_gaussian_reward(
                 state=last_observation_state_default.reshape(observation_height, observation_width + 2),
                 collected_objects=collected_objects,
@@ -902,17 +889,6 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
                 position_predicting=position_predicting,
                 maximum_number_of_objects=maximum_number_of_objects)
 
-            # we manually predict the next state
-            # if position_predicting:
-            #     last_observation_optimal = get_position_and_object_positions_of_observation(
-            #         torch.tensor(last_observation_optimal, device=device),
-            #         maximum_number_of_objects=maximum_number_of_objects,
-            #         observation_width=observation_width, observation_height=observation_height, agent_size=agent_size)
-            # else:
-            #     last_observation_optimal = torch.tensor(last_observation_optimal, device=device,
-            #                                             dtype=torch.float32).detach().clone()
-            # forward_model_prediction_normal_distribution_optimal = fm_network(last_observation_optimal, actions.float())
-
             # get positions
             last_observation_optimal = get_position_and_object_positions_of_observation(
                 torch.tensor(last_observation_state_optimal, device=device),
@@ -928,18 +904,7 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
                 maximum_number_of_objects=maximum_number_of_objects,
                 task=task)
 
-            # get reward from forward model prediction or environment
-            # if reward_predicting and not use_reward_of_env:
-            #     # state for env
-            #     last_observation_optimal = np.expand_dims(
-            #         get_observation_of_position_and_object_positions(agent_and_object_positions=
-            #         forward_model_prediction_normal_distribution_optimal.mean[0][:-1].cpu().unsqueeze(
-            #             0), observation_height=observation_height,
-            #             observation_width=observation_width, agent_size=agent_size, task=task).flatten().cpu().numpy(),
-            #         axis=0)
-            #     rewards_optimal = np.expand_dims(forward_model_prediction_normal_distribution_optimal.mean[0][
-            #                                          -1].cpu().detach().numpy(), axis=0)
-            # else:
+            # get collected objects to calculate reward
             x_position_of_agent = int(
                 min(max(agent_size, last_observation_optimal[0][0]), observation_width - agent_size + 1))
             y_position_of_agent = int(last_observation_optimal[0][1])
@@ -984,6 +949,7 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
                                                                  agent_size=agent_size,
                                                                  task=task).flatten().cpu().numpy(),
                 axis=0)
+
             rewards_optimal, _ = calculate_gaussian_reward(
                 state=last_observation_state_optimal.reshape(observation_height, observation_width + 2),
                 collected_objects=collected_objects,
@@ -1006,11 +972,11 @@ def calculate_difficulty(env, policy, fm_network, logger, env_name: str,
     summed_up_reward_optimal_normalized = summed_up_reward_optimal / (max(round(trajectory_length), 1))
 
     # distance between the two trajectories
-    difficulty = (max(summed_up_reward_default_normalized, summed_up_reward_optimal_normalized)) - (
+    need_for_control = (max(summed_up_reward_default_normalized, summed_up_reward_optimal_normalized)) - (
         min(summed_up_reward_default_normalized, summed_up_reward_optimal_normalized))
 
-    # difficulty is high if the rewards are quite different
-    return difficulty, summed_up_reward_default_normalized
+    # need for control is high if the rewards are quite different
+    return need_for_control, summed_up_reward_default_normalized
 
 
 def normalize_rewards(task: str, absolute_reward) -> float:
