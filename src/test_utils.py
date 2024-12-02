@@ -2,7 +2,6 @@ import unittest
 import torch
 from src.custom_algorithms.cleanppofm.utils import (get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm, \
                                                     get_position_and_object_positions_of_observation,
-                                                    get_next_whole_observation,
                                                     get_observation_of_position_and_object_positions, \
                                                     get_next_position_observation_moonlander,
                                                     calculate_prediction_error,
@@ -16,10 +15,295 @@ class TestUtils(unittest.TestCase):
         pass
 
     def test_get_position_and_object_positions_of_observation(self) -> None:
-        pass
+        # observation (64, 1260), 1260 = 30 * 42
+        with self.subTest(
+                "standard example, multiple observations, more and less than maximum number of objects, agent size 1"):
+            observation_0 = torch.tensor([
+                [-1., 0., 1., 2., -1.],
+                [-1., 0., 0., 0., -1.],
+                [-1., 2., 0., 2., -1.],
+                [-1., 0., 2., 0., -1.],
+                [-1., 0., 0., 0., -1.],
+            ]).flatten()
+            observation_1 = torch.tensor([
+                [-1., 3., 1., 0., -1.],
+                [-1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., -1.],
+                [-1., 3., 0., 0., -1.],
+            ]).flatten()
+            observation = torch.cat((observation_0.unsqueeze(0), observation_1.unsqueeze(0)), dim=0)
+            agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(obs=observation,
+                                                                                                 maximum_number_of_objects=3,
+                                                                                                 observation_width=3,
+                                                                                                 observation_height=5,
+                                                                                                 agent_size=1)
+            self.assertTrue(torch.equal(agent_and_object_positions_tensor, torch.tensor(
+                [[2., 0., 3., 0., 1., 2., 3., 2.], [2., 0., 1., 0., 1., 4., 0., 0.]])))
 
-    def test_get_next_whole_observation(self) -> None:
-        pass
+        with self.subTest("different versions of objects (collect) flying out of the observation, agent size 2"):
+            observation = torch.tensor([
+                [-1., 1., 1., 1., 0., 2., 2., 2., 0., 2., 2., 2., 0., 2., 2., 2., -1.],
+                [-1., 1., 1., 1., 0., 2., 2., 2., 0., 2., 2., 2., 0., 0., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 2., 2., 2., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(obs=observation,
+                                                                                                 maximum_number_of_objects=3,
+                                                                                                 observation_width=15,
+                                                                                                 observation_height=4,
+                                                                                                 agent_size=2)
+            self.assertTrue(
+                torch.equal(agent_and_object_positions_tensor, torch.tensor([[2., 1., 10., 0., 14., -1., 6., 1]])))
+
+        with self.subTest("different versions of objects (dodge) flying into the observation, agent size 2"):
+            observation = torch.tensor([
+                [-1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 3., 3., 3., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 3., 3., 3., 0., 3., 3., 3., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 3., 3., 3., 0., 3., 3., 3., 0., 3., 3., 3., -1.],
+            ]).flatten().unsqueeze(0)
+            agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(obs=observation,
+                                                                                                 maximum_number_of_objects=3,
+                                                                                                 observation_width=15,
+                                                                                                 observation_height=4,
+                                                                                                 agent_size=2)
+            self.assertTrue(
+                torch.equal(agent_and_object_positions_tensor, torch.tensor([[2., 1., 6., 2., 10., 3., 14., 4]])))
+
+        with self.subTest("objects (dodge) next to agent, agent size 2"):
+            observation = torch.tensor([
+                [-1., 3., 3., 3., 1., 1., 1., 3., 3., 3., -1.],
+                [-1., 3., 3., 3., 1., 1., 1., 3., 3., 3., -1.],
+                [-1., 3., 3., 3., 1., 1., 1., 3., 3., 3., -1.],
+                [-1., 0., 0., 0., 3., 3., 3., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 3., 3., 3., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 3., 3., 3., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(obs=observation,
+                                                                                                 maximum_number_of_objects=3,
+                                                                                                 observation_width=9,
+                                                                                                 observation_height=6,
+                                                                                                 agent_size=2)
+            self.assertTrue(
+                torch.equal(agent_and_object_positions_tensor, torch.tensor([[5., 1., 2., 1., 8., 1., 5., 4]])))
+
+        with self.subTest("objects (dodge) covered by agent, agent size 2"):
+            observation_0 = torch.tensor([
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 3., 3., 1., 1., 1., 3., 3., 0., -1.],
+                [-1., 0., 3., 3., 3., 0., 3., 3., 3., 0., -1.],
+                [-1., 0., 3., 3., 3., 0., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_1 = torch.tensor([
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 3., 3., 1., 1., 1., 3., 3., 0., -1.],
+                [-1., 0., 3., 3., 1., 1., 1., 3., 3., 0., -1.],
+                [-1., 0., 3., 3., 3., 0., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_2 = torch.tensor([
+                [-1., 0., 3., 3., 1., 1., 1., 3., 3., 0., -1.],
+                [-1., 0., 3., 3., 1., 1., 1., 3., 3., 0., -1.],
+                [-1., 0., 3., 3., 1., 1., 1., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_3 = torch.tensor([
+                [-1., 0., 3., 3., 1., 1., 1., 3., 3., 0., -1.],
+                [-1., 0., 3., 3., 1., 1., 1., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_4 = torch.tensor([
+                [-1., 0., 3., 3., 1., 1., 1., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+
+            observation_5 = torch.tensor([
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 3., 1., 1., 1., 3., 0., 0., -1.],
+                [-1., 0., 0., 3., 3., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 3., 3., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_6 = torch.tensor([
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 3., 1., 1., 1., 3., 0., 0., -1.],
+                [-1., 0., 0., 3., 1., 1., 1., 3., 0., 0., -1.],
+                [-1., 0., 0., 3., 3., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_7 = torch.tensor([
+                [-1., 0., 0., 3., 1., 1., 1., 3., 0., 0., -1.],
+                [-1., 0., 0., 3., 1., 1., 1., 3., 0., 0., -1.],
+                [-1., 0., 0., 3., 1., 1., 1., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_8 = torch.tensor([
+                [-1., 0., 0., 3., 1., 1., 1., 3., 0., 0., -1.],
+                [-1., 0., 0., 3., 1., 1., 1., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_9 = torch.tensor([
+                [-1., 0., 0., 3., 1., 1., 1., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+
+            observation_10 = torch.tensor([
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 3., 3., 3., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 3., 3., 3., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_11 = torch.tensor([
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 1., 1., 1., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 3., 3., 3., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation = torch.cat((observation_0, observation_1, observation_2, observation_3, observation_4,
+                                     observation_5, observation_6, observation_7, observation_8, observation_9,
+                                     observation_10, observation_11), dim=0)
+            agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(obs=observation,
+                                                                                                 maximum_number_of_objects=3,
+                                                                                                 observation_width=9,
+                                                                                                 observation_height=6,
+                                                                                                 agent_size=2)
+            self.assertTrue(
+                torch.equal(agent_and_object_positions_tensor, torch.tensor([
+                    [5., 1., 3., 3., 7., 3., 0., 0.],
+                    [5., 1., 3., 2., 7., 2., 0., 0.],
+                    [5., 1., 3., 1., 7., 1., 0., 0.],
+                    [5., 1., 3., 0., 7., 0., 0., 0.],
+                    [5., 1., 3., -1., 7., -1., 0., 0.],
+                    [5., 1., 4., 3., 5., 3., 6., 3.],
+                    [5., 1., 4., 2., 5., 2., 6., 2.],
+                    [5., 1., 4., 1., 6., 1., 0., 0.],
+                    [5., 1., 4., 0., 6., 0., 0., 0.],
+                    [5., 1., 4., -1., 6., -1., 0., 0.],
+                    [5., 1., 5., 3., 0., 0., 0., 0.],
+                    [5., 1., 5., 2., 0., 0., 0., 0.],
+                ])))
+
+        with self.subTest("objects (dodge) are overlapping, agent size 2, more than maximum number of objects"):
+            observation_0 = torch.tensor([
+                [-1., 1., 1., 1., 3., 3., 3., 0., 3., 3., 3., -1.],
+                [-1., 1., 1., 1., 3., 3., 3., 0., 3., 3., 3., -1.],
+                [-1., 1., 1., 1., 3., 3., 3., 3., 3., 3., 3., -1.],
+                [-1., 0., 0., 0., 0., 0., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 3., 3., 3., 3., 3., 3., 3., -1.],
+                [-1., 0., 0., 0., 3., 3., 3., 0., 3., 3., 3., -1.],
+                [-1., 0., 0., 0., 3., 3., 3., 0., 3., 3., 3., -1.],
+            ]).flatten().unsqueeze(0)
+
+            observation_1 = torch.tensor([
+                [-1., 1., 1., 1., 0., 3., 3., 3., 0., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 3., 3., 3., 0., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 3., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 3., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 3., 3., 3., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_2 = torch.tensor([
+                [-1., 1., 1., 1., 0., 0., 3., 3., 3., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 0., 3., 3., 3., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 0., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 3., 3., 3., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_3 = torch.tensor([
+                [-1., 1., 1., 1., 0., 0., 0., 3., 3., 3., 0., -1.],
+                [-1., 1., 1., 1., 0., 0., 0., 3., 3., 3., 0., -1.],
+                [-1., 1., 1., 1., 0., 0., 3., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 3., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 3., 3., 3., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 3., 3., 3., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+
+            observation_4 = torch.tensor([
+                [-1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 0., 0., 3., 3., 3., 0., -1.],
+                [-1., 1., 1., 1., 0., 0., 3., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 3., 3., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 3., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 3., 3., 3., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_5 = torch.tensor([
+                [-1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 3., 3., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 3., 3., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 3., 3., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+            observation_6 = torch.tensor([
+                [-1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 3., 3., 3., 0., 0., 0., -1.],
+                [-1., 1., 1., 1., 0., 3., 3., 3., 3., 0., 0., -1.],
+                [-1., 0., 0., 0., 0., 3., 3., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 3., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 3., 3., 3., 0., -1.],
+                [-1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., -1.],
+            ]).flatten().unsqueeze(0)
+        observation = torch.cat((observation_0, observation_1, observation_2, observation_3, observation_4,
+                                 observation_5, observation_6), dim=0)
+        agent_and_object_positions_tensor = get_position_and_object_positions_of_observation(obs=observation,
+                                                                                             maximum_number_of_objects=8,
+                                                                                             observation_width=10,
+                                                                                             observation_height=7,
+                                                                                             agent_size=2)
+        self.assertTrue(
+            torch.equal(agent_and_object_positions_tensor, torch.tensor([
+                [2., 1., 5., 1., 9., 1., 7., 3., 5., 5., 9., 5., 0., 0., 0., 0., 0., 0.],
+                [2., 1., 6., 1., 7., 3., 8., 5., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                [2., 1., 7., 1., 7., 2., 7., 3., 7., 4., 7., 5., 0., 0., 0., 0., 0., 0.],
+                [2., 1., 8., 1., 7., 3., 6., 5., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                [2., 1., 8., 2., 7., 3., 6., 4., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                [2., 1., 6., 3., 7., 3., 8., 3., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                [2., 1., 6., 2., 7., 3., 8., 4., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            ])))
+
+        with self.subTest("agent size not supported"):
+            self.assertRaises(ValueError, get_position_and_object_positions_of_observation,
+                              obs=torch.tensor([[-1., 0., 1., 0., -1]]), maximum_number_of_objects=10,
+                              observation_width=10, observation_height=10, agent_size=3)
+
+        with self.subTest("observation width and height does not match observation tensor"):
+            self.assertRaises(ValueError, get_position_and_object_positions_of_observation,
+                              obs=torch.tensor([[-1., 0., 1., 0., -1]]), maximum_number_of_objects=10,
+                              observation_width=10, observation_height=10, agent_size=3)
 
     def test_get_observation_of_position_and_object_positions(self) -> None:
         with self.subTest("multiple agent and object position tensors, with x and y position out of boundaries"):

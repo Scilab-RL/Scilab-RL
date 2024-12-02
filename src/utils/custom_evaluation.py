@@ -112,6 +112,7 @@ def evaluate_policy(
         observation_height = env.env_method("get_wrapper_attr", "observation_height")[0]
         agent_size = env.env_method("get_wrapper_attr", "size")[0]
         position = get_position_and_object_positions_of_observation(obs=torch.tensor(observations),
+                                                                    maximum_number_of_objects=model.maximum_number_of_objects,
                                                                     observation_width=observation_width,
                                                                     observation_height=observation_height,
                                                                     agent_size=agent_size)[0][0]
@@ -123,6 +124,7 @@ def evaluate_policy(
             forward_normal=forward_normal)
 
         new_position = get_position_and_object_positions_of_observation(torch.tensor(observations),
+                                                                        maximum_number_of_objects=model.maximum_number_of_objects,
                                                                         observation_width=observation_width,
                                                                         observation_height=observation_height,
                                                                         agent_size=agent_size)[0][0]

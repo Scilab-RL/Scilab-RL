@@ -284,8 +284,6 @@ def reward_estimation(fm_network, new_obs: np.array, env_name: str, rewards, pre
 
 
 def get_position_and_object_positions_of_observation(obs: torch.Tensor,
-                                                     # FIXME: sometimes the default value is used and we cannot use the value defined in the yaml file
-                                                     # quickfix: change here the number to 5 (for small environments) and to 10 (for human environments)
                                                      maximum_number_of_objects: int = 10,
                                                      observation_width: int = 10,
                                                      observation_height: int = 10,
@@ -296,6 +294,7 @@ def get_position_and_object_positions_of_observation(obs: torch.Tensor,
         obs: observation
         maximum_number_of_objects: the number of objects that are considered in the observation
         observation_width: width of the observation
+        observation_height: height of the observation
         agent_size: size of the agent in the observation
         # FIXME: note, these are the first objects you get, when going down in the obs and going from left to right
         # FIXME: these are not necessary the nearest objects to the agent
@@ -305,8 +304,16 @@ def get_position_and_object_positions_of_observation(obs: torch.Tensor,
         are the x and y position of the agent
     """
     agent_and_object_positions = []
+    if agent_size > 2:
+        raise ValueError(f"Get the positions of an observation is only supported for agent size <= 2, "
+                         f"but you defined an agent size of {agent_size}.")
+    if not obs.shape[1] == (observation_width + 2) * observation_height:
+        raise ValueError(
+            f"The given observation width {observation_width} and height {observation_height} "
+            f"do not match the observation shape: {obs.shape}."
+            f"The second observation shape element {obs.shape[1]} should be "
+            f"(observation_width + 2) * observation_height = {(observation_width + 2) * observation_height}.")
     for obs_element in obs:
-        current_number_of_objects_in_list = 0
         # agent in observation is marked with 1
         first_index_with_one = np.where(obs_element.cpu() == 1)[0][0]
 
@@ -320,7 +327,8 @@ def get_position_and_object_positions_of_observation(obs: torch.Tensor,
 
             if agent_size == 1:
                 indices_with_two_or_three = np.where(obs_element.cpu() == search_value)[0]
-            elif agent_size == 2:
+            # agent size is 2
+            else:
                 # Find indices where three consecutive ones occur
                 indices_with_two_or_three = np.where(
                     ((obs_element.cpu()[:-2] == search_value) | (obs_element.cpu()[:-2] == 1))
@@ -343,33 +351,38 @@ def get_position_and_object_positions_of_observation(obs: torch.Tensor,
                                       indices_with_two_or_three, invert=True)))
                 )
                 indices_with_two_or_three = indices_with_two_or_three[mask]
-            else:
-                raise ValueError("Agent size not supported.")
 
             for index in indices_with_two_or_three:
-                # break if we have enough objects
-                if current_number_of_objects_in_list >= maximum_number_of_objects:
-                    break
+
                 # get x and y coordinate of object
                 # +2 because of the walls
                 x_coordinate = (index % (observation_width + 2)) + agent_size - 1
                 # get to the middle of the object
                 y_coordinate = math.floor(index / (observation_width + 2))
-                # check if object is only in the first line (then y_coordinate is -1) or also in the second line
-                if y_coordinate == 0:
-                    # check if second line has also an object at the x position
-                    if not (obs_element[(x_coordinate + observation_width + 1):(
-                            x_coordinate + observation_width + 4)] == search_value).all():
-                        y_coordinate = -1
-                elif y_coordinate == (observation_height - 1):
-                    if not (obs_element[((x_coordinate - 1) + (observation_width + 2) * (observation_height - 2)):(
-                            (x_coordinate + 2) + (observation_width + 2) * (
-                            observation_height - 2))] == search_value).all():
-                        y_coordinate = observation_height
+
+                if agent_size == 2:
+                    # check if object is only in the first line (then y_coordinate is -1) or also in the second line
+                    if y_coordinate == 0:
+                        # check if second line has also an object at the x position
+                        if not (torch.all(
+                                (obs_element[
+                                 (x_coordinate + observation_width + 1):(x_coordinate + observation_width + 4)]
+                                 == search_value) | (obs_element[
+                                                     (x_coordinate + observation_width + 1):(
+                                                             x_coordinate + observation_width + 4)] == 1))):
+                            y_coordinate = -1
+                    elif y_coordinate == (observation_height - 1):
+                        if not (torch.all(
+                                (obs_element[((x_coordinate - 1) + (observation_width + 2) * (observation_height - 2))
+                                :((x_coordinate + 2) + (observation_width + 2) * (observation_height - 2))]
+                                 == search_value) |
+                                (obs_element[((x_coordinate - 1) + (observation_width + 2) * (observation_height - 2))
+                                :((x_coordinate + 2) + (observation_width + 2) * (observation_height - 2))] == 1))):
+                            y_coordinate = observation_height
+
                 # remove agent from indices with two or three --> agent is added later at the beginning of the list
                 if not (x_coordinate == (first_index_with_one + agent_size - 1) and y_coordinate == (agent_size - 1)):
                     x_y_coordinates.append([x_coordinate, y_coordinate])
-                    current_number_of_objects_in_list += 1
 
             x_y_coordinates_copy = copy.deepcopy(x_y_coordinates)
             for current_x_coordinate, current_y_coordinate in x_y_coordinates:
@@ -385,21 +398,15 @@ def get_position_and_object_positions_of_observation(obs: torch.Tensor,
                                 ((current_x_coordinate + 1) == (first_index_with_one + agent_size - 2)) or
                                 ((current_x_coordinate + 1) == (first_index_with_one + agent_size - 1)) or
                                 ((current_x_coordinate + 1) == (first_index_with_one + agent_size))
-                        )  # and
-                        # (
-                        #         current_y_coordinate == (agent_size - 1)
-                        # )
-                ):
+                        )):
                     # object is left from agent
                     if current_x_coordinate < (first_index_with_one + agent_size - 1):
                         # check if object already started earlier
                         if obs_element.cpu()[current_x_coordinate - 2] == search_value:
                             x_y_coordinates_copy.remove([current_x_coordinate, current_y_coordinate])
-                            current_number_of_objects_in_list -= 1
                     elif current_x_coordinate > (first_index_with_one + agent_size - 1):
                         if obs_element.cpu()[current_x_coordinate + 2] == search_value:
                             x_y_coordinates_copy.remove([current_x_coordinate, current_y_coordinate])
-                            current_number_of_objects_in_list -= 1
 
                 # check if object coordinate is overlapping with the agent at the same x position
                 if (
@@ -422,13 +429,14 @@ def get_position_and_object_positions_of_observation(obs: torch.Tensor,
                     if obs_element.cpu()[
                         ((current_y_coordinate + 2) * (observation_width + 2)) + current_x_coordinate] == search_value:
                         x_y_coordinates_copy.remove([current_x_coordinate, current_y_coordinate])
-                        current_number_of_objects_in_list -= 1
 
             x_y_coordinates = x_y_coordinates_copy
             # add zeros to the list if we have not enough objects
-            while current_number_of_objects_in_list < maximum_number_of_objects:
-                x_y_coordinates.append([0, 0])
-                current_number_of_objects_in_list += 1
+            if len(x_y_coordinates) < maximum_number_of_objects:
+                x_y_coordinates = x_y_coordinates + [[0, 0]] * (maximum_number_of_objects - len(x_y_coordinates))
+            # else: remove objects if we have too many objects
+            elif len(x_y_coordinates) > maximum_number_of_objects:
+                x_y_coordinates = x_y_coordinates[:maximum_number_of_objects]
 
             # add agent to object positions
             x_y_coordinates = [[first_index_with_one + agent_size - 1, agent_size - 1]] + x_y_coordinates
@@ -447,34 +455,45 @@ def get_position_and_object_positions_of_observation(obs: torch.Tensor,
     return agent_and_object_positions_tensor
 
 
-def get_next_whole_observation(next_observations: torch.Tensor, actions: torch.Tensor, observation_width: int,
+# outdated
+def get_next_whole_observation(observations: torch.Tensor, actions: torch.Tensor, observation_width: int,
                                observation_height: int) -> torch.Tensor:
     """
     Calculate the next observation in the moonlander environment manually to exclude random observations through input noise.
     Args:
-        next_observations: next observations
+        observations: observations
         actions: actions
+        observation_width: width of the observation
+        observation_height: height of the observation
 
     Returns:
         next observation in the moonlander environment without input noise
 
     """
+    raise NotImplementedError("This function is outdated.")
+    if not observations.shape[1] == (observation_width + 2) * observation_height:
+        raise ValueError(
+            f"The given observation width {observation_width} and height {observation_height} "
+            f"do not match the observation shape: {observations.shape}."
+            f"The second observation shape element {observations.shape[1]} should be "
+            f"(observation_width + 2) * observation_height = {(observation_width + 2) * observation_height}.")
+
     # object in observation is marked with 2 or 3
-    if 2 in next_observations:
+    if 2 in observations:
         search_value = 2
     else:
         search_value = 3
 
     # deep copy of next_observation
-    next_observations_copy = next_observations.detach().clone()
+    observations_copy = observations.detach().clone()
     # remove agent and objects
-    next_observations_copy[next_observations_copy == 1] = 0
-    next_observations_copy[next_observations_copy == 2] = 0
+    observations_copy[observations_copy == 1] = 0
+    observations_copy[observations_copy == 2] = 0
 
     # get x coordinates of agent for each batch element
-    x_index_of_agent = torch.nonzero(next_observations == 1, as_tuple=True)[1]
+    x_index_of_agent = torch.nonzero(observations == 1, as_tuple=True)[1]
     # get x, y coordinates of objects for each batch element (index of batch element in element_in_batch)
-    element_in_batch, indices_of_objects = torch.nonzero(next_observations == search_value, as_tuple=True)
+    element_in_batch, indices_of_objects = torch.nonzero(observations == search_value, as_tuple=True)
     # get x and y coordinate of object
     x_coordinate_tensor = indices_of_objects % (observation_width + 2)
     y_coordinate_tensor = torch.floor(indices_of_objects / (observation_height + 2))
@@ -488,13 +507,13 @@ def get_next_whole_observation(next_observations: torch.Tensor, actions: torch.T
     valid_new_indices_of_objects = new_indices_of_objects[valid_mask]
 
     # add objects to next observation
-    next_observations_copy[valid_element_in_batch, valid_new_indices_of_objects] = 2
+    observations_copy[valid_element_in_batch, valid_new_indices_of_objects] = 2
 
     # add agent to next observation
     new_x_index_of_agent = torch.clamp(x_index_of_agent + (actions - 1), min=1, max=observation_width)
-    next_observations_copy[torch.arange(next_observations.shape[0]), new_x_index_of_agent] = 1
+    observations_copy[torch.arange(observations.shape[0]), new_x_index_of_agent] = 1
 
-    return next_observations_copy
+    return observations_copy
 
 
 def get_observation_of_position_and_object_positions(agent_and_object_positions: torch.Tensor, observation_height: int,
