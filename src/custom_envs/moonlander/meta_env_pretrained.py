@@ -18,7 +18,7 @@ from stable_baselines3.common.env_util import make_vec_env
 np.set_printoptions(threshold=sys.maxsize)
 
 from custom_algorithms.cleanppofm.cleanppofm import CLEANPPOFM
-from custom_algorithms.cleanppofm.utils import get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm, \
+from custom_algorithms.cleanppofm.utils import get_summed_up_reward_of_env_with_predicted_states_hardcoded, \
     get_position_and_object_positions_of_observation, get_observation_of_position_and_object_positions, \
     get_next_position_observation_moonlander, calculate_need_for_control
 
@@ -443,18 +443,10 @@ class MetaEnvPretrained(gym.Env):
         # simulate future n steps
         # FIXME: for now it is hardcoded 5 steps + can be deleted in cleanppofm?
         # reward estimation -> predict next state -> get reward of environment
-        inactive_summed_up_rewards = get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(
+        inactive_summed_up_rewards = get_summed_up_reward_of_env_with_predicted_states_hardcoded(
             env=inactive_model.env,
-            fm_network=inactive_model.fm_network,
-            last_observation=
-            # inactive_belief_state_normal_distribution.mean[
-            #     0][:-1].unsqueeze(0),
-            inactive_gold_label.mean,
-            reward_from_env=True,
-            env_name="MoonlanderWorldEnv",
-            position_predicting=True,
-            number_of_future_steps=int(self.observation_height / 2),
-            maximum_number_of_objects=inactive_model.maximum_number_of_objects)
+            last_observation=inactive_gold_label.mean,
+            number_of_future_steps=int(self.observation_height / 2))
         # form inactive_summed_up_rewards to numpy array to match observation space
         inactive_summed_up_rewards = np.array([inactive_summed_up_rewards]).astype(np.float64)
 

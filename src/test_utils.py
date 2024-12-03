@@ -1,18 +1,98 @@
 import unittest
+from unittest import mock
 import torch
-from src.custom_algorithms.cleanppofm.utils import (get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm, \
+import gymnasium as gym
+import stable_baselines3
+from stable_baselines3.common.vec_env import DummyVecEnv
+from src.custom_algorithms.cleanppofm.utils import (get_summed_up_reward_of_env_with_predicted_states_hardcoded, \
                                                     get_position_and_object_positions_of_observation,
                                                     get_observation_of_position_and_object_positions, \
                                                     get_next_position_observation_moonlander,
                                                     calculate_prediction_error,
                                                     calculate_need_for_control,
-                                                    normalize_rewards)
+                                                    normalize_rewards,
+                                                    get_collected_objects)
+from src.custom_envs.register_envs import register_custom_envs
 
 
 class TestUtils(unittest.TestCase):
+    @mock.patch("stable_baselines3.common.vec_env.dummy_vec_env.DummyVecEnv.env_method")
+    def test_get_summed_up_reward_of_env_with_predicted_states_hardcoded_are_errors_raised(self, env_method_mock):
+        # env_method is called 5 times, for env_name, task, observation_height, observation_width, agent_size
+        # we call get_summed_up_reward_of_env_with_predicted_states_hardcoded two times, so 10 mock return values are needed
+        env_method_mock.side_effect = [["bla"], ["bla"], ["bla"], ["bla"], ["bla"], ["MoonlanderWorldEnv"], ["bla"],
+                                       ["bla"], ["bla"], ["bla"]]
 
-    def test_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(self) -> None:
-        pass
+        register_custom_envs()
+        env = gym.make("MoonlanderWorld-dodge-gaussian-v0")
+        dummy_vec_env = DummyVecEnv([lambda: env])
+
+        with self.subTest("other env than MoonlanderWorldEnv"):
+            self.assertRaises(NotImplementedError, get_summed_up_reward_of_env_with_predicted_states_hardcoded,
+                              env=dummy_vec_env, last_observation_positions=torch.tensor([[2., 1.]]),
+                              number_of_future_steps=1)
+        with self.subTest("other task than dodge or collect"):
+            self.assertRaises(ValueError, get_summed_up_reward_of_env_with_predicted_states_hardcoded,
+                              env=dummy_vec_env, last_observation_positions=torch.tensor([[2., 1.]]),
+                              number_of_future_steps=1)
+
+    def test_get_summed_up_reward_of_env_with_predicted_states_hardcoded(self) -> None:
+        register_custom_envs()
+        dodge_env = gym.make("MoonlanderWorld-dodge-gaussian-v0")
+        dodge_dummy_vec_env = DummyVecEnv([lambda: dodge_env])
+        collect_env = gym.make("MoonlanderWorld-collect-gaussian-v0")
+        collect_dummy_vec_env = DummyVecEnv([lambda: collect_env])
+
+        with self.subTest("Dodge"):
+            with self.subTest("1 future step, zero objects"):
+                reward = get_summed_up_reward_of_env_with_predicted_states_hardcoded(
+                    env=dodge_dummy_vec_env, last_observation_positions=torch.tensor([[2., 1.]]),
+                    number_of_future_steps=1)
+                self.assertEqual(reward, 0.5)
+
+            with self.subTest("1 future step, crashing one object"):
+                reward = get_summed_up_reward_of_env_with_predicted_states_hardcoded(
+                    env=dodge_dummy_vec_env, last_observation_positions=torch.tensor([[2., 1., 4., 1.]]),
+                    number_of_future_steps=1)
+                self.assertEqual(reward, 0)
+
+            with self.subTest("3 future step, crashing objects"):
+                reward = get_summed_up_reward_of_env_with_predicted_states_hardcoded(
+                    env=dodge_dummy_vec_env, last_observation_positions=torch.tensor([[2., 1., 4., 4.]]),
+                    number_of_future_steps=3)
+                self.assertEqual(reward, (0 + 0 + 0) / 3)
+
+            with self.subTest("5 future step, object is flying out"):
+                reward = get_summed_up_reward_of_env_with_predicted_states_hardcoded(
+                    env=dodge_dummy_vec_env, last_observation_positions=torch.tensor([[2., 1., 15., 1., 19., 5.]]),
+                    number_of_future_steps=5)
+                self.assertEqual(reward, (0.5 + 0.5 + 0.5 + 0.5 + 0.5) / 5)
+
+        with self.subTest("Collect"):
+            with self.subTest("1 future step, zero objects"):
+                reward = get_summed_up_reward_of_env_with_predicted_states_hardcoded(
+                    env=collect_dummy_vec_env, last_observation_positions=torch.tensor([[2., 1.]]),
+                    number_of_future_steps=1)
+                self.assertEqual(reward, 0.5)
+
+            with self.subTest("1 future step, collecting one object"):
+                reward = get_summed_up_reward_of_env_with_predicted_states_hardcoded(
+                    env=collect_dummy_vec_env, last_observation_positions=torch.tensor([[2., 1., 4., 1.]]),
+                    number_of_future_steps=1)
+                self.assertEqual(reward, 1)
+
+            with self.subTest("3 future step, collecting one objects"):
+                reward = get_summed_up_reward_of_env_with_predicted_states_hardcoded(
+                    env=collect_dummy_vec_env, last_observation_positions=torch.tensor([[2., 1., 4., 4.]]),
+                    number_of_future_steps=3)
+                # got first number manually
+                self.assertEqual(reward, (0.7016129032258065 + 1 + 0.5) / 3)
+
+            with self.subTest("5 future step, object is flying out"):
+                reward = get_summed_up_reward_of_env_with_predicted_states_hardcoded(
+                    env=collect_dummy_vec_env, last_observation_positions=torch.tensor([[2., 1., 15., 1., 19., 5.]]),
+                    number_of_future_steps=5)
+                self.assertEqual(reward, (0.5 + 0.5 + 0.5 + 0.5 + 0.5) / 5)
 
     def test_get_position_and_object_positions_of_observation(self) -> None:
         # observation (64, 1260), 1260 = 30 * 42
@@ -729,6 +809,62 @@ class TestUtils(unittest.TestCase):
 
         with self.subTest("task not implemented"):
             self.assertRaises(NotImplementedError, normalize_rewards, task="blablabla", absolute_reward=0)
+
+    def test_get_collected_objects(self) -> None:
+        with self.subTest("didn't collect anything"):
+            collected_objects = get_collected_objects(observation_positions=torch.tensor([[2., 1., 3., 1., 2., 2.]]),
+                                                      agent_size=1,
+                                                      observation_width=5)
+            self.assertListEqual(collected_objects, [])
+
+        with self.subTest("collect an object, agent size 1"):
+            collected_objects = get_collected_objects(observation_positions=torch.tensor([[2., 1., 2., 1.]]),
+                                                      agent_size=1,
+                                                      observation_width=5)
+            self.assertListEqual(collected_objects, [{"x": 2, "y": 1, "size": 1}])
+
+        with self.subTest("collect multiple objects, agent size 2"):
+            collected_objects = get_collected_objects(
+                observation_positions=torch.tensor([[5., 1.,
+                                                     2., -1., 3., -1., 4., -1., 5., -1., 6., -1., 7., -1., 8., -1.,
+                                                     2., 0., 3., 0., 4., 0., 5., 0., 6., 0., 7., 0., 8., 0.,
+                                                     2., 1., 3., 1., 4., 1., 5., 1., 6., 1., 7., 1., 8., 1.,
+                                                     2., 2., 3., 2., 4., 2., 5., 2., 6., 2., 7., 2., 8., 2.,
+                                                     2., 3., 3., 3., 4., 3., 5., 3., 6., 3., 7., 3., 8., 3.,
+                                                     2., 4., 3., 4., 4., 4., 5., 4., 6., 4., 7., 4., 8., 4.]]),
+                agent_size=2,
+                observation_width=10)
+            self.assertListEqual(collected_objects, [
+                {"x": 3, "y": -1, "size": 2},
+                {"x": 4, "y": -1, "size": 2},
+                {"x": 5, "y": -1, "size": 2},
+                {"x": 6, "y": -1, "size": 2},
+                {"x": 7, "y": -1, "size": 2},
+                {"x": 3, "y": 0, "size": 2},
+                {"x": 4, "y": 0, "size": 2},
+                {"x": 5, "y": 0, "size": 2},
+                {"x": 6, "y": 0, "size": 2},
+                {"x": 7, "y": 0, "size": 2},
+                {"x": 3, "y": 1, "size": 2},
+                {"x": 4, "y": 1, "size": 2},
+                {"x": 5, "y": 1, "size": 2},
+                {"x": 6, "y": 1, "size": 2},
+                {"x": 7, "y": 1, "size": 2},
+                {"x": 3, "y": 2, "size": 2},
+                {"x": 4, "y": 2, "size": 2},
+                {"x": 5, "y": 2, "size": 2},
+                {"x": 6, "y": 2, "size": 2},
+                {"x": 7, "y": 2, "size": 2},
+                {"x": 3, "y": 3, "size": 2},
+                {"x": 4, "y": 3, "size": 2},
+                {"x": 5, "y": 3, "size": 2},
+                {"x": 6, "y": 3, "size": 2},
+                {"x": 7, "y": 3, "size": 2},
+            ])
+
+        with self.subTest("agent size > 2 not supported"):
+            self.assertRaises(NotImplementedError, get_collected_objects,
+                              observation_positions=torch.tensor([[2., 1.]]), agent_size=3, observation_width=5)
 
 
 if __name__ == '__main__':

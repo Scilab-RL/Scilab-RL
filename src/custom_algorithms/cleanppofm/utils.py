@@ -93,133 +93,89 @@ def get_reward_estimation_of_forward_model(fm_network, obs: torch.Tensor,
     return reward_estimation
 
 
-def get_summed_up_reward_of_env_or_fm_with_predicted_states_of_fm(env, fm_network, last_observation: torch.Tensor,
-                                                                  reward_from_env: bool,
-                                                                  position_predicting: bool, env_name: str,
-                                                                  number_of_future_steps: int = 10,
-                                                                  maximum_number_of_objects: int = 5) -> float:
+def get_summed_up_reward_of_env_with_predicted_states_hardcoded(env, last_observation_positions: torch.Tensor,
+                                                                number_of_future_steps: int = 10) -> float:
     """
     Get the reward of the forward model prediction or environment through predicted states of the forward model
      for number_of_future_steps steps.
     Args:
         env: environment
-        fm_network: forward model network
-        last_observation: last known observation in form of positions
-        reward_from_env: boolean if the reward is calculated from the environment or the forward model
-        position_predicting: boolean if the forward model is predicting the position or actual observation
-        env_name: name of the current environment
+        last_observation_positions: last known observation in form of positions
         number_of_future_steps: number of future steps to predict
-        maximum_number_of_objects: the number of objects that are considered in the forward model prediction
 
     Returns:
         summed up reward of the forward model or environment for number_of_future_steps steps
 
     """
+    env_name = env.env_method("get_wrapper_attr", "name")[0]
+    task = env.env_method("get_wrapper_attr", "task")[0]
+    observation_height = env.env_method("get_wrapper_attr", "observation_height")[0]
+    observation_width = env.env_method("get_wrapper_attr", "observation_width")[0]
+    agent_size = env.env_method("get_wrapper_attr", "size")[0]
+
     # default action is stay at same position
     if env_name == "MoonlanderWorldEnv":
         default_action = torch.tensor([[1]]).to(device)
     # using reward model of other envs is not implemented by now
     else:
-        raise ValueError(
-            f"The current environment does not support the reward calculation for {number_of_future_steps} steps.")
-    task = env.env_method("get_wrapper_attr", "task")[0]
+        raise NotImplementedError(
+            f"The current environment has not implemented the manual reward calculation for {number_of_future_steps} steps.")
+
     if task == "dodge":
         task_type = "obstacle"
     elif task == "collect":
         task_type = "coin"
-
-    observation_height = env.env_method("get_wrapper_attr", "observation_height")[0]
-    observation_width = env.env_method("get_wrapper_attr", "observation_width")[0]
-    agent_size = env.env_method("get_wrapper_attr", "size")[0]
+    else:
+        raise ValueError(f"The current task {task} is not supported.")
 
     summed_up_reward = 0
     for i in range(number_of_future_steps):
-        # if not done:
-        # we manually predict the next state
-        # positions for forward model
-        if not position_predicting:
-            # FIXME: not tested
-            last_observation = torch.tensor(last_observation, device=device,
-                                            dtype=torch.float32).detach().clone()
-        forward_model_prediction_normal_distribution = fm_network(last_observation, default_action)
+        # get observation state of positions
+        last_observation_state = np.expand_dims(
+            get_observation_of_position_and_object_positions(agent_and_object_positions=last_observation_positions,
+                                                             observation_height=observation_height,
+                                                             observation_width=observation_width,
+                                                             agent_size=agent_size,
+                                                             task=task).flatten().cpu().numpy(),
+            axis=0)
 
-        # get reward from forward model prediction or environment
-        if not reward_from_env:
-            rewards = np.expand_dims(forward_model_prediction_normal_distribution.mean[0][
-                                         -1].cpu().detach().numpy(), axis=0)
-            # remove reward from new predicted obs
-            last_observation = torch.clamp(
-                torch.round(forward_model_prediction_normal_distribution.mean[0][:-1].unsqueeze(dim=0)),
-                min=0,
-                # FIXME: why 4?
-                max=4)
-        else:
-            # get reward of first prediction of the next step
-            last_observation_state = np.expand_dims(
-                get_observation_of_position_and_object_positions(agent_and_object_positions=last_observation,
-                                                                 observation_height=observation_height,
-                                                                 observation_width=observation_width,
-                                                                 agent_size=agent_size,
-                                                                 task=task).flatten().cpu().numpy(),
-                axis=0)
+        x_position_of_agent = int(
+            min(max(agent_size, last_observation_positions[0][0]), observation_width - agent_size + 1))
+        y_position_of_agent = int(last_observation_positions[0][1])
+        collected_objects = get_collected_objects(observation_positions=last_observation_positions,
+                                                  agent_size=agent_size, observation_width=observation_width)
 
-            x_position_of_agent = int(min(max(agent_size, last_observation[0][0]), observation_width - agent_size + 1))
-            y_position_of_agent = int(last_observation[0][1])
-            collected_objects = []
-            for index in range(2, len(last_observation[0]), 2):
-                if not (last_observation[0][index] == 0 and last_observation[0][index + 1] == 0):
-
-                    if (
-                            (
-                                    ((last_observation[0][index] - 1) == (x_position_of_agent - 1))
-                                    or ((last_observation[0][index] - 1) == x_position_of_agent)
-                                    or ((last_observation[0][index] - 1) == (x_position_of_agent + 1))
-                                    or (last_observation[0][index] == (x_position_of_agent - 1))
-                                    or (last_observation[0][index] == x_position_of_agent)
-                                    or (last_observation[0][index] == (x_position_of_agent + 1))
-                                    or ((last_observation[0][index] + 1) == (x_position_of_agent - 1))
-                                    or ((last_observation[0][index] + 1) == x_position_of_agent)
-                                    or ((last_observation[0][index] + 1) == (x_position_of_agent + 1))
-                            )
-                            and
-                            (
-                                    ((last_observation[0][index + 1] - 1) == (y_position_of_agent - 1))
-                                    or ((last_observation[0][index + 1] - 1) == y_position_of_agent)
-                                    or ((last_observation[0][index + 1] - 1) == (y_position_of_agent + 1))
-                                    or (last_observation[0][index + 1] == (y_position_of_agent - 1))
-                                    or (last_observation[0][index + 1] == y_position_of_agent)
-                                    or (last_observation[0][index + 1] == (y_position_of_agent + 1))
-                                    or ((last_observation[0][index + 1] + 1) == (y_position_of_agent - 1))
-                                    or ((last_observation[0][index + 1] + 1) == y_position_of_agent)
-                                    or ((last_observation[0][index + 1] + 1) == (y_position_of_agent + 1))
-                            )
-                    ):
-                        collected_objects.append(
-                            {'x': int(last_observation[0][index]),
-                             'y': int(last_observation[0][index + 1]),
-                             'size': agent_size})
-            rewards, _ = calculate_gaussian_reward(
-                state=last_observation_state.reshape(observation_height, observation_width + 2),
-                collected_objects=collected_objects,
-                agent_size=agent_size,
-                task_type=task_type,
-                current_reward_function="gaussian",
-                x_position_of_agent=x_position_of_agent,
-                y_position_of_agent=y_position_of_agent)
-
-            # define state for env
-            # FIXME: only when reward is predicted by the forward model
-            # FIXME: get last observation hardcoded:
-            # last_observation = forward_model_prediction_normal_distribution.mean[0][:-1].cpu().unsqueeze(0)
-            last_observation = get_next_position_observation_moonlander(
-                observations=last_observation,
-                actions=default_action[0],
-                observation_width=observation_width,
-                agent_size=agent_size)
+        # calculate reward
+        rewards, _ = calculate_gaussian_reward(
+            state=last_observation_state.reshape(observation_height, observation_width + 2),
+            collected_objects=collected_objects,
+            agent_size=agent_size,
+            task_type=task_type,
+            current_reward_function="gaussian",
+            x_position_of_agent=x_position_of_agent,
+            y_position_of_agent=y_position_of_agent)
 
         # normalize reward
         normalized_reward = normalize_rewards(task=task, absolute_reward=rewards)
         summed_up_reward += normalized_reward
+
+        # problem: when collecting an object, the coin is removed after one step in the environment
+        # here the coin stays the whole "collecting process" because we don't use the environment
+        # therefore we get the collected objects and remove them, when they were collected
+        if task == "collect":
+            for collected_object in collected_objects:
+                for index in range(2, len(last_observation_positions[0]), 2):
+                    if collected_object['x'] == last_observation_positions[0][index] and collected_object['y'] == \
+                            last_observation_positions[0][index + 1]:
+                        last_observation_positions[0][index] = 0
+                        last_observation_positions[0][index + 1] = 0
+
+        # get next positions
+        last_observation_positions = get_next_position_observation_moonlander(
+            observations=last_observation_positions,
+            actions=default_action[0],
+            observation_width=observation_width,
+            agent_size=agent_size)
 
     # normalize with mean of summed_up_reward
     return summed_up_reward / number_of_future_steps
@@ -1029,3 +985,57 @@ def normalize_rewards(task: str, absolute_reward) -> float:
         raise NotImplementedError("Task {} not implemented".format(task))
 
     return normalized_reward
+
+
+def get_collected_objects(observation_positions: torch.tensor, agent_size: int, observation_width: int) -> list[
+    dict[str, int]]:
+    if agent_size > 2:
+        raise NotImplementedError("Agent size > 2 is not supported to get the collected objects in the positions.")
+    x_position_of_agent = int(
+        min(max(agent_size, observation_positions[0][0]), observation_width - agent_size + 1))
+    y_position_of_agent = int(observation_positions[0][1])
+    collected_objects = []
+
+    for index in range(2, len(observation_positions[0]), 2):
+        if not (observation_positions[0][index] == 0 and observation_positions[0][index + 1] == 0):
+
+            if agent_size == 1:
+                if (observation_positions[0][index] == x_position_of_agent) and (
+                        observation_positions[0][index + 1] == y_position_of_agent):
+                    collected_objects.append(
+                        {'x': int(observation_positions[0][index]),
+                         'y': int(observation_positions[0][index + 1]),
+                         'size': agent_size})
+            # agent size of 2
+            else:
+                if (
+                        (
+                                ((observation_positions[0][index] - 1) == (x_position_of_agent - 1))
+                                or ((observation_positions[0][index] - 1) == x_position_of_agent)
+                                or ((observation_positions[0][index] - 1) == (x_position_of_agent + 1))
+                                or (observation_positions[0][index] == (x_position_of_agent - 1))
+                                or (observation_positions[0][index] == x_position_of_agent)
+                                or (observation_positions[0][index] == (x_position_of_agent + 1))
+                                or ((observation_positions[0][index] + 1) == (x_position_of_agent - 1))
+                                or ((observation_positions[0][index] + 1) == x_position_of_agent)
+                                or ((observation_positions[0][index] + 1) == (x_position_of_agent + 1))
+                        )
+                        and
+                        (
+                                ((observation_positions[0][index + 1] - 1) == (y_position_of_agent - 1))
+                                or ((observation_positions[0][index + 1] - 1) == y_position_of_agent)
+                                or ((observation_positions[0][index + 1] - 1) == (y_position_of_agent + 1))
+                                or (observation_positions[0][index + 1] == (y_position_of_agent - 1))
+                                or (observation_positions[0][index + 1] == y_position_of_agent)
+                                or (observation_positions[0][index + 1] == (y_position_of_agent + 1))
+                                or ((observation_positions[0][index + 1] + 1) == (y_position_of_agent - 1))
+                                or ((observation_positions[0][index + 1] + 1) == y_position_of_agent)
+                                or ((observation_positions[0][index + 1] + 1) == (y_position_of_agent + 1))
+                        )
+                ):
+                    collected_objects.append(
+                        {'x': int(observation_positions[0][index]),
+                         'y': int(observation_positions[0][index + 1]),
+                         'size': agent_size})
+
+    return collected_objects
