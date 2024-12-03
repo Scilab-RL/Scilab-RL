@@ -437,7 +437,7 @@ def evaluate_policy_meta_agent(
 
         # remove entrys without objects
         list_of_visible_objects_dodge = [i for i in list_of_visible_objects_dodge if i != [0.0, 0.0]]
-        list_of_visible_objects_collect = [i for i in list_of_visible_objects_dodge if i != [0.0, 0.0]]
+        list_of_visible_objects_collect = [i for i in list_of_visible_objects_collect if i != [0.0, 0.0]]
 
         distances_dodge = []
         distance_to_closest_object_dodge = 0
