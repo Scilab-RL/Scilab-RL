@@ -634,60 +634,41 @@ def get_next_position_observation_moonlander(observations: torch.Tensor, actions
     return next_observation_without_input_noise
 
 
-def calculate_prediction_error(env_name: str, env, next_obs, forward_model_prediction_normal_distribution: torch.normal,
-                               maximum_number_of_objects: int = 5) -> float:
+def calculate_prediction_error(env_name, next_obs_positions, forward_model_prediction_normal_distribution: torch.normal,
+                               first_possible_x_position: int, last_possible_x_position: int) -> float:
     """
     Calculate the prediction error between the next obs and the forward model prediction.
     Args:
         env_name: name of the environment
-        env: environment
-        next_obs: observation after actually executing the action
+        next_obs_positions: observation in positions after actually executing the action
         forward_model_prediction_normal_distribution: prediction of next observation by forward model
-        maximum_number_of_objects: the number of objects that are considered in the forward model prediction
+        first_possible_x_position: first possible x position of the agent
+        last_possible_x_position: last possible x position of the agent
 
     Returns:
         prediction error between the next obs and the forward model prediction
     """
-    observation_width = env.env_method("get_wrapper_attr", "observation_width")[0]
-    observation_height = env.env_method("get_wrapper_attr", "observation_height")[0]
-    agent_size = env.env_method("get_wrapper_attr", "size")[0]
     ##### CALCULATE PREDICTION ERROR #####
     # prediction error version one -> standard deviation
     # prediction_error = forward_normal.stddev.mean().item()
     # prediction error version two -> Euclidean distance
     # calculate manually prediction error (Euclidean distance)
-    if env_name == "GridWorldEnv":
-        # predicted location can only be between 0 and 4
-        max_distance_in_gridworld = math.sqrt(((4 - 0) ** 2) + ((4 - 0) ** 2) + ((4 - 0) ** 2) + ((4 - 0) ** 2))
-        predicted_location = torch.tensor(
-            [min(max(0, round(forward_model_prediction_normal_distribution.mean.cpu().detach().numpy()[0][0])), 4),
-             min(max(0, round(forward_model_prediction_normal_distribution.mean.cpu().detach().numpy()[0][1])), 4),
-             min(max(0, round(forward_model_prediction_normal_distribution.mean.cpu().detach().numpy()[0][2])), 4),
-             min(max(0, round(forward_model_prediction_normal_distribution.mean.cpu().detach().numpy()[0][3])), 4)],
-            device=device)
-        prediction_error = (math.sqrt(torch.sum((predicted_location - next_obs) ** 2))) / max_distance_in_gridworld
-    elif env_name == "MoonlanderWorldEnv":
-        # we just care for the x position of the moonlander agent, because the y position is always equally to the size of the agent
-        # independently of using the whole obs or the position prediction, we use the position predictions to calculate the prediction error
-        positions = get_position_and_object_positions_of_observation(next_obs,
-                                                                     maximum_number_of_objects=maximum_number_of_objects,
-                                                                     observation_width=observation_width,
-                                                                     observation_height=observation_height,
-                                                                     agent_size=agent_size)
+    if env_name == "MoonlanderWorldEnv":
+        # we just care for the x position of the moonlander agent, because the y position is always equally
+        # to the size of the agent
+        # independently of using the whole obs or the position prediction,
+        # we use the position predictions to calculate the prediction error
 
-        # Smallest x position of the agent is the size of the agent
-        # Biggest x position of the agent is the width of the moonlander world - the size of the agent
-        # Note: you should use vec_env.env_method("get_wrapper_attr", "attribute_name") in Gymnasium v1.0
-        first_possible_x_position = env.env_method("get_wrapper_attr", "first_possible_x_position")[0]
-        last_possible_x_position = env.env_method("get_wrapper_attr", "last_possible_x_position")[0]
+        # maximal distance possible in moonlander world to use min/max scaler
         max_distance_in_moonlander_world = math.sqrt(
             (last_possible_x_position - first_possible_x_position) ** 2)
+
         predicted_x_position = torch.tensor([min(max(first_possible_x_position,
                                                      forward_model_prediction_normal_distribution.mean.cpu().detach().numpy()[
                                                          0][0]),
                                                  last_possible_x_position)], device=device)
         prediction_error = (math.sqrt(
-            torch.sum((predicted_x_position - positions[0][0]) ** 2))) / max_distance_in_moonlander_world
+            torch.sum((predicted_x_position - next_obs_positions[0][0]) ** 2))) / max_distance_in_moonlander_world
     else:
         raise ValueError("Environment not supported")
 

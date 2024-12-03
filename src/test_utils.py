@@ -2,7 +2,6 @@ import unittest
 from unittest import mock
 import torch
 import gymnasium as gym
-import stable_baselines3
 from stable_baselines3.common.vec_env import DummyVecEnv
 from src.custom_algorithms.cleanppofm.utils import (get_summed_up_reward_of_env_with_predicted_states_hardcoded, \
                                                     get_position_and_object_positions_of_observation,
@@ -766,7 +765,42 @@ class TestUtils(unittest.TestCase):
             self.assertTrue(torch.equal(new_positions, torch.tensor([[3., 1., 0., 0., 3., -2., 5., -1., 7., 29.]])))
 
     def test_calculate_prediction_error(self) -> None:
-        pass
+        forward_model_prediction_normal_distribution = torch.distributions.Normal(torch.tensor([[1., 1.]]),
+                                                                                  scale=torch.ones(2))
+        with self.subTest("perfect prediction"):
+            prediction_error = calculate_prediction_error(
+                env_name="MoonlanderWorldEnv",
+                next_obs_positions=torch.tensor([[1., 1.]]),
+                forward_model_prediction_normal_distribution=forward_model_prediction_normal_distribution,
+                first_possible_x_position=1,
+                last_possible_x_position=9)
+            self.assertEqual(prediction_error, 0)
+
+        with self.subTest("medium bad prediction"):
+            prediction_error = calculate_prediction_error(
+                env_name="MoonlanderWorldEnv",
+                next_obs_positions=torch.tensor([[5., 1.]]),
+                forward_model_prediction_normal_distribution=forward_model_prediction_normal_distribution,
+                first_possible_x_position=1,
+                last_possible_x_position=9)
+            self.assertEqual(prediction_error, 0.5)
+
+        with self.subTest("worst prediction"):
+            prediction_error = calculate_prediction_error(
+                env_name="MoonlanderWorldEnv",
+                next_obs_positions=torch.tensor([[9., 1.]]),
+                forward_model_prediction_normal_distribution=forward_model_prediction_normal_distribution,
+                first_possible_x_position=1,
+                last_possible_x_position=9)
+            self.assertEqual(prediction_error, 1)
+
+        with self.subTest("other env than MoonlanderWorldEnv"):
+            self.assertRaises(ValueError, calculate_prediction_error,
+                              env_name="bla",
+                              next_obs_positions=torch.tensor([]),
+                              forward_model_prediction_normal_distribution=torch.tensor([]),
+                              first_possible_x_position=0,
+                              last_possible_x_position=0)
 
     def test_calculate_need_for_control(self) -> None:
         pass
