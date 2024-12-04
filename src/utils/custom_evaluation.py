@@ -119,15 +119,9 @@ def evaluate_policy(
         predicted_x_position = min(max(1, forward_normal.mean.cpu().detach().numpy()[0][0]), 10)
         expected_new_positon = min(max(1, position + (actions[0] - 1)), 10)
 
-        observations, rewards, dones, infos, prediction_error, need_for_control, soc, reward_with_future_reward_estimation_corrective, _, _ = model.step_in_env(
+        observations, rewards, dones, infos, prediction_error, need_for_control, soc, reward_with_future_reward_estimation_corrective, _, _, new_positions = model.step_in_env(
             actions=actions,
             forward_normal=forward_normal)
-
-        new_position = get_position_and_object_positions_of_observation(torch.tensor(observations),
-                                                                        maximum_number_of_objects=model.maximum_number_of_objects,
-                                                                        observation_width=observation_width,
-                                                                        observation_height=observation_height,
-                                                                        agent_size=agent_size)[0][0]
 
         if model.reward_predicting:
             logger.record("eval/predicted_rewards", float(forward_normal.mean[:, -1].mean()))
@@ -146,7 +140,7 @@ def evaluate_policy(
         logger.record("eval/last_position", position)
         logger.record("eval/expected_new_position", expected_new_positon)
         logger.record("eval/predicted_x_position", predicted_x_position)
-        logger.record("eval/new_position", new_position)
+        logger.record("eval/new_positions", new_positions)
         # already logged in custom callback
         logger.record("eval/rollout_rewards_step", float(rewards.mean()))
         logger.record_mean("eval/rollout_rewards_mean", float(rewards.mean()))
