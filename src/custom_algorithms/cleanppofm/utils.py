@@ -53,46 +53,6 @@ def layer_init(layer, std: np.float64 = np.sqrt(2), bias_const: float = 0.0) -> 
     return layer
 
 
-# FIXME: only used in a function that is not used anymore
-def get_reward_estimation_of_forward_model(fm_network, obs: torch.Tensor,
-                                           position_predicting: bool,
-                                           default_action: torch.Tensor = torch.Tensor([[1]]),
-                                           number_of_future_steps: int = 10,
-                                           maximum_number_of_objects: int = 5) -> float:
-    """
-    Get the reward estimation of the forward model for number_of_future_steps steps.
-    Args:
-        fm_network: forward model network
-        obs: last actual observation
-        position_predicting: boolean if the forward model is predicting the position or actual observation
-        default_action: action that is executed when not controlling the environment
-        number_of_future_steps: number of future steps to predict
-        maximum_number_of_objects: the number of objects that are considered in the forward model prediction
-
-    Returns:
-        reward estimation of the forward model for number_of_future_steps steps
-
-    """
-    # the first obs is a matrix, the following obs are just the positions
-    if position_predicting:
-        # FIXME: missing observation height and width and agent size -> currently not used
-        obs = get_position_and_object_positions_of_observation(obs,
-                                                               maximum_number_of_objects=maximum_number_of_objects)
-
-    ##### PREDICT NEXT REWARDS #####
-    # predict next rewards from last state and default action
-    reward_estimation = 0
-    for i in range(number_of_future_steps):
-        forward_model_prediction_normal_distribution = fm_network(obs, default_action.float())
-        # add reward estimation to last reward
-        reward_estimation += forward_model_prediction_normal_distribution.mean.cpu().detach().numpy()[0][-1]
-        ##### REMOVE REWARD FROM NEW PREDICTED OBS #####
-        obs = torch.clamp(torch.round(forward_model_prediction_normal_distribution.mean[0][:-1].unsqueeze(dim=0)),
-                          min=0,
-                          max=4)
-    return reward_estimation
-
-
 def get_summed_up_reward_of_env_with_predicted_states_hardcoded(env, last_observation_positions: torch.Tensor,
                                                                 number_of_future_steps: int = 10) -> float:
     """
@@ -179,64 +139,6 @@ def get_summed_up_reward_of_env_with_predicted_states_hardcoded(env, last_observ
 
     # normalize with mean of summed_up_reward
     return summed_up_reward / number_of_future_steps
-
-
-# FIXME: only used in a function that is not used anymore
-def get_reward_with_future_reward_estimation_corrective(rewards: torch.Tensor, future_reward_estimation: float,
-                                                        prediction_error: float) -> torch.Tensor:
-    """
-    Get the reward with future reward estimation corrective.
-    Args:
-        rewards: rewards of last step
-        future_reward_estimation: estimation of future rewards
-        prediction_error: error between predicted and last actual observation
-
-    Returns:
-        reward with future reward estimation corrective
-
-    """
-    rewards_with_future_reward_estimation = rewards + future_reward_estimation
-    # different reward estimation for positive and negative rewards
-    if rewards_with_future_reward_estimation < 0:
-        # negative rewards
-        reward_with_future_reward_estimation_corrective = rewards_with_future_reward_estimation + (
-                abs(rewards_with_future_reward_estimation) * (1 - prediction_error))
-    else:
-        # positive rewards
-        if not prediction_error == 0:
-            reward_with_future_reward_estimation_corrective = rewards_with_future_reward_estimation / prediction_error
-        # prediction error is zero -> we cannot divide by zero
-        # -> give a boost of * 10 = perfect prediction (* 10 is similar range than other rewards)
-        else:
-            reward_with_future_reward_estimation_corrective = rewards_with_future_reward_estimation * 10
-    return reward_with_future_reward_estimation_corrective
-
-
-# FIXME: not used
-def reward_estimation(fm_network, new_obs: np.array, env_name: str, rewards, prediction_error: float,
-                      position_predicting: bool, number_of_future_steps: int = 10, maximum_number_of_objects: int = 5):
-    # default action is stay at same position
-    if env_name == "MoonlanderWorldEnv":
-        default_action = torch.tensor([[1]], device=device)
-    # random default action for gridworld env
-    elif env_name == "GridWorldEnv":
-        default_action = torch.randint(low=0, high=8, size=(1, 1), device=device)
-    else:
-        raise ValueError("Environment not supported")
-
-    # TODO: do this only after a warm-up phase of the forward model
-    ##### REWARD ESTIMATION #####
-    future_reward_estimation = get_reward_estimation_of_forward_model(
-        fm_network=fm_network,
-        obs=new_obs,
-        position_predicting=position_predicting,
-        default_action=default_action,
-        number_of_future_steps=number_of_future_steps, maximum_number_of_objects=maximum_number_of_objects)
-    reward_with_future_reward_estimation_corrective = get_reward_with_future_reward_estimation_corrective(
-        rewards=rewards, future_reward_estimation=future_reward_estimation,
-        prediction_error=prediction_error)
-
-    return reward_with_future_reward_estimation_corrective
 
 
 def get_position_and_object_positions_of_observation(obs: torch.Tensor,
@@ -549,41 +451,6 @@ def get_observation_of_position_and_object_positions(agent_and_object_positions:
     observations_tensor = torch.flatten(torch.tensor(observations, device=device, dtype=torch.float32), start_dim=1)
 
     return observations_tensor
-
-
-def get_next_observation_gridworld(observations: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
-    """
-    Calculate the next observation in the gridworld environment manually to exclude random observations through input noise.
-    Args:
-        observations: observations
-        actions: actions
-
-    Returns:
-        next observation in the gridworld environment without input noise
-
-    """
-    ##### WHILE THE AGENT IS TRAINED WITH INPUT NOISE, THE FM IS TRAINED WITHOUT INPUT NOISE
-    action_to_direction = {
-        0: np.array([1, 0]),  # right
-        1: np.array([1, 1]),  # right down (diagonal)
-        2: np.array([0, 1]),  # down
-        3: np.array([-1, 1]),  # left down (diagonal)
-        4: np.array([-1, 0]),  # left
-        5: np.array([-1, -1]),  # left up
-        6: np.array([0, -1]),  # up
-        7: np.array([1, -1])  # right up
-    }
-    agent_location_without_input_noise = torch.empty(size=(observations.shape[0], 4), device=device)
-    for index, action in enumerate(actions):
-        direction = action_to_direction[int(action)]
-        # We use `np.clip` to make sure we don't leave the grid
-        standard_agent_location = np.clip(
-            np.array(observations[index][0:2].cpu()) + direction, 0, 4
-        )
-        agent_location_without_input_noise[index] = torch.tensor(
-            np.concatenate((standard_agent_location, observations[index][2:4].cpu())), device=device
-        )
-    return agent_location_without_input_noise
 
 
 def get_next_position_observation_moonlander(observations: torch.Tensor, actions: torch.Tensor, observation_width: int,

@@ -18,9 +18,9 @@ from custom_algorithms.cleanppofm.forward_model import ProbabilisticSimpleForwar
     ProbabilisticForwardNetPositionPrediction, ProbabilisticSimpleForwardNetIncludingReward, \
     ProbabilisticForwardNetPositionPredictionIncludingReward
 from custom_algorithms.cleanppofm.utils import flatten_obs, get_position_and_object_positions_of_observation, \
-    get_next_observation_gridworld, reward_estimation, calculate_prediction_error, \
-    get_next_position_observation_moonlander, calculate_need_for_control, normalize_rewards, get_next_whole_observation, \
-    get_observation_of_position_and_object_positions, get_collected_objects
+    reward_estimation, calculate_prediction_error, get_next_position_observation_moonlander, calculate_need_for_control, \
+    normalize_rewards, get_next_whole_observation, get_observation_of_position_and_object_positions, \
+    get_collected_objects
 from custom_algorithms.cleanppofm.agent import Agent
 from custom_envs.moonlander.helper_functions import calculate_gaussian_reward
 from utils.custom_buffer import CustomDictRolloutBuffer as DictRolloutBuffer
@@ -32,7 +32,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class CLEANPPOFM:
     """
     Proximal Policy Optimization algorithm (PPO) (clip version) with a forward model (FM).
-    By now, only implemented for gridworld and moonlander environments!
+    By now, only implemented for moonlander environments!
     NOT TESTED WITH OTHER ENVIRONMENTS!
     This is a simplified one-file version of the stable-baselines3 PPO implementation.
 
@@ -104,7 +104,7 @@ class CLEANPPOFM:
         self.n_envs = env.num_envs
         self.env = env
         # use gymnasium logger for yellow colored logging
-        gymnasium_logger.warn("This algorithm is only tested under the Gridworld and Moonlander Envs")
+        gymnasium_logger.warn("This algorithm is only tested under the Moonlander Envs")
 
         if isinstance(self.action_space, spaces.Box):
             assert np.all(
@@ -173,7 +173,7 @@ class CLEANPPOFM:
         # get the env name as described here: https://github.com/DLR-RM/stable-baselines3/blob/master/docs/guide/vec_envs.rst
         # Note: you should use vec_env.env_method("get_wrapper_attr", "attribute_name") in Gymnasium v1.0
         self.env_name = self.env.env_method("get_wrapper_attr", "name")[0]
-        if not (self.env_name == "GridWorldEnv" or self.env_name == "MoonlanderWorldEnv"):
+        if not self.env_name == "MoonlanderWorldEnv":
             raise NotImplementedError("This algorithm is not implemented for this environment yet!")
 
         # position predicting only possible for moonlander env
@@ -443,9 +443,6 @@ class CLEANPPOFM:
                                    float(infos[0]["pos_neg"]["pos"][0] + infos[0]["pos_neg"]["neg"][0]))
                 self.logger.record("rollout_number_of_crashed_or_collected_objects",
                                    float(infos[0]["number_of_crashed_or_collected_objects"]))
-            # gridworld env
-            if "self.input_noise_is_applied_in_this_episode" in infos[0].keys():
-                self.logger.record("input_noise_applied", infos[0]["self.input_noise_is_applied_in_this_episode"])
             # meta env
             if "dodge" in infos[0].keys():
                 self.logger.record("dodge_gaussian_reward", infos[0]["dodge"]["gaussian"])
@@ -473,10 +470,7 @@ class CLEANPPOFM:
             for idx, done in enumerate(dones):
                 if done and infos[idx].get("terminal_observation") is not None:
                     # fixme: what about multiple elements in the list?
-                    if self.env_name == "GridWorldEnv":
-                        temporary_new_obs = OrderedDict(infos[idx]["terminal_observation"])
-                    elif self.env_name == "MoonlanderWorldEnv":
-                        temporary_new_obs = infos[idx]["terminal_observation"]
+                    temporary_new_obs = infos[idx]["terminal_observation"]
 
                     # TimeLimit.truncated = truncated and not terminated --> when episode is done because of time limit (steps)
                     if infos[idx].get("TimeLimit.truncated", False):
@@ -607,7 +601,7 @@ class CLEANPPOFM:
         # 2. with or without position predicting (moonlander)
         # 3. with or without input noise
 
-        # gridworld or moonlander without position predicting
+        # moonlander without position predicting
         if not self.position_predicting:
             next_observations_duplicated = copy.deepcopy(next_observations)
 
@@ -617,9 +611,6 @@ class CLEANPPOFM:
                                                                           actions=actions,
                                                                           observation_width=self.observation_width,
                                                                           observation_height=self.observation_height)
-            elif self.env_name == "GridWorldEnv" and not self.fm_trained_with_input_noise:
-                next_observations_duplicated = get_next_observation_gridworld(observations=observations,
-                                                                              actions=actions)
 
             next_observations_formatted = next_observations_duplicated if not self.reward_predicting else torch.cat(
                 (next_observations, rewards), dim=1)
