@@ -20,7 +20,7 @@ from custom_algorithms.cleanppofm.forward_model import ProbabilisticSimpleForwar
 from custom_algorithms.cleanppofm.utils import flatten_obs, get_position_and_object_positions_of_observation, \
     get_next_observation_gridworld, reward_estimation, calculate_prediction_error, \
     get_next_position_observation_moonlander, calculate_need_for_control, normalize_rewards, get_next_whole_observation, \
-    get_observation_of_position_and_object_positions
+    get_observation_of_position_and_object_positions, get_collected_objects
 from custom_algorithms.cleanppofm.agent import Agent
 from custom_envs.moonlander.helper_functions import calculate_gaussian_reward
 from utils.custom_buffer import CustomDictRolloutBuffer as DictRolloutBuffer
@@ -554,39 +554,9 @@ class CLEANPPOFM:
                         min(max(self.agent_size, next_positions[0][0]), self.observation_width - self.agent_size + 1))
                     y_position_of_agent = int(next_positions[0][1])
 
-                    collected_objects = []
-                    for index in range(2, len(next_positions[0]), 2):
-                        if not (next_positions[0][index] == 0 and next_positions[0][index + 1] == 0):
-
-                            if (
-                                    (
-                                            ((next_positions[0][index] - 1) == (x_position_of_agent - 1))
-                                            or ((next_positions[0][index] - 1) == x_position_of_agent)
-                                            or ((next_positions[0][index] - 1) == (x_position_of_agent + 1))
-                                            or (next_positions[0][index] == (x_position_of_agent - 1))
-                                            or (next_positions[0][index] == x_position_of_agent)
-                                            or (next_positions[0][index] == (x_position_of_agent + 1))
-                                            or ((next_positions[0][index] + 1) == (x_position_of_agent - 1))
-                                            or ((next_positions[0][index] + 1) == x_position_of_agent)
-                                            or ((next_positions[0][index] + 1) == (x_position_of_agent + 1))
-                                    )
-                                    and
-                                    (
-                                            ((next_positions[0][index + 1] - 1) == (y_position_of_agent - 1))
-                                            or ((next_positions[0][index + 1] - 1) == y_position_of_agent)
-                                            or ((next_positions[0][index + 1] - 1) == (y_position_of_agent + 1))
-                                            or (next_positions[0][index + 1] == (y_position_of_agent - 1))
-                                            or (next_positions[0][index + 1] == y_position_of_agent)
-                                            or (next_positions[0][index + 1] == (y_position_of_agent + 1))
-                                            or ((next_positions[0][index + 1] + 1) == (y_position_of_agent - 1))
-                                            or ((next_positions[0][index + 1] + 1) == y_position_of_agent)
-                                            or ((next_positions[0][index + 1] + 1) == (y_position_of_agent + 1))
-                                    )
-                            ):
-                                collected_objects.append(
-                                    {'x': int(next_positions[0][index]),
-                                     'y': int(next_positions[0][index + 1]),
-                                     'size': self.agent_size})
+                    collected_objects = get_collected_objects(observation_positions=next_positions,
+                                                              agent_size=self.agent_size,
+                                                              observation_width=self.observation_width)
 
                     rewards_for_every_action[i] = [calculate_gaussian_reward(
                         state=np.array(row).reshape(self.observation_height, self.observation_width + 2),
@@ -806,13 +776,9 @@ class CLEANPPOFM:
             need_for_control, summed_up_rewards_default = calculate_need_for_control(env=self.env, policy=self.policy,
                                                                                      fm_network=self.fm_network,
                                                                                      logger=self.logger,
-                                                                                     env_name=self.env_name,
-                                                                                     prediction_error=prediction_error,
                                                                                      position_predicting=self.position_predicting,
-                                                                                     maximum_number_of_objects=self.maximum_number_of_objects,
-                                                                                     reward_predicting=self.reward_predicting,
-                                                                                     use_reward_of_env=use_reward_of_env)
-
+                                                                                     prediction_error=prediction_error,
+                                                                                     maximum_number_of_objects=self.maximum_number_of_objects)
         ##### CALCULATING SOC #####
         # prediction error is high, if the prediction and actual observation do not match
         # need for control is high if the rewards of the optimal trajectory are quite different to the rewards of the default trajectory

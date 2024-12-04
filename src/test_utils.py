@@ -2,7 +2,10 @@ import unittest
 from unittest import mock
 import torch
 import gymnasium as gym
+import numpy as np
+import copy
 from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.logger import configure
 from src.custom_algorithms.cleanppofm.utils import (get_summed_up_reward_of_env_with_predicted_states_hardcoded, \
                                                     get_position_and_object_positions_of_observation,
                                                     get_observation_of_position_and_object_positions, \
@@ -10,8 +13,12 @@ from src.custom_algorithms.cleanppofm.utils import (get_summed_up_reward_of_env_
                                                     calculate_prediction_error,
                                                     calculate_need_for_control,
                                                     normalize_rewards,
-                                                    get_collected_objects)
+                                                    get_collected_objects,
+                                                    calculate_trajectory_length,
+                                                    get_next_normalized_reward)
 from src.custom_envs.register_envs import register_custom_envs
+from custom_algorithms.cleanppofm.agent import Agent
+from custom_algorithms.cleanppofm.forward_model import ProbabilisticForwardNetPositionPredictionIncludingReward
 
 
 class TestUtils(unittest.TestCase):
@@ -803,7 +810,122 @@ class TestUtils(unittest.TestCase):
                               last_possible_x_position=0)
 
     def test_calculate_need_for_control(self) -> None:
-        pass
+        register_custom_envs()
+        env = gym.make("MoonlanderWorld-dodge-gaussian-v0")
+        dummy_vec_env = DummyVecEnv([lambda: env])
+
+        policy = Agent(env=dummy_vec_env, reward_predicting=True, model_based=False)
+        fm_network = ProbabilisticForwardNetPositionPredictionIncludingReward(env=dummy_vec_env,
+                                                                              cfg={'hidden_size': 256,
+                                                                                   'learning_rate': 0.001,
+                                                                                   'reward_eta': 0.2},
+                                                                              maximum_number_of_objects=10)
+
+        tmp_path = "/tmp/sb3_log/"
+        logger = configure(tmp_path, ["stdout", "csv"])
+
+        with self.subTest("other env than MoonlanderWorldEnv"):
+            test_env = gym.make("MoonlanderWorld-dodge-gaussian-v0")
+            test_env.name = "bla"
+            test_dummy_vec_env = DummyVecEnv([lambda: test_env])
+            self.assertRaises(ValueError, calculate_need_for_control,
+                              env=test_dummy_vec_env,
+                              policy=policy,
+                              fm_network=fm_network,
+                              logger=logger,
+                              position_predicting=True,
+                              prediction_error=0,
+                              maximum_number_of_objects=10)
+
+        with self.subTest("not position predicting"):
+            self.assertRaises(NotImplementedError, calculate_need_for_control,
+                              env=dummy_vec_env,
+                              policy=policy,
+                              fm_network=fm_network,
+                              logger=logger,
+                              position_predicting=False,
+                              prediction_error=0,
+                              maximum_number_of_objects=10)
+
+    @mock.patch("src.custom_algorithms.cleanppofm.agent.Agent")
+    def test_calculate_need_for_control_policy_mock(self, policy_mock) -> None:
+        policy_mock.get_action_and_value_and_forward_model_prediction.side_effect = [(torch.tensor([[1]]), None, None,
+                                                                                      None, None)] * 15 + [(
+            torch.tensor([[2]]), None, None, None, None)] + [(torch.tensor([[1]]), None, None, None, None)]
+
+        register_custom_envs()
+        env = gym.make("MoonlanderWorld-dodge-gaussian-v0")
+        dummy_vec_env = DummyVecEnv([lambda: env])
+
+        fm_network = ProbabilisticForwardNetPositionPredictionIncludingReward(env=dummy_vec_env,
+                                                                              cfg={'hidden_size': 256,
+                                                                                   'learning_rate': 0.001,
+                                                                                   'reward_eta': 0.2},
+                                                                              maximum_number_of_objects=10)
+
+        tmp_path = "/tmp/sb3_log/"
+        logger = configure(tmp_path, ["stdout", "csv"])
+
+        # build empty obs
+        matrix = np.zeros(shape=(30, 40 + 2), dtype=np.int16)
+        # add wall
+        matrix[:, 0] = -1
+        matrix[:, -1] = -1
+
+        matrix[0:3, 5:8] = 1
+
+        matrix_copy_0 = copy.deepcopy(matrix)
+
+        with self.subTest("empty observation"):
+            need_for_control, summed_up_reward_default = calculate_need_for_control(
+                env=dummy_vec_env,
+                policy=policy_mock,
+                fm_network=fm_network,
+                logger=logger,
+                position_predicting=True,
+                prediction_error=0,
+                maximum_number_of_objects=10,
+                last_observation_state=torch.tensor([matrix.flatten()])
+            )
+            self.assertEqual(need_for_control, 0)
+            self.assertEqual(summed_up_reward_default, (
+                    0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5) / 15)
+
+        with self.subTest("difference in rewards"):
+            matrix_copy_0[3:6, 3:6] = 3
+
+            need_for_control, summed_up_reward_default = calculate_need_for_control(
+                env=dummy_vec_env,
+                policy=policy_mock,
+                fm_network=fm_network,
+                logger=logger,
+                position_predicting=True,
+                # trajectory lengths of one
+                prediction_error=14 / 15,
+                maximum_number_of_objects=10,
+                last_observation_state=torch.tensor([matrix_copy_0.flatten()])
+            )
+            #
+            # 2 (0.19230769230769232) is the absolute (relative) reward when not crashing but being near the object
+            # (optimal policy)
+            # 0 is the reward when crashing (default policy)
+            self.assertEqual(need_for_control, (0.5 * (2 - (-3))) / 13)
+            self.assertEqual(summed_up_reward_default, 0)
+
+        with self.subTest("last observation not given"):
+            need_for_control, summed_up_reward_default = calculate_need_for_control(
+                env=dummy_vec_env,
+                policy=policy_mock,
+                fm_network=fm_network,
+                logger=logger,
+                position_predicting=True,
+                # trajectory lengths of one
+                prediction_error=14 / 15,
+                maximum_number_of_objects=10
+            )
+            # starting a new env --> no objects in the first step
+            self.assertEqual(need_for_control, 0)
+            self.assertEqual(summed_up_reward_default, 0.5)
 
     def test_normalize_rewards(self) -> None:
         with self.subTest("dodge"):
@@ -899,6 +1021,81 @@ class TestUtils(unittest.TestCase):
         with self.subTest("agent size > 2 not supported"):
             self.assertRaises(NotImplementedError, get_collected_objects,
                               observation_positions=torch.tensor([[2., 1.]]), agent_size=3, observation_width=5)
+
+    def test_calculate_trajectory_length(self) -> None:
+        observation_height = 10
+        with self.subTest("prediction error of zero"):
+            trajectory_length = calculate_trajectory_length(observation_height=observation_height, prediction_error=0)
+            self.assertEqual(trajectory_length, observation_height / 2)
+        with self.subTest("prediction error of 0.5"):
+            trajectory_length = calculate_trajectory_length(observation_height=observation_height, prediction_error=0.5)
+            self.assertEqual(trajectory_length, observation_height / 4)
+        with self.subTest("prediction error of 1"):
+            trajectory_length = calculate_trajectory_length(observation_height=observation_height, prediction_error=1)
+            self.assertEqual(trajectory_length, 0)
+
+    def test_get_next_normalized_reward(self) -> None:
+        # build empty obs
+        matrix = np.zeros(shape=(30, 40 + 2), dtype=np.int16)
+        # add wall
+        matrix[:, 0] = -1
+        matrix[:, -1] = -1
+
+        matrix[0:3, 5:8] = 1
+
+        matrix_copy_0 = copy.deepcopy(matrix)
+        matrix_copy_1 = copy.deepcopy(matrix)
+
+        matrix = torch.tensor(matrix.flatten()).unsqueeze(0)
+        with self.subTest("empty observation"):
+            normalized_reward = get_next_normalized_reward(last_observation_state=matrix, action=torch.tensor([1]),
+                                                           maximum_number_of_objects=10, observation_width=40,
+                                                           observation_height=30, agent_size=2, task="dodge",
+                                                           task_type="obstacle")
+            self.assertEqual(normalized_reward, 0.5)
+            normalized_reward = get_next_normalized_reward(last_observation_state=matrix, action=torch.tensor([1]),
+                                                           maximum_number_of_objects=10, observation_width=40,
+                                                           observation_height=30, agent_size=2, task="collect",
+                                                           task_type="coin")
+            self.assertEqual(normalized_reward, 0.5)
+
+        with self.subTest("crashing/collecting object"):
+            matrix_copy_0[2:5, 3:6] = 3
+            matrix_copy_1[2:5, 3:6] = 2
+            matrix_copy_0 = torch.tensor(matrix_copy_0.flatten()).unsqueeze(0)
+            matrix_copy_1 = torch.tensor(matrix_copy_1.flatten()).unsqueeze(0)
+
+            normalized_reward = get_next_normalized_reward(last_observation_state=matrix_copy_0,
+                                                           action=torch.tensor([1]),
+                                                           maximum_number_of_objects=10, observation_width=40,
+                                                           observation_height=30, agent_size=2, task="dodge",
+                                                           task_type="obstacle")
+            self.assertEqual(normalized_reward, 0)
+            normalized_reward = get_next_normalized_reward(last_observation_state=matrix_copy_1,
+                                                           action=torch.tensor([1]),
+                                                           maximum_number_of_objects=10, observation_width=40,
+                                                           observation_height=30, agent_size=2, task="collect",
+                                                           task_type="coin")
+            self.assertEqual(normalized_reward, 1)
+
+        with self.subTest("state does not match observation_width & observation_height"):
+            self.assertRaises(ValueError, get_next_normalized_reward, last_observation_state=matrix,
+                              action=torch.tensor([1]), maximum_number_of_objects=10, observation_width=10,
+                              observation_height=10, agent_size=2, task="dodge", task_type="obstacle")
+
+        with self.subTest("task or task type does not exists or do not match"):
+            self.assertRaises(NotImplementedError, get_next_normalized_reward, last_observation_state=matrix,
+                              action=torch.tensor([1]), maximum_number_of_objects=10, observation_width=40,
+                              observation_height=30, agent_size=2, task="bla", task_type="obstacle")
+            self.assertRaises(NotImplementedError, get_next_normalized_reward, last_observation_state=matrix,
+                              action=torch.tensor([1]), maximum_number_of_objects=10, observation_width=40,
+                              observation_height=30, agent_size=2, task="dodge", task_type="bla")
+            self.assertRaises(NotImplementedError, get_next_normalized_reward, last_observation_state=matrix,
+                              action=torch.tensor([1]), maximum_number_of_objects=10, observation_width=40,
+                              observation_height=30, agent_size=2, task="dodge", task_type="coin")
+            self.assertRaises(NotImplementedError, get_next_normalized_reward, last_observation_state=matrix,
+                              action=torch.tensor([1]), maximum_number_of_objects=10, observation_width=40,
+                              observation_height=30, agent_size=2, task="collect", task_type="obstacle")
 
 
 if __name__ == '__main__':

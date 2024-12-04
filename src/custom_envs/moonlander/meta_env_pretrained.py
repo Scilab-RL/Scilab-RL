@@ -456,12 +456,9 @@ class MetaEnvPretrained(gym.Env):
             policy=inactive_model.policy,
             fm_network=inactive_model.fm_network,
             logger=inactive_model.logger,
-            env_name=inactive_model.env_name,
-            prediction_error=0,
             position_predicting=inactive_model.position_predicting,
+            prediction_error=0,
             maximum_number_of_objects=inactive_model.maximum_number_of_objects,
-            reward_predicting=inactive_model.reward_predicting,
-            use_reward_of_env=True,
             last_observation_state=belief_state)
 
         # FIXME: put in?

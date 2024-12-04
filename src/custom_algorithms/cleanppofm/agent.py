@@ -6,7 +6,7 @@ from torch.distributions.categorical import Categorical
 from stable_baselines3.common.logger import Logger
 from custom_algorithms.cleanppofm.utils import flatten_obs, layer_init, \
     get_position_and_object_positions_of_observation, get_observation_of_position_and_object_positions, \
-    get_next_position_observation_moonlander
+    get_next_position_observation_moonlander, get_collected_objects
 from custom_envs.moonlander.helper_functions import calculate_gaussian_reward
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -165,40 +165,8 @@ class Agent(nn.Module):
                     min(max(agent_size, next_positions[0][0]), observation_width - agent_size + 1))
                 y_position_of_agent = int(next_positions[0][1])
 
-                collected_objects = []
-                # FIXME: this is hardcoded for size 2
-                for index in range(2, len(next_positions[0]), 2):
-                    if not (next_positions[0][index] == 0 and next_positions[0][index + 1] == 0):
-
-                        if (
-                                (
-                                        ((next_positions[0][index] - 1) == (x_position_of_agent - 1))
-                                        or ((next_positions[0][index] - 1) == x_position_of_agent)
-                                        or ((next_positions[0][index] - 1) == (x_position_of_agent + 1))
-                                        or (next_positions[0][index] == (x_position_of_agent - 1))
-                                        or (next_positions[0][index] == x_position_of_agent)
-                                        or (next_positions[0][index] == (x_position_of_agent + 1))
-                                        or ((next_positions[0][index] + 1) == (x_position_of_agent - 1))
-                                        or ((next_positions[0][index] + 1) == x_position_of_agent)
-                                        or ((next_positions[0][index] + 1) == (x_position_of_agent + 1))
-                                )
-                                and
-                                (
-                                        ((next_positions[0][index + 1] - 1) == (y_position_of_agent - 1))
-                                        or ((next_positions[0][index + 1] - 1) == y_position_of_agent)
-                                        or ((next_positions[0][index + 1] - 1) == (y_position_of_agent + 1))
-                                        or (next_positions[0][index + 1] == (y_position_of_agent - 1))
-                                        or (next_positions[0][index + 1] == y_position_of_agent)
-                                        or (next_positions[0][index + 1] == (y_position_of_agent + 1))
-                                        or ((next_positions[0][index + 1] + 1) == (y_position_of_agent - 1))
-                                        or ((next_positions[0][index + 1] + 1) == y_position_of_agent)
-                                        or ((next_positions[0][index + 1] + 1) == (y_position_of_agent + 1))
-                                )
-                        ):
-                            collected_objects.append(
-                                {'x': int(next_positions[0][index]),
-                                 'y': int(next_positions[0][index + 1]),
-                                 'size': agent_size})
+                collected_objects = get_collected_objects(observation_positions=next_positions, agent_size=agent_size,
+                                                          observation_width=observation_width)
 
                 # possibly a batch of 64, so call the function for each observation
                 rewards_for_every_action[i] = [calculate_gaussian_reward(
