@@ -18,9 +18,8 @@ from custom_algorithms.cleanppofm.forward_model import ProbabilisticSimpleForwar
     ProbabilisticForwardNetPositionPrediction, ProbabilisticSimpleForwardNetIncludingReward, \
     ProbabilisticForwardNetPositionPredictionIncludingReward
 from custom_algorithms.cleanppofm.utils import flatten_obs, get_position_and_object_positions_of_observation, \
-    reward_estimation, calculate_prediction_error, get_next_position_observation_moonlander, calculate_need_for_control, \
-    normalize_rewards, get_next_whole_observation, get_observation_of_position_and_object_positions, \
-    get_collected_objects
+    calculate_prediction_error, get_next_position_observation_moonlander, calculate_need_for_control, normalize_rewards, \
+    get_next_whole_observation, get_observation_of_position_and_object_positions, get_collected_objects
 from custom_algorithms.cleanppofm.agent import Agent
 from custom_envs.moonlander.helper_functions import calculate_gaussian_reward
 from utils.custom_buffer import CustomDictRolloutBuffer as DictRolloutBuffer
@@ -413,7 +412,7 @@ class CLEANPPOFM:
             elif isinstance(self.action_space, spaces.Discrete):
                 clipped_actions = actions[0]
 
-            new_obs, rewards, dones, infos, prediction_error, need_for_control, soc, reward_with_future_reward_estimation_corrective, _, _ = self.step_in_env(
+            new_obs, rewards, dones, infos, prediction_error, need_for_control, soc, reward_with_future_reward_estimation_corrective, _, _, new_positions = self.step_in_env(
                 actions=clipped_actions, forward_normal=forward_normal)
 
             # FIXME: is it possible that multiple actions are taken here?
@@ -507,14 +506,9 @@ class CLEANPPOFM:
             if self.model_based:
                 # fixme: this is hardcoded, it does not work when we have a non-deterministic forward model because we calculate the next obs at two places
                 comb_obs = torch.tensor(new_obs).clone().detach()
-                comb_obj_positions = get_position_and_object_positions_of_observation(comb_obs,
-                                                                                      maximum_number_of_objects=self.maximum_number_of_objects,
-                                                                                      observation_width=self.observation_width,
-                                                                                      observation_height=self.observation_height,
-                                                                                      agent_size=self.agent_size)
 
                 # Convert comb_obj_positions to a tensor
-                cop_tensor = torch.tensor(comb_obj_positions).float()
+                cop_tensor = torch.tensor(new_positions).float()
 
                 obs_after_every_action = comb_obs.clone().detach()
                 rewards_for_every_action = {}
@@ -533,7 +527,6 @@ class CLEANPPOFM:
                         observations=cop_tensor,
                         actions=current_action_hardcoded[0],
                         observation_width=self.observation_width,
-                        observation_height=self.observation_height,
                         agent_size=self.agent_size)
 
                     obs_after_action = get_observation_of_position_and_object_positions(
@@ -626,7 +619,6 @@ class CLEANPPOFM:
                 next_observations_formatted = get_next_position_observation_moonlander(observations=observations,
                                                                                        actions=actions,
                                                                                        observation_width=self.observation_width,
-                                                                                       observation_height=self.observation_height,
                                                                                        agent_size=self.agent_size)
             else:
                 next_observations_formatted = get_position_and_object_positions_of_observation(next_observations,
@@ -688,10 +680,10 @@ class CLEANPPOFM:
                 position_predicting=self.position_predicting, maximum_number_of_objects=self.maximum_number_of_objects)
         return action.cpu().numpy(), state, forward_model_prediction_normal_distribution
 
-    def step_in_env(self, actions, forward_normal, use_reward_of_env: bool = False,
+    def step_in_env(self, actions, forward_normal,
                     # for the moment only for meta env
                     use_prediction_error: bool = True, use_need_for_control: bool = True) -> tuple[
-        np.ndarray, float, bool, dict, float, float, float, float, int, float]:
+        np.ndarray, float, bool, dict, float, float, float, float, int, float, torch.tensor]:
         """
         Step in the environment with the given actions and the forward model prediction.
         This includes the displaying of the forward model prediction and the calculation of the prediction error.
@@ -699,7 +691,6 @@ class CLEANPPOFM:
         Args:
             actions: action to take in the environment
             forward_normal: prediction of the forward model (normal distribution)
-            use_reward_of_env: if the reward of the environment should be used to calculate the reward estimation or from the forward model prediction
             use_prediction_error: if the prediction error should be used to calculate the SoC
             use_need_for_control: if the need_for_control should be used to calculate the SoC
 
@@ -714,6 +705,7 @@ class CLEANPPOFM:
             reward_with_future_reward_estimation_corrective: reward corrected by prediction error
             input_noise: applied input noise
             rewards_normalized: normalized rewards
+            new_positions: new positions of the new observation of the agent and objects
         """
         ##### DISPLAYING THE FORWARD MODEL PREDICTION #####
         # modify the env attributes as described here:
@@ -791,7 +783,7 @@ class CLEANPPOFM:
         reward_estimation = (rewards_normalized + self.soc) / 2
 
         # input noise only for debugging
-        return new_obs, rewards, dones, infos, prediction_error, need_for_control, self.soc, reward_estimation, input_noise, rewards_normalized
+        return new_obs, rewards, dones, infos, prediction_error, need_for_control, self.soc, reward_estimation, input_noise, rewards_normalized, new_positions
 
     def save(
             self,

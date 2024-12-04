@@ -371,23 +371,18 @@ class MetaEnvPretrained(gym.Env):
         # perform action & SoC calculation & reward estimation corrected by SoC
         (new_state, _, active_is_done, active_info, active_prediction_error, active_need_for_control, active_SoC,
          active_normalized_reward_estimation_corrected_by_SoC, input_noise,
-         active_normalized_reward) = active_model.step_in_env(
+         active_normalized_reward, new_positions) = active_model.step_in_env(
             actions=torch.tensor(action_of_task_agent).float(),
             # forward_normal=active_belief_state_normal_distribution)
             forward_normal=active_gold_label,
-            use_reward_of_env=True, use_prediction_error=self.use_prediction_error,
+            use_prediction_error=self.use_prediction_error,
             use_need_for_control=self.use_need_for_control)
         # form active_SoC to numpy array to match observation space
         # FIXME: this happens only sometimes, but when?
         if not isinstance(active_SoC, np.ndarray):
             active_SoC = np.array([active_SoC]).astype(np.float64)
 
-        active_agent_and_object_positions_tensor_after_step = get_position_and_object_positions_of_observation(
-            torch.tensor(new_state, device=device),
-            observation_width=self.observation_width,
-            observation_height=self.observation_height,
-            maximum_number_of_objects=active_model.maximum_number_of_objects,
-            agent_size=self.agent_size)
+        active_agent_and_object_positions_tensor_after_step = new_positions
 
         ### INACTIVE TASK ###
         # set input noise to zero
