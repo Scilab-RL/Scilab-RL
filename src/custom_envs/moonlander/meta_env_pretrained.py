@@ -41,8 +41,8 @@ class MetaEnvPretrained(gym.Env):
                  use_prediction_error: bool = True, use_need_for_control: bool = True,
                  can_only_switch_as_often_as_humans: bool = False, obs_is_SoC: bool = False,
                  reward_good_switch_decision: bool = False, reward_function_paper: bool = False,
-                 two_collect_task: bool = False, config_file_name_dodge_asteroids: str = None,
-                 config_file_name_collect_asteroids: str = None):
+                 reward_is_NfC: bool = False, two_collect_task: bool = False,
+                 config_file_name_dodge_asteroids: str = None, config_file_name_collect_asteroids: str = None):
         self.ROOT_DIR = "."
         if config_file_name_dodge_asteroids is None:
             config_path_dodge_asteroids = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -82,6 +82,7 @@ class MetaEnvPretrained(gym.Env):
         self.obs_is_SoC = obs_is_SoC
         self.reward_good_switch_decision = reward_good_switch_decision
         self.reward_function_paper = reward_function_paper
+        self.reward_is_NfC = reward_is_NfC
         self.two_collect_task = two_collect_task
 
         if not self.with_SoC_in_observation and self.obs_is_SoC:
@@ -440,7 +441,7 @@ class MetaEnvPretrained(gym.Env):
         # reward estimation -> predict next state -> get reward of environment
         inactive_summed_up_rewards = get_summed_up_reward_of_env_with_predicted_states_hardcoded(
             env=inactive_model.env,
-            last_observation=inactive_gold_label.mean,
+            last_observation_positions=inactive_gold_label.mean,
             number_of_future_steps=int(self.observation_height / 2))
         # form inactive_summed_up_rewards to numpy array to match observation space
         inactive_summed_up_rewards = np.array([inactive_summed_up_rewards]).astype(np.float64)
@@ -644,6 +645,11 @@ class MetaEnvPretrained(gym.Env):
             # solving the task is very dependent on the current difficulty and task
             meta_reward = np.array(1 / (
                     1 + pow(base=math.e, exp=-2 * (self.counter_without_switch - 2.5))))
+        elif self.reward_is_NfC:
+            weighting_of_inactive_need_for_control = -0.5 * math.tanh(
+                0.25 * (self.counter_without_switch - (self.observation_height / 2))) + 0.5
+            meta_reward = np.array(
+                active_need_for_control + weighting_of_inactive_need_for_control * inactive_need_for_control)
         else:
             meta_reward = reward_dodge + reward_collect - task_switch_costs
 

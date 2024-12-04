@@ -372,6 +372,18 @@ def register_custom_envs():
              #                      'collect_best_model_name': "collect_hard_input_noise_15_11_rl_model_best"},
              max_episode_steps=500)
 
+    register(id="MetaEnv-pretrained-human-two-collect-tasks-easy-hard-reward-is-NfC-v0",
+             entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
+             kwargs={'dodge_best_model_name': "collect_easy_no_input_noise_15_11_rl_model_best",
+                     'collect_best_model_name': "collect_hard_no_input_noise_15_11_rl_model_best",
+                     'two_collect_task': True, 'reward_is_NfC': True,
+                     'config_file_name_dodge_asteroids': "config_collect_easy.yaml",
+                     'config_file_name_collect_asteroids': "config_collect_hard.yaml"},
+             # TODO: use these models when using input noise
+             #              kwargs={'dodge_best_model_name': "collect_easy_input_noise_15_11_rl_model_best",
+             #                      'collect_best_model_name': "collect_hard_input_noise_15_11_rl_model_best"},
+             max_episode_steps=500)
+
     # benchmarks
     register(id="MetaEnv-pretrained-benchmark-small-v0",
              entry_point="custom_envs.moonlander.meta_env_pretrained:MetaEnvPretrained",
