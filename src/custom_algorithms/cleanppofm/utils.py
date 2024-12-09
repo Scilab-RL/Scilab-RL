@@ -606,12 +606,13 @@ def calculate_need_for_control(env, policy, fm_network, logger, position_predict
     # simulate at least one step
     for i in range(max(round(trajectory_length), 1)):
         ##### DEFAULT ACTION #####
-        normalized_reward_default = get_next_normalized_reward(last_observation_state=last_observation_state_default,
-                                                               action=default_action[0],
-                                                               maximum_number_of_objects=maximum_number_of_objects,
-                                                               observation_width=observation_width,
-                                                               observation_height=observation_height,
-                                                               agent_size=agent_size, task=task, task_type=task_type)
+        normalized_reward_default, last_observation_state_default = get_next_normalized_reward(
+            last_observation_state=last_observation_state_default,
+            action=default_action[0],
+            maximum_number_of_objects=maximum_number_of_objects,
+            observation_width=observation_width,
+            observation_height=observation_height,
+            agent_size=agent_size, task=task, task_type=task_type)
         summed_up_reward_default += normalized_reward_default
 
         ##### OPTIMAL ACTION #####
@@ -623,12 +624,13 @@ def calculate_need_for_control(env, policy, fm_network, logger, position_predict
             position_predicting=position_predicting,
             maximum_number_of_objects=maximum_number_of_objects)
 
-        normalized_reward_optimal = get_next_normalized_reward(last_observation_state=last_observation_state_optimal,
-                                                               action=actions[0],
-                                                               maximum_number_of_objects=maximum_number_of_objects,
-                                                               observation_width=observation_width,
-                                                               observation_height=observation_height,
-                                                               agent_size=agent_size, task=task, task_type=task_type)
+        normalized_reward_optimal, last_observation_state_optimal = get_next_normalized_reward(
+            last_observation_state=last_observation_state_optimal,
+            action=actions[0],
+            maximum_number_of_objects=maximum_number_of_objects,
+            observation_width=observation_width,
+            observation_height=observation_height,
+            agent_size=agent_size, task=task, task_type=task_type)
         summed_up_reward_optimal += normalized_reward_optimal
 
     # get a mean reward between 0 and 1
@@ -745,7 +747,7 @@ def calculate_trajectory_length(observation_height: int, prediction_error: float
 
 def get_next_normalized_reward(last_observation_state: torch.Tensor, action: torch.Tensor,
                                maximum_number_of_objects: int, observation_width: int, observation_height: int,
-                               agent_size: int, task: str, task_type: str) -> float:
+                               agent_size: int, task: str, task_type: str) -> tuple[float, torch.Tensor]:
     if not last_observation_state.shape[1] == (observation_width + 2) * observation_height:
         raise ValueError(
             f"The given observation width {observation_width} and height {observation_height} "
@@ -800,4 +802,4 @@ def get_next_normalized_reward(last_observation_state: torch.Tensor, action: tor
     # normalize reward
     normalized_reward = normalize_rewards(task=task, absolute_reward=rewards)
 
-    return normalized_reward
+    return normalized_reward, last_observation_state

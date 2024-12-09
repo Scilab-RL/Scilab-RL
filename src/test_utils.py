@@ -849,9 +849,11 @@ class TestUtils(unittest.TestCase):
 
     @mock.patch("src.custom_algorithms.cleanppofm.agent.Agent")
     def test_calculate_need_for_control_policy_mock(self, policy_mock) -> None:
-        policy_mock.get_action_and_value_and_forward_model_prediction.side_effect = [(torch.tensor([[1]]), None, None,
-                                                                                      None, None)] * 15 + [(
-            torch.tensor([[2]]), None, None, None, None)] + [(torch.tensor([[1]]), None, None, None, None)]
+        policy_mock.get_action_and_value_and_forward_model_prediction.side_effect = (
+                [(torch.tensor([[1]]), None, None, None, None)] * 15 +
+                [(torch.tensor([[2]]), None, None, None, None)] +
+                [(torch.tensor([[2]]), None, None, None, None)] * 2 +
+                [(torch.tensor([[1]]), None, None, None, None)])
 
         register_custom_envs()
         env = gym.make("MoonlanderWorld-dodge-gaussian-v0")
@@ -905,12 +907,31 @@ class TestUtils(unittest.TestCase):
                 maximum_number_of_objects=10,
                 last_observation_state=torch.tensor([matrix_copy_0.flatten()])
             )
-            #
             # 2 (0.19230769230769232) is the absolute (relative) reward when not crashing but being near the object
             # (optimal policy)
             # 0 is the reward when crashing (default policy)
             self.assertEqual(need_for_control, (0.5 * (2 - (-3))) / 13)
             self.assertEqual(summed_up_reward_default, 0)
+
+        with self.subTest("difference in rewards, multiple steps"):
+            matrix_copy_0[3:6, 3:6] = 3
+
+            need_for_control, summed_up_reward_default = calculate_need_for_control(
+                env=dummy_vec_env,
+                policy=policy_mock,
+                fm_network=fm_network,
+                logger=logger,
+                position_predicting=True,
+                # trajectory lengths of two
+                prediction_error=13 / 15,
+                maximum_number_of_objects=10,
+                last_observation_state=torch.tensor([matrix_copy_0.flatten()])
+            )
+            # 2 (0.19230769230769232) and 10 (0.5) are the absolute (relative) reward
+            # when not crashing but being near the object (optimal policy)
+            # 0 is the reward when crashing (default policy) --> 2 times because in dodge the object does not disappear
+            self.assertEqual(need_for_control, (((0.5 * (2 - (-3))) / 13) + ((0.5 * (10 - (-3))) / 13)) / 2)
+            self.assertEqual(summed_up_reward_default, 2 * 0)
 
         with self.subTest("last observation not given"):
             need_for_control, summed_up_reward_default = calculate_need_for_control(
@@ -1045,38 +1066,66 @@ class TestUtils(unittest.TestCase):
 
         matrix_copy_0 = copy.deepcopy(matrix)
         matrix_copy_1 = copy.deepcopy(matrix)
+        matrix_copy_2 = copy.deepcopy(matrix)
+        matrix_copy_3 = copy.deepcopy(matrix)
 
         matrix = torch.tensor(matrix.flatten()).unsqueeze(0)
         with self.subTest("empty observation"):
-            normalized_reward = get_next_normalized_reward(last_observation_state=matrix, action=torch.tensor([1]),
-                                                           maximum_number_of_objects=10, observation_width=40,
-                                                           observation_height=30, agent_size=2, task="dodge",
-                                                           task_type="obstacle")
+            normalized_reward, new_positions = get_next_normalized_reward(last_observation_state=matrix,
+                                                                          action=torch.tensor([1]),
+                                                                          maximum_number_of_objects=10,
+                                                                          observation_width=40,
+                                                                          observation_height=30, agent_size=2,
+                                                                          task="dodge",
+                                                                          task_type="obstacle")
             self.assertEqual(normalized_reward, 0.5)
-            normalized_reward = get_next_normalized_reward(last_observation_state=matrix, action=torch.tensor([1]),
-                                                           maximum_number_of_objects=10, observation_width=40,
-                                                           observation_height=30, agent_size=2, task="collect",
-                                                           task_type="coin")
+            np.testing.assert_array_equal(new_positions, matrix)
+            normalized_reward, new_positions = get_next_normalized_reward(last_observation_state=matrix,
+                                                                          action=torch.tensor([1]),
+                                                                          maximum_number_of_objects=10,
+                                                                          observation_width=40,
+                                                                          observation_height=30, agent_size=2,
+                                                                          task="collect",
+                                                                          task_type="coin")
             self.assertEqual(normalized_reward, 0.5)
+            np.testing.assert_array_equal(new_positions, matrix)
 
-        with self.subTest("crashing/collecting object"):
+        with (self.subTest("crashing/collecting object")):
             matrix_copy_0[2:5, 3:6] = 3
             matrix_copy_1[2:5, 3:6] = 2
             matrix_copy_0 = torch.tensor(matrix_copy_0.flatten()).unsqueeze(0)
             matrix_copy_1 = torch.tensor(matrix_copy_1.flatten()).unsqueeze(0)
 
-            normalized_reward = get_next_normalized_reward(last_observation_state=matrix_copy_0,
-                                                           action=torch.tensor([1]),
-                                                           maximum_number_of_objects=10, observation_width=40,
-                                                           observation_height=30, agent_size=2, task="dodge",
-                                                           task_type="obstacle")
+            # only two elements for the first and second row, because the agent is overlapping
+            matrix_copy_2[1:3, 3:5] = 3
+            matrix_copy_2[3, 3:6] = 3
+            matrix_copy_2 = matrix_copy_2.flatten()
+            matrix_copy_2 = np.expand_dims(matrix_copy_2.astype(np.float), axis=0)
+
+            matrix_copy_3[1:3, 3:5] = 2
+            matrix_copy_3[3, 3:6] = 2
+            matrix_copy_3 = matrix_copy_3.flatten()
+            matrix_copy_3 = np.expand_dims(matrix_copy_3.astype(np.float), axis=0)
+
+            normalized_reward, new_positions = get_next_normalized_reward(last_observation_state=matrix_copy_0,
+                                                                          action=torch.tensor([1]),
+                                                                          maximum_number_of_objects=10,
+                                                                          observation_width=40,
+                                                                          observation_height=30, agent_size=2,
+                                                                          task="dodge",
+                                                                          task_type="obstacle")
             self.assertEqual(normalized_reward, 0)
-            normalized_reward = get_next_normalized_reward(last_observation_state=matrix_copy_1,
-                                                           action=torch.tensor([1]),
-                                                           maximum_number_of_objects=10, observation_width=40,
-                                                           observation_height=30, agent_size=2, task="collect",
-                                                           task_type="coin")
+            np.testing.assert_array_equal(new_positions, matrix_copy_2)
+
+            normalized_reward, new_positions = get_next_normalized_reward(last_observation_state=matrix_copy_1,
+                                                                          action=torch.tensor([1]),
+                                                                          maximum_number_of_objects=10,
+                                                                          observation_width=40,
+                                                                          observation_height=30, agent_size=2,
+                                                                          task="collect",
+                                                                          task_type="coin")
             self.assertEqual(normalized_reward, 1)
+            np.testing.assert_array_equal(new_positions, matrix_copy_3)
 
         with self.subTest("state does not match observation_width & observation_height"):
             self.assertRaises(ValueError, get_next_normalized_reward, last_observation_state=matrix,
