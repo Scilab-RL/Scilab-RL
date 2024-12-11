@@ -7,6 +7,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
+from src.utils.custom_wrappers import recursive_set_render_mode
+from src.utils.animation_util import LiveAnimationPlot
 
 
 # USE EVALUATE POLICY OF STABLE BASELINES 3 WITHOUT A MODEL BUT A HEURISTIC
@@ -85,6 +87,12 @@ def evaluate_policy(
     current_lengths = np.zeros(n_envs, dtype="int")
     observations = env.reset()
     ##### MY CODE #####
+
+    if render:
+        animation = LiveAnimationPlot(
+            y_axis_labels=['need_for_control_dodge', 'need_for_control_collect', 'corrected_inactive_need_for_control',
+                           'placeholder'], env=env)
+
     # ndarray (1,)
     if action_sequence is None or switch_per_NfC:
         actions = np.array([0])
@@ -112,14 +120,6 @@ def evaluate_policy(
         ##### MY CODE #####
         # normally here would the model be used to predict the action
         # but we use a heuristic instead
-        # print()
-        # print("action before", actions[0])
-        # print("new_observations[need_for_control_dodge]",
-        #       np.float64(new_observations["need_for_control_dodge"]).astype(str))
-        # print("new_observations[need_for_control_dodge]", new_observations["need_for_control_dodge"])
-        # print("new_observations[need_for_control_collect]",
-        #       np.float64(new_observations["need_for_control_collect"]).astype(str))
-        # print("new_observations[need_for_control_collect]", new_observations["need_for_control_collect"])
         if action_sequence is None:
             if not switch_per_NfC:
                 if actions[0] == 0:
@@ -136,44 +136,23 @@ def evaluate_policy(
                 if actions[0] == 0:
                     a = -0.5 * new_observations["need_for_control_collect"] + 0.5
                     d = 0.5 * new_observations["need_for_control_collect"] + 0.5
-                    # print("a", np.float64(a).astype(str))
-                    # print("a", a)
-                    # print("d", np.float64(d).astype(str))
-                    # print("d", d)
-                    # print("counter_without_switch", counter_without_switch)
 
                     corrected_inactive_need_for_control = a * math.tanh(0.25 * (counter_without_switch - (30 / 2))) + d
-                    # print("corrected_inactive_need_for_control",
-                    #       np.float64(corrected_inactive_need_for_control).astype(str))
-                    # print("corrected_inactive_need_for_control", corrected_inactive_need_for_control)
 
                     if new_observations["need_for_control_dodge"] >= corrected_inactive_need_for_control:
-                        # print("here")
                         actions = np.array([0])
                     else:
-                        # print("or here")
                         actions = np.array([1])
                 else:
                     a = -0.5 * new_observations["need_for_control_dodge"] + 0.5
                     d = 0.5 * new_observations["need_for_control_dodge"] + 0.5
-                    # print("a", np.float64(a).astype(str))
-                    # print("a", a)
-                    # print("d", np.float64(d).astype(str))
-                    # print("d", d)
-                    # print("counter_without_switch", counter_without_switch)
 
                     corrected_inactive_need_for_control = a * math.tanh(0.25 * (counter_without_switch - (30 / 2))) + d
-                    # print("corrected_inactive_need_for_control",
-                    #       np.float64(corrected_inactive_need_for_control).astype(str))
-                    # print("corrected_inactive_need_for_control", corrected_inactive_need_for_control)
 
                     if new_observations["need_for_control_collect"] >= corrected_inactive_need_for_control:
-                        # print("here1")
                         actions = np.array([1])
                     else:
-                        # print("or here1")
                         actions = np.array([0])
-                # print("action after", actions[0])
         else:
             actions = np.array([action_sequence[counter]])
 
@@ -252,6 +231,18 @@ def evaluate_policy(
 
         if render:
             env.render()
+
+            ##### MY CODE #####
+            animation.x_data[0].append(counter)
+            animation.x_data[1].append(counter)
+            animation.x_data[2].append(counter)
+            animation.x_data[3].append(counter)
+            animation.y_data[0].append(new_observations["need_for_control_dodge"])
+            animation.y_data[1].append(new_observations["need_for_control_collect"])
+            animation.y_data[2].append(corrected_inactive_need_for_control)
+            animation.y_data[3].append(0)
+            animation.start_animation()
+            ###################
 
     mean_reward = np.mean(episode_rewards)
     std_reward = np.std(episode_rewards)
@@ -338,8 +329,8 @@ if __name__ == "__main__":
     # collect_best_model_name = "collect_reward_in_mb_rl_model_best"
 
     mode = "switch_per_NfC"
-    meta_env_name = "MetaEnv-pretrained-human-two-collect-tasks-easy-hard-reward-is-NfC-v0"
-    dodge_best_model_name = "collect_easy_no_input_noise_15_11_rl_model_best"
+    meta_env_name = "MetaEnv-pretrained-human-subtask-modelbased-v0"
+    dodge_best_model_name = "dodge_hard_no_input_noise_15_11_rl_model_best"
     collect_best_model_name = "collect_hard_no_input_noise_15_11_rl_model_best"
 
     ####################
@@ -350,7 +341,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     register_custom_envs()
 
-    n_eval_episodes = 10
+    n_eval_episodes = 1
 
     print("CURRENTLY EVALUATING HARD HARD INPUT NOISE")
 
