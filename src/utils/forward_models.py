@@ -139,3 +139,16 @@ class DeterministicForwardNetwork(ProbabilisticForwardNet):
         hx = torch.cat([obs, action], dim=-1)
         hx = self.state_action_model(hx)
         return Normal(hx, torch.zeros_like(hx)+10**(-10))
+
+class ForwardNetEnsamble(nn.Module):
+    def __init__(self, config, env, ensamble_size: int, fw_class):
+        super().__init__()
+        self._ensamble = nn.ModuleList(
+            [
+                fw_class(config, env)
+                for _ in range(ensamble_size)
+            ]
+        )
+
+    def forward(self, obs, action):
+        return torch.stack([model(obs, action) for model in self._ensamble])
