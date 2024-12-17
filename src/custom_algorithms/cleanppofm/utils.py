@@ -766,6 +766,18 @@ def get_next_normalized_reward(last_observation_state: torch.Tensor, action: tor
         torch.tensor(last_observation_state, device=device), maximum_number_of_objects=maximum_number_of_objects,
         observation_width=observation_width, observation_height=observation_height, agent_size=agent_size)
 
+    # remove already overlapping objects
+    if task == "collect":
+        collected_objects_of_last_state = get_collected_objects(observation_positions=last_observation, agent_size=2,
+                                                                observation_width=observation_width)
+        for index in range(2, len(last_observation[0]), 2):
+            x_position = int(last_observation[0][index])
+            y_position = int(last_observation[0][index + 1])
+            for collected_object in collected_objects_of_last_state:
+                if x_position == collected_object['x'] and y_position == collected_object['y']:
+                    last_observation[0][index] = 0
+                    last_observation[0][index + 1] = 0
+
     # get next positions for new step with action
     last_observation = get_next_position_observation_moonlander(
         observations=last_observation,

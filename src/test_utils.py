@@ -1068,64 +1068,81 @@ class TestUtils(unittest.TestCase):
         matrix_copy_1 = copy.deepcopy(matrix)
         matrix_copy_2 = copy.deepcopy(matrix)
         matrix_copy_3 = copy.deepcopy(matrix)
+        matrix_copy_4 = copy.deepcopy(matrix)
 
         matrix = torch.tensor(matrix.flatten()).unsqueeze(0)
         with self.subTest("empty observation"):
-            normalized_reward, new_positions = get_next_normalized_reward(last_observation_state=matrix,
-                                                                          action=torch.tensor([1]),
-                                                                          maximum_number_of_objects=10,
-                                                                          observation_width=40,
-                                                                          observation_height=30, agent_size=2,
-                                                                          task="dodge",
-                                                                          task_type="obstacle")
+            normalized_reward, new_state = get_next_normalized_reward(last_observation_state=matrix,
+                                                                      action=torch.tensor([1]),
+                                                                      maximum_number_of_objects=10,
+                                                                      observation_width=40,
+                                                                      observation_height=30, agent_size=2,
+                                                                      task="dodge",
+                                                                      task_type="obstacle")
             self.assertEqual(normalized_reward, 0.5)
-            np.testing.assert_array_equal(new_positions, matrix)
-            normalized_reward, new_positions = get_next_normalized_reward(last_observation_state=matrix,
-                                                                          action=torch.tensor([1]),
-                                                                          maximum_number_of_objects=10,
-                                                                          observation_width=40,
-                                                                          observation_height=30, agent_size=2,
-                                                                          task="collect",
-                                                                          task_type="coin")
+            np.testing.assert_array_equal(new_state, matrix)
+            normalized_reward, new_state = get_next_normalized_reward(last_observation_state=matrix,
+                                                                      action=torch.tensor([1]),
+                                                                      maximum_number_of_objects=10,
+                                                                      observation_width=40,
+                                                                      observation_height=30, agent_size=2,
+                                                                      task="collect",
+                                                                      task_type="coin")
             self.assertEqual(normalized_reward, 0.5)
-            np.testing.assert_array_equal(new_positions, matrix)
+            np.testing.assert_array_equal(new_state, matrix)
 
         with (self.subTest("crashing/collecting object")):
-            matrix_copy_0[2:5, 3:6] = 3
-            matrix_copy_1[2:5, 3:6] = 2
+            # state where agent is one step before crashing
+            matrix_copy_0[3:6, 3:6] = 3
+            matrix_copy_1[3:6, 3:6] = 2
             matrix_copy_0 = torch.tensor(matrix_copy_0.flatten()).unsqueeze(0)
             matrix_copy_1 = torch.tensor(matrix_copy_1.flatten()).unsqueeze(0)
 
-            # only two elements for the first and second row, because the agent is overlapping
-            matrix_copy_2[1:3, 3:5] = 3
-            matrix_copy_2[3, 3:6] = 3
+            # only two elements for the first row, because the agent is overlapping
+            matrix_copy_2[2, 3:5] = 3
+            matrix_copy_2[3:5, 3:6] = 3
             matrix_copy_2 = matrix_copy_2.flatten()
             matrix_copy_2 = np.expand_dims(matrix_copy_2.astype(np.float), axis=0)
 
-            matrix_copy_3[1:3, 3:5] = 2
-            matrix_copy_3[3, 3:6] = 2
+            matrix_copy_3[2, 3:5] = 2
+            matrix_copy_3[3:5, 3:6] = 2
             matrix_copy_3 = matrix_copy_3.flatten()
             matrix_copy_3 = np.expand_dims(matrix_copy_3.astype(np.float), axis=0)
 
-            normalized_reward, new_positions = get_next_normalized_reward(last_observation_state=matrix_copy_0,
-                                                                          action=torch.tensor([1]),
-                                                                          maximum_number_of_objects=10,
-                                                                          observation_width=40,
-                                                                          observation_height=30, agent_size=2,
-                                                                          task="dodge",
-                                                                          task_type="obstacle")
+            normalized_reward, new_state = get_next_normalized_reward(last_observation_state=matrix_copy_0,
+                                                                      action=torch.tensor([1]),
+                                                                      maximum_number_of_objects=10,
+                                                                      observation_width=40,
+                                                                      observation_height=30, agent_size=2,
+                                                                      task="dodge",
+                                                                      task_type="obstacle")
             self.assertEqual(normalized_reward, 0)
-            np.testing.assert_array_equal(new_positions, matrix_copy_2)
+            np.testing.assert_array_equal(new_state, matrix_copy_2)
 
-            normalized_reward, new_positions = get_next_normalized_reward(last_observation_state=matrix_copy_1,
-                                                                          action=torch.tensor([1]),
-                                                                          maximum_number_of_objects=10,
-                                                                          observation_width=40,
-                                                                          observation_height=30, agent_size=2,
-                                                                          task="collect",
-                                                                          task_type="coin")
+            normalized_reward, new_state = get_next_normalized_reward(last_observation_state=matrix_copy_1,
+                                                                      action=torch.tensor([1]),
+                                                                      maximum_number_of_objects=10,
+                                                                      observation_width=40,
+                                                                      observation_height=30, agent_size=2,
+                                                                      task="collect",
+                                                                      task_type="coin")
             self.assertEqual(normalized_reward, 1)
-            np.testing.assert_array_equal(new_positions, matrix_copy_3)
+            np.testing.assert_array_equal(new_state, matrix_copy_3)
+
+        with self.subTest("collect object --> object disappears"):
+            matrix_copy_4[2, 3:5] = 2
+            matrix_copy_4[3:5, 3:6] = 2
+            matrix_copy_4 = torch.tensor(matrix_copy_4.flatten()).unsqueeze(0)
+
+            normalized_reward, new_state = get_next_normalized_reward(last_observation_state=matrix_copy_4,
+                                                                      action=torch.tensor([1]),
+                                                                      maximum_number_of_objects=10,
+                                                                      observation_width=40,
+                                                                      observation_height=30, agent_size=2,
+                                                                      task="collect",
+                                                                      task_type="coin")
+            self.assertEqual(normalized_reward, 0.5)
+            np.testing.assert_array_equal(new_state, matrix)
 
         with self.subTest("state does not match observation_width & observation_height"):
             self.assertRaises(ValueError, get_next_normalized_reward, last_observation_state=matrix,
