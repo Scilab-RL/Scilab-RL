@@ -109,6 +109,33 @@ class ProbabilisticForwardNet(nn.Module):
     def save_state_dict(self, state_dict_name):
         torch.save(self.state_dict(), os.path.join(self.cfg['model_save_path'], f'{state_dict_name}.pt'))
 
+class ForwardNetEnsemble(nn.Module):
+    def __init__(self, config, env, fw_class):
+        super().__init__()
+        self.ensemble_size = config['ensemble_size']
+        self.ensemble = nn.ModuleList(
+            [
+                fw_class(config, env)
+                for _ in range(self.ensemble_size)
+            ]
+        )
+
+    def forward(self, obs, action):
+        return torch.stack([model(obs, action) for model in self.ensemble])
+
+    def train(self, optimizer, dataloader):
+        for i, model in enumerate(self.ensemble):
+            model.train(optimizer[i], dataloader)
+
+    def get_average_loss(self, dataloader):
+        losses = []
+        for model in self.ensemble:
+            losses.append(model.get_average_loss(dataloader))
+        return np.mean(losses)
+
+    def collect_training_data(self, training_data:Fwd_Training_Data, last_obs, action, new_obs):
+        training_data.collect_training_data(last_obs, action, new_obs)
+
 class ProbabilisticForwardMLENetwork(ProbabilisticForwardNet):
     def __init__(self, config, env):
         super().__init__(config, env)
@@ -140,15 +167,3 @@ class DeterministicForwardNetwork(ProbabilisticForwardNet):
         hx = self.state_action_model(hx)
         return Normal(hx, torch.zeros_like(hx)+10**(-10))
 
-class ForwardNetEnsamble(nn.Module):
-    def __init__(self, config, env, ensamble_size: int, fw_class):
-        super().__init__()
-        self._ensamble = nn.ModuleList(
-            [
-                fw_class(config, env)
-                for _ in range(ensamble_size)
-            ]
-        )
-
-    def forward(self, obs, action):
-        return torch.stack([model(obs, action) for model in self._ensamble])
