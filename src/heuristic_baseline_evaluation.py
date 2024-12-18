@@ -113,6 +113,9 @@ def evaluate_policy(
     episode_number_of_switches = []
     episode_number_of_dodge_actions = []
     episode_number_of_collect_actions = []
+
+    need_for_control_dodge = []
+    need_for_control_collect = []
     ###################
 
     episode_starts = np.ones((env.num_envs,), dtype=bool)
@@ -162,6 +165,9 @@ def evaluate_policy(
         current_lengths += 1
 
         ##### MY CODE #####
+        need_for_control_dodge.append(new_observations["need_for_control_dodge"])
+        need_for_control_collect.append(new_observations["need_for_control_collect"])
+
         counter += 1
 
         info_dict = infos[0]
@@ -272,6 +278,14 @@ def evaluate_policy(
     print(f"Episode number of switches: {episode_number_of_switches}")
     print(f"Episode number of dodge actions: {episode_number_of_dodge_actions}")
     print(f"Episode number of collect actions: {episode_number_of_collect_actions}")
+
+    need_for_control_dodge_mean = np.mean(need_for_control_dodge)
+    need_for_control_dodge_std = np.std(need_for_control_dodge)
+    need_for_control_collect_mean = np.mean(need_for_control_collect)
+    need_for_control_collect_std = np.std(need_for_control_collect)
+
+    print(f"Mean need for control dodge: {need_for_control_dodge_mean:.8f} +/- {need_for_control_dodge_std:.8f}")
+    print(f"Mean need for control collect: {need_for_control_collect_mean:.8f} +/- {need_for_control_collect_std:.8f}")
     ###################
 
     if reward_threshold is not None:
@@ -347,7 +361,11 @@ if __name__ == "__main__":
 
     # Initialise the environment
     env = gym.make(meta_env_name, render_mode="human", dodge_best_model_name=dodge_best_model_name,
-                   collect_best_model_name=collect_best_model_name)
+                   collect_best_model_name=collect_best_model_name,
+                   # two_collect_task=True, config_file_name_dodge_asteroids="config_collect_easy.yaml",
+                   config_file_name_dodge_asteroids="config_dodge_hard.yaml",
+                   config_file_name_collect_asteroids="config_collect_hard.yaml"
+                   )
 
     if mode == "switch_every_step":
         mean_reward, std_reward = evaluate_policy(env=env, n_eval_episodes=10, deterministic=True, render=True)
