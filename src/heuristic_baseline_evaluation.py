@@ -1,3 +1,6 @@
+import random
+import csv
+import ast
 import torch
 import math
 import gymnasium as gym
@@ -7,8 +10,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
-from src.utils.custom_wrappers import recursive_set_render_mode
 from src.utils.animation_util import LiveAnimationPlot
+from custom_envs import ROOT_DIR
 
 
 # USE EVALUATE POLICY OF STABLE BASELINES 3 WITHOUT A MODEL BUT A HEURISTIC
@@ -241,12 +244,14 @@ def evaluate_policy(
             ##### MY CODE #####
             animation.x_data[0].append(counter)
             animation.x_data[1].append(counter)
-            animation.x_data[2].append(counter)
-            animation.x_data[3].append(counter)
+            if switch_per_NfC:
+                animation.x_data[2].append(counter)
+                animation.x_data[3].append(counter)
             animation.y_data[0].append(new_observations["need_for_control_dodge"])
             animation.y_data[1].append(new_observations["need_for_control_collect"])
-            animation.y_data[2].append(corrected_inactive_need_for_control)
-            animation.y_data[3].append(0)
+            if switch_per_NfC:
+                animation.y_data[2].append(corrected_inactive_need_for_control)
+                animation.y_data[3].append(0)
             animation.start_animation()
             ###################
 
@@ -315,7 +320,7 @@ def calculate_action_sequence_of_means_of_frame_number_of_humans(human_mean_dodg
     Returns: action sequence in form of a list of integers (which are the actions)
 
     """
-    # in total we need ~500 steps in one episode
+    # in total, we need ~500 steps in one episode
     action_sequence = []
 
     while len(action_sequence) < (500 * n_eval_episodes):
@@ -330,41 +335,105 @@ def calculate_action_sequence_of_means_of_frame_number_of_humans(human_mean_dodg
     return action_sequence
 
 
+def calculate_action_sequence_for_switch_per_percentage(dodge_percentage: float, collect_percentage: float,
+                                                        n_eval_episodes: int) -> list[int]:
+    # in total, we need ~470 steps in one episode
+    action_sequence = []
+    for i in range(n_eval_episodes):
+        current_action_sequence = [0] * math.ceil(dodge_percentage * 470) + [1] * math.ceil(collect_percentage * 470)
+        random.shuffle(current_action_sequence)
+        action_sequence = action_sequence + current_action_sequence
+
+    return action_sequence
+
+
 if __name__ == "__main__":
+    filename_collect_easy = "collect_easy_object_list_30_times_40.csv"
+    filename_collect_hard = "collect_hard_object_list_30_times_40.csv"
+    filename_dodge_easy = "dodge_easy_object_list_30_times_40.csv"
+    filename_dodge_hard = "dodge_hard_object_list_30_times_40.csv"
+
+    list_of_filenames = [filename_collect_easy, filename_collect_hard, filename_dodge_easy, filename_dodge_hard]
+    dict_of_filename_to_object_dict_list = {}
+    for filename in list_of_filenames:
+        list_of_object_dict_lists = []
+        with open(ROOT_DIR / "moonlander" / filename, "r") as file:
+            lines = csv.reader(file)
+            for line in lines:
+                # first element is index
+                # second element is the object list
+                # form string to list of dictionaries
+                list_of_object_dict_lists.append(ast.literal_eval(line[1]))
+        dict_of_filename_to_object_dict_list[filename] = list_of_object_dict_lists
+
     ### DEFINE BEFORE ###
     # mode = "switch_every_step"
     # meta_env_name = "MetaEnv-pretrained-human-subtask-modelbased-v0"
-    # dodge_best_model_name = "dodge_MB_reward_included_rl_model_best",
-    # collect_best_model_name = "collect_reward_in_mb_rl_model_best"
+    # dodge_best_model_name = "dodge_hard_no_input_noise_15_11_rl_model_best"
+    # config_file_name_dodge_asteroids = "config_dodge_hard.yaml"
+    # collect_best_model_name = "collect_hard_no_input_noise_15_11_rl_model_best"
+    # config_file_name_collect_asteroids = "config_collect_hard.yaml"
+    # two_collect_tasks = False
+    # dodge_list_of_object_dict_lists = None
+    # collect_list_of_object_dict_lists = None
 
     # mode = "switch_as_humans"
     # meta_env_name = "MetaEnv-pretrained-human-subtask-modelbased-v0"
-    # dodge_best_model_name = "dodge_MB_reward_included_rl_model_best",
-    # collect_best_model_name = "collect_reward_in_mb_rl_model_best"
+    # dodge_best_model_name = "dodge_hard_no_input_noise_15_11_rl_model_best"
+    # config_file_name_dodge_asteroids = "config_dodge_hard.yaml"
+    # collect_best_model_name = "collect_hard_no_input_noise_15_11_rl_model_best"
+    # config_file_name_collect_asteroids = "config_collect_hard.yaml"
+    # two_collect_tasks = False
+    # dodge_list_of_object_dict_lists = None
+    # collect_list_of_object_dict_lists = None
 
-    mode = "switch_per_NfC"
+    # mode = "switch_per_NfC"
+    # meta_env_name = "MetaEnv-pretrained-human-subtask-modelbased-v0"
+    # dodge_best_model_name = "dodge_hard_no_input_noise_15_11_rl_model_best"
+    # config_file_name_dodge_asteroids = "config_dodge_hard.yaml"
+    # collect_best_model_name = "collect_hard_no_input_noise_15_11_rl_model_best"
+    # config_file_name_collect_asteroids = "config_collect_hard.yaml"
+    # two_collect_tasks = False
+    # dodge_list_of_object_dict_lists = None
+    # collect_list_of_object_dict_lists = None
+
+    mode = "switch_per_percentage"
+    percentage_pairs = [[0, 1], [0.05, 0.95], [0.1, 0.9], [0.15, 0.85], [0.2, 0.8], [0.25, 0.75], [0.3, 0.7],
+                        [0.35, 0.65], [0.4, 0.6], [0.45, 0.55], [0.5, 0.5], [0.55, 0.45], [0.6, 0.4], [0.65, 0.35],
+                        [0.7, 0.3], [0.75, 0.25], [0.8, 0.2], [0.85, 0.15], [0.9, 0.1], [0.95, 0.05], [1, 0]]
+    chosen_percentage_pair = percentage_pairs[0]
     meta_env_name = "MetaEnv-pretrained-human-subtask-modelbased-v0"
-    dodge_best_model_name = "dodge_hard_no_input_noise_15_11_rl_model_best"
+    dodge_best_model_name = "collect_easy_no_input_noise_15_11_rl_model_best"
+    config_file_name_dodge_asteroids = "config_collect_easy.yaml"
     collect_best_model_name = "collect_hard_no_input_noise_15_11_rl_model_best"
+    config_file_name_collect_asteroids = "config_collect_hard.yaml"
+    two_collect_tasks = True
+    dodge_list_of_object_dict_lists = dict_of_filename_to_object_dict_list[
+        "collect_easy_object_list_30_times_40.csv"],
+    collect_list_of_object_dict_lists = dict_of_filename_to_object_dict_list[
+        "collect_hard_object_list_30_times_40.csv"]
 
     ####################
 
-    if mode not in ["switch_every_step", "switch_as_humans", "switch_per_NfC"]:
-        raise ValueError("Mode must be one of 'switch_every_step', 'switch_as_humans', 'switch_per_NfC'")
+    if mode not in ["switch_every_step", "switch_as_humans", "switch_per_NfC", "switch_per_percentage"]:
+        raise ValueError(
+            "Mode must be one of 'switch_every_step', 'switch_as_humans', 'switch_per_NfC', 'switch_per_percentage'")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     register_custom_envs()
 
-    n_eval_episodes = 1
+    n_eval_episodes = 10
 
     print("CURRENTLY EVALUATING HARD HARD INPUT NOISE")
 
     # Initialise the environment
     env = gym.make(meta_env_name, render_mode="human", dodge_best_model_name=dodge_best_model_name,
                    collect_best_model_name=collect_best_model_name,
-                   # two_collect_task=True, config_file_name_dodge_asteroids="config_collect_easy.yaml",
-                   config_file_name_dodge_asteroids="config_dodge_hard.yaml",
-                   config_file_name_collect_asteroids="config_collect_hard.yaml"
+                   two_collect_task=two_collect_tasks,
+                   config_file_name_dodge_asteroids=config_file_name_dodge_asteroids,
+                   config_file_name_collect_asteroids=config_file_name_collect_asteroids,
+                   dodge_list_of_object_dict_lists=dodge_list_of_object_dict_lists,
+                   collect_list_of_object_dict_lists=collect_list_of_object_dict_lists
                    )
 
     if mode == "switch_every_step":
@@ -390,6 +459,12 @@ if __name__ == "__main__":
     elif mode == "switch_per_NfC":
         mean_reward, std_reward = evaluate_policy(env=env, n_eval_episodes=n_eval_episodes, deterministic=True,
                                                   render=True, switch_per_NfC=True)
+    elif mode == "switch_per_percentage":
+        action_sequence = calculate_action_sequence_for_switch_per_percentage(
+            dodge_percentage=chosen_percentage_pair[0], collect_percentage=chosen_percentage_pair[1],
+            n_eval_episodes=n_eval_episodes)
+        mean_reward, std_reward = evaluate_policy(env=env, n_eval_episodes=n_eval_episodes, deterministic=True,
+                                                  render=False, action_sequence=action_sequence)
     else:
         raise ValueError("Mode must be one of 'switch_every_step', 'switch_as_humans', 'switch_per_NfC'")
 
