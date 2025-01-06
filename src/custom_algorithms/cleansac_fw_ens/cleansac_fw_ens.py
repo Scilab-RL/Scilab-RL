@@ -251,6 +251,9 @@ class CLEANSAC_FW_ENS:
                     fw_data_loader = self.fwd_training_data.get_dataloader()
                     self.forward_model.train(self.fw_optimizer, fw_data_loader)
 
+                    for i, model in enumerate(self.forward_model.ensemble):
+                        self.logger.record(f"fwd/train_loss_{i}", model.get_average_loss(fw_data_loader))
+
                     self.logger.record('fwd/train_loss', self.forward_model.get_average_loss(fw_data_loader))
 
         callback.on_training_end()
