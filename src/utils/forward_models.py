@@ -50,6 +50,8 @@ class ProbabilisticForwardNet(nn.Module):
         else:
             assert False, "Error: loss function invalid"
 
+        self.predict_reward = bool(config['predict_reward'])
+
         self.cfg = config
 
     def build_hidden_layers(self, input_size, output_size):
@@ -60,9 +62,14 @@ class ProbabilisticForwardNet(nn.Module):
         layers.append(nn.Linear(self.hidden_size, output_size))
         return nn.Sequential(*layers)
 
-    def l2_loss_delta(self, obs, action, next_obs):
-        next_obs_prediction = self(obs, action).loc
-        loss = (next_obs_prediction - (next_obs - obs)) ** 2
+    def l2_loss_delta(self, obs, action, next_obs, reward):
+        if self.predict_reward:
+            next_obs_prediction_dist, reward_prediction = self(obs, action)
+            next_obs_prediction = next_obs_prediction_dist.loc
+            loss = (next_obs_prediction - (next_obs - obs)) ** 2 + (reward_prediction - reward) ** 2
+        else:
+            next_obs_prediction = self(obs, action).loc
+            loss = (next_obs_prediction - (next_obs - obs)) ** 2
         return loss
 
     def nll_loss_delta(self, obs, action, next_obs):
@@ -87,21 +94,21 @@ class ProbabilisticForwardNet(nn.Module):
         return self.forward(obs, action).loc.detach() + obs.detach()
 
     def train(self, optimizer, dataloader):
-        for obs, action, next_obs in dataloader:
-            obs, action, next_obs = obs.to(device), action.to(device), next_obs.to(device)
-            loss = self.loss_func(obs, action, next_obs)
+        for obs, action, next_obs, reward in dataloader:
+            obs, action, next_obs, reward = obs.to(device), action.to(device), next_obs.to(device), reward.to(device)
+            loss = self.loss_func(obs, action, next_obs, reward)
             optimizer.zero_grad()
             loss.mean().backward()
             optimizer.step()
 
     def get_average_loss(self, dataloader):
         losses = []
-        for obs, action, next_obs in dataloader:
-           losses.append(self.loss_func(obs, action, next_obs).mean().detach().item())
+        for obs, action, next_obs, reward in dataloader:
+            losses.append(self.loss_func(obs, action, next_obs, reward).mean().detach().item())
         return np.mean(losses)
 
-    def collect_training_data(self, training_data:Fwd_Training_Data, last_obs, action, new_obs):
-        training_data.collect_training_data(last_obs, action, new_obs)
+    def collect_training_data(self, training_data:Fwd_Training_Data, last_obs, action, new_obs, reward):
+        training_data.collect_training_data(last_obs, action, new_obs, reward)
 
     def save_model(self, model_name):
         torch.save(self, os.path.join(self.cfg['model_save_path'], f'{model_name}.pt'))
@@ -133,8 +140,8 @@ class ForwardNetEnsemble(nn.Module):
             losses.append(model.get_average_loss(dataloader))
         return np.mean(losses)
 
-    def collect_training_data(self, training_data:Fwd_Training_Data, last_obs, action, new_obs):
-        training_data.collect_training_data(last_obs, action, new_obs)
+    def collect_training_data(self, training_data:Fwd_Training_Data, last_obs, action, new_obs, reward):
+        training_data.collect_training_data(last_obs, action, new_obs, reward)
 
 class ProbabilisticForwardMLENetwork(ProbabilisticForwardNet):
     def __init__(self, config, env):
@@ -158,12 +165,17 @@ class DeterministicForwardNetwork(ProbabilisticForwardNet):
     def __init__(self, config, env):
         super().__init__(config, env)
         # Building the state-action model dynamically based on n_hidden_layers
-        self.state_action_model = self.build_hidden_layers(self.input_shape, self.obs_shape)
+        self.state_action_encoder = self.build_hidden_layers(self.input_shape, self.hidden_size)
+        self.state_action_model = self.build_hidden_layers(self.hidden_size, self.obs_shape)
+        if self.predict_reward == True:
+            self.reward = self.build_hidden_layers(self.hidden_size, 1)
 
     def forward(self, obs, action):
         assert (self.obs_shape == obs.shape[-1])
         assert (self.action_shape == action.shape[-1])
         hx = torch.cat([obs, action], dim=-1)
-        hx = self.state_action_model(hx)
-        return Normal(hx, torch.zeros_like(hx)+10**(-10))
+        hx = self.state_action_encoder(hx)
+        next_state = self.state_action_model(hx)
+        next_state_dist = Normal(next_state, torch.zeros_like(next_state)+10**(-10))
 
+        return (next_state_dist, self.reward(hx).squeeze(-1)) if self.predict_reward else next_state_dist

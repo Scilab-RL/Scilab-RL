@@ -325,7 +325,7 @@ class CLEANSAC_FW_ENS:
         self.replay_buffer.add(self._last_obs, next_obs, action, rewards, dones, infos)
 
         # Collect training data for the forward model
-        self.forward_model.collect_training_data(self.fwd_training_data, self._last_obs, action, new_obs)
+        self.forward_model.collect_training_data(self.fwd_training_data, self._last_obs, action, new_obs, rewards)
 
         self._last_obs = new_obs
 

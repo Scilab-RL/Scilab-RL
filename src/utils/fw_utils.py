@@ -11,12 +11,13 @@ class Fwd_Training_Dataset(Dataset):
         self.obs = data['observation']
         self.action = data['action']
         self.next_obs = data['next_observation']
+        self.reward = data['reward']
 
     def __len__(self):
         return len(self.obs)
 
     def __getitem__(self, idx):
-        return self.obs[idx], self.action[idx], self.next_obs[idx]
+        return self.obs[idx], self.action[idx], self.next_obs[idx], self.reward[idx]
 
 class Fwd_Training_Data():
     """
@@ -26,20 +27,23 @@ class Fwd_Training_Data():
         self.raw_data = {
             'observation' : [],
             'action' : [],
-            'next_observation' : []
+            'next_observation' : [],
+            'reward' : []
         }
         #self.data_set = Training_Data()
         #self.data_loader = DataLoader(self.raw_data)
 
-    def collect_training_data(self, obs, action, next_obs):
+    def collect_training_data(self, obs, action, next_obs, reward):
         if isinstance(obs, OrderedDict):
             obs = torch.tensor(obs['observation'], dtype = torch.float32)
             action = torch.tensor(action, dtype = torch.float32)
             next_obs = torch.tensor(next_obs['observation'], dtype = torch.float32)
+            reward = torch.tensor(reward, dtype = torch.float32)
         else:
             obs = torch.tensor(obs, dtype=torch.float32)
             action = torch.tensor(action, dtype=torch.float32)
             next_obs = torch.tensor(next_obs, dtype=torch.float32)
+            reward = torch.tensor(reward, dtype=torch.float32)
 
         if len(action.shape) != len(obs.shape):
             action = torch.unsqueeze(action, dim=0)
@@ -47,6 +51,7 @@ class Fwd_Training_Data():
         self.raw_data['observation'].append(obs)
         self.raw_data['action'].append(action)
         self.raw_data['next_observation'].append(next_obs)
+        self.raw_data['reward'].append(reward)
 
     def prepare_dataloader(self, batch_size = 256, shuffle = True):
         fwd_training_dataset = Fwd_Training_Dataset(self.raw_data)
