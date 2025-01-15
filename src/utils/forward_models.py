@@ -126,22 +126,28 @@ class ForwardNetEnsemble(nn.Module):
                 for _ in range(self.ensemble_size)
             ]
         )
+        self.training_data = Fwd_Training_Data()
+        self.test_data = Fwd_Training_Data()
 
     def forward(self, obs, action):
         return torch.stack([model(obs, action) for model in self.ensemble])
 
-    def train(self, optimizer, dataloader):
+    def train(self, optimizer):
+        dataloader = self.training_data.get_dataloader()
         for i, model in enumerate(self.ensemble):
             model.train(optimizer[i], dataloader)
 
-    def get_average_loss(self, dataloader):
+    def get_average_loss(self):
         losses = []
         for model in self.ensemble:
-            losses.append(model.get_average_loss(dataloader))
+            losses.append(model.get_average_loss(self.training_data.get_dataloader()))
         return np.mean(losses)
 
-    def collect_training_data(self, training_data:Fwd_Training_Data, last_obs, action, new_obs, reward):
-        training_data.collect_training_data(last_obs, action, new_obs, reward)
+    def collect_training_data(self, last_obs, action, new_obs, reward):
+        if np.random.rand() < 0.2:
+            self.test_data.collect_training_data(last_obs, action, new_obs, reward)
+        else:
+            self.training_data.collect_training_data(last_obs, action, new_obs, reward)
 
 class ProbabilisticForwardMLENetwork(ProbabilisticForwardNet):
     def __init__(self, config, env):

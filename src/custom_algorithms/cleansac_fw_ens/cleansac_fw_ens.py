@@ -22,7 +22,6 @@ LOG_STD_MIN = -20
 Imports for the fw models
 """
 from utils.forward_models import ForwardNetEnsemble, DeterministicForwardNetwork, ProbabilisticForwardMLENetwork
-from utils.fw_utils import Fwd_Training_Data
 
 class Actor(nn.Module):
     def __init__(self, env, action_scale_factor=1.0):
@@ -214,8 +213,6 @@ class CLEANSAC_FW_ENS:
         self.forward_model = ForwardNetEnsemble(self.fwd, self.env, DeterministicForwardNetwork)
         self.fw_optimizer = [torch.optim.Adam(model.parameters(), lr=self.learning_rate) for model in self.forward_model.ensemble]
 
-        self.fwd_training_data = Fwd_Training_Data()
-
     def _create_actor_critic(self) -> None:
         self.actor = Actor(self.env, self.action_scale_factor).to(self.device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.learning_rate)
@@ -248,13 +245,13 @@ class CLEANSAC_FW_ENS:
                 Forward model training
                 """
                 if self.num_timesteps % self.fwd['train_every_n_data'] == 0:
-                    fw_data_loader = self.fwd_training_data.get_dataloader()
-                    self.forward_model.train(self.fw_optimizer, fw_data_loader)
+                    self.forward_model.train(self.fw_optimizer)
 
-                    for i, model in enumerate(self.forward_model.ensemble):
-                        self.logger.record(f"fwd/train_loss_{i}", model.get_average_loss(fw_data_loader))
+                    # Sollte der Train loss auch für jedes model einzeln geloggt werden?
+                    #for i, model in enumerate(self.forward_model.ensemble):
+                    #    self.logger.record(f"fwd/train_loss_{i}", model.get_average_loss())
 
-                    self.logger.record('fwd/train_loss', self.forward_model.get_average_loss(fw_data_loader))
+                    self.logger.record('fwd/train_loss', self.forward_model.get_average_loss())
 
         callback.on_training_end()
 
@@ -325,7 +322,7 @@ class CLEANSAC_FW_ENS:
         self.replay_buffer.add(self._last_obs, next_obs, action, rewards, dones, infos)
 
         # Collect training data for the forward model
-        self.forward_model.collect_training_data(self.fwd_training_data, self._last_obs, action, new_obs, rewards)
+        self.forward_model.collect_training_data(self._last_obs, action, new_obs, rewards)
 
         self._last_obs = new_obs
 
