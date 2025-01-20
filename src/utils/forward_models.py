@@ -156,6 +156,25 @@ class ForwardNetEnsemble(nn.Module):
         else:
             self.training_data.collect_training_data(last_obs, action, new_obs, reward)
 
+    def pre_train_model(self, optimizer):
+        # Load data
+        try:
+            file_path = os.path.expanduser("~/Desktop/pretrain_data.pt")
+            loaded_data = torch.load(file_path)
+        except:
+            return
+        # begin training
+        observations = loaded_data['observation']
+        actions = loaded_data['action']
+        next_observations = loaded_data['next_observation']
+        rewards = loaded_data['reward']
+        # for batch
+        for i in range(len(observations)):
+            if self.stop_training: break
+            self.collect_training_data(observations[i], actions[i], next_observations[i], rewards[i])
+            if i % 32 == 0:
+                self.train(optimizer)
+
 class ProbabilisticForwardMLENetwork(ProbabilisticForwardNet):
     def __init__(self, config, env):
         super().__init__(config, env)

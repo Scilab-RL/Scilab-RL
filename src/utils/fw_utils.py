@@ -60,3 +60,9 @@ class Fwd_Training_Data():
     def get_dataloader(self):
         self.prepare_dataloader()
         return self.dataloader
+
+    def save(self, file_path):
+        saved_data = {
+            key: torch.stack(value) for key, value in self.raw_data.items()
+        }
+        torch.save(saved_data, file_path)
