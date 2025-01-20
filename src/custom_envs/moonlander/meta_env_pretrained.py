@@ -17,8 +17,8 @@ from stable_baselines3.common.env_util import make_vec_env
 # FIXME: needed for rendering rgb array
 np.set_printoptions(threshold=sys.maxsize)
 
-from custom_algorithms.cleanppofm.cleanppofm import CLEANPPOFM
-from custom_algorithms.cleanppofm.utils import get_summed_up_reward_of_env_with_predicted_states_hardcoded, \
+from src.custom_algorithms.cleanppofm.cleanppofm import CLEANPPOFM
+from src.custom_algorithms.cleanppofm.utils import get_summed_up_reward_of_env_with_predicted_states_hardcoded, \
     get_position_and_object_positions_of_observation, get_observation_of_position_and_object_positions, \
     get_next_position_observation_moonlander, calculate_need_for_control
 

@@ -7,7 +7,7 @@ import gymnasium as gym
 from typing import Callable
 
 import numpy as np
-from utils.animation_util import LiveAnimationPlot
+from src.utils.animation_util import LiveAnimationPlot
 from gymnasium.envs.mujoco import MujocoEnv
 from moviepy.editor import vfx
 

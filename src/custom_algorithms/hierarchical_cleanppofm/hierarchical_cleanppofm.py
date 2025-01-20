@@ -17,11 +17,11 @@ from torch.distributions.categorical import Categorical
 from torch.distributions.normal import Normal
 from torch.nn import functional as F
 
-from custom_algorithms.cleanppofm.forward_model import ProbabilisticSimpleForwardNet, \
+from src.custom_algorithms.cleanppofm.forward_model import ProbabilisticSimpleForwardNet, \
     ProbabilisticForwardNetPositionPrediction
-from utils.custom_buffer import CustomDictRolloutBuffer as DictRolloutBuffer
-from utils.custom_buffer import CustomRolloutBuffer as RolloutBuffer
-from utils.custom_wrappers import DisplayWrapper
+from src.utils.custom_buffer import CustomDictRolloutBuffer as DictRolloutBuffer
+from src.utils.custom_buffer import CustomRolloutBuffer as RolloutBuffer
+from src.utils.custom_wrappers import DisplayWrapper
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

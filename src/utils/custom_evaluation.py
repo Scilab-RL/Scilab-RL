@@ -10,7 +10,7 @@ import os
 from stable_baselines3.common import base_class
 from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv, VecMonitor, is_vecenv_wrapped
 
-from custom_algorithms.cleanppofm.utils import get_position_and_object_positions_of_observation, \
+from src.custom_algorithms.cleanppofm.utils import get_position_and_object_positions_of_observation, \
     get_observation_of_position_and_object_positions
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

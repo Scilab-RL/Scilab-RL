@@ -1,8 +1,8 @@
 from typing import List, Dict
 import numpy as np
 from gymnasium import spaces, Env
-from custom_envs.moonlander.moonlander_env import MoonlanderWorldEnv
-from custom_algorithms.cleanppofm.utils import get_next_position_observation_moonlander
+from src.custom_envs.moonlander.moonlander_env import MoonlanderWorldEnv
+from src.custom_algorithms.cleanppofm.utils import get_next_position_observation_moonlander
 
 
 class ModelbasedMoonlanderEnv(Env):

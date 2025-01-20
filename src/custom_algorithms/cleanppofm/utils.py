@@ -3,7 +3,7 @@ import torch
 import math
 import copy
 
-from custom_envs.moonlander.helper_functions import calculate_gaussian_reward
+from src.custom_envs.moonlander.helper_functions import calculate_gaussian_reward
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

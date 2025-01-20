@@ -34,7 +34,7 @@ from optuna.visualization import plot_contour
 from optuna.visualization import plot_optimization_history
 from optuna.visualization import plot_param_importances
 
-from hydra_plugins.hydra_custom_optuna_sweeper.param_repeat_pruner import ParamRepeatPruner
+from src.hydra_plugins.hydra_custom_optuna_sweeper.param_repeat_pruner import ParamRepeatPruner
 from .config import Direction, DistributionConfig, DistributionType
 
 log = logging.getLogger(__name__)

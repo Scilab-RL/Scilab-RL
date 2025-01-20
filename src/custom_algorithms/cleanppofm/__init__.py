@@ -1,1 +1,1 @@
-from custom_algorithms.cleanppofm.cleanppofm import CLEANPPOFM
+from src.custom_algorithms.cleanppofm.cleanppofm import CLEANPPOFM

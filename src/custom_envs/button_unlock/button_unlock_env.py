@@ -4,7 +4,7 @@ from gymnasium import spaces
 from gymnasium.utils import EzPickle
 from gymnasium_robotics.envs.fetch.fetch_env import MujocoFetchEnv
 from gymnasium_robotics.utils.mujoco_utils import get_joint_qpos, set_joint_qpos
-from custom_envs.mujoco_utils import get_geom_xpos
+from src.custom_envs.mujoco_utils import get_geom_xpos
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'button_unlock.xml')
 

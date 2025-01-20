@@ -11,7 +11,7 @@ import yaml
 from PIL import Image, ImageDraw
 from matplotlib import pyplot as plt
 
-from custom_envs.moonlander.moonlander_env import MoonlanderWorldEnv
+from src.custom_envs.moonlander.moonlander_env import MoonlanderWorldEnv
 
 
 class MetaEnv(gym.Env):

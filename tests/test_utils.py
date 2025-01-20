@@ -17,8 +17,8 @@ from src.custom_algorithms.cleanppofm.utils import (get_summed_up_reward_of_env_
                                                     calculate_trajectory_length,
                                                     get_next_normalized_reward)
 from src.custom_envs.register_envs import register_custom_envs
-from custom_algorithms.cleanppofm.agent import Agent
-from custom_algorithms.cleanppofm.forward_model import ProbabilisticForwardNetPositionPredictionIncludingReward
+from src.custom_algorithms.cleanppofm.agent import Agent
+from src.custom_algorithms.cleanppofm.forward_model import ProbabilisticForwardNetPositionPredictionIncludingReward
 
 
 class TestUtils(unittest.TestCase):

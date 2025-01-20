@@ -17,7 +17,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
 from stable_baselines3.common.vec_env import VecEnv
 
-from custom_algorithms.cleanppofm.utils import flatten_obs
+from src.custom_algorithms.cleanppofm.utils import flatten_obs
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

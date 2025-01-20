@@ -7,8 +7,8 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import sync_envs_normalization
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from utils.custom_evaluation import evaluate_policy as custom_evaluate_policy
-from utils.custom_evaluation import evaluate_policy_meta_agent as custom_evaluate_policy_meta_agent
+from src.utils.custom_evaluation import evaluate_policy as custom_evaluate_policy
+from src.utils.custom_evaluation import evaluate_policy_meta_agent as custom_evaluate_policy_meta_agent
 
 
 class EarlyStopCallback(BaseCallback):

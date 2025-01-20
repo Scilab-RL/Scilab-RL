@@ -1,1 +1,1 @@
-from custom_algorithms.hierarchical_cleanppofm.hierarchical_cleanppofm import HIERARCHICAL_CLEANPPOFM
+from src.custom_algorithms.hierarchical_cleanppofm.hierarchical_cleanppofm import HIERARCHICAL_CLEANPPOFM

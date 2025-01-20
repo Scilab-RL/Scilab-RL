@@ -1,1 +1,1 @@
-from custom_algorithms.cleandqn.cleandqn import CLEANDQN
+from src.custom_algorithms.cleandqn.cleandqn import CLEANDQN

@@ -4,10 +4,10 @@ import torch.nn as nn
 from gymnasium import spaces
 from torch.distributions.categorical import Categorical
 from stable_baselines3.common.logger import Logger
-from custom_algorithms.cleanppofm.utils import flatten_obs, layer_init, \
+from src.custom_algorithms.cleanppofm.utils import flatten_obs, layer_init, \
     get_position_and_object_positions_of_observation, get_observation_of_position_and_object_positions, \
     get_next_position_observation_moonlander, get_collected_objects
-from custom_envs.moonlander.helper_functions import calculate_gaussian_reward
+from src.custom_envs.moonlander.helper_functions import calculate_gaussian_reward
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

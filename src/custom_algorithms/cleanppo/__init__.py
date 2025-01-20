@@ -1,1 +1,1 @@
-from custom_algorithms.cleanppo.cleanppo import CLEANPPO
+from src.custom_algorithms.cleanppo.cleanppo import CLEANPPO

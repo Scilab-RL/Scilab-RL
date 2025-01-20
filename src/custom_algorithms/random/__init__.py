@@ -1,1 +1,1 @@
-from custom_algorithms.random.random import RANDOM
+from src.custom_algorithms.random.random import RANDOM

@@ -5,7 +5,7 @@ import gymnasium as gym
 from gymnasium.envs.box2d.lunar_lander import LunarLander
 import numpy as np
 from matplotlib import pyplot as plt
-from custom_algorithms.cleanppofm.cleanppofm import CLEANPPOFM
+from src.custom_algorithms.cleanppofm.cleanppofm import CLEANPPOFM
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.logger import configure
 

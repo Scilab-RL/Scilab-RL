@@ -1,1 +1,1 @@
-from custom_algorithms.cleansacmc.cleansacmc import CLEANSACMC
+from src.custom_algorithms.cleansacmc.cleansacmc import CLEANSACMC

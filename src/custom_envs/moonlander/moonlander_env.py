@@ -8,7 +8,7 @@ import sys
 import random as rnd
 from typing import List, Dict
 
-import custom_envs.moonlander.helper_functions as hlp
+import src.custom_envs.moonlander.helper_functions as hlp
 import numpy as np
 import torch
 import yaml

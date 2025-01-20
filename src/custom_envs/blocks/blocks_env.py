@@ -4,7 +4,7 @@ from gymnasium.utils import EzPickle
 from gymnasium_robotics.utils import rotations
 from gymnasium_robotics.utils.mujoco_utils import get_joint_qpos, set_joint_qpos
 from gymnasium_robotics.envs.fetch.fetch_env import MujocoFetchEnv
-from custom_envs.mujoco_utils import get_geom_xpos, get_geom_xvelp, get_geom_xvelr, get_geom_xmat
+from src.custom_envs.mujoco_utils import get_geom_xpos, get_geom_xvelp, get_geom_xvelr, get_geom_xmat
 
 
 MODEL_XML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'blocks.xml')

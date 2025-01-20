@@ -14,16 +14,16 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
 from stable_baselines3.common.vec_env import VecEnv
 from torch.nn import functional as F
 
-from custom_algorithms.cleanppofm.forward_model import ProbabilisticSimpleForwardNet, \
+from src.custom_algorithms.cleanppofm.forward_model import ProbabilisticSimpleForwardNet, \
     ProbabilisticForwardNetPositionPrediction, ProbabilisticSimpleForwardNetIncludingReward, \
     ProbabilisticForwardNetPositionPredictionIncludingReward
-from custom_algorithms.cleanppofm.utils import flatten_obs, get_position_and_object_positions_of_observation, \
+from src.custom_algorithms.cleanppofm.utils import flatten_obs, get_position_and_object_positions_of_observation, \
     calculate_prediction_error, get_next_position_observation_moonlander, calculate_need_for_control, normalize_rewards, \
     get_next_whole_observation, get_observation_of_position_and_object_positions, get_collected_objects
-from custom_algorithms.cleanppofm.agent import Agent
-from custom_envs.moonlander.helper_functions import calculate_gaussian_reward
-from utils.custom_buffer import CustomDictRolloutBuffer as DictRolloutBuffer
-from utils.custom_buffer import CustomRolloutBuffer as RolloutBuffer
+from src.custom_algorithms.cleanppofm.agent import Agent
+from src.custom_envs.moonlander.helper_functions import calculate_gaussian_reward
+from src.utils.custom_buffer import CustomDictRolloutBuffer as DictRolloutBuffer
+from src.utils.custom_buffer import CustomRolloutBuffer as RolloutBuffer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
