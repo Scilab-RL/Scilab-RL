@@ -128,11 +128,14 @@ class ForwardNetEnsemble(nn.Module):
         )
         self.training_data = Fwd_Training_Data()
         self.test_data = Fwd_Training_Data()
+        self.stop_training = False
+        self.prev_loss = 10000
 
     def forward(self, obs, action):
         return torch.stack([model(obs, action) for model in self.ensemble])
 
     def train(self, optimizer):
+        if self.stop_training: return
         dataloader = self.training_data.get_dataloader()
         for i, model in enumerate(self.ensemble):
             model.train(optimizer[i], dataloader)
@@ -140,10 +143,14 @@ class ForwardNetEnsemble(nn.Module):
     def get_average_loss(self):
         losses = []
         for model in self.ensemble:
-            losses.append(model.get_average_loss(self.training_data.get_dataloader()))
-        return np.mean(losses)
+            losses.append(model.get_average_loss(self.test_data.get_dataloader()))
+        mean_loss = np.mean(losses)
+        if mean_loss > self.prev_loss: self.stop_training = True
+        self.prev_loss = mean_loss
+        return mean_loss
 
     def collect_training_data(self, last_obs, action, new_obs, reward):
+        if self.stop_training: return
         if np.random.rand() < 0.2:
             self.test_data.collect_training_data(last_obs, action, new_obs, reward)
         else:
