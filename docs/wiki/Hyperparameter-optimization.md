@@ -29,14 +29,11 @@ defaults:
 
 Here we have to change `- override /algorithm: cleansac` to `- override /algorithm: cleansac_mod` to optimize for the cleansac_mod algorithm.
 
-`hyperopt_criterion`: is used to determine what variable will be used to evaluate the performance of the model during hyperparameter optimization. We will leave it as it is.
-
 ```
 n_epochs: 20
 eval_after_n_steps: 2000
 early_stop_threshold: 0.6
 early_stop_data_column: 'eval/success_rate'
-hyperopt_criterion: 'train/rollout_rewards_mean'
 
 env: 'FetchReach-v2'
 
@@ -134,7 +131,7 @@ hydra:
 
 ## Running the hyperopt
 
-We can run the experiment with `python src/main.py +performance=FetchReach/sac_mod-opti --multirun`.
+We can run the experiment with `python src/main.py +performance=FetchReach/cleansac_mod-opti --multirun`.
 If everything goes well you should see something like
 ```
 [2022-04-21 11:51:41,322][HYDRA] Launching jobs, sweep output dir : data/428cbb5/FetchReach-v2/11-51-41

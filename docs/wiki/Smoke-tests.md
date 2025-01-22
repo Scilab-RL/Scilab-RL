@@ -12,7 +12,7 @@ Smoke tests check whether everything still works e.g. after the upgrade of a pyt
 
 # Run the smoke tests
 - open the Scilab-RL project in a terminal
-- activate the virtual environment with `source venv/bin/activate`
+- activate the virtual environment with `conda activate scilabrl`
 - set the environment variables with `source set_paths.sh`
 - run the smoke tests with `./scripts/run_smoke_tests.sh`
 - open another terminal and start _MLFlow_ with `mlflow ui --host 0.0.0.0`, then open _MLFlow_ in your browser at http://0.0.0.0:5000/#/
