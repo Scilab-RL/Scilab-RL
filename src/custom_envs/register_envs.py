@@ -507,3 +507,10 @@ def register_metaworld_envs():
             elif env_type == "dense":
                 register(id=f"MetaW-{env_name[:-len('-goal-observable')]}-dense",
                          entry_point=make_variable_goal_env(env_class, env_type), max_episode_steps=500)
+
+
+def register_custom_test_envs():
+    register(id="MoonlanderWorld-dodge-simple-v0",
+             entry_point="src.custom_envs.moonlander.moonlander_env:MoonlanderWorldEnv",
+             kwargs={'task': 'dodge', 'reward_function': 'simple'},
+             max_episode_steps=500)
