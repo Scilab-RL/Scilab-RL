@@ -213,7 +213,7 @@ class CLEANSAC_FW_ENS:
         self.forward_model = ForwardNetEnsemble(self.fwd, self.env, DeterministicForwardNetwork)
         self.fw_optimizer = [torch.optim.Adam(model.parameters(), lr=self.learning_rate) for model in self.forward_model.ensemble]
 
-        #self.forward_model.pre_train_model(self.fw_optimizer)
+        self.forward_model.pre_train_model(self.fw_optimizer)
 
     def _create_actor_critic(self) -> None:
         self.actor = Actor(self.env, self.action_scale_factor).to(self.device)
