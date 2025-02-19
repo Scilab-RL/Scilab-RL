@@ -3,9 +3,9 @@ from torch.utils.data import DataLoader, Dataset
 from collections import OrderedDict
 import torch
 
-class Fwd_Training_Dataset(Dataset):
+class Fwd_Dataset(Dataset):
     """
-    This class is not used for collecting training data. It is just a necessary intermediary for preparing the dataloader.
+    This class is not used for collecting training and testing data. It is just a necessary intermediary for preparing the dataloader.
     """
     def __init__(self, data):
         self.obs = data['observation']
@@ -19,9 +19,9 @@ class Fwd_Training_Dataset(Dataset):
     def __getitem__(self, idx):
         return self.obs[idx], self.action[idx], self.next_obs[idx], self.reward[idx]
 
-class Fwd_Training_Data():
+class Fwd_Data():
     """
-    Used to collect training data and to prepare it for model training.
+    Used to collect data and to prepare it for model training and testing.
     """
     def __init__(self):
         self.raw_data = {
@@ -30,10 +30,9 @@ class Fwd_Training_Data():
             'next_observation' : [],
             'reward' : []
         }
-        #self.data_set = Training_Data()
-        #self.data_loader = DataLoader(self.raw_data)
 
-    def collect_training_data(self, obs, action, next_obs, reward):
+
+    def collect_data(self, obs, action, next_obs, reward):
         if isinstance(obs, OrderedDict):
             obs = torch.tensor(obs['observation'], dtype = torch.float32)
             action = torch.tensor(action, dtype = torch.float32)
@@ -54,8 +53,8 @@ class Fwd_Training_Data():
         self.raw_data['reward'].append(reward)
 
     def prepare_dataloader(self, batch_size = 256, shuffle = True):
-        fwd_training_dataset = Fwd_Training_Dataset(self.raw_data)
-        self.dataloader = DataLoader(fwd_training_dataset, batch_size = batch_size, shuffle = shuffle)
+        fwd_dataset = Fwd_Dataset(self.raw_data)
+        self.dataloader = DataLoader(fwd_dataset, batch_size = batch_size, shuffle = shuffle)
 
     def get_dataloader(self):
         self.prepare_dataloader()

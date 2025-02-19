@@ -6,7 +6,7 @@ from torch.distributions import Normal
 from gymnasium import spaces
 import os
 from collections import OrderedDict
-from utils.fw_utils import Fwd_Training_Data
+from utils.fw_utils import Fwd_Data
 
 LOG_STD_MAX = 2
 LOG_STD_MIN = -5
@@ -107,8 +107,8 @@ class ProbabilisticForwardNet(nn.Module):
             losses.append(self.loss_func(obs, action, next_obs, reward).mean().detach().item())
         return np.mean(losses)
 
-    def collect_training_data(self, training_data:Fwd_Training_Data, last_obs, action, new_obs, reward):
-        training_data.collect_training_data(last_obs, action, new_obs, reward)
+    def collect_data(self, training_data:Fwd_Data, last_obs, action, new_obs, reward):
+        training_data.collect_data(last_obs, action, new_obs, reward)
 
     def save_model(self, model_name):
         torch.save(self, os.path.join(self.cfg['model_save_path'], f'{model_name}.pt'))
@@ -126,8 +126,8 @@ class ForwardNetEnsemble(nn.Module):
                 for _ in range(self.ensemble_size)
             ]
         )
-        self.training_data = Fwd_Training_Data()
-        self.test_data = Fwd_Training_Data()
+        self.training_data = Fwd_Data()
+        self.test_data = Fwd_Data()
         self.stop_training = False
         self.prev_loss = 10000
 
@@ -149,12 +149,12 @@ class ForwardNetEnsemble(nn.Module):
         self.prev_loss = mean_loss
         return mean_loss
 
-    def collect_training_data(self, last_obs, action, new_obs, reward):
+    def collect_data(self, last_obs, action, new_obs, reward):
         if self.stop_training: return
         if np.random.rand() < 0.2:
-            self.test_data.collect_training_data(last_obs, action, new_obs, reward)
+            self.test_data.collect_data(last_obs, action, new_obs, reward)
         else:
-            self.training_data.collect_training_data(last_obs, action, new_obs, reward)
+            self.training_data.collect_data(last_obs, action, new_obs, reward)
 
     def pre_train_model(self, optimizer):
         # Load data
@@ -171,7 +171,7 @@ class ForwardNetEnsemble(nn.Module):
         # for batch
         for i in range(len(observations)):
             if self.stop_training: break
-            self.collect_training_data(observations[i], actions[i], next_observations[i], rewards[i])
+            self.collect_data(observations[i], actions[i], next_observations[i], rewards[i])
             if i % 32 == 0:
                 self.train(optimizer)
 
