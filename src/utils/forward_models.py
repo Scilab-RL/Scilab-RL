@@ -91,7 +91,10 @@ class ProbabilisticForwardNet(nn.Module):
         if len(action.shape) != len(obs.shape):
             action = torch.unsqueeze(action, dim=0)
 
-        return self.forward(obs, action).loc.detach() + obs.detach()
+        predictions = self.forward(obs, action)
+        next_obs_prediction_dist = predictions["next_state"]
+        predictions["next_state"] = next_obs_prediction_dist.loc.detach() + obs.detach
+        return predictions
 
     def train(self, optimizer, dataloader):
         for obs, action, next_obs, reward in dataloader:
