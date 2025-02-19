@@ -63,13 +63,13 @@ class ProbabilisticForwardNet(nn.Module):
         return nn.Sequential(*layers)
 
     def l2_loss_delta(self, obs, action, next_obs, reward):
-        if self.predict_reward:
-            next_obs_prediction_dist, reward_prediction = self(obs, action)
-            next_obs_prediction = next_obs_prediction_dist.loc
-            loss = (next_obs_prediction - (next_obs - obs)) ** 2 + (reward_prediction - reward) ** 2
-        else:
-            next_obs_prediction = self(obs, action).loc
-            loss = (next_obs_prediction - (next_obs - obs)) ** 2
+        predictions = self(obs, action)
+        next_obs_prediction_dist = predictions["next_state"]
+        next_obs_prediction = next_obs_prediction_dist.loc
+        loss = (next_obs_prediction - (next_obs - obs)) ** 2
+        if "reward" in predictions.keys():
+            reward_prediction = predictions["reward"]
+            loss = loss + (reward_prediction - reward) ** 2
         return loss
 
     def nll_loss_delta(self, obs, action, next_obs):
@@ -209,5 +209,8 @@ class DeterministicForwardNetwork(ProbabilisticForwardNet):
         hx = self.state_action_encoder(hx)
         next_state = self.state_action_model(hx)
         next_state_dist = Normal(next_state, torch.zeros_like(next_state)+10**(-10))
-
-        return (next_state_dist, self.reward(hx).squeeze(-1)) if self.predict_reward else next_state_dist
+        predictions = {"next_state": next_state_dist}
+        if self.predict_reward:
+            reward = self.reward(hx).squeeze(-1)
+            predictions.update({"reward": reward})
+        return predictions
