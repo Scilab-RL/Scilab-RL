@@ -213,7 +213,7 @@ class CLEANSAC_FW_ENS:
         self.forward_model = ForwardNetEnsemble(self.fwd, self.env, DeterministicForwardNetwork)
         self.fw_optimizer = [torch.optim.Adam(model.parameters(), lr=self.learning_rate) for model in self.forward_model.ensemble]
 
-        self.forward_model.pre_train_model(self.fw_optimizer)
+        #self.forward_model.pre_train_model(self.fw_optimizer)
 
     def _create_actor_critic(self) -> None:
         self.actor = Actor(self.env, self.action_scale_factor).to(self.device)
@@ -248,11 +248,6 @@ class CLEANSAC_FW_ENS:
                 """
                 if self.num_timesteps % self.fwd['train_every_n_data'] == 0:
                     self.forward_model.train(self.fw_optimizer)
-
-                    # Sollte der Train loss auch für jedes model einzeln geloggt werden?
-                    #for i, model in enumerate(self.forward_model.ensemble):
-                    #    self.logger.record(f"fwd/train_loss_{i}", model.get_average_loss())
-
                     self.logger.record('fwd/train_loss', self.forward_model.get_average_loss())
 
         callback.on_training_end()
