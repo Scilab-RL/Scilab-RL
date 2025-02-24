@@ -15,15 +15,13 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback
 from stable_baselines3.common.buffers import DictReplayBuffer
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
-
 LOG_STD_MAX = 2
 LOG_STD_MIN = -20
 
 """
 Imports for the fw models
 """
-from utils.forward_models import DeterministicForwardNetwork, ProbabilisticForwardMLENetwork
-from utils.fw_utils import Fwd_Training_Data
+from utils.forward_models import ForwardNetEnsemble, DeterministicForwardNetwork, ProbabilisticForwardMLENetwork
 
 class Actor(nn.Module):
     def __init__(self, env, action_scale_factor=1.0):
@@ -212,10 +210,10 @@ class CLEANSAC_FW:
         """
         Forward model initialization
         """
-        self.forward_model = DeterministicForwardNetwork(self.fwd, self.env)
-        self.fw_optimizer = torch.optim.Adam(self.forward_model.parameters(), lr=self.learning_rate)
+        self.forward_model = ForwardNetEnsemble(self.fwd, self.env, DeterministicForwardNetwork)
+        self.fw_optimizer = [torch.optim.Adam(model.parameters(), lr=self.learning_rate) for model in self.forward_model.ensemble]
 
-        self.fwd_training_data = Fwd_Training_Data()
+        #self.forward_model.pre_train_model(self.fw_optimizer)
 
     def _create_actor_critic(self) -> None:
         self.actor = Actor(self.env, self.action_scale_factor).to(self.device)
@@ -249,10 +247,8 @@ class CLEANSAC_FW:
                 Forward model training
                 """
                 if self.num_timesteps % self.fwd['train_every_n_data'] == 0:
-                    fw_data_loader = self.fwd_training_data.get_dataloader()
-                    self.forward_model.train(self.fw_optimizer, fw_data_loader)
-
-                    self.logger.record('fwd/train_loss', self.forward_model.get_average_loss(fw_data_loader))
+                    self.forward_model.train(self.fw_optimizer)
+                    self.logger.record('fwd/train_loss', self.forward_model.get_average_loss())
 
         callback.on_training_end()
 
@@ -323,7 +319,7 @@ class CLEANSAC_FW:
         self.replay_buffer.add(self._last_obs, next_obs, action, rewards, dones, infos)
 
         # Collect training data for the forward model
-        self.forward_model.collect_training_data(self.fwd_training_data, self._last_obs, action, new_obs)
+        self.forward_model.collect_data(self._last_obs, action, new_obs, rewards)
 
         self._last_obs = new_obs
 
