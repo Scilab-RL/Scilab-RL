@@ -64,13 +64,19 @@ class ProbabilisticForwardNet(nn.Module):
         predictions = self(obs, action)
         next_obs_prediction = predictions["next_state"].loc
         loss = (next_obs_prediction - (next_obs - obs)) ** 2
+
         if "reward" in predictions.keys():
             loss = loss + (predictions["reward"] - reward) ** 2
+
         return loss
 
-    def nll_loss_delta(self, obs, action, next_obs):
+    def nll_loss_delta(self, obs, action, next_obs, reward):
         forward_normal = self(obs, action)
-        fwd_normal_loss = -forward_normal.log_prob(next_obs - obs)
+        fwd_normal_loss = -forward_normal["next_state"].log_prob(next_obs - obs)
+
+        if "reward" in forward_normal.keys():
+            fwd_normal_loss = fwd_normal_loss + -forward_normal["reward"].log_prob(reward)
+
         return fwd_normal_loss
 
     def predict(self, obs, action):
@@ -176,19 +182,34 @@ class ForwardNetEnsemble(nn.Module):
 class ProbabilisticForwardMLENetwork(ProbabilisticForwardNet):
     def __init__(self, config, env):
         super().__init__(config, env)
+
         # Building the state-action encoder and output layers dynamically based on n_hidden_layers
         self.state_action_encoder = self.build_hidden_layers(self.input_shape, self.hidden_size)
         self.fw_mu = self.build_hidden_layers(self.hidden_size, self.obs_shape)
         self.fw_log_std = self.build_hidden_layers(self.hidden_size, self.obs_shape)
 
+        if self.predict_reward == True:
+            self.reward = self.build_hidden_layers(self.hidden_size, 1)
+            self.reward_log_std = self.build_hidden_layers(self.hidden_size, 1)
+
     def forward(self, obs, action):
         assert (self.obs_shape == obs.shape[-1])
         assert (self.action_shape == action.shape[-1])
+
         hx = torch.cat([obs, action], dim=-1).float()
         hx = self.state_action_encoder(hx)
         fw_mu, fw_log_std = self.fw_mu(hx), self.fw_log_std(hx)
+
         fw_log_std = torch.clamp(fw_log_std, LOG_STD_MIN, LOG_STD_MAX)
-        return Normal(fw_mu, fw_log_std.exp())
+
+        predictions = {"next_state": Normal(fw_mu, fw_log_std.exp())}
+
+        if self.predict_reward:
+            reward_mu = self.reward(hx).squeeze(-1)  # Mean of the reward distribution
+            reward_log_std = torch.clamp(self.reward_log_std(hx).squeeze(-1), LOG_STD_MIN, LOG_STD_MAX)
+            predictions["reward"] = Normal(reward_mu, reward_log_std.exp())  # Treat reward as a Gaussian
+
+        return predictions
 
 
 class DeterministicForwardNetwork(ProbabilisticForwardNet):
