@@ -164,8 +164,6 @@ class CLEANSAC_FW:
         self.log_obs_step = log_obs_step
         self.log_act_step = log_act_step
 
-        self.fwd = fwd
-
         self.env = env
         if isinstance(self.env.action_space, spaces.Box):
             assert np.all(
@@ -210,6 +208,7 @@ class CLEANSAC_FW:
         """
         Forward model initialization
         """
+        self.fwd = fwd
         self.forward_model = ForwardNetEnsemble(self.fwd, self.env, DeterministicForwardNetwork)
         self.fw_optimizer = [torch.optim.Adam(model.parameters(), lr=self.learning_rate) for model in self.forward_model.ensemble]
 
@@ -318,7 +317,7 @@ class CLEANSAC_FW:
                     next_obs[key][i] = next_obs_[key]
         self.replay_buffer.add(self._last_obs, next_obs, action, rewards, dones, infos)
 
-        # Collect training data for the forward model
+        # Collect data for the forward model
         self.forward_model.collect_data(self._last_obs, action, new_obs, rewards)
 
         self._last_obs = new_obs

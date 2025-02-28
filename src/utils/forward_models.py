@@ -162,7 +162,7 @@ class ForwardNetEnsemble(nn.Module):
     def pre_train_model(self, optimizer):
         # Load data
         try:
-            file_path = os.path.expanduser(self.config["model_save_path"])
+            file_path = os.path.expanduser(self.config["pre_train_data_path"])
             loaded_data = torch.load(file_path)
         except FileNotFoundError:
             return
