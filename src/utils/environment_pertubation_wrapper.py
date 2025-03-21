@@ -3,6 +3,7 @@ from typing import Any, Callable, SupportsFloat
 import gymnasium as gym
 from gymnasium.spaces import Space, Box
 from gymnasium.core import ActType, ObsType, WrapperActType
+import numpy as np
 
 """
 This code is from https://github.com/dohmjan/aerl/
@@ -153,6 +154,65 @@ class InvertAction(
                 _action[dim] *= -1
             else:
                 _action *= -1
+            return _action
+
+        gym.utils.RecordConstructorArgs.__init__(self)
+        SleepingTransformAction.__init__(
+            self,
+            env=env,
+            func=_action_func,
+            action_space=None,
+            toggle_at_step=toggle_at_step,
+            toggle_at_episode=toggle_at_episode
+        )
+
+class NoiseAction(
+    SleepingTransformAction[ObsType, WrapperActType, ActType], gym.utils.RecordConstructorArgs
+):
+    """Adds gaussian noise to one or all dimensions of ``action`` which is passed to ``step``.
+
+    Example:
+        >>> import gymnasium as gym
+        >>> import numpy as np
+        >>> from aerl import NoiseAction
+        >>> env = gym.make("Hopper-v4", disable_env_checker=True)
+        >>> env = NoiseAction(env, dim=0, toggle_at_step=0, value=0.3)
+        >>> _ = env.reset(seed=42)
+        >>> _ = env.step(np.array([0.5, 0.5, 0.5], dtype=np.float32))
+        ... # Executes the action np.array([0.33258423, 0.5, 0.5]) in the base environment
+    """
+
+    def __init__(
+        self,
+        env: gym.Env[ObsType, ActType],
+        dim: int | None = None,
+        value: float = 0.3,
+        toggle_at_step: int | list[int] | float | None = None,
+        toggle_at_episode: int | list[int] | float | None = None
+    ):
+        """A wrapper for adding gaussian noise to one or all dimensions of the continuous action.
+
+        Args:
+            env: The environment to wrap.
+            dim: Action dimension that is transformed. None corresponds to all dimensions.
+            value: Standard deviation of the gaussian distribution.
+            toggle_at_step: Decides whether to apply transformation. If type is int, it's considered
+            True for all steps ongoing. If type is list[int], that represents a list of steps at
+            which it's alternately toggled True/False. If type is float, it's considered True for
+            that frequency of steps.
+            toggle_at_episode: Decides whether to apply transformation. If type is int, it's
+            considered True for all episodes ongoing. If type is list[int], that represents a list
+            of episodes at which it's alternately toggled True/False. If type is float, it's
+            considered True for that frequency of episodes.
+        """
+        assert isinstance(env.action_space, Box)
+
+        def _action_func(action):
+            _action = action.copy()
+            if dim is not None:
+                _action[dim] += np.random.normal(loc=0.0, scale=value)
+            else:
+                _action += np.random.normal(loc=0.0, scale=value, size=action.shape)
             return _action
 
         gym.utils.RecordConstructorArgs.__init__(self)
