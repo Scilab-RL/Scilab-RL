@@ -15,6 +15,7 @@ import myosuite
 from stable_baselines3.her import HerReplayBuffer
 from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
+from sympy.physics.units import action
 
 from custom_envs.register_envs import register_custom_envs
 from utils.util import get_git_label, set_global_seeds, get_train_render_schedule, get_eval_render_schedule, \
@@ -137,7 +138,7 @@ def create_callbacks(cfg, logger, eval_env):
     return callback
 
 def test_against_action_noise(cfg, logger, baseline, run_dir, mlflow_run):
-    noise_levels = [0.0, 0.2, 0.5, 1.0, 1.4, 2.5]
+    noise_levels = [0.0, 0.1, 0.5, 1.0, 2.5, 5.0]
     noise_results = {n: None for n in noise_levels}  # Initialize with None
 
     for noise in noise_levels:
@@ -149,7 +150,6 @@ def test_against_action_noise(cfg, logger, baseline, run_dir, mlflow_run):
 
             logger.info(f"Evaluating with action noise std: {noise}")
             test_env, _ = get_env_instance(test_cfg, logger)
-
             success_list = []
             for _ in range(200):
                 obs = test_env.reset()
@@ -168,7 +168,7 @@ def test_against_action_noise(cfg, logger, baseline, run_dir, mlflow_run):
             test_env.close()
 
         except Exception as e:
-            logger.warning(f"Skipping noise level {noise} due to error: {e}")
+            logger.info(f"Skipping noise level {noise} due to error: {e}")
             noise_results[noise] = -1  # Indicate failed test
 
     # Ensure WandB logging works even if some tests failed
