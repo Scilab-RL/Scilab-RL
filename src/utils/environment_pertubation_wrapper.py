@@ -205,7 +205,7 @@ class NoiseAction(
             of episodes at which it's alternately toggled True/False. If type is float, it's
             considered True for that frequency of episodes.
         """
-        assert isinstance(env.action_space, Box)
+        #assert isinstance(env.action_space, Box)
 
         def _action_func(action):
             _action = action.copy()
