@@ -28,8 +28,13 @@ OmegaConf.register_new_resolver("git_label", get_git_label)
 
 
 def get_env_instance(cfg, logger):
-    train_env = gym.make(cfg.env, **cfg.env_kwargs)
-    eval_env = gym.make(cfg.env, **cfg.env_kwargs)
+    env_kwargs = cfg.env_kwargs
+    env = cfg.env
+    if cfg['environment'].name != "default":
+        env = cfg['environment'].name
+        env_kwargs = OmegaConf.to_container(cfg.environment.kwargs)
+    train_env = gym.make(env, **env_kwargs)
+    eval_env = gym.make(env, **env_kwargs)
 
     # wrappers for rendering
     train_render_schedule = get_train_render_schedule(cfg.render_freq)

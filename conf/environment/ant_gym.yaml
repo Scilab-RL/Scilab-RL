@@ -1,0 +1,9 @@
+name: 'AntGym'
+
+kwargs:
+  reward_type: "sparse"
+  frame_skip: 15
+  distance_threshold: 1.0
+  maze_map: 'open'
+  continuing_task: 0
+  reset_target: 0

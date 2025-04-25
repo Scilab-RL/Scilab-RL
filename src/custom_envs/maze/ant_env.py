@@ -8,12 +8,70 @@ GymnasiumAntMazeEnvClass = load_env_creator('gymnasium_robotics.envs.maze.ant_ma
 CAMERA_CONFIG = {
         "distance": 5.0,
     }
+
+class MazeMap:
+    RESET = R = "r"  # Initial Reset position of the agent
+    GOAL = G = "g"
+    COMBINED = C = "c"  # These cells can be selected as goal or reset locations
+
+    OPEN = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ]
+    OPEN_DIVERSE_G = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, R, G, G, G, G, 1],
+        [1, G, G, G, G, G, 1],
+        [1, G, G, G, G, G, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ]
+    OPEN_DIVERSE_GR = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, C, C, C, C, C, 1],
+        [1, C, C, C, C, C, 1],
+        [1, C, C, C, C, C, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ]
+    SMALL_OPEN_DIVERSE_GR = [
+        [1, 1, 1, 1, 1],
+        [1, C, C, C, 1],
+        [1, C, C, C, 1],
+        [1, C, C, C, 1],
+        [1, 1, 1, 1, 1],
+    ]
+    SMALL_OPEN_DIVERSE_G = [
+        [1, 1, 1, 1, 1],
+        [1, G, G, G, 1],
+        [1, G, G, G, 1],
+        [1, G, G, G, 1],
+        [1, 1, 1, 1, 1],
+    ]
+    MEDIUM_CUSTOM_DIVERSE_GR = [[1, 1, 1, 1, 1, 1, 1, 1],
+                              [1, C, C, 1, 1, C, C, 1],
+                              [1, C, C, 1, C, C, C, 1],
+                              [1, 1, C, C, C, 1, 1, 1],
+                              [1, C, C, 1, C, C, C, 1],
+                              [1, C, 1, C, C, 1, C, 1],
+                              [1, C, C, C, 1, C, C, 1],
+                              [1, 1, 1, 1, 1, 1, 1, 1]]
+    name2map = {"open": OPEN,
+                "open_dg": OPEN_DIVERSE_G,
+                "open_dgr": OPEN_DIVERSE_GR,
+                "small_open_dg": SMALL_OPEN_DIVERSE_G,
+                "small_open_dgr": SMALL_OPEN_DIVERSE_GR,
+                "medium_custom_dgr": MEDIUM_CUSTOM_DIVERSE_GR,
+                }
+
 class AntGymMod(GymnasiumAntMazeEnvClass):
     metadata = GymnasiumAntMazeEnvClass.metadata
     metadata['render_fps'] = 30
 
     def __init__(self, distance_threshold=0.45, frame_skip=5, **kwargs):
         self.distance_threshold = distance_threshold
+        kwargs["maze_map"] = MazeMap.name2map[kwargs["maze_map"]]
         super().__init__(**kwargs)
         self.ant_env.frame_skip = frame_skip
         return

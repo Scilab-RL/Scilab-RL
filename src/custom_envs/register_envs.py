@@ -68,6 +68,8 @@ def _merge(a, b):
 
 def register_custom_envs():
 
+    register(id="AntGym", entry_point='custom_envs.maze.ant_env:AntGymMod', max_episode_steps = 300,)
+
     ## Custom Ant environments
     for reward_type in ["sparse", "sparseneg", "dense"]:
         for fs in [5,10,15,20]:
@@ -89,6 +91,9 @@ def register_custom_envs():
                                         kwargs = kwargs,
                                         max_episode_steps = max_ep_Steps,
                                         )
+
+    register(id='PointGym',entry_point='custom_envs.maze.point_env:PointGymMod',max_episode_steps=300,)
+    register(id='PointObjGym',entry_point='custom_envs.maze.point_obj_env:PointObjEnv',max_episode_steps=300,)
     ## Custom PointMaze environments
     for reward_type in ["sparse", "sparseneg", "dense"]:
             for dt in [0.5, 1.0, 1.5]:
