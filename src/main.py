@@ -129,10 +129,18 @@ def create_callbacks(cfg, logger, eval_env):
 # config_path is relative to the location of the Python script
 @hydra.main(config_name="main", config_path="../conf", version_base="1.1.2")
 def main(cfg: DictConfig) -> (float, int):
+
     run_dir = os.getcwd()
     if cfg.restore_policy is not None:
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
         run_dir = run_dir + "_restored"
+
+    # This is to needed to use a custom environment yaml
+    if hasattr(cfg, 'custom_env'):
+        if isinstance(cfg.custom_env, DictConfig) and "env" in cfg.custom_env:
+                cfg.env_kwargs = cfg.custom_env.get('env_kwargs', {})
+                cfg.env = cfg.custom_env.get('env')
+
     run_name = cfg['algorithm']['name'] + '_' + cfg['env']
 
     register_custom_envs()

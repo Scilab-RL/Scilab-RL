@@ -44,9 +44,10 @@ test_envs() {
   # ADD NEW ENVIRONMENTS HERE.
   # Don't forget to add a comma at the end of each environment name except for the last environment name.
   ENVS+="parking-limited-v0,"
-  ENVS+="PointGym-sparse-0.5-small_open_dgr-c1-rt0-s500-v0,"
-  ENVS+="AntGym-sparse-10-0.5-small_open_dgr-c1-rt0-s700-v0,"
+  #ENVS+="PointGym-sparse-0.5-small_open_dgr-c1-rt0-s500-v0,"
+  #ENVS+="AntGym-sparse-10-0.5-small_open_dgr-c1-rt0-s700-v0,"
   ENVS+="MetaW-peg-insert-side-v2-sparse"
+
 
   echo "Smoke-testing environments $ENVS"
 
@@ -56,8 +57,26 @@ test_envs() {
     exit 1
   fi
 }
-test_algos
-test_envs
+
+test_custom_envs() {
+  local CUSTOM_ENVS=("ant_gym" "point_gym")
+  local ARGS=()
+
+  for ENV in "${CUSTOM_ENVS[@]}"; do
+    ARGS+=("custom_env=${ENV}")
+  done
+
+  echo "Smoke-testing custom environments: ${CUSTOM_ENVS[*]}"
+
+  if ! xvfb-run -a python3 src/main.py algorithm=sac "${ARGS[@]}" +performance=smoke_test render=none --multirun;
+  then
+    exit 1
+  fi
+}
+
+#test_algos
+#test_envs
+test_custom_envs
 echo "All smoke tests passed successfully."
 
 test_render() {

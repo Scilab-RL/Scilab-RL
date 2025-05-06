@@ -1,6 +1,6 @@
-name: 'PointObjGym'
+env: 'PointObjGym'
 
-kwargs:
+env_kwargs:
   reward_type: 'sparse'
   distance_threshold: 0.5
   maze_map: 'open_dg'
