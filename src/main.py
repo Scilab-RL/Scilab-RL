@@ -135,11 +135,10 @@ def main(cfg: DictConfig) -> (float, int):
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
         run_dir = run_dir + "_restored"
 
-    # This is to needed to use a custom environment yaml
-    if hasattr(cfg, 'custom_env'):
-        if isinstance(cfg.custom_env, DictConfig) and "env" in cfg.custom_env:
-                cfg.env_kwargs = cfg.custom_env.get('env_kwargs', {})
-                cfg.env = cfg.custom_env.get('env')
+    env_yaml_path = os.path.join(hydra.utils.get_original_cwd(), "conf", "custom_env", f"{cfg.env}.yaml")
+    if os.path.isfile(env_yaml_path):
+        env_config = OmegaConf.load(env_yaml_path)
+        cfg.env_kwargs = env_config.env_kwargs
 
     run_name = cfg['algorithm']['name'] + '_' + cfg['env']
 

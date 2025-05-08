@@ -3,7 +3,6 @@ defaults:
   # here we use hydras config group defaults
   - _self_
   - algorithm: 'cleansac'
-  - optional custom_env: '' # The name of custom environment (yaml file name) that you want to train on. If the file doesnt exist, it uses the environment in the env field.
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
   - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time. The standard launcher is much better for debugging.

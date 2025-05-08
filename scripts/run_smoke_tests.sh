@@ -58,25 +58,8 @@ test_envs() {
   fi
 }
 
-test_custom_envs() {
-  local CUSTOM_ENVS=("ant_gym" "point_gym")
-  local ARGS=()
-
-  for ENV in "${CUSTOM_ENVS[@]}"; do
-    ARGS+=("custom_env=${ENV}")
-  done
-
-  echo "Smoke-testing custom environments: ${CUSTOM_ENVS[*]}"
-
-  if ! xvfb-run -a python3 src/main.py algorithm=sac "${ARGS[@]}" +performance=smoke_test render=none --multirun;
-  then
-    exit 1
-  fi
-}
-
-#test_algos
-#test_envs
-test_custom_envs
+test_algos
+test_envs
 echo "All smoke tests passed successfully."
 
 test_render() {
