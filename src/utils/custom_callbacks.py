@@ -1,16 +1,12 @@
 import os
 import mlflow
 import numpy as np
-from omegaconf import OmegaConf
 from typing import Dict, Any
 
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import sync_envs_normalization
-from stable_baselines3.common.vec_env import DummyVecEnv
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
-import gymnasium as gym
 
 class EarlyStopCallback(BaseCallback):
     """
