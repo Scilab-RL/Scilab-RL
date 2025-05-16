@@ -48,8 +48,18 @@ You can see how long ago your experiments started, how long they took and whethe
 
 ![image](uploads/f12af50bf98ecd544bb5ddd38fac52de/image.png)
 
-If you click on the start time of a run, you can inspect it in greater detail. You can look at the parameters, the metrics, and artifacts like the console outputs. You can also click on the metrics, to show how they changed over time. In the following example, the `rollout/success_rate` and `test/success_rate` are displayed. The x-axis shows the steps, because that is the most sensible option for reinforcement learning experiments. The run stopped after 12000 steps, because the early stopping threshold was reached. The `rollout/success_rate` is worse, because there are random perturbations during the rollout (for exploration and robustness) that are not present during the evaluation.
+If you click on the entry of a run, you can inspect it in greater detail. You can look at the parameters, the metrics, and artifacts like the console outputs. You can also click on the metrics, to show how they changed over time. In the following example, the `rollout/success_rate` and `test/success_rate` are displayed. The x-axis shows the steps, because that is the most sensible option for reinforcement learning experiments. The run stopped after 12000 steps, because the early stopping threshold was reached. The `rollout/success_rate` is worse, because there are random perturbations during the rollout (for exploration and robustness) that are not present during the evaluation.
 
 ![image](uploads/336c4dc19bb9e5ed77f7669550292576/image.png)
 
 MLFlow works completely offline, in contrast to Weights and Biases which needs an internet connection. Weights and Biases however has more features like comparing or averaging runs.
+
+### MLFlow via SSH
+To access MLFlow using SSH, forward the remote port to your local machine with the following command: 
+```bash
+ssh -L <local_port>:localhost:<remote_port> <username>@<server_ip>
+```
+- `<local_port>`: Port on the local machine for traffic forwarding (e.g., `8080`).
+- `<remote_port>`: The port on the server where the service is running (e.g., `8000`).
+- `<username>`: The SSH username.
+- `<server_ip>`: The server's IP address or domain.

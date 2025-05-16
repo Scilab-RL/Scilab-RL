@@ -16,7 +16,7 @@ How to configure [Pycharm](Pycharm) for this project.
 How to [run a standard algorithm](Run-a-standard-algorithm)(SAC with Hindsight Experience Replay from stable baselines 3) and interpret the console output. This is also a good starting point for checking out 
 other tutorials.
 
-How to [visualize and render](Visualization).
+How to [visualize and render](Online-metric-visualization).
 
 How to [manage hyperparameters and arguments with Hydra](Hyperparameter-management-with-Hydra).
 
