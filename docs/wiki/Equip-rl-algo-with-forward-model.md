@@ -106,8 +106,11 @@ fwd:
   loss_func : 'l2'  # for deterministic models, use l2; for probabilisticMLE model use nll. You can implement your desired loss in src.utils.forward_models.py
   fw_batch_size : 256
   fw_learning_rate : 0.0001
-  retrain_every_n_steps : 2000  # can be set to 1 for algos that already train only in every k'th step
+  train_every_n_data : 2000  # can be set to 1 for algos that already train only in every k'th step
+  ensemble_size : 3
+  predict_reward: 1 # can be set to 0 if you don't want to predict the reward, but only the next state
   model_save_path : 'your/path/here'
+  pre_train_data_path : 'your/path/here'
 
 ```
 
@@ -119,8 +122,11 @@ fwd:
 4. loss_func: Empirical risk function.
 5. fw_batch_size: Batch size for training the forward model.
 6. fw_learning_rate: Learning rate for training the forward model.
-7. retrain_every_n_steps: In most cases, it makes sense to retrain the forward model only after n new data points have been collected. Training after every step slows the process down considerably.
-8. model_save_path: If you want to save the model or its state_dict.
+7. train_every_n_steps: In most cases, it makes sense to retrain the forward model only after n new data points have been collected. Training after every step slows the process down considerably.
+8. ensemble_size: Specifies the number of models in the ensemble. Set to `1` for a single model.  
+9. predict_reward: Determines whether the model predicts only the next state (`0`) or both the next state and the reward (`1`).  
+10. model_save_path: Defines the file path where the model or its `state_dict` should be saved.  
+11. pre_train_data_path: Specifies the file path for pretraining data. If using pretraining, provide the path to a `.pt` file. For more details on saving and loading models, refer to the [PyTorch documentation](https://pytorch.org/tutorials/beginner/saving_loading_models.html).
 
 ## Import the desired forward model class and the training data buffer
 
@@ -130,14 +136,13 @@ The class `DeterministicForwardModel` is a point estimator for the next observat
 
 The class `ProbabilisticForwardMLENetwork` learns a normal distribution over the predicted next observation.
 
-Import the class you need and the training data buffer to your `cleansac_mod_fw.py` as follows:
+Import the class you need to your `cleansac_mod_fw.py` as follows:
 
 ```
 """
 Imports for the fw models
 """
 from utils.forward_models import DeterministicForwardNetwork, ProbabilisticForwardMLENetwork
-from utils.fw_utils import Fwd_Training_Data
 ```
 
 
@@ -207,15 +212,13 @@ class CLEANSAC_MOD_FW:
         Forward model initialization
         """
         self.fwd = fwd
-        self.forward_model = DeterministicForwardNetwork(self.fwd, self.env)
-        self.fw_optimizer = torch.optim.Adam(self.forward_model.parameters(), lr=self.learning_rate)
-
-        self.fwd_training_data = Fwd_Training_Data()
+        self.forward_model = ForwardNetEnsemble(self.fwd, self.env, DeterministicForwardNetwork)
+        self.fw_optimizer = [torch.optim.Adam(model.parameters(), lr=self.learning_rate) for model in self.forward_model.ensemble]
 ```
 
 ## Find the appropriate place to collect training data
 
-Training data consists of triples `(observation, action, next_observation)`, which you want to push into your training data buffer.
+Training data consists of triples `(observation, action, next_observation, reward)`, which you want to push into your training data buffer.
 
 Those triples are typically available right after an `env.step(action)` was performed, and BEFORE the `last_observation` is overwritten by a new observation.
 
@@ -229,8 +232,8 @@ In `cleansac`, an appropriate place is directly in the `step_env()` method, righ
 
         (...)
 
-        # Collect training data for the forward model
-        self.forward_model.collect_training_data(self.fwd_training_data, self._last_obs, action, new_obs)
+        # Collect data for the forward model
+        self.forward_model.collect_data(self._last_obs, action, new_obs, rewards)
 
         self._last_obs = new_obs
 
@@ -239,8 +242,6 @@ In `cleansac`, an appropriate place is directly in the `step_env()` method, righ
 ## Train your model
 
 A good place to call your forward models `train` method is typically in your algorithms `learn` method (right after calling the RL-algorithms own `train` method).
-
-Before training your forward model, it is recommended to batch your data using your data buffers `get_dataloader` method. It is also recommended to log the train loss in order to check, whether the forward model actually learns.
 
 Everytime the forward models `train` method is called, it is (re-)trained on the whole training data set collected so far. It would be very inefficient to do this after every step, because the gradient computation and backpropagation is rather costly.
 
@@ -261,10 +262,9 @@ Instead, we recommend to only (re-)train your forward model every n'th step:
                 """
                 Forward model training
                 """
-                if self.num_timesteps % self.fwd['retrain_every_n_steps'] == 0:  # only train every n steps
-                    fw_data_loader = self.fwd_training_data.get_dataloader()
-                    self.forward_model.train(self.fw_optimizer, fw_data_loader)
-
+                if self.num_timesteps % self.fwd['train_every_n_data'] == 0:
+                    self.forward_model.train(self.fw_optimizer)
+               
                     self.logger.record('fwd/train_loss', self.forward_model.get_average_loss(fw_data_loader))
 
         (...)
@@ -371,4 +371,22 @@ def predict(self, observation: torch.Tensor, action: torch.Tensor) -> torch.Tens
     torch.Tensor
         A tensor representing the predicted next observation (next state).
     """
+```
+
+## Pretraining the Forward Model
+
+Pretraining the forward model allows it to learn an initial approximation of the environment's dynamics before further training.
+
+To pretrain your model, call the `pre_train_model()` function after initializing the forward model. This function optimizes the model's parameters before it is used in a reinforcement learning setting.
+
+
+```
+"""
+Forward model initialization
+"""
+self.fwd = fwd
+self.forward_model = ForwardNetEnsemble(self.fwd, self.env, DeterministicForwardNetwork)
+self.fw_optimizer = [torch.optim.Adam(model.parameters(), lr=self.learning_rate) for model in self.forward_model.ensemble]
+
+self.forward_model.pre_train_model(self.fw_optimizer)
 ```

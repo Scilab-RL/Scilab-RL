@@ -34,4 +34,7 @@ fwd:
   fw_batch_size : 256
   fw_learning_rate : 0.0001
   train_every_n_data : 2000  # can be set to 1 for algos that already train only in every k'th step
+  ensemble_size : 3
+  predict_reward: 1 # can be set to 0 if you don't want to predict the reward, but only the next state
   model_save_path : 'your/path/here'
+  pre_train_data_path : 'your/path/here'
