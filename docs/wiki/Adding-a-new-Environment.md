@@ -127,3 +127,29 @@ to the imports.
 Finally, you could find out how fast your environment can be solved with [hyperparameter optimization](Hyperparameter-optimization) or check whether it runs with all algorithms by adding it to the `ENVS` in `test_algos()` in `scripts/run_smoke_tests.sh` ([more on smoke tests](Smoke-tests)).
 
 Further details can be found in [add environment to MakeDictObs wrapper](Add-environment-to-MakeDictObs-wrapper)
+
+## Creating a Custom YAML Configuration
+
+To parameterize your `env_kwargs`, you can create a custom YAML configuration file for your environment.  
+This file should be placed in the `conf/custom_env` directory.
+
+### Example
+
+Here's an example of what the YAML file might look like:
+
+```yaml
+env_kwargs:
+  reward_type: "dense"
+  frame_skip: 20
+  distance_threshold: 1.5
+  maze_map: "open"
+  continuing_task: 0
+  reset_target: 1
+  ```
+
+You can include any parameters you want, as long as they are used in the environment’s __init__ method.
+
+### How It Works
+
+When Hydra initializes the configuration in your main script, it will check whether a corresponding YAML file exists for the environment you're running with ScilabRL.
+If such a file is found, the values defined under env_kwargs in the YAML will be automatically loaded and applied.
