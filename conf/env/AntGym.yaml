@@ -1,4 +1,6 @@
+
 env_kwargs:
+  name: 'AntGym'
   reward_type: "dense"
   frame_skip: 20
   distance_threshold: 1.5
