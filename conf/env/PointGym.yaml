@@ -1,3 +1,4 @@
+name: 'PointGym'
 env_kwargs:
   reward_type: 'sparse'
   distance_threshold: 0.5

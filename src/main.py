@@ -30,8 +30,8 @@ OmegaConf.register_new_resolver("git_label", get_git_label)
 
 
 def get_env_instance(cfg, logger):
-    train_env = gym.make(cfg.env, **cfg.env_kwargs)
-    eval_env = gym.make(cfg.env, **cfg.env_kwargs)
+    train_env = gym.make(cfg.env.name, **cfg.env.env_kwargs)
+    eval_env = gym.make(cfg.env.name, **cfg.env.env_kwargs)
 
     # wrappers for rendering
     train_render_schedule = get_train_render_schedule(cfg.render_freq)
@@ -137,14 +137,21 @@ def main(cfg: DictConfig) -> (float, int):
         run_dir = os.path.split(cfg.restore_policy)[:-1][0]
         run_dir = run_dir + "_restored"
 
-    env_yaml_path = os.path.join(hydra.utils.get_original_cwd(), "conf", "custom_env", f"{cfg.env}.yaml")
-    if os.path.isfile(env_yaml_path):
-        env_config = OmegaConf.load(env_yaml_path)
-        cfg.env_kwargs = env_config.env_kwargs
-
-    run_name = cfg['algorithm']['name'] + '_' + cfg['env']
+    run_name = cfg['algorithm']['name'] + '_' + cfg['env']['name']
 
     register_custom_envs()
+
+    if cfg.env.name not in gym.envs.registration.registry:
+        original_cwd = hydra.core.hydra_config.HydraConfig.get().runtime.cwd
+        env_yaml_path = os.path.join(original_cwd, "conf", "env", f"{cfg.env.name}.yaml")
+        if os.path.exists(env_yaml_path):
+            os.remove(env_yaml_path)
+        raise RuntimeError(
+            f"\n Environment '{cfg.env.name}' is not registered in Gym.\n"
+            f" Tip: Did you forget to register the environment?\n"
+        )
+
+
     setup_mlflow(cfg)
 
     with mlflow.start_run(run_name=run_name) as mlflow_run:
@@ -203,6 +210,15 @@ def main(cfg: DictConfig) -> (float, int):
 
 
 if __name__ == '__main__':
+
+    marker_dirs = ("conf", "src", "scripts")
+    if not all(os.path.isdir(d) for d in marker_dirs):
+        raise RuntimeError(
+            f"\n This script must be run from the project root directory.\n"
+            f" Required folders not found: {marker_dirs}\n"
+            f" Current directory: {os.getcwd()}"
+        )
+
     # Generate an empty YAML file under conf based on the command line parameter env=<env name>
     def generate_empty_yaml(env_name):
         conf_dir = os.path.join(os.getcwd(), "conf", "env")
@@ -210,7 +226,7 @@ if __name__ == '__main__':
         yaml_path = os.path.join(conf_dir, f"{env_name}.yaml")
         if not os.path.exists(yaml_path):
             with open(yaml_path, 'w') as yaml_file:
-                yaml.dump({"name": env_name, "env_kwargs": {}}, yaml_file)
+                yaml.dump({"name": env_name, "env_kwargs": {}}, yaml_file, sort_keys=False)
                 yaml_file.flush()  # Ensure the buffer is flushed to disk
             print(f"Generated empty YAML file at: {yaml_path}")
         else:
