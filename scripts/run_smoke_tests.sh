@@ -44,9 +44,10 @@ test_envs() {
   # ADD NEW ENVIRONMENTS HERE.
   # Don't forget to add a comma at the end of each environment name except for the last environment name.
   ENVS+="parking-limited-v0,"
-  ENVS+="PointGym-sparse-0.5-small_open_dgr-c1-rt0-s500-v0,"
-  ENVS+="AntGym-sparse-10-0.5-small_open_dgr-c1-rt0-s700-v0,"
+  ENVS+="PointGym,"
+  ENVS+="AntGym,"
   ENVS+="MetaW-peg-insert-side-v2-sparse"
+
 
   echo "Smoke-testing environments $ENVS"
 
@@ -56,6 +57,7 @@ test_envs() {
     exit 1
   fi
 }
+
 test_algos
 test_envs
 echo "All smoke tests passed successfully."

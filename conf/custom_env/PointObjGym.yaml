@@ -1,0 +1,7 @@
+env_kwargs:
+  reward_type: 'sparse'
+  distance_threshold: 0.5
+  maze_map: 'open_dg'
+  continuing_task: 0
+  reset_target: 0
+  n_objects: 1

@@ -26,6 +26,61 @@ from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
 
 GymnasiumPointMazeEnvClass = load_env_creator('gymnasium_robotics.envs.maze.point_maze:PointMazeEnv')
 
+class MazeMap:
+    RESET = R = "r"  # Initial Reset position of the agent
+    GOAL = G = "g"
+    COMBINED = C = "c"  # These cells can be selected as goal or reset locations
+
+    OPEN = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ]
+    OPEN_DIVERSE_G = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, R, G, G, G, G, 1],
+        [1, G, G, G, G, G, 1],
+        [1, G, G, G, G, G, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ]
+    OPEN_DIVERSE_GR = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, C, C, C, C, C, 1],
+        [1, C, C, C, C, C, 1],
+        [1, C, C, C, C, C, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ]
+    SMALL_OPEN_DIVERSE_GR = [
+        [1, 1, 1, 1, 1],
+        [1, C, C, C, 1],
+        [1, C, C, C, 1],
+        [1, C, C, C, 1],
+        [1, 1, 1, 1, 1],
+    ]
+    SMALL_OPEN_DIVERSE_G = [
+        [1, 1, 1, 1, 1],
+        [1, G, G, G, 1],
+        [1, G, G, G, 1],
+        [1, G, G, G, 1],
+        [1, 1, 1, 1, 1],
+    ]
+    MEDIUM_CUSTOM_DIVERSE_GR = [[1, 1, 1, 1, 1, 1, 1, 1],
+                              [1, C, C, 1, 1, C, C, 1],
+                              [1, C, C, 1, C, C, C, 1],
+                              [1, 1, C, C, C, 1, 1, 1],
+                              [1, C, C, 1, C, C, C, 1],
+                              [1, C, 1, C, C, 1, C, 1],
+                              [1, C, C, C, 1, C, C, 1],
+                              [1, 1, 1, 1, 1, 1, 1, 1]]
+    name2map = {"open": OPEN,
+                "open_dg": OPEN_DIVERSE_G,
+                "open_dgr": OPEN_DIVERSE_GR,
+                "small_open_dg": SMALL_OPEN_DIVERSE_G,
+                "small_open_dgr": SMALL_OPEN_DIVERSE_GR,
+                "medium_custom_dgr": MEDIUM_CUSTOM_DIVERSE_GR,
+                }
 
 class MultiObjPointEnv(MujocoEnv):
 
@@ -117,6 +172,7 @@ class PointObjEnv(GymnasiumPointMazeEnvClass):
             n_objects = 1,
             **kwargs,
     ):
+        maze_map = MazeMap.name2map[maze_map]
         self.distance_threshold=distance_threshold
         self.n_objects = n_objects
         point_xml_file_path = path.join(

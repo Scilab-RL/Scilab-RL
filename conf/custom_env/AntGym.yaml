@@ -1,0 +1,7 @@
+env_kwargs:
+  reward_type: "dense"
+  frame_skip: 20
+  distance_threshold: 1.5
+  maze_map: 'open'
+  continuing_task: 0
+  reset_target: 1
