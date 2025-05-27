@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import importlib
 import hydra
@@ -23,7 +24,6 @@ from utils.custom_logger import setup_logger
 from utils.custom_callbacks import EarlyStopCallback, EvalCallback
 from utils.custom_wrappers import DisplayWrapper, RecordVideo
 import yaml
-import argparse
 
 # make git_label available in hydra
 OmegaConf.register_new_resolver("git_label", get_git_label)
@@ -209,8 +209,20 @@ def main(cfg: DictConfig) -> (float, int):
     return hyperopt_score, n_epochs, run_id
 
 
-if __name__ == '__main__':
+def generate_empty_yaml(env_name):
+    conf_dir = os.path.join(os.getcwd(), "conf", "env")
+    os.makedirs(conf_dir, exist_ok=True)
+    yaml_path = os.path.join(conf_dir, f"{env_name}.yaml")
+    if not os.path.exists(yaml_path):
+        with open(yaml_path, 'w') as yaml_file:
+            yaml.dump({"name": env_name, "env_kwargs": {}}, yaml_file, sort_keys=False)
+            yaml_file.flush()
+        print(f"Generated empty YAML file at: {yaml_path}")
+    else:
+        print(f"YAML file already exists at: {yaml_path}")
 
+if __name__ == '__main__':
+    # Ensure we're in the project root
     marker_dirs = ("conf", "src", "scripts")
     if not all(os.path.isdir(d) for d in marker_dirs):
         raise RuntimeError(
@@ -219,30 +231,16 @@ if __name__ == '__main__':
             f" Current directory: {os.getcwd()}"
         )
 
-    # Generate an empty YAML file under conf based on the command line parameter env=<env name>
-    def generate_empty_yaml(env_name):
-        conf_dir = os.path.join(os.getcwd(), "conf", "env")
-        os.makedirs(conf_dir, exist_ok=True)
-        yaml_path = os.path.join(conf_dir, f"{env_name}.yaml")
-        if not os.path.exists(yaml_path):
-            with open(yaml_path, 'w') as yaml_file:
-                yaml.dump({"name": env_name, "env_kwargs": {}}, yaml_file, sort_keys=False)
-                yaml_file.flush()  # Ensure the buffer is flushed to disk
-            print(f"Generated empty YAML file at: {yaml_path}")
-        else:
-            print(f"YAML file already exists at: {yaml_path}")
+    # Find and parse env= override (support sweep)
+    envs = []
+    for arg in sys.argv:
+        if arg.startswith("env="):
+            # Support comma-separated list: env=A,B,C
+            envs = arg.split("=", 1)[1].split(",")
+            break
 
-    # Check if env parameter is provided via command line arguments and generate the YAML file
-    parser = argparse.ArgumentParser(description="Generate an empty YAML file for the specified environment.")
-    parser.add_argument("overrides", nargs="*", help="Overrides for configuration, e.g., env=FetchPush")
-    args = parser.parse_args()
+    for env in envs:
+        generate_empty_yaml(env)
 
-    # Extract the 'env' argument from overrides if present
-    args.env = None
-    for override in args.overrides:
-        if override.startswith("env="):
-            args.env = override.split("=", 1)[1]
-
-    if args.env:
-        generate_empty_yaml(args.env)
+    # Import and run your Hydra main
     main()
