@@ -1,3 +1,4 @@
+name: 'AntGym'
 env_kwargs:
   reward_type: "dense"
   frame_skip: 20

@@ -3,15 +3,10 @@ defaults:
   # here we use hydras config group defaults
   - _self_
   - algorithm: 'cleansac'
+  - env: 'FetchReach-v2' # The name of the environment that you want to train on.
   - override hydra/sweeper: optuna
   - override hydra/sweeper/sampler: tpe
   - override hydra/launcher: custom_joblib # For multiprocessing, allows for n_jobs > 1. Comment this line to use the standard launcher which spawns a single process at a time. The standard launcher is much better for debugging.
-
-# The name of the OpenAI Gym environment that you want to train on.
-env: 'FetchReach-v2'
-
-# keyword arguments for the environment
-env_kwargs: {}
 
 # The render* args specify how and when to render and plot during training and testing.
 # 'record' is for recording the rendered scene as a video file without on-screen display,
@@ -79,7 +74,7 @@ hyperopt_criterion: 'eval/success_rate'
 
 hydra:
   run:
-    dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S}
+    dir: ${base_logdir}/${git_label:}/${env.name}/${now:%H-%M-%S}
   sweep:
-    dir: ${base_logdir}/${git_label:}/${env}/${now:%H-%M-%S}
+    dir: ${base_logdir}/${git_label:}/${env.name}/${now:%H-%M-%S}
     subdir: ${hydra.job.num}
